@@ -124,7 +124,7 @@ Busca TaskRecords con filtros y paginación.
 ```
 
 ### task.transition
-Transita un TaskRecord a un nuevo estado con validaciones.
+Transita un TaskRecord a un nuevo estado con validaciones y efectos secundarios.
 
 **Input:**
 ```json
@@ -133,24 +133,74 @@ Transita un TaskRecord a un nuevo estado con validaciones.
   "to": "review",
   "if_rev": 5,
   "evidence": {
-    "red_green_refactor_log": ["red: failing", "green: passing"],
-    "metrics": {"coverage": 0.85}
+    "red_green_refactor_log": ["red: 4 failing", "green: all passing"],
+    "metrics": {"coverage": 0.85, "lint": {"errors": 0, "warnings": 1}},
+    "acceptance_criteria_met": true,
+    "qa_report": {"total": 10, "passed": 10, "failed": 0},
+    "violations": [{"severity": "low", "description": "style issue"}],
+    "merged": true
   }
 }
 ```
 
+**Efectos por Transición:**
+- `dev → review`: Actualiza `red_green_refactor_log` y `metrics`
+- `review → dev`: Incrementa `rounds_review`
+- `qa → dev`: Actualiza `qa_report`
+- `qa → pr`: Actualiza `qa_report`
+
 ## 📊 Estados y Transiciones
 
-Los TaskRecords siguen un flujo de estados con validaciones estrictas:
+Los TaskRecords siguen un flujo de estados con validaciones estrictas y quality gates:
 
 ```
 po → arch → dev → review → po_check → qa → pr → done
+     ↓
+   dev (fast-track)
 ```
 
-### Reglas de Transición Importantes
-- **dev → review**: Requiere `red_green_refactor_log.length ≥ 2` y cobertura ≥80% (major) / ≥70% (minor)
-- **review → dev**: Máximo 2 rondas de review
-- **qa → pr**: `qa_report.failed = 0`
+### Estados Disponibles
+- **`po`**: Product Owner - Requisitos iniciales
+- **`arch`**: Architecture - Diseño y contratos
+- **`dev`**: Development - Implementación con TDD
+- **`review`**: Code Review - Revisión de pares
+- **`po_check`**: PO Check - Validación de criterios
+- **`qa`**: Quality Assurance - Testing automatizado
+- **`pr`**: Pull Request - Integración pendiente
+- **`done`**: Completado - Tarea finalizada
+
+### Transiciones y Guards
+
+| Desde | Hacia | Condición | Evidencia Requerida |
+|-------|-------|-----------|-------------------|
+| `po` | `arch` | `acceptance_criteria.length > 0` | - |
+| `po` | `dev` | `scope === 'minor'` (fast-track) | - |
+| `arch` | `dev` | `adr_id && contracts.length > 0` | - |
+| `dev` | `review` | Quality Gate: TDD logs + Coverage + No lint errors | `red_green_refactor_log`, `metrics` |
+| `review` | `dev` | Siempre (hasta 2 rondas) | - |
+| `review` | `po_check` | `!hasHighViolations(evidence)` | `violations` |
+| `po_check` | `qa` | `acceptance_criteria_met === true` | `acceptance_criteria_met` |
+| `qa` | `dev` | `qa_report` presente | `qa_report` |
+| `qa` | `pr` | `record.qa_report.failed === 0` | - |
+| `pr` | `done` | `merged === true` | `merged` |
+
+### Quality Gates
+
+#### Dev → Review
+- **TDD Logs**: `red_green_refactor_log.length ≥ 2`
+- **Coverage**: ≥80% (major) / ≥70% (minor)
+- **Lint**: `errors === 0`
+
+#### Review Rounds
+- Máximo 2 iteraciones `review → dev`
+- Después del límite: tarea requiere replanificación
+
+#### QA Gates
+- **QA Pass**: `qa_report.failed === 0`
+- **QA Fail**: Requiere `qa_report` para regresar a `dev`
+
+### Estados Terminales
+- **`done`**: Estado final, no permite transiciones salientes
 
 ## 🧪 Testing
 
