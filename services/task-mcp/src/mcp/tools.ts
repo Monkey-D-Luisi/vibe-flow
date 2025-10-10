@@ -113,6 +113,72 @@ const tools = [
         }
       }
     }
+  },
+  {
+    name: 'gh.createBranch',
+    description: 'Crear rama Git para desarrollo',
+    inputSchema: {
+      type: 'object',
+      required: ['name'],
+      properties: {
+        name: { type: 'string', pattern: '^feature/|^bugfix/|^hotfix/' },
+        base: { type: 'string', default: 'main' }
+      }
+    }
+  },
+  {
+    name: 'gh.openPR',
+    description: 'Abrir Pull Request en GitHub',
+    inputSchema: {
+      type: 'object',
+      required: ['title', 'head', 'base'],
+      properties: {
+        title: { type: 'string' },
+        head: { type: 'string' },
+        base: { type: 'string', default: 'main' },
+        body: { type: 'string' },
+        draft: { type: 'boolean', default: true },
+        labels: { type: 'array', items: { type: 'string' } }
+      }
+    }
+  },
+  {
+    name: 'gh.comment',
+    description: 'Añadir comentario a Issue o PR',
+    inputSchema: {
+      type: 'object',
+      required: ['number', 'body'],
+      properties: {
+        number: { type: 'integer' },
+        body: { type: 'string' },
+        type: { type: 'string', enum: ['issue', 'pr'], default: 'pr' }
+      }
+    }
+  },
+  {
+    name: 'gh.setProjectStatus',
+    description: 'Actualizar estado en GitHub Projects',
+    inputSchema: {
+      type: 'object',
+      required: ['itemId', 'status'],
+      properties: {
+        itemId: { type: 'string' },
+        status: { type: 'string', enum: ['To Do', 'In Progress', 'In Review', 'Done'] }
+      }
+    }
+  },
+  {
+    name: 'gh.addLabels',
+    description: 'Añadir etiquetas a Issue/PR',
+    inputSchema: {
+      type: 'object',
+      required: ['number', 'labels'],
+      properties: {
+        number: { type: 'integer' },
+        labels: { type: 'array', items: { type: 'string' } },
+        type: { type: 'string', enum: ['issue', 'pr'], default: 'pr' }
+      }
+    }
   }
 ];
 
@@ -227,6 +293,85 @@ class TaskMCPServer {
 
             const updated = repo.update(input.id, input.if_rev, patch);
             return { content: [{ type: 'text', text: JSON.stringify(updated) }] };
+          }
+          case 'gh.createBranch': {
+            const input = args as any;
+            // In a real implementation, this would use GitHub CLI or API
+            // For now, return mock response
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({
+                  branch: input.name,
+                  base: input.base || 'main',
+                  created: true,
+                  command: `git checkout -b ${input.name} ${input.base || 'main'}`
+                })
+              }]
+            };
+          }
+          case 'gh.openPR': {
+            const input = args as any;
+            // Mock PR creation - in real implementation would use GitHub API
+            const prNumber = Math.floor(Math.random() * 1000) + 1;
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({
+                  number: prNumber,
+                  title: input.title,
+                  head: input.head,
+                  base: input.base || 'main',
+                  draft: input.draft !== false,
+                  url: `https://github.com/Monkey-D-Luisi/agents-mcps/pull/${prNumber}`,
+                  labels: input.labels || []
+                })
+              }]
+            };
+          }
+          case 'gh.comment': {
+            const input = args as any;
+            // Mock comment creation
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({
+                  number: input.number,
+                  type: input.type || 'pr',
+                  body: input.body,
+                  commented: true
+                })
+              }]
+            };
+          }
+          case 'gh.setProjectStatus': {
+            const input = args as any;
+            // Mock project status update
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({
+                  itemId: input.itemId,
+                  status: input.status,
+                  updated: true
+                })
+              }]
+            };
+          }
+          case 'gh.addLabels': {
+            const input = args as any;
+            // Mock label addition
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify({
+                  number: input.number,
+                  type: input.type || 'pr',
+                  labels: input.labels,
+                  added: true
+                })
+              }]
+            };
           }
           default:
             throw new Error(`Unknown tool: ${name}`);

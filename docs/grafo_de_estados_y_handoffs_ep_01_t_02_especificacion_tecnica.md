@@ -71,7 +71,7 @@ Salida: TaskRecord actualizado o error `409` si `rev` desactualizado.
 - `review ↔ dev`: máx 2 rondas por TaskRecord. Superado el límite, requiere intervención del PO.
 
 ## Telemetría y trazas
-- Guardar en `links.jira.issueKey` y `links.git.branch` cuando existan.
+- Guardar en `links.github.issueNumber` y `links.git.branch` cuando existan.
 - Emitir evento `handoff` {from, to, when, tr_id} para observabilidad.
 
 ## DoD (EP01‑T02)

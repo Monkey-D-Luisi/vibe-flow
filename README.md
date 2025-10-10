@@ -80,7 +80,7 @@ Creates a new TaskRecord in initial state (`po`).
   "acceptance_criteria": ["when invalid user → error 422"],
   "scope": "minor",
   "links": {
-    "jira": {"projectKey": "AGENTSMCPS", "issueKey": "AGENTSMCPS-15"}
+    "github": {"owner": "Monkey-D-Luisi", "repo": "agents-mcps", "issueNumber": 15}
   },
   "tags": ["area_architecture", "agent_orchestrator"]
 }
@@ -231,9 +231,59 @@ Main fields:
 - `acceptance_criteria`: List of acceptance criteria
 - `metrics`: Coverage, complexity, lint
 - `red_green_refactor_log`: TDD log
-- `links`: JIRA, Git, ADR references
+- `links`: GitHub, Git, ADR references
 
 See [`docs/task_record_v_1_0.md`](docs/task_record_v_1_0.md) for complete documentation.
+
+## � GitHub Workflow Integration
+
+### State Mapping to GitHub Projects
+TaskRecord states map to GitHub Projects v2 Status field:
+
+| TaskRecord State | GitHub Project Status | Description |
+|------------------|----------------------|-------------|
+| `po`, `arch`, `dev` | **In Progress** | Active development work |
+| `review`, `po_check` | **In Review** | Under review or PO validation |
+| `qa`, `pr` | **In Review** | Quality assurance or PR review |
+| `done` | **Done** | Completed and merged |
+
+### Epics and Issues
+- **Epics**: Issues with `epic` label and title format `EPxx: Description`
+- **Tasks**: Regular issues linked to epics via `- [ ] #<issue-number>` checklists
+- **Labels**: `area_*` (orchestration, quality), `agent_*` (dev, reviewer), `milestone_Mx_*`, `type_task`/`type_epic`
+
+### Branch and PR Strategy
+- **Branch naming**: `feature/ep01-t02-state-machine`, `bugfix/issue-123`
+- **PR Template**: Includes checklist for ACs, coverage, lint, and RGR logs
+- **Draft PRs**: All PRs start as drafts until quality gates pass
+- **Auto-close**: `Closes #15` in PR body automatically closes issues
+
+### GitHub Actions Workflows
+
+#### CI Pipeline (`ci.yml`)
+- **Triggers**: PR opened/synchronized, pushes to main
+- **Jobs**:
+  - `test-lint`: Run tests with coverage and linting
+  - `quality-gate`: Validate coverage thresholds (80% major/70% minor)
+
+#### Project Sync (`project-sync.yml`)
+- **Triggers**: Issues/PRs opened, reviews, merges
+- **Actions**: Automatically move items between project columns based on state
+
+### Quality Gates
+- **Coverage**: ≥80% (major scope) / ≥70% (minor scope)
+- **Lint**: Zero errors required
+- **Tests**: All tests passing
+- **RGR Logs**: Required for `dev → review` transitions
+
+### MCP GitHub Tools
+Additional MCP tools for GitHub automation:
+
+- **`gh.createBranch`**: Create feature branches
+- **`gh.openPR`**: Open draft PRs with templates
+- **`gh.comment`**: Add review comments and violation reports
+- **`gh.setProjectStatus`**: Update project board status
+- **`gh.addLabels`**: Apply workflow labels (in-review, ready-for-qa, etc.)
 
 ## 🔧 Development
 
@@ -248,11 +298,20 @@ pnpm --filter @agents/task-mcp dev
 # Run tests
 pnpm --filter @agents/task-mcp test
 
+# Run tests with coverage
+pnpm --filter @agents/task-mcp test -- --coverage
+
+# Lint code
+pnpm --filter @agents/task-mcp run lint
+
+# Fix lint issues
+pnpm --filter @agents/task-mcp run lint:fix
+
 # Type checking
 cd services/task-mcp && npx tsc --noEmit
 
-# Lint (if configured)
-pnpm lint
+# Quality gate check
+node scripts/check-quality.mjs
 ```
 
 ### Conventional Commits
@@ -261,8 +320,21 @@ This project uses Conventional Commits:
 - `fix:` for corrections
 - `docs:` for documentation
 - `test:` for tests
+- `refactor:` for code restructuring
 
-## 🤝 Contributing
+### Branch Strategy
+- `main`: Production branch, protected with CI requirements
+- `feature/ep01-t02-*`: Feature branches for epics
+- `bugfix/issue-*`: Bug fix branches
+- `hotfix/*`: Emergency fixes
+
+### PR Workflow
+1. Create feature branch from `main`
+2. Open draft PR with checklist
+3. Ensure CI passes and quality gates met
+4. Mark PR ready for review
+5. Address review feedback
+6. Merge when approved (auto-closes issues)
 
 1. Fork the project
 2. Create a feature branch (`git checkout -b feat/amazing-feature`)

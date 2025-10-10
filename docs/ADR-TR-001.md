@@ -8,7 +8,7 @@ We need to design a TaskRecord system for task orchestration that supports:
 - Offline-first workflows with potential merge conflicts
 - TDD-driven development with evidence tracking
 - Quality gates and review cycles
-- Integration with external systems (JIRA, Git)
+- Integration with external systems (GitHub, Git)
 
 ## Decision
 We will implement the following architectural decisions:

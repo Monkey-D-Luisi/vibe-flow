@@ -101,7 +101,7 @@ Este documento define el contrato del **TaskRecord**, el almacenamiento en SQLit
     "links": {
       "type": "object",
       "properties": {
-        "jira": {"type": "object", "properties": {"projectKey": {"type": "string"}, "issueKey": {"type": "string"}}, "additionalProperties": false},
+        "github": {"type": "object", "properties": {"owner": {"type": "string"}, "repo": {"type": "string"}, "issueNumber": {"type": "integer"}}, "additionalProperties": false},
         "git": {"type": "object", "properties": {"repo": {"type": "string"}, "branch": {"type": "string"}, "prNumber": {"type": "integer"}}, "additionalProperties": false},
         "adr_url": {"type": "string", "format": "uri"}
       },
@@ -256,7 +256,7 @@ CREATE INDEX IF NOT EXISTS idx_task_scope  ON task_records(scope);
   "description": "Como PO quiero...",
   "acceptance_criteria": ["cuando usuario inválido → error 422"],
   "scope": "minor",
-  "links": {"jira": {"projectKey": "AGENTSMCPS", "issueKey": "AGENTSMCPS-15"}},
+  "links": {"github": {"owner": "Monkey-D-Luisi", "repo": "agents-mcps", "issueNumber": 15}},
   "tags": ["area_architecture","agent_orchestrator"]
 }
 ```

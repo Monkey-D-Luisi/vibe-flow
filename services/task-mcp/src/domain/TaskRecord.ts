@@ -84,7 +84,7 @@ const schema = {
     "links": {
       "type": "object",
       "properties": {
-        "jira": {"type": "object", "properties": {"projectKey": {"type": "string"}, "issueKey": {"type": "string"}}, "additionalProperties": false},
+        "github": {"type": "object", "properties": {"owner": {"type": "string"}, "repo": {"type": "string"}, "issueNumber": {"type": "integer"}}, "additionalProperties": false},
         "git": {"type": "object", "properties": {"repo": {"type": "string"}, "branch": {"type": "string"}, "prNumber": {"type": "integer"}}, "additionalProperties": false},
         "adr_url": {"type": "string", "format": "uri"}
       },
@@ -140,9 +140,10 @@ export interface TaskRecord {
   status: 'po' | 'arch' | 'dev' | 'review' | 'po_check' | 'qa' | 'pr' | 'done';
   rounds_review?: number;
   links?: {
-    jira?: {
-      projectKey: string;
-      issueKey: string;
+    github?: {
+      owner: string;
+      repo: string;
+      issueNumber: number;
     };
     git?: {
       repo: string;
