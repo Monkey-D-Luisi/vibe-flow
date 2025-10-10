@@ -1,11 +1,20 @@
 import { TaskRecord } from '../domain/TaskRecord';
+import { evaluateFastTrack, FastTrackContext } from '../domain/FastTrack';
 
 export type AgentType = 'po' | 'architect' | 'dev' | 'reviewer' | 'qa' | 'prbot';
 
-export function nextAgent(tr: TaskRecord): AgentType | null {
-  // Fast-track for minor scope: PO → DEV
+export function nextAgent(tr: TaskRecord, fastTrackCtx?: FastTrackContext): AgentType | null {
+  // Fast-track evaluation for minor scope: PO → DEV (skip architect)
   if (tr.status === 'po' && tr.scope === 'minor') {
-    return 'dev';
+    if (fastTrackCtx) {
+      const evaluation = evaluateFastTrack(fastTrackCtx);
+      if (evaluation.eligible) {
+        return 'dev'; // Fast-track: PO → DEV
+      }
+    } else {
+      // Fallback: if no context provided, assume fast-track for minor scope
+      return 'dev';
+    }
   }
 
   // Normal flow

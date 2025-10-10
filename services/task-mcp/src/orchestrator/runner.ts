@@ -3,6 +3,8 @@ import { AgentType, nextAgent, getAgentInputSchema, getAgentOutputSchema } from 
 import { TaskRepository } from '../repo/sqlite';
 import { StateRepository, EventRepository, LeaseRepository } from '../repo/state';
 import { TaskRecord } from '../domain/TaskRecord';
+import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/FastTrack';
+import { FastTrackGitHub } from '../domain/FastTrackGitHub';
 
 const ajv = new Ajv({ allErrors: true, strict: false });
 
@@ -11,6 +13,29 @@ const repo = new TaskRepository();
 const stateRepo = new StateRepository(repo.database);
 const eventRepo = new EventRepository(repo.database);
 const leaseRepo = new LeaseRepository(repo.database);
+
+// Mock GitHub functions for fast-track automation
+const mockGitHub = {
+  openPR: async (args: any) => {
+    console.log('Mock GitHub: Opening PR', args);
+    return { number: Math.floor(Math.random() * 1000) + 1, ...args };
+  },
+  addLabels: async (args: any) => {
+    console.log('Mock GitHub: Adding labels', args);
+    return { added: true };
+  },
+  comment: async (args: any) => {
+    console.log('Mock GitHub: Adding comment', args);
+    return { commented: true };
+  }
+};
+
+// Initialize FastTrack GitHub automation
+const fastTrackGitHub = new FastTrackGitHub(
+  mockGitHub.openPR,
+  mockGitHub.addLabels,
+  mockGitHub.comment
+);
 
 // Mock agent execution - in real implementation this would call OpenAI Agent Builder or similar
 export async function runAgent(agent: AgentType, input: any): Promise<any> {
@@ -140,6 +165,38 @@ export async function runOrchestratorStep(taskId: string, agentName: string): Pr
       input_summary: summarizeInput(input)
     });
 
+    // Log fast-track evaluation if applicable
+    if (agentType === 'dev' && state.current === 'po') {
+      // Get the fast-track context from the input (assuming it's passed)
+      const fastTrackCtx = input.fastTrackContext as FastTrackContext | undefined;
+      let evaluation;
+
+      if (fastTrackCtx) {
+        evaluation = evaluateFastTrack(fastTrackCtx);
+      } else {
+        // Fallback evaluation for minor scope
+        evaluation = {
+          eligible: true,
+          score: 75,
+          reasons: ['scope_minor', 'fallback_evaluation'],
+          hardBlocks: []
+        };
+      }
+
+      eventRepo.append(taskId, 'fasttrack', {
+        action: 'evaluated',
+        eligible: evaluation.eligible,
+        score: evaluation.score,
+        reasons: evaluation.reasons,
+        hardBlocks: evaluation.hardBlocks
+      });
+
+      // GitHub automation for fast-track evaluation
+      if (task.pr_number) {
+        await fastTrackGitHub.onFastTrackEvaluated(task, evaluation, task.pr_number);
+      }
+    }
+
     // Run the agent
     const output = await runAgent(agentType, input);
 
@@ -163,6 +220,60 @@ export async function runOrchestratorStep(taskId: string, agentName: string): Pr
     }
 
     const updatedState = stateRepo.update(taskId, state.rev, stateUpdate);
+
+    // POST-DEV GUARD: Check if fast-track should be revoked
+    if (agentType === 'dev' && wasFastTrack(task)) {
+      const guardResult = guardPostDev({
+        task,
+        diff: { files: [], locAdded: 0, locDeleted: 0 }, // TODO: Get real diff
+        quality: {
+          coverage: task.metrics?.coverage,
+          avgCyclomatic: 4.0, // TODO: Calculate from diff
+          lintErrors: task.metrics?.lint?.errors || 0
+        },
+        metadata: {
+          modulesChanged: false, // TODO: Analyze diff
+          publicApiChanged: false // TODO: Analyze diff
+        }
+      });
+
+      if (guardResult.revoke) {
+        // Revoke fast-track: move back to architect state
+        const revokedState = stateRepo.update(taskId, updatedState.rev, {
+          current: 'arch',
+          previous: updatedState.current,
+          last_agent: 'system'
+        });
+
+        // Log revocation event
+        eventRepo.append(taskId, 'fasttrack', {
+          action: 'revoked',
+          reason: guardResult.reason,
+          previous_state: updatedState.current,
+          new_state: 'arch'
+        });
+
+        // GitHub automation for fast-track revocation
+        if (task.pr_number) {
+          await fastTrackGitHub.onFastTrackRevoked(task, guardResult, task.pr_number);
+        }
+
+        // Update task tags
+        const tags = task.tags || [];
+        tags.push('fast-track-revoked');
+        repo.update(taskId, task.rev, { tags });
+
+        return {
+          task_id: taskId,
+          agent: agentType,
+          output: validatedOutput,
+          new_state: revokedState,
+          lease_id: lease.lease_id,
+          fasttrack_revoked: true,
+          revocation_reason: guardResult.reason
+        };
+      }
+    }
 
     // Log transition event
     eventRepo.append(taskId, 'transition', {
@@ -303,8 +414,13 @@ function updateTaskWithAgentOutput(task: TaskRecord, agentType: AgentType, outpu
   }
 }
 
+function wasFastTrack(task: TaskRecord): boolean {
+  return task.tags?.includes('fast-track') || false;
+}
+
 function summarizeInput(input: any): string {
-  return `Task: ${input.title} (${input.scope})`;
+  if (input.title) return `Task: ${input.title} (${input.scope})`;
+  return 'Input generated';
 }
 
 function summarizeOutput(output: any): string {

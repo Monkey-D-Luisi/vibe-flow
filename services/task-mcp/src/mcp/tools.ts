@@ -4,6 +4,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { TaskRepository } from '../repo/sqlite.js';
 import { StateRepository, EventRepository, LeaseRepository } from '../repo/state.js';
 import { TaskRecord, TaskRecordValidator } from '../domain/TaskRecord.js';
+import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/FastTrack.js';
 
 const repo = new TaskRepository();
 const stateRepo = new StateRepository(repo.database);
@@ -188,8 +189,91 @@ const tools = [
     }
   },
   {
+    name: 'fasttrack.evaluate',
+    description: 'Evalúa si un task es elegible para fast-track (PO → DEV omitiendo Arquitectura)',
+    inputSchema: {
+      type: 'object',
+      required: ['task_id', 'diff', 'quality', 'metadata'],
+      properties: {
+        task_id: { type: 'string' },
+        diff: {
+          type: 'object',
+          required: ['files', 'locAdded', 'locDeleted'],
+          properties: {
+            files: { type: 'array', items: { type: 'string' } },
+            locAdded: { type: 'integer', minimum: 0 },
+            locDeleted: { type: 'integer', minimum: 0 }
+          }
+        },
+        quality: {
+          type: 'object',
+          required: ['lintErrors'],
+          properties: {
+            coverage: { type: 'number', minimum: 0, maximum: 1 },
+            avgCyclomatic: { type: 'number', minimum: 0 },
+            lintErrors: { type: 'integer', minimum: 0 }
+          }
+        },
+        metadata: {
+          type: 'object',
+          required: ['modulesChanged', 'publicApiChanged'],
+          properties: {
+            modulesChanged: { type: 'boolean' },
+            publicApiChanged: { type: 'boolean' }
+          }
+        }
+      }
+    }
+  },
+  {
+    name: 'fasttrack.guard_post_dev',
+    description: 'Reevalúa después de DEV si el fast-track debe revocarse',
+    inputSchema: {
+      type: 'object',
+      required: ['task_id', 'diff', 'quality', 'metadata'],
+      properties: {
+        task_id: { type: 'string' },
+        diff: {
+          type: 'object',
+          required: ['files', 'locAdded', 'locDeleted'],
+          properties: {
+            files: { type: 'array', items: { type: 'string' } },
+            locAdded: { type: 'integer', minimum: 0 },
+            locDeleted: { type: 'integer', minimum: 0 }
+          }
+        },
+        quality: {
+          type: 'object',
+          required: ['lintErrors'],
+          properties: {
+            coverage: { type: 'number', minimum: 0, maximum: 1 },
+            avgCyclomatic: { type: 'number', minimum: 0 },
+            lintErrors: { type: 'integer', minimum: 0 }
+          }
+        },
+        metadata: {
+          type: 'object',
+          required: ['modulesChanged', 'publicApiChanged'],
+          properties: {
+            modulesChanged: { type: 'boolean' },
+            publicApiChanged: { type: 'boolean' }
+          }
+        },
+        reviewer_violations: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['severity'],
+            properties: {
+              severity: { type: 'string', enum: ['low', 'med', 'high'] }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
     name: 'gh.createBranch',
-    description: 'Crear rama Git para desarrollo',
     inputSchema: {
       type: 'object',
       required: ['name'],
@@ -471,6 +555,36 @@ class TaskMCPServer {
             const input = args as any;
             const events = eventRepo.getByTaskId(input.task_id, input.limit || 50);
             return { content: [{ type: 'text', text: JSON.stringify(events) }] };
+          }
+          case 'fasttrack.evaluate': {
+            const input = args as any;
+            const task = repo.get(input.task_id);
+            if (!task) throw new Error('Task not found');
+
+            const ctx: FastTrackContext = {
+              task,
+              diff: input.diff,
+              quality: input.quality,
+              metadata: input.metadata
+            };
+
+            const result = evaluateFastTrack(ctx);
+            return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+          }
+          case 'fasttrack.guard_post_dev': {
+            const input = args as any;
+            const task = repo.get(input.task_id);
+            if (!task) throw new Error('Task not found');
+
+            const ctx: FastTrackContext = {
+              task,
+              diff: input.diff,
+              quality: input.quality,
+              metadata: input.metadata
+            };
+
+            const result = guardPostDev(ctx, input.reviewer_violations);
+            return { content: [{ type: 'text', text: JSON.stringify(result) }] };
           }
           default:
             throw new Error(`Unknown tool: ${name}`);
