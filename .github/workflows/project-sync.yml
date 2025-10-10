@@ -19,7 +19,7 @@ jobs:
           script: |
             // Config
             const owner = context.repo.owner
-            const projectNumber = 1 // your Project v2 number
+            const projectNumber = 3 // your Project v2 number
 
             // Simple status mapping
             function mapStatus(evt, payload){
