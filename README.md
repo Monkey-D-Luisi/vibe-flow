@@ -94,7 +94,121 @@ PO → Architect → Dev → Reviewer → PO Check → QA → PR-Bot → Done
    Dev (fast-track for minor scope)
 ```
 
-See [`docs/ep_01_t_03_prompts_por_agente_y_contratos_de_salida_especificacion.md`](docs/ep_01_t_03_prompts_por_agente_y_contratos_de_salida_especificacion.md) for detailed agent specifications.
+## ⚡ Fast-Track System (EP01-T05)
+
+The system implements an intelligent fast-track system for **minor scope tasks** that automatically skips the Architecture phase when quality criteria are met.
+
+### Fast-Track Eligibility Criteria
+
+**Hard Rules (Automatic Disqualification):**
+- ❌ Public API changes detected
+- ❌ Module boundary modifications
+- ❌ Sensitive path changes (security/, auth/, payments/, infra/, migrations/)
+- ❌ Schema file modifications
+- ❌ Contract additions/requirements
+- ❌ ADR (Architecture Decision Record) required
+- ❌ Lint errors present
+
+**Scoring System (0-100 points):**
+- ✅ **Scope Minor**: +40 points (base for minor tasks)
+- ✅ **Tests/Docs Only**: +20 points (changes only to test/docs files)
+- ✅ **Small Diff**: +15 points (≤60 LOC changed)
+- ✅ **Medium Diff**: +10 points (≤120 LOC changed)
+- ✅ **Good Complexity**: +10 points (avg cyclomatic ≤5)
+- ✅ **No Module Changes**: +5 points (modules unchanged)
+
+**Eligibility Threshold:** ≥60 points + no hard blocks
+
+### Fast-Track Flow
+```
+PO → [Fast-Track Evaluation] → DEV (skip Architect)
+                              → Architect (if ineligible)
+```
+
+### Post-Development Guard
+After development completion, the system re-evaluates fast-track eligibility:
+- **Coverage Check**: ≥70% (minor) / ≥80% (major)
+- **Quality Gates**: Re-run all hard rules and scoring
+- **Revocation**: If failed, task returns to Architect phase
+
+### GitHub Automation
+Fast-track integrates with GitHub for automated workflow management:
+
+**Labels Applied:**
+- `fast-track` + `fast-track:eligible`: Approved for fast-track
+- `fast-track:incompatible` + `fast-track:blocked`: Requires full process
+- `fast-track:revoked`: Fast-track status removed post-dev
+
+**PR Management:**
+- **Eligible Tasks**: PRs created as drafts automatically
+- **Comments**: Detailed evaluation results with scores and reasons
+- **Revocation**: Automatic comments when fast-track is revoked
+
+### MCP Tools for Fast-Track
+
+#### `fasttrack.evaluate`
+Evaluates a task for fast-track eligibility.
+
+**Input:**
+```json
+{
+  "task_id": "TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C",
+  "diff": {
+    "files": ["src/feature.ts", "test/feature.spec.ts"],
+    "locAdded": 45,
+    "locDeleted": 12
+  },
+  "quality": {
+    "coverage": 0.85,
+    "avgCyclomatic": 3.2,
+    "lintErrors": 0
+  },
+  "metadata": {
+    "modulesChanged": false,
+    "publicApiChanged": false
+  }
+}
+```
+
+**Output:**
+```json
+{
+  "eligible": true,
+  "score": 75,
+  "reasons": ["scope_minor", "diff_small", "complexity_ok"],
+  "hardBlocks": []
+}
+```
+
+#### `fasttrack.guard_post_dev`
+Re-evaluates after development to check if fast-track should be revoked.
+
+**Input:**
+```json
+{
+  "task_id": "TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C",
+  "diff": { "files": ["src/feature.ts"], "locAdded": 45, "locDeleted": 12 },
+  "quality": { "coverage": 0.78, "avgCyclomatic": 3.2, "lintErrors": 0 },
+  "metadata": { "modulesChanged": false, "publicApiChanged": false },
+  "reviewer_violations": []
+}
+```
+
+**Output:**
+```json
+{
+  "revoke": false
+}
+```
+
+### Fast-Track Benefits
+- **⚡ Faster Delivery**: Skip architecture phase for simple tasks
+- **🎯 Quality Assurance**: Objective scoring prevents inappropriate fast-tracking
+- **🔄 Automatic Guards**: Post-dev validation ensures standards are met
+- **📊 Transparency**: Detailed scoring and reasoning for all decisions
+- **🔗 GitHub Integration**: Automated labeling and PR management
+
+See the test files for comprehensive examples of fast-track evaluation scenarios.
 
 ## 🚀 Quick Start
 
