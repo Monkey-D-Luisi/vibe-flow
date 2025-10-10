@@ -42,10 +42,14 @@ jobs:
         with:
           node-version: 20
       - run: pnpm install
+      - name: Create coverage directory
+        run: mkdir -p services/task-mcp/coverage
       - name: Download coverage reports
         uses: actions/download-artifact@v4
         with:
           name: coverage-report
           path: services/task-mcp/coverage/
+      - name: List coverage files
+        run: ls -la services/task-mcp/coverage/
       - name: Check test coverage
         run: node scripts/check-quality.mjs
