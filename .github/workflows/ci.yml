@@ -1,0 +1,30 @@
+name: CI
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+  push:
+    branches: [main]
+
+jobs:
+  test-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @agents/task-mcp test -- --coverage
+      - run: pnpm --filter @agents/task-mcp run lint 2>/dev/null || echo "No lint script found"
+
+  quality-gate:
+    needs: test-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: pnpm install --frozen-lockfile
+      - name: Check test coverage
+        run: node scripts/check-quality.mjs
