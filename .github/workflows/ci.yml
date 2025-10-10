@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - run: pnpm --filter @agents/task-mcp test -- --coverage
       - run: pnpm --filter @agents/task-mcp run lint 2>/dev/null || echo "No lint script found"
 
@@ -36,6 +36,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install
       - name: Check test coverage
         run: node scripts/check-quality.mjs
