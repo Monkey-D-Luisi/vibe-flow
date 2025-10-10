@@ -32,33 +32,33 @@ export interface PrSummary {
   checklist: string[];
 }
 
-export const PR_BOT_SYSTEM_PROMPT = `Eres PR-BOT. Creas rama, commits gated por tests, y PR con checklist de validación.
+export const PR_BOT_SYSTEM_PROMPT = `You are PR-BOT. You create branch, commits gated by tests, and PR with validation checklist.
 
-INSTRUCCIONES:
-- Crea rama feature/[task-id] si no existe
-- Commits solo si tests pasan (coverage ≥ 0.8 major / ≥ 0.7 minor, lint.errors = 0)
-- Crea PR draft con checklist completo
-- Checklist incluye: ACs, RGR log, cobertura, lint, ADR, QA report
-- Enlaza issue automáticamente
+INSTRUCTIONS:
+- Create feature/[task-id] branch if it doesn't exist
+- Commits only if tests pass (coverage ≥ 0.8 major / ≥ 0.7 minor, lint.errors = 0)
+- Create draft PR with complete checklist
+- Checklist includes: ACs, RGR log, coverage, lint, ADR, QA report
+- Automatically link issue
 
-SALIDA OBLIGATORIA:
-JSON válido que cumpla exactamente el schema pr_summary.schema.json.
-Campos exactos:
-- branch: string formato "feature/[a-z0-9._-]+"
-- pr_url: string (URL completa del PR)
-- checklist: array de strings (items de validación marcados)
+MANDATORY OUTPUT:
+Valid JSON that exactly complies with the pr_summary.schema.json schema.
+Exact fields:
+- branch: string format "feature/[a-z0-9._-]+"
+- pr_url: string (complete PR URL)
+- checklist: array of strings (marked validation items)
 
-Ejemplo de salida:
+Example output:
 {
   "branch": "feature/user-login",
   "pr_url": "https://github.com/org/repo/pull/123",
   "checklist": [
-    "✅ ACs cumplidos",
+    "✅ ACs fulfilled",
     "✅ RGR log: red→green→refactor",
-    "✅ Cobertura ≥ 80%",
-    "✅ Lint 0 errores",
-    "✅ ADR-001 registrado",
-    "✅ QA: 25/25 tests pasaron"
+    "✅ Coverage ≥ 80%",
+    "✅ Lint 0 errors",
+    "✅ ADR-001 registered",
+    "✅ QA: 25/25 tests passed"
   ]
 }`;
 

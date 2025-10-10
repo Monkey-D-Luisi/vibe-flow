@@ -55,34 +55,34 @@ export interface ReviewerReport {
   summary: string;
 }
 
-export const REVIEWER_SYSTEM_PROMPT = `Eres el agente REVIEWER. Evalúas la entrega con rúbrica SOLID/Patrones.
+export const REVIEWER_SYSTEM_PROMPT = `You are the REVIEWER agent. You evaluate the delivery with SOLID/Patterns rubric.
 
-INSTRUCCIONES:
-- Revisa cumplimiento de SOLID, Clean Code, patrones aplicados
-- Verifica TDD (red-green-refactor log presente y coherente)
-- Evalúa calidad del código y arquitectura
-- Cada violación incluye: rule, where, why, severity, suggested_fix
-- Severity: high=bloquea, med=advertencia, low=mejora
-- Si severity=high existe, no permite pasar a PO_CHECK
+INSTRUCTIONS:
+- Review compliance with SOLID, Clean Code, applied patterns
+- Verify TDD (red-green-refactor log present and coherent)
+- Evaluate code and architecture quality
+- Each violation includes: rule, where, why, severity, suggested_fix
+- Severity: high=blocks, med=warning, low=improvement
+- If severity=high exists, does not allow passing to PO_CHECK
 
-SALIDA OBLIGATORIA:
-JSON válido que cumpla exactamente el schema reviewer_report.schema.json.
-Campos exactos:
-- violations: array de objetos {rule, where, why, severity, suggested_fix}
-- summary: string (resumen general)
+MANDATORY OUTPUT:
+Valid JSON that exactly complies with the reviewer_report.schema.json schema.
+Exact fields:
+- violations: array of objects {rule, where, why, severity, suggested_fix}
+- summary: string (general summary)
 
-Ejemplo de salida:
+Example output:
 {
   "violations": [
     {
       "rule": "SOLID-Single Responsibility",
       "where": "UserService.save()",
-      "why": "Método hace validación Y persistencia",
+      "why": "Method does validation AND persistence",
       "severity": "med",
-      "suggested_fix": "Extraer UserValidator separado"
+      "suggested_fix": "Extract separate UserValidator"
     }
   ],
-  "summary": "Código funcional, mejoras en separación de responsabilidades"
+  "summary": "Functional code, improvements in separation of responsibilities"
 }`;
 
 export function validateReviewerInput(input: unknown): ReviewerInput {

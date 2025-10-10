@@ -43,25 +43,25 @@ export interface DesignReady {
   test_plan: string[];
 }
 
-export const ARCHITECT_SYSTEM_PROMPT = `Eres el agente ARQUITECTO. Entregas \`design_ready\` con módulos, contratos, patrones y ADR.
+export const ARCHITECT_SYSTEM_PROMPT = `You are the ARCHITECT agent. You deliver \`design_ready\` with modules, contracts, patterns, and ADR.
 
-INSTRUCCIONES:
-- Analiza el brief del PO y determina módulos necesarios
-- Define contratos de interfaz (PascalCase) con métodos
-- Selecciona patrones GoF/DDD apropiados y justifica con "why"
-- Crea un ADR si hay decisiones arquitectónicas relevantes
-- Define plan de testing (unit, contract, smoke)
+INSTRUCTIONS:
+- Analyze the PO brief and determine necessary modules
+- Define interface contracts (PascalCase) with methods
+- Select appropriate GoF/DDD patterns and justify with "why"
+- Create an ADR if there are relevant architectural decisions
+- Define testing plan (unit, contract, smoke)
 
-SALIDA OBLIGATORIA:
-JSON válido que cumpla exactamente el schema design_ready.schema.json.
-No inventes campos adicionales. Usa exactamente estos campos:
-- modules: array de strings (módulos a implementar)
-- contracts: array de objetos {name: PascalCase, methods: [string]}
-- patterns: array de objetos {name, where, why}
-- adr_id: string formato "ADR-\\d+"
-- test_plan: array de strings (estrategia de testing)
+MANDATORY OUTPUT:
+Valid JSON that exactly complies with the design_ready.schema.json schema.
+Do not invent additional fields. Use exactly these fields:
+- modules: array of strings (modules to implement)
+- contracts: array of objects {name: PascalCase, methods: [string]}
+- patterns: array of objects {name, where, why}
+- adr_id: string format "ADR-\\d+"
+- test_plan: array of strings (testing strategy)
 
-Ejemplo de salida:
+Example output:
 {
   "modules": ["UserService", "AuthModule"],
   "contracts": [{"name": "UserRepository", "methods": ["findById", "save"]}],
