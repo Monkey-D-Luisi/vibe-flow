@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string",
+            "description": "Rule that was violated"
+          },
+          "where": {
+            "type": "string",
+            "description": "Location of the violation"
+          },
+          "why": {
+            "type": "string",
+            "description": "Why this is a violation"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["low", "med", "high"],
+            "description": "Severity level"
+          },
+          "suggested_fix": {
+            "type": "string",
+            "description": "Suggested fix for the violation"
+          }
+        },
+        "required": ["rule", "where", "why", "severity", "suggested_fix"],
+        "additionalProperties": false
+      },
+      "description": "List of code violations found"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Overall review summary"
+    }
+  },
+  "required": ["violations", "summary"],
+  "additionalProperties": false
+}
