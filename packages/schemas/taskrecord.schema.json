@@ -1,49 +1,97 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/taskrecord.schema.json",
   "title": "TaskRecord",
-  "version": "1.0.0",
   "type": "object",
+  "additionalProperties": false,
   "required": [
-    "id",
-    "title",
-    "acceptance_criteria",
-    "scope",
-    "status",
-    "rev",
-    "created_at",
-    "updated_at"
+    "id", "title", "acceptance_criteria", "scope", "status", "rev",
+    "created_at", "updated_at"
   ],
   "properties": {
+    "version": {"type": "string", "const": "1.0.0"},
     "id": {
-      "type": "string"
+      "type": "string",
+      "pattern": "^TR-[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "ULID con prefijo TR-"
     },
-    "title": {
-      "type": "string"
-    },
+    "title": {"type": "string", "minLength": 5, "maxLength": 120},
+    "description": {"type": "string", "maxLength": 4000},
     "acceptance_criteria": {
+      "type": "array", "minItems": 1, "items": {"type": "string", "minLength": 3, "maxLength": 300}
+    },
+    "scope": {"type": "string", "enum": ["minor", "major"]},
+    "modules": {
+      "type": "array", "items": {"type": "string", "pattern": "^[a-z][a-z0-9_\-]*(/[a-z0-9_\-]+)*$"}, "uniqueItems": true
+    },
+    "contracts": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "object",
+        "required": ["name", "methods"],
+        "properties": {
+          "name": {"type": "string", "pattern": "^[A-Z][A-Za-z0-9]+$"},
+          "methods": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        },
+        "additionalProperties": false
       }
     },
-    "scope": {
-      "type": "string",
-      "enum": [
-        "minor",
-        "major"
-      ]
+    "patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {"type": "string"},
+          "where": {"type": "string"},
+          "why": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
     },
-    "status": {
-      "type": "string"
+    "adr_id": {"type": "string", "pattern": "^ADR-\\d{3,}$"},
+    "test_plan": {"type": "array", "items": {"type": "string"}},
+    "branch": {"type": "string", "pattern": "^feature/[a-z0-9._-]+$"},
+    "diff_summary": {"type": "string"},
+    "review_notes": {"type": "array", "items": {"type": "string"}},
+    "qa_report": {
+      "type": "object",
+      "required": ["total", "passed", "failed"],
+      "properties": {
+        "total": {"type": "integer", "minimum": 0},
+        "passed": {"type": "integer", "minimum": 0},
+        "failed": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
     },
-    "rev": {
-      "type": "integer"
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "coverage": {"type": "number", "minimum": 0, "maximum": 1},
+        "complexity": {"type": "object", "additionalProperties": {"type": "number", "minimum": 0}},
+        "lint": {
+          "type": "object",
+          "properties": {"errors": {"type": "integer", "minimum": 0}, "warnings": {"type": "integer", "minimum": 0}},
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     },
-    "created_at": {
-      "type": "string"
+    "red_green_refactor_log": {"type": "array", "items": {"type": "string"}},
+    "status": {"type": "string", "enum": ["po","arch","dev","review","po_check","qa","pr","done"]},
+    "rounds_review": {"type": "integer", "minimum": 0},
+    "links": {
+      "type": "object",
+      "properties": {
+        "jira": {"type": "object", "properties": {"projectKey": {"type": "string"}, "issueKey": {"type": "string"}}, "additionalProperties": false},
+        "git": {"type": "object", "properties": {"repo": {"type": "string"}, "branch": {"type": "string"}, "prNumber": {"type": "integer"}}, "additionalProperties": false},
+        "adr_url": {"type": "string", "format": "uri"}
+      },
+      "additionalProperties": false
     },
-    "updated_at": {
-      "type": "string"
-    }
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "rev": {"type": "integer", "minimum": 0},
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"}
   }
 }
