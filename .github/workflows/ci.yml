@@ -24,6 +24,11 @@ jobs:
       - run: pnpm install
       - run: pnpm --filter @agents/task-mcp test -- --coverage
       - run: pnpm --filter @agents/task-mcp run lint 2>/dev/null || echo "No lint script found"
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: services/task-mcp/coverage/
 
   quality-gate:
     needs: test-lint
@@ -37,5 +42,10 @@ jobs:
         with:
           node-version: 20
       - run: pnpm install
+      - name: Download coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: services/task-mcp/coverage/
       - name: Check test coverage
         run: node scripts/check-quality.mjs
