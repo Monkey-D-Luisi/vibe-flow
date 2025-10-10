@@ -15,44 +15,56 @@ jobs:
     steps:
       - uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // Configura
+            // Config
             const owner = context.repo.owner
-            const repo  = context.repo.repo
-            const projectNumber = 1 // tu Project v2
-            // Mapeo simple
+            const projectNumber = 1 // your Project v2 number
+
+            // Simple status mapping
             function mapStatus(evt, payload){
               if (context.eventName === "issues") {
                 return payload.issue.state === "closed" ? "Done" : "To Do"
               }
               const pr = payload.pull_request
               if (pr.merged) return "Done"
-              if (pr.draft) return "In Review"   // draft PR = en revisión técnica
+              if (pr.draft) return "In Review" // draft PR = tech review
               return pr.state === "open" ? "In Review" : "Done"
             }
-
             const statusValue = mapStatus(context.payload.action, context.payload)
-            // 1) Obtener el Project y campos
-            const {organization} = await github.graphql(`
-              query($login:String!,$number:Int!){
-                organization(login:$login){
-                  projectV2(number:$number){
-                    id
-                    fields(first:50){ nodes { ... on ProjectV2Field { id name dataType } }
-                    }
-                  }
-                }
-              }`,
-              { login: owner, number: projectNumber }
-            )
-            const project = organization.projectV2
-            const statusField = project.fields.nodes.find(f => f.name === "Status")
-            if (!statusField) { core.setFailed("Campo 'Status' no existe en el Project"); return }
 
-            // 2) Asegurar item en project
-            const nodeId = context.eventName === "issues" 
-              ? context.payload.issue.node_id 
-              : context.payload.pull_request.node_id            const addRes = await github.graphql(`
+            // Helper: get project for org or user owner
+            async function getProject(login, number){
+              const qOrg = `query($login:String!,$number:Int!){
+                organization(login:$login){
+                  projectV2(number:$number){ id fields(first:50){ nodes { id name } } }
+                }
+              }`
+              try {
+                const resOrg = await github.graphql(qOrg, { login, number })
+                if (resOrg?.organization?.projectV2) return resOrg.organization.projectV2
+              } catch (e) {}
+              const qUser = `query($login:String!,$number:Int!){
+                user(login:$login){
+                  projectV2(number:$number){ id fields(first:50){ nodes { id name } } }
+                }
+              }`
+              const resUser = await github.graphql(qUser, { login, number })
+              return resUser?.user?.projectV2
+            }
+
+            // 1) Get Project and fields
+            const project = await getProject(owner, projectNumber)
+            if (!project) { core.setFailed(`Project #${projectNumber} not found for '${owner}'`); return }
+            const statusField = project.fields.nodes.find(f => f.name === "Status")
+            if (!statusField) { core.setFailed("Project field 'Status' not found"); return }
+
+            // 2) Ensure item exists in project
+            const nodeId = context.eventName === "issues"
+              ? context.payload.issue.node_id
+              : context.payload.pull_request.node_id
+
+            const addRes = await github.graphql(`
               mutation($projectId:ID!,$itemId:ID!){
                 addProjectV2ItemById(input:{projectId:$projectId, contentId:$itemId}){ item { id } }
               }`,
@@ -60,7 +72,7 @@ jobs:
             )
             const itemId = addRes.addProjectV2ItemById.item.id
 
-            // 3) Actualizar Status
+            // 3) Update Status
             await github.graphql(`
               mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $value:String!){
                 updateProjectV2ItemFieldValue(input:{
