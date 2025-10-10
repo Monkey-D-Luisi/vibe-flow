@@ -2,9 +2,13 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { TaskRepository } from '../repo/sqlite.js';
+import { StateRepository, EventRepository, LeaseRepository } from '../repo/state.js';
 import { TaskRecord, TaskRecordValidator } from '../domain/TaskRecord.js';
 
 const repo = new TaskRepository();
+const stateRepo = new StateRepository(repo.database);
+const eventRepo = new EventRepository(repo.database);
+const leaseRepo = new LeaseRepository(repo.database);
 
 const tools = [
   {
@@ -111,6 +115,75 @@ const tools = [
             merged: { type: 'boolean' }
           }
         }
+      }
+    }
+  },
+  {
+    name: 'state.get',
+    description: 'Obtener estado del orquestador para una tarea',
+    inputSchema: {
+      type: 'object',
+      required: ['task_id'],
+      properties: {
+        task_id: { type: 'string' }
+      }
+    }
+  },
+  {
+    name: 'state.patch',
+    description: 'Actualizar estado con control optimista de concurrencia',
+    inputSchema: {
+      type: 'object',
+      required: ['task_id', 'if_rev', 'patch'],
+      properties: {
+        task_id: { type: 'string' },
+        if_rev: { type: 'integer' },
+        patch: {
+          type: 'object',
+          properties: {
+            current: { type: 'string', enum: ['po', 'arch', 'dev', 'review', 'po_check', 'qa', 'pr', 'done'] },
+            previous: { type: 'string', enum: ['po', 'arch', 'dev', 'review', 'po_check', 'qa', 'pr', 'done'] },
+            last_agent: { type: 'string' },
+            rounds_review: { type: 'integer' }
+          }
+        }
+      }
+    }
+  },
+  {
+    name: 'state.acquire_lock',
+    description: 'Adquirir lease para acceso exclusivo a una tarea',
+    inputSchema: {
+      type: 'object',
+      required: ['task_id', 'owner_agent'],
+      properties: {
+        task_id: { type: 'string' },
+        owner_agent: { type: 'string' },
+        ttl_seconds: { type: 'integer', minimum: 30, maximum: 3600, default: 300 }
+      }
+    }
+  },
+  {
+    name: 'state.release_lock',
+    description: 'Liberar lease de una tarea',
+    inputSchema: {
+      type: 'object',
+      required: ['task_id', 'lease_id'],
+      properties: {
+        task_id: { type: 'string' },
+        lease_id: { type: 'string' }
+      }
+    }
+  },
+  {
+    name: 'state.events',
+    description: 'Obtener historial de eventos para una tarea',
+    inputSchema: {
+      type: 'object',
+      required: ['task_id'],
+      properties: {
+        task_id: { type: 'string' },
+        limit: { type: 'integer', minimum: 1, maximum: 100, default: 50 }
       }
     }
   },
@@ -373,9 +446,37 @@ class TaskMCPServer {
               }]
             };
           }
+          case 'state.get': {
+            const input = args as any;
+            const state = stateRepo.get(input.task_id);
+            if (!state) throw new Error('State not found');
+            return { content: [{ type: 'text', text: JSON.stringify(state) }] };
+          }
+          case 'state.patch': {
+            const input = args as any;
+            const updated = stateRepo.update(input.task_id, input.if_rev, input.patch);
+            return { content: [{ type: 'text', text: JSON.stringify(updated) }] };
+          }
+          case 'state.acquire_lock': {
+            const input = args as any;
+            const lease = leaseRepo.acquire(input.task_id, input.owner_agent, input.ttl_seconds || 300);
+            return { content: [{ type: 'text', text: JSON.stringify(lease) }] };
+          }
+          case 'state.release_lock': {
+            const input = args as any;
+            const released = leaseRepo.release(input.task_id, input.lease_id);
+            return { content: [{ type: 'text', text: JSON.stringify({ released }) }] };
+          }
+          case 'state.events': {
+            const input = args as any;
+            const events = eventRepo.getByTaskId(input.task_id, input.limit || 50);
+            return { content: [{ type: 'text', text: JSON.stringify(events) }] };
+          }
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
+        // This should never be reached due to the default case above
+        return { content: [{ type: 'text', text: 'Unexpected error' }], isError: true };
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         return { content: [{ type: 'text', text: `Error: ${message}` }], isError: true };

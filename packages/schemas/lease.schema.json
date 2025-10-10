@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/lease.schema.json",
+  "title": "Lease",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "lease_id", "owner_agent", "expires_at"],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "pattern": "^TR-[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "ULID with TR- prefix referencing TaskRecord"
+    },
+    "lease_id": {
+      "type": "string",
+      "pattern": "^LE-[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "ULID with LE- prefix for lease"
+    },
+    "owner_agent": {
+      "type": "string",
+      "description": "Agent that owns the lease"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Lease expiration timestamp"
+    }
+  }
+}

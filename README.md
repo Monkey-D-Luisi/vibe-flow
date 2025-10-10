@@ -21,7 +21,21 @@ The system enables end-to-end automated task execution from requirements to depl
 - **Exposure**: MCP server with JSON-RPC tools
 - **Orchestration**: Agent system with contracts, schemas, and handoffs
 
-### Agent System
+### Shared State and Persistence (EP01-T04)
+The system implements a robust shared state management system for concurrent agent orchestration:
+
+- **SQLite with WAL**: Write-Ahead Logging for concurrent access
+- **Optimistic Locking**: Revision-based concurrency control for state updates
+- **Lease-Based Locking**: TTL-based exclusive access for task execution
+- **Event Journaling**: Complete audit trail of state changes and agent handoffs
+- **Foreign Key Constraints**: Data integrity across all tables
+
+#### State Management Tables
+- **`orchestrator_state`**: Current workflow state per task (current, previous, last_agent, rounds_review, rev)
+- **`event_log`**: Audit trail of all state transitions and handoffs
+- **`leases`**: Exclusive access control with automatic expiration
+
+## 🤖 Agent System
 The system implements a complete agent orchestration framework with:
 - **6 Specialized Agents**: PO, Architect, Dev, Reviewer, QA, PR-Bot
 - **Contract-Driven Development**: Strict JSON schemas for all agent I/O
@@ -196,6 +210,113 @@ Transita un TaskRecord a un nuevo estado con validaciones y efectos secundarios.
 - `qa → dev`: Actualiza `qa_report`
 - `qa → pr`: Actualiza `qa_report`
 
+### state.get
+Gets the current orchestrator state for a task.
+
+**Input:**
+```json
+{"task_id": "TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C"}
+```
+
+**Output:**
+```json
+{
+  "task_id": "TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C",
+  "current": "dev",
+  "previous": "arch",
+  "last_agent": "architect",
+  "rounds_review": 0,
+  "rev": 2,
+  "updated_at": "2024-01-15T10:30:00.000Z"
+}
+```
+
+### state.patch
+Updates orchestrator state with optimistic concurrency control.
+
+**Input:**
+```json
+{
+  "task_id": "TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C",
+  "if_rev": 2,
+  "patch": {
+    "current": "review",
+    "last_agent": "dev"
+  }
+}
+```
+
+### state.acquire_lock
+Acquires an exclusive lease for task execution.
+
+**Input:**
+```json
+{
+  "task_id": "TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C",
+  "owner_agent": "architect",
+  "ttl_seconds": 300
+}
+```
+
+**Output:**
+```json
+{
+  "task_id": "TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C",
+  "lease_id": "LE-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8D",
+  "owner_agent": "architect",
+  "expires_at": "2024-01-15T10:35:00.000Z"
+}
+```
+
+### state.release_lock
+Releases an exclusive lease.
+
+**Input:**
+```json
+{
+  "task_id": "TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C",
+  "lease_id": "LE-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8D"
+}
+```
+
+### state.events
+Gets the event history for a task.
+
+**Input:**
+```json
+{
+  "task_id": "TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C",
+  "limit": 50
+}
+```
+
+**Output:**
+```json
+[
+  {
+    "id": "EV-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8E",
+    "task_id": "TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C",
+    "type": "handoff",
+    "payload": {
+      "from_agent": "po",
+      "to_agent": "architect"
+    },
+    "created_at": "2024-01-15T10:30:00.000Z"
+  },
+  {
+    "id": "EV-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8F",
+    "task_id": "TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C",
+    "type": "transition",
+    "payload": {
+      "from_state": "po",
+      "to_state": "arch",
+      "agent": "po"
+    },
+    "created_at": "2024-01-15T10:30:05.000Z"
+  }
+]
+```
+
 ## 📊 States and Transitions
 
 TaskRecords follow a state flow with strict validations and quality gates:
@@ -267,6 +388,16 @@ pnpm --filter @agents/task-mcp test -- --watch
 - ✅ State transitions with business rules
 - ✅ Agent contract tests (33 tests across 6 agents)
 - ✅ Quality gate validations
+- ✅ **State management concurrency**: Lease-based locking and event journaling
+- ✅ **Optimistic locking**: Revision-based conflict detection
+- ✅ **Event auditing**: Complete state change history
+
+### State Management Tests
+The system includes comprehensive tests for concurrent state management:
+- **Lease Repository**: Exclusive access control with TTL expiration
+- **State Repository**: Optimistic locking with revision validation
+- **Event Repository**: Audit trail with searchable event history
+- **Integration Tests**: Complete orchestrator flow with state transitions
 
 ## 📚 Data Schema
 
