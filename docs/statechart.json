@@ -1,0 +1,46 @@
+{
+  "initial": "po",
+  "states": {
+    "po": {
+      "on": {
+        "GROOMED": "arch",
+        "FAST_TRACK": "dev"
+      }
+    },
+    "arch": {
+      "on": {
+        "DESIGN_READY": "dev"
+      }
+    },
+    "dev": {
+      "on": {
+        "SUBMIT_REVIEW": "review"
+      }
+    },
+    "review": {
+      "on": {
+        "CHANGES": "dev",
+        "APPROVED": "po_check"
+      }
+    },
+    "po_check": {
+      "on": {
+        "APPROVED": "qa"
+      }
+    },
+    "qa": {
+      "on": {
+        "FAIL": "dev",
+        "PASS": "pr"
+      }
+    },
+    "pr": {
+      "on": {
+        "MERGED": "done"
+      }
+    },
+    "done": {
+      "type": "final"
+    }
+  }
+}
