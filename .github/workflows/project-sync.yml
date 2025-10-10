@@ -1,150 +1,72 @@
 name: Project Sync
 on:
-  issues:
-    types: [opened, edited, closed, assigned, unassigned]
   pull_request:
-    types: [opened, ready_for_review, review_requested, closed, merged]
-  pull_request_review:
-    types: [submitted, edited, dismissed]
+    types: [opened, ready_for_review, review_requested, review_request_removed, closed, converted_to_draft]
+  issues:
+    types: [opened, edited, closed]
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
-  sync-project:
+  sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/github-script@v7
         with:
           script: |
-            const projectNumber = 1; // Update this to your actual project number
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
+            // Configura
+            const owner = context.repo.owner
+            const repo  = context.repo.repo
+            const projectNumber = 1 // tu Project v2
+            // Mapeo simple
+            function mapStatus(evt, payload){
+              if (context.eventName === "issues") {
+                return payload.issue.state === "closed" ? "Done" : "To Do"
+              }
+              const pr = payload.pull_request
+              if (pr.merged) return "Done"
+              if (pr.draft) return "In Review"   // draft PR = en revisión técnica
+              return pr.state === "open" ? "In Review" : "Done"
+            }
 
-            // GraphQL query to find the project
-            const findProjectQuery = `
-              query($owner: String!, $repo: String!, $number: Int!) {
-                repository(owner: $owner, name: $repo) {
-                  projectV2(number: $number) {
+            const statusValue = mapStatus(context.payload.action, context.payload)
+            // 1) Obtener el Project y campos
+            const {organization} = await github.graphql(`
+              query($login:String!,$number:Int!){
+                organization(login:$login){
+                  projectV2(number:$number){
                     id
-                    fields(first: 20) {
-                      nodes {
-                        ... on ProjectV2SingleSelectField {
-                          id
-                          name
-                          options {
-                            id
-                            name
-                          }
-                        }
-                      }
+                    fields(first:50){ nodes { ... on ProjectV2Field { id name dataType } }
                     }
                   }
                 }
-              }
-            `;
+              }`,
+              { login: owner, number: projectNumber }
+            )
+            const project = organization.projectV2
+            const statusField = project.fields.nodes.find(f => f.name === "Status")
+            if (!statusField) { core.setFailed("Campo 'Status' no existe en el Project"); return }
 
-            // Get project info
-            const projectResult = await github.graphql(findProjectQuery, {
-              owner,
-              repo,
-              number: projectNumber
-            });
+            // 2) Asegurar item en project
+            const nodeId = context.eventName === "issues" 
+              ? context.payload.issue.node_id 
+              : context.payload.pull_request.node_id            const addRes = await github.graphql(`
+              mutation($projectId:ID!,$itemId:ID!){
+                addProjectV2ItemById(input:{projectId:$projectId, contentId:$itemId}){ item { id } }
+              }`,
+              { projectId: project.id, itemId: nodeId }
+            )
+            const itemId = addRes.addProjectV2ItemById.item.id
 
-            const project = projectResult.repository.projectV2;
-            if (!project) {
-              console.log('Project not found');
-              return;
-            }
-
-            // Find Status field
-            const statusField = project.fields.nodes.find(field => field.name === 'Status');
-            if (!statusField) {
-              console.log('Status field not found');
-              return;
-            }
-
-            // Map status options
-            const statusOptions = {
-              'To Do': statusField.options.find(opt => opt.name === 'To Do')?.id,
-              'In Progress': statusField.options.find(opt => opt.name === 'In Progress')?.id,
-              'In Review': statusField.options.find(opt => opt.name === 'In Review')?.id,
-              'Done': statusField.options.find(opt => opt.name === 'Done')?.id
-            };
-
-            // Determine new status based on event
-            let newStatus = null;
-            const eventName = context.eventName;
-            const payload = context.payload;
-
-            if (eventName === 'issues') {
-              const issue = payload.issue;
-              if (issue.state === 'closed') {
-                newStatus = statusOptions['Done'];
-              } else if (issue.labels.some(l => l.name.includes('in-review'))) {
-                newStatus = statusOptions['In Review'];
-              } else {
-                newStatus = statusOptions['To Do'];
-              }
-            } else if (eventName === 'pull_request') {
-              const pr = payload.pull_request;
-              if (pr.merged || pr.state === 'closed') {
-                newStatus = statusOptions['Done'];
-              } else if (pr.draft) {
-                newStatus = statusOptions['In Progress'];
-              } else {
-                newStatus = statusOptions['In Review'];
-              }
-            }
-
-            if (!newStatus) {
-              console.log('No status change needed');
-              return;
-            }
-
-            // Add or update item in project
-            const itemId = payload.issue?.node_id || payload.pull_request?.node_id;
-            if (!itemId) return;
-
-            // Add item to project if not already there
-            const addItemMutation = `
-              mutation($projectId: ID!, $itemId: ID!) {
-                addProjectV2ItemById(input: {projectId: $projectId, contentId: $itemId}) {
-                  item {
-                    id
-                  }
-                }
-              }
-            `;
-
-            try {
-              const addResult = await github.graphql(addItemMutation, {
-                projectId: project.id,
-                itemId: itemId
-              });
-
-              // Update status field
-              const updateFieldMutation = `
-                mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
-                  updateProjectV2ItemFieldValue(input: {
-                    projectId: $projectId,
-                    itemId: $itemId,
-                    fieldId: $fieldId,
-                    value: $value
-                  }) {
-                    projectV2Item {
-                      id
-                    }
-                  }
-                }
-              `;
-
-              await github.graphql(updateFieldMutation, {
-                projectId: project.id,
-                itemId: addResult.addProjectV2ItemById.item.id,
-                fieldId: statusField.id,
-                value: newStatus
-              });
-
-              console.log('Project item updated successfully');
-            } catch (error) {
-              console.log('Error updating project:', error.message);
-            }
+            // 3) Actualizar Status
+            await github.graphql(`
+              mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $value:String!){
+                updateProjectV2ItemFieldValue(input:{
+                  projectId:$projectId, itemId:$itemId,
+                  fieldId:$fieldId, value:{singleSelectOptionName:$value}
+                }) { clientMutationId }
+              }`,
+              { projectId: project.id, itemId, fieldId: statusField.id, value: statusValue }
+            )
