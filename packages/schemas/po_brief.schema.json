@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Task title"
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of acceptance criteria"
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["minor", "major"],
+      "description": "Task scope"
+    },
+    "non_functional": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Non-functional requirements"
+    },
+    "done_if": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Completion criteria"
+    }
+  },
+  "required": ["title", "acceptance_criteria", "scope", "non_functional", "done_if"],
+  "additionalProperties": false
+}
