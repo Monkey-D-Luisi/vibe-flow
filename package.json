@@ -1,0 +1,9 @@
+{
+  "name": "agents-mcps-starter",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "tooling/*"
+  ]
+}

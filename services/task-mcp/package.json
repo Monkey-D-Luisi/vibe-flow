@@ -1,0 +1,14 @@
+{
+  "name": "@agents/task-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2",
+    "tsx": "^4.16.0",
+    "vitest": "^2.0.5"
+  }
+}
