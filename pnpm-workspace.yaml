@@ -1,5 +1,7 @@
 packages:
-  - 'packages/*'
-  - 'services/*'
-  - 'tooling/*'
+  - packages/*
+  - services/*
+  - tooling/*
 
+onlyBuiltDependencies:
+  - better-sqlite3
