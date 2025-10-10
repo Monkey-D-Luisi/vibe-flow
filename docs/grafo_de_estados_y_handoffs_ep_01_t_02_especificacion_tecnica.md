@@ -1,27 +1,27 @@
-# EP01‑T02 — Grafo de estados y handoffs
+# EP01‑T02 — State Graph and Handoffs
 
-## Objetivo
-Definir la máquina de estados del flujo PO → Arquitectura → Dev → Review ↔ Dev → PO Check → QA → PR y las reglas que la gobiernan, incluyendo fast‑track para `scope=minor`, límites de rondas y verificación de puertas (quality MCP, rúbrica reviewer, QA report).
+## Objective
+Define the state machine of the PO → Architecture → Dev → Review ↔ Dev → PO Check → QA → PR flow and the rules that govern it, including fast‑track for `scope=minor`, round limits and gate verification (quality MCP, reviewer rubric, QA report).
 
-## Estados
+## States
 `po`, `arch`, `dev`, `review`, `po_check`, `qa`, `pr`, `done`
 
-## Eventos
+## Events
 `design_ready`, `implement_ready`, `review_ok`, `review_changes`, `po_approved`, `qa_pass`, `qa_fail`, `pr_opened`, `merged`
 
-## Transiciones
-- `po → arch` on backlog grooming o si `scope=major`. Guard: requisitos mínimos definidos.
-- `po → dev` fast‑track si `scope=minor` y sin cambios de diseño.
-- `arch → dev` on `design_ready` (ADR y contratos definidos).
-- `dev → review` guard: `red_green_refactor_log ≥ 2`, `coverage ≥ umbral` (0.8 major, 0.7 minor), `lint.errors=0`.
-- `review → dev` on `review_changes`. Efecto: `rounds_review++` (máx 2).
-- `review → po_check` on `review_ok`. Guard: sin `violations.high` en rúbrica.
-- `po_check → qa` on `po_approved`. Guard: criterios de aceptación marcados.
-- `qa → dev` on `qa_fail` (adjuntar reporte).
+## Transitions
+- `po → arch` on backlog grooming or if `scope=major`. Guard: minimum requirements defined.
+- `po → dev` fast‑track if `scope=minor` and no design changes.
+- `arch → dev` on `design_ready` (ADR and contracts defined).
+- `dev → review` guard: `red_green_refactor_log ≥ 2`, `coverage ≥ threshold` (0.8 major, 0.7 minor), `lint.errors=0`.
+- `review → dev` on `review_changes`. Effect: `rounds_review++` (max 2).
+- `review → po_check` on `review_ok`. Guard: no `violations.high` in rubric.
+- `po_check → qa` on `po_approved`. Guard: acceptance criteria marked.
+- `qa → dev` on `qa_fail` (attach report).
 - `qa → pr` on `qa_pass`.
 - `pr → done` on `merged`.
 
-## Representación JSON (statechart)
+## JSON Representation (statechart)
 ```json
 {
   "initial": "po",
@@ -38,15 +38,15 @@ Definir la máquina de estados del flujo PO → Arquitectura → Dev → Review 
 }
 ```
 
-## Guards y efectos (pseudocódigo)
+## Guards and Effects (pseudocode)
 - Guard `ready_for_review(tr)`:
   - `len(tr.red_green_refactor_log) ≥ 2`
   - `tr.metrics.coverage ≥ (tr.scope == 'major' ? 0.8 : 0.7)`
   - `lint.errors == 0`
-- Efecto `inc_rounds_review(tr)`: `tr.rounds_review += 1` y si `> 2` → bloquear.
+- Effect `inc_rounds_review(tr)`: `tr.rounds_review += 1` and if `> 2` → block.
 
-## API MCP — tool `task.transition`
-Entrada:
+## MCP API — tool `task.transition`
+Input:
 ```json
 {
   "id": "TR-...",
@@ -60,23 +60,23 @@ Entrada:
   }
 }
 ```
-Salida: TaskRecord actualizado o error `409` si `rev` desactualizado.
+Output: Updated TaskRecord or error `409` if `rev` outdated.
 
-## Integraciones de puerta
-- **Quality MCP**: antes de `dev → review` calcula cobertura, lint y complejidad. Umbrales configurables.
-- **Reviewer**: genera `violations[]` con severidad. No se permite `high` para pasar a `po_check`.
-- **QA**: ejecuta plan unit/contract/smoke; si `failed > 0` retorna a `dev`.
+## Gate Integrations
+- **Quality MCP**: before `dev → review` calculates coverage, lint and complexity. Configurable thresholds.
+- **Reviewer**: generates `violations[]` with severity. No `high` allowed to pass to `po_check`.
+- **QA**: executes unit/contract/smoke plan; if `failed > 0` returns to `dev`.
 
-## Límite de rondas
-- `review ↔ dev`: máx 2 rondas por TaskRecord. Superado el límite, requiere intervención del PO.
+## Round Limit
+- `review ↔ dev`: max 2 rounds per TaskRecord. Exceeded limit requires PO intervention.
 
-## Telemetría y trazas
-- Guardar en `links.github.issueNumber` y `links.git.branch` cuando existan.
-- Emitir evento `handoff` {from, to, when, tr_id} para observabilidad.
+## Telemetry and Traces
+- Save in `links.github.issueNumber` and `links.git.branch` when they exist.
+- Emit `handoff` event {from, to, when, tr_id} for observability.
 
 ## DoD (EP01‑T02)
-- Statechart serializable (`statechart.json`) y validado en tests.
-- Implementación de `task.transition` con guards activos.
-- Tests de transición y de límites de ronda.
-- Documentación de fast‑track y umbrales por scope.
+- Serializable statechart (`statechart.json`) and validated in tests.
+- Implementation of `task.transition` with active guards.
+- Transition tests and round limit tests.
+- Documentation of fast‑track and thresholds per scope.
 
