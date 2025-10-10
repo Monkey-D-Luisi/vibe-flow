@@ -1,0 +1,5 @@
+{
+  "git.inputValidation": true,
+  "git.inputValidationSubjectLength": 72,
+  "git.enableSmartCommit": true
+}
