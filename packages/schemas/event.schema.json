@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/event.schema.json",
+  "title": "StateEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "task_id", "type", "created_at"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^EV-[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "ULID with EV- prefix for event"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^TR-[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "ULID with TR- prefix referencing TaskRecord"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["handoff", "transition", "comment", "quality", "error"],
+      "description": "Type of event"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Event-specific payload data"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event creation timestamp"
+    }
+  }
+}

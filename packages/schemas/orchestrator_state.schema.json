@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/orchestrator_state.schema.json",
+  "title": "OrchestratorState",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "current", "rev", "updated_at"],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "pattern": "^TR-[0-9A-HJKMNP-TV-Z]{26}$",
+      "description": "ULID with TR- prefix referencing TaskRecord"
+    },
+    "current": {
+      "type": "string",
+      "enum": ["po", "arch", "dev", "review", "po_check", "qa", "pr", "done"],
+      "description": "Current orchestrator state"
+    },
+    "previous": {
+      "type": "string",
+      "enum": ["po", "arch", "dev", "review", "po_check", "qa", "pr", "done"],
+      "description": "Previous orchestrator state"
+    },
+    "last_agent": {
+      "type": "string",
+      "enum": ["orchestrator", "architect", "dev", "reviewer", "qa", "pr-bot", "telemetry", "po"],
+      "description": "Last agent that modified the state"
+    },
+    "rounds_review": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of review rounds completed"
+    },
+    "rev": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Revision number for optimistic locking"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp"
+    }
+  }
+}

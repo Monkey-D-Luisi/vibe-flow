@@ -1,7 +1,16 @@
 import Ajv from 'ajv';
-import { AgentType } from './router';
+import { AgentType, nextAgent, getAgentInputSchema, getAgentOutputSchema } from './router';
+import { TaskRepository } from '../repo/sqlite';
+import { StateRepository, EventRepository, LeaseRepository } from '../repo/state';
+import { TaskRecord } from '../domain/TaskRecord';
 
 const ajv = new Ajv({ allErrors: true, strict: false });
+
+// Initialize repositories
+const repo = new TaskRepository();
+const stateRepo = new StateRepository(repo.database);
+const eventRepo = new EventRepository(repo.database);
+const leaseRepo = new LeaseRepository(repo.database);
 
 // Mock agent execution - in real implementation this would call OpenAI Agent Builder or similar
 export async function runAgent(agent: AgentType, input: any): Promise<any> {
@@ -93,6 +102,216 @@ export async function runAgent(agent: AgentType, input: any): Promise<any> {
     default:
       throw new Error(`Unknown agent: ${agent}`);
   }
+}
+
+// Run one step of the orchestrator for a task
+export async function runOrchestratorStep(taskId: string, agentName: string): Promise<any> {
+  // Acquire lease for exclusive access
+  const lease = leaseRepo.acquire(taskId, agentName, 300); // 5 minute lease
+
+  try {
+    // Get current state
+    let state = stateRepo.get(taskId);
+    if (!state) {
+      // Initialize state if it doesn't exist
+      state = stateRepo.create(taskId);
+    }
+
+    // Get task record for context
+    const task = repo.get(taskId);
+    if (!task) {
+      throw new Error(`Task ${taskId} not found`);
+    }
+
+    // Determine which agent to run based on current state
+    const agentType = agentName as AgentType;
+    if (!canRunAgent(state.current, agentType)) {
+      throw new Error(`Agent ${agentType} cannot run in state ${state.current}`);
+    }
+
+    // Prepare input for the agent
+    const input = prepareAgentInput(task, state, agentType);
+
+    // Log handoff event
+    eventRepo.append(taskId, 'handoff', {
+      from_agent: state.last_agent,
+      to_agent: agentType,
+      state: state.current,
+      input_summary: summarizeInput(input)
+    });
+
+    // Run the agent
+    const output = await runAgent(agentType, input);
+
+    // Validate output
+    const validatedOutput = validateAgentOutput(agentType, output);
+
+    // Update task record with agent output
+    updateTaskWithAgentOutput(task, agentType, validatedOutput);
+
+    // Update orchestrator state
+    const nextState = getNextState(state.current, agentType);
+    const stateUpdate: any = {
+      current: nextState,
+      previous: state.current,
+      last_agent: agentType
+    };
+
+    // Handle special state transitions
+    if (agentType === 'reviewer' && nextState === 'dev') {
+      stateUpdate.rounds_review = (state.rounds_review || 0) + 1;
+    }
+
+    const updatedState = stateRepo.update(taskId, state.rev, stateUpdate);
+
+    // Log transition event
+    eventRepo.append(taskId, 'transition', {
+      from_state: state.current,
+      to_state: nextState,
+      agent: agentType,
+      output_summary: summarizeOutput(validatedOutput)
+    });
+
+    return {
+      task_id: taskId,
+      agent: agentType,
+      output: validatedOutput,
+      new_state: updatedState,
+      lease_id: lease.lease_id
+    };
+
+  } finally {
+    // Always release the lease
+    leaseRepo.release(taskId, lease.lease_id);
+  }
+}
+
+function canRunAgent(currentState: string, agentType: AgentType): boolean {
+  const stateToAgentMap = {
+    'po': ['po'],
+    'arch': ['architect'],
+    'dev': ['dev'],
+    'review': ['reviewer'],
+    'po_check': ['po'], // PO can re-review
+    'qa': ['qa'],
+    'pr': ['prbot']
+  };
+
+  const allowedAgents = stateToAgentMap[currentState as keyof typeof stateToAgentMap] || [];
+  return allowedAgents.includes(agentType);
+}
+
+function getNextState(currentState: string, agentType: AgentType): string {
+  const transitions = {
+    'po': 'arch',
+    'arch': 'dev',
+    'dev': 'review',
+    'review': 'qa', // Assuming review passes
+    'qa': 'pr', // Assuming QA passes
+    'pr': 'done'
+  };
+
+  // Special cases
+  if (agentType === 'reviewer') {
+    // This would be determined by the reviewer output
+    return 'qa'; // For now, assume it passes
+  }
+
+  return transitions[currentState as keyof typeof transitions] || currentState;
+}
+
+function prepareAgentInput(task: TaskRecord, state: any, agentType: AgentType): any {
+  // Base input from task
+  const baseInput = {
+    task_id: task.id,
+    title: task.title,
+    description: task.description,
+    acceptance_criteria: task.acceptance_criteria,
+    scope: task.scope
+  };
+
+  // Add agent-specific context based on available task data
+  switch (agentType) {
+    case 'architect':
+      return {
+        ...baseInput,
+        // Add any architect-specific inputs from task data
+      };
+    case 'dev':
+      return {
+        ...baseInput,
+        // Add any dev-specific inputs from task data
+      };
+    case 'reviewer':
+      return {
+        ...baseInput,
+        // Add any reviewer-specific inputs from task data
+      };
+    case 'qa':
+      return {
+        ...baseInput,
+        // Add any qa-specific inputs from task data
+      };
+    case 'prbot':
+      return {
+        ...baseInput,
+        // Add any prbot-specific inputs from task data
+      };
+    default:
+      return baseInput;
+  }
+}
+
+function updateTaskWithAgentOutput(task: TaskRecord, agentType: AgentType, output: any): void {
+  const patch: any = {};
+
+  switch (agentType) {
+    case 'po':
+      // Store PO output in appropriate fields
+      break;
+    case 'architect':
+      // Store architect output (ADR, contracts, etc.)
+      if (output.adr_id) patch.adr_id = output.adr_id;
+      if (output.contracts) patch.contracts = output.contracts;
+      if (output.patterns) patch.patterns = output.patterns;
+      if (output.test_plan) patch.test_plan = output.test_plan;
+      break;
+    case 'dev':
+      // Store dev output (metrics, logs, etc.)
+      if (output.metrics) patch.metrics = output.metrics;
+      if (output.red_green_refactor_log) patch.red_green_refactor_log = output.red_green_refactor_log;
+      if (output.diff_summary) patch.diff_summary = output.diff_summary;
+      break;
+    case 'reviewer':
+      // Store reviewer output
+      if (output.violations) patch.review_notes = output.violations.map((v: any) => `${v.rule}: ${v.message}`);
+      break;
+    case 'qa':
+      // Store QA output
+      if (output.total !== undefined && output.passed !== undefined && output.failed !== undefined) {
+        patch.qa_report = { total: output.total, passed: output.passed, failed: output.failed };
+      }
+      break;
+    case 'prbot':
+      // Store PR output
+      if (output.branch) patch.branch = output.branch;
+      break;
+  }
+
+  if (Object.keys(patch).length > 0) {
+    repo.update(task.id, task.rev, patch);
+  }
+}
+
+function summarizeInput(input: any): string {
+  return `Task: ${input.title} (${input.scope})`;
+}
+
+function summarizeOutput(output: any): string {
+  if (output.summary) return output.summary;
+  if (output.diff_summary) return output.diff_summary;
+  if (output.total !== undefined) return `Tests: ${output.passed}/${output.total} passed`;
+  return 'Output generated';
 }
 
 import { readFileSync } from 'fs';

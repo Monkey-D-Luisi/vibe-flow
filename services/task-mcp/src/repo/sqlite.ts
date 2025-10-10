@@ -9,7 +9,15 @@ export class TaskRepository {
     this.migrate();
   }
 
+  get database(): Database.Database {
+    return this.db;
+  }
+
   private migrate() {
+    // Enable WAL mode and foreign keys for better concurrency
+    this.db.pragma('journal_mode = WAL');
+    this.db.pragma('foreign_keys = ON');
+
     const ddl = `
       CREATE TABLE IF NOT EXISTS task_records (
         id TEXT PRIMARY KEY,
@@ -41,6 +49,37 @@ export class TaskRepository {
       );
       CREATE INDEX IF NOT EXISTS idx_task_status ON task_records(status);
       CREATE INDEX IF NOT EXISTS idx_task_scope ON task_records(scope);
+
+      -- Orchestrator state per Task
+      CREATE TABLE IF NOT EXISTS orchestrator_state (
+        task_id TEXT PRIMARY KEY REFERENCES task_records(id) ON DELETE CASCADE,
+        current TEXT NOT NULL CHECK(current IN ('po','arch','dev','review','po_check','qa','pr','done')),
+        previous TEXT,
+        last_agent TEXT,
+        rounds_review INTEGER NOT NULL DEFAULT 0,
+        rev INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL
+      );
+
+      -- Event journal
+      CREATE TABLE IF NOT EXISTS event_log (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL REFERENCES task_records(id) ON DELETE CASCADE,
+        type TEXT NOT NULL,
+        payload_json TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_event_task ON event_log(task_id);
+      CREATE INDEX IF NOT EXISTS idx_event_created ON event_log(created_at);
+
+      -- Leases for exclusion
+      CREATE TABLE IF NOT EXISTS leases (
+        task_id TEXT PRIMARY KEY REFERENCES task_records(id) ON DELETE CASCADE,
+        lease_id TEXT NOT NULL,
+        owner_agent TEXT NOT NULL,
+        expires_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_leases_expires ON leases(expires_at);
     `;
     this.db.exec(ddl);
   }
