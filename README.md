@@ -4,12 +4,14 @@ This monorepo contains the complete implementation of **TaskRecord v1.0.0** foll
 
 ## 📋 Project Description
 
-Implementation of a task management system (TaskRecord) that allows:
-- Create and manage task records with strict validations
-- Optimistic concurrency control
-- State transitions with business rules
-- Advanced search and filtering
-- Exposure via MCP tools for integration with AI agents
+Implementation of a complete **agent-orchestrated task management system** with:
+- **TaskRecord v1.0.0**: Structured task lifecycle with hexagonal architecture
+- **Agent Orchestration**: 6 specialized agents with contract-driven handoffs
+- **Quality Gates**: Automated validation and TDD enforcement
+- **MCP Integration**: Model Context Protocol for AI agent connectivity
+- **GitHub Workflow**: Automated PR management and project synchronization
+
+The system enables end-to-end automated task execution from requirements to deployment, with strict quality controls and seamless agent handoffs.
 
 ## 🏗️ Architecture
 
@@ -17,23 +19,68 @@ Implementation of a task management system (TaskRecord) that allows:
 - **Domain**: Pure business logic (TaskRecord, validations, transition rules)
 - **Persistence**: SQLite repository with automatic migration
 - **Exposure**: MCP server with JSON-RPC tools
+- **Orchestration**: Agent system with contracts, schemas, and handoffs
+
+### Agent System
+The system implements a complete agent orchestration framework with:
+- **6 Specialized Agents**: PO, Architect, Dev, Reviewer, QA, PR-Bot
+- **Contract-Driven Development**: Strict JSON schemas for all agent I/O
+- **Quality Gates**: Automated validation at each handoff
+- **State Machine**: Full workflow from requirements to deployment
 
 ### Monorepo Structure
 ```
 agents-mcps/
 ├── packages/
-│   └── schemas/           # JSON Schema v1.0.0
-│       └── taskrecord.schema.json
+│   └── schemas/           # JSON Schemas for TaskRecord and agents
+│       ├── taskrecord.schema.json
+│       ├── po_brief.schema.json
+│       ├── design_ready.schema.json
+│       ├── dev_work_output.schema.json
+│       ├── reviewer_report.schema.json
+│       ├── qa_report.schema.json
+│       └── pr_summary.schema.json
 ├── services/
 │   └── task-mcp/          # Main MCP service
 │       ├── src/
 │       │   ├── domain/    # Domain types and rules
 │       │   ├── repo/      # SQLite persistence
-│       │   └── mcp/       # MCP tools
-│       └── test/          # TDD tests
+│       │   ├── mcp/       # MCP tools
+│       │   ├── agents/    # Agent implementations with prompts
+│       │   └── orchestrator/ # Agent orchestration (router, runner, mappers)
+│       └── test/          # TDD tests including agent contracts
 └── docs/
-    └── task_record_v_1_0.md  # Complete documentation
+    ├── task_record_v_1_0.md
+    ├── ep_01_t_03_prompts_por_agente_y_contratos_de_salida_especificacion.md
+    └── grafo_de_estados_y_handoffs_ep_01_t_02_especificacion_tecnica.md
 ```
+
+## 🤖 Agent System
+
+The system includes a complete agent orchestration framework for automated task management:
+
+### Agents Overview
+- **PO Agent**: Distills requirements and acceptance criteria
+- **Architect Agent**: Designs system architecture with contracts and patterns
+- **Dev Agent**: Implements features using TDD with quality metrics
+- **Reviewer Agent**: Performs code review with SOLID/patterns rubric
+- **QA Agent**: Executes testing plans and reports results
+- **PR-Bot Agent**: Manages Git workflow and creates PRs
+
+### Agent Contracts
+All agents use strict JSON schemas for input/output validation:
+- Contract-driven development ensures reliability
+- Schema validation prevents malformed outputs
+- Quality gates enforce standards at each handoff
+
+### Orchestration Flow
+```
+PO → Architect → Dev → Reviewer → PO Check → QA → PR-Bot → Done
+     ↓
+   Dev (fast-track for minor scope)
+```
+
+See [`docs/ep_01_t_03_prompts_por_agente_y_contratos_de_salida_especificacion.md`](docs/ep_01_t_03_prompts_por_agente_y_contratos_de_salida_especificacion.md) for detailed agent specifications.
 
 ## 🚀 Quick Start
 
@@ -218,7 +265,8 @@ pnpm --filter @agents/task-mcp test -- --watch
 - ✅ Repository CRUD operations
 - ✅ Optimistic concurrency control
 - ✅ State transitions with business rules
-- ✅ Creation validations
+- ✅ Agent contract tests (33 tests across 6 agents)
+- ✅ Quality gate validations
 
 ## 📚 Data Schema
 

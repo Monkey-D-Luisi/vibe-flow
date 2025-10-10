@@ -1,19 +1,19 @@
-# EP01‑T03 — Prompts por agente y contratos de salida
+# EP01‑T03 — Agent Prompts and Output Contracts
 
-> Objetivo: definir instrucciones de sistema por agente, sus entradas/salidas tipadas y criterios de evaluación para que el orquestador pueda encadenar handoffs sin ambigüedad ni creatividad fuera de rango.
+> Objective: define system instructions per agent, their typed inputs/outputs and evaluation criteria so that the orchestrator can chain handoffs without ambiguity or creativity outside the allowed range.
 
-## Agentes y responsabilidades
+## Agents and Responsibilities
 
-* **orchestrator**: planifica, enruta y valida handoffs; aplica fast‑track si `scope=minor`.
-* **po**: define objetivo, criterios de aceptación, prioridades y restricciones (seguridad, performance, privacidad).
-* **architect**: produce `design_ready` (módulos, contratos, patrones, test_plan), registra ADRs.
-* **dev**: implementa con TDD; entrega `diff_summary`, `red_green_refactor_log` y actualiza métricas.
-* **reviewer**: ejecuta rúbrica SOLID/Clean Code/Patrones y emite `violations`.
-* **qa**: ejecuta plan unit/contract/smoke; produce `qa_report` y evidencias.
-* **pr-bot**: crea rama, commits gated por tests, y PR con checklist.
-* **telemetry**: traza handoffs y métricas.
+* **orchestrator**: plans, routes and validates handoffs; applies fast‑track if `scope=minor`.
+* **po**: defines objective, acceptance criteria, priorities and constraints (security, performance, privacy).
+* **architect**: produces `design_ready` (modules, contracts, patterns, test_plan), registers ADRs.
+* **dev**: implements with TDD; delivers `diff_summary`, `red_green_refactor_log` and updates metrics.
+* **reviewer**: executes SOLID/Clean Code/Patterns rubric and issues `violations`.
+* **qa**: executes unit/contract/smoke plan; produces `qa_report` and evidence.
+* **pr-bot**: creates branch, commits gated by tests, and PR with checklist.
+* **telemetry**: traces handoffs and metrics.
 
-## Contratos de E/S por agente
+## I/O Contracts per Agent
 
 ### 1) PO → `po.brief`
 
@@ -41,7 +41,7 @@
 }
 ```
 
-### 2) Arquitectura → `architect.design_ready`
+### 2) Architecture → `architect.design_ready`
 
 **Output:**
 
@@ -95,62 +95,62 @@
 }
 ```
 
-## Instrucciones de sistema (resumen)
+## System Instructions (summary)
 
-> Todas con `temperature: 0` y `guardrails` para **no inventar campos** ni salirse del JSON esperado.
+> All with `temperature: 0` and `guardrails` to **not invent fields** nor go outside the expected JSON.
 
 **po.system**
 
-* Objetivo: destilar requisitos claros y criterios de aceptación accionables.
-* Salida estricta: `po_brief.json`.
+* Objective: distill clear requirements and actionable acceptance criteria.
+* Strict output: `po_brief.json`.
 
 **architect.system**
 
-* Objetivo: entregar `design_ready` autoexplicativo con patrones y trade‑offs.
-* Normas: preferir patrones GoF/DDD; justificar con `why`; ADR obligatorio.
+* Objective: deliver self-explanatory `design_ready` with patterns and trade‑offs.
+* Rules: prefer GoF/DDD patterns; justify with `why`; ADR mandatory.
 
 **dev.system**
 
-* Objetivo: TDD puro; primero tests, luego implementación; reportar `metrics` y `rgr_log`.
-* Normas: SOLID, Clean Code, evitar acoplamientos, funciones pequeñas.
+* Objective: pure TDD; first tests, then implementation; report `metrics` and `rgr_log`.
+* Rules: SOLID, Clean Code, avoid couplings, small functions.
 
 **reviewer.system**
 
-* Objetivo: evaluar con rúbrica y severidades; bloquear con `high`.
-* Normas: cada violación debe proponer `suggested_fix`.
+* Objective: evaluate with rubric and severities; block with `high`.
+* Rules: each violation must propose `suggested_fix`.
 
 **qa.system**
 
-* Objetivo: ejecutar plan definido por arquitectura; registrar evidencia.
+* Objective: execute plan defined by architecture; record evidence.
 
 **pr-bot.system**
 
-* Objetivo: crear PR con checklist de criterios, ADR, QA, métricas y vínculo a issue.
+* Objective: create PR with checklist of criteria, ADR, QA, metrics and link to issue.
 
-## Validaciones automáticas por herramienta
+## Automatic Validations per Tool
 
-* `dev.work_output`: `coverage ≥ 0.8` si `scope=major`, `≥ 0.7` si `minor`; `lint.errors = 0`.
-* `reviewer.report`: sin `severity=high` para pasar a `po_check`.
-* `qa.report`: `failed = 0` para pasar a `pr`.
+* `dev.work_output`: `coverage ≥ 0.8` if `scope=major`, `≥ 0.7` if `minor`; `lint.errors = 0`.
+* `reviewer.report`: no `severity=high` to pass to `po_check`.
+* `qa.report`: `failed = 0` to pass to `pr`.
 
-## Tests de contrato
+## Contract Tests
 
-* Dada una entrada mínima por agente, el parser valida que el JSON de salida **cumple el schema** y no trae campos extra.
-* Snapshot tests de prompts para evitar drift.
+* Given a minimal input per agent, the parser validates that the output JSON **complies with the schema** and brings no extra fields.
+* Snapshot tests of prompts to avoid drift.
 
 ## DoD (EP01‑T03)
 
-* Esquemas `po_brief.json`, `design_ready.json`, `dev_work_output.json`, `reviewer_report.json`, `qa_report.json`, `pr_summary.json` publicados en `packages/schemas/`.
-* Tests de contrato por agente en `services/task-mcp/test/agents.contract.spec.ts`.
-* Orquestador capaz de rutear y validar cada handoff usando estos contratos.
+* Schemas `po_brief.json`, `design_ready.json`, `dev_work_output.json`, `reviewer_report.json`, `qa_report.json`, `pr_summary.json` published in `packages/schemas/`.
+* Contract tests per agent in `services/task-mcp/test/agents.contract.spec.ts`.
+* Orchestrator capable of routing and validating each handoff using these contracts.
 
 ---
 
-## Instrucciones de implementación
+## Implementation Instructions
 
-> Sí, faltaban las instrucciones paso a paso. Aquí tienes la receta completa para que el orquestador y los agentes funcionen sin improvisar.
+> Yes, the step-by-step instructions were missing. Here you have the complete recipe so that the orchestrator and agents work without improvising.
 
-### 1) Estructura de ficheros
+### 1) File Structure
 
 ```
 packages/schemas/
@@ -162,83 +162,83 @@ packages/schemas/
   pr_summary.schema.json
 services/task-mcp/
   src/agents/
-    po.ts            # prompt + validación salida
-    architect.ts     # prompt + validación salida
-    dev.ts           # prompt + validación salida
-    reviewer.ts      # prompt + validación salida
-    qa.ts            # prompt + validación salida
-    prbot.ts         # prompt + validación salida
+    po.ts            # prompt + output validation
+    architect.ts     # prompt + output validation
+    dev.ts           # prompt + output validation
+    reviewer.ts      # prompt + output validation
+    qa.ts            # prompt + output validation
+    prbot.ts         # prompt + output validation
   src/orchestrator/
-    router.ts        # decide siguiente agente según estado/scope
-    runner.ts        # ejecuta agente (Agent Builder / API) y valida contra schema
-    mappers.ts       # mapea salida → TaskRecord.patch
+    router.ts        # decides next agent based on status/scope
+    runner.ts        # executes agent (Agent Builder / API) and validates against schema
+    mappers.ts       # maps output → TaskRecord.patch
   test/agents.contract.spec.ts
 ```
 
-### 2) Schemas de salida (coloca en `packages/schemas/`)
+### 2) Output Schemas (place in `packages/schemas/`)
 
-> Ya están definidos arriba en “Contratos de E/S”. Cópialos 1:1 a ficheros `.schema.json` y versiónalos.
+> They are already defined above in "I/O Contracts". Copy them 1:1 to `.schema.json` files and version them.
 
 * `po_brief.schema.json`, `design_ready.schema.json`, `dev_work_output.schema.json`, `reviewer_report.schema.json`, `qa_report.schema.json`, `pr_summary.schema.json`.
-* Añade `"additionalProperties": false` en todos para evitar inventos.
+* Add `"additionalProperties": false` in all to avoid inventions.
 
-### 3) Templates de prompts por agente
+### 3) Prompt Templates per Agent
 
-> Usa **temperature: 0** y **response_format estricto**. Si usas Agent Builder, define cada agente con su system prompt y el schema como “tool output”.
+> Use **temperature: 0** and **strict response_format**. If using Agent Builder, define each agent with its system prompt and the schema as "tool output".
 
-**`src/agents/dev.ts` (extracto del prompt)**
+**`src/agents/dev.ts` (prompt excerpt)**
 
 ```
-Eres el agente DEV. Escribe primero tests (TDD), luego implementación. No inventes campos.
-Salida obligatoria: JSON válido que cumpla `dev_work_output.schema.json`.
-Reglas:
-- Aplica SOLID y Clean Code.
+You are the DEV agent. Write tests first (TDD), then implementation. Do not invent fields.
+Mandatory output: Valid JSON that complies with `dev_work_output.schema.json`.
+Rules:
+- Apply SOLID and Clean Code.
 - coverage ≥ 0.8 (major) | ≥ 0.7 (minor)
 - lint.errors = 0
-- Incluye `red_green_refactor_log` con al menos 2 entradas (red→green).
+- Include `red_green_refactor_log` with at least 2 entries (red→green).
 ```
 
 **`src/agents/reviewer.ts`**
 
 ```
-Eres el agente REVIEWER. Evalúas la entrega con la rúbrica SOLID/Patrones.
-Salida: `reviewer_report.schema.json`
-Reglas:
-- Cada violación incluye rule, where, why, severity y suggested_fix.
-- No permitas pasar a PO_CHECK si existe severity = "high".
+You are the REVIEWER agent. You evaluate the delivery with the SOLID/Patterns rubric.
+Output: `reviewer_report.schema.json`
+Rules:
+- Each violation includes rule, where, why, severity and suggested_fix.
+- Do not allow passing to PO_CHECK if severity = "high" exists.
 ```
 
 **`src/agents/architect.ts`**
 
 ```
-Eres el agente ARQUITECTO. Entregas `design_ready` con módulos, contratos, patrones y ADR.
-Salida: `design_ready.schema.json`. Justifica patrones en `why`.
+You are the ARCHITECT agent. You deliver `design_ready` with modules, contracts, patterns and ADR.
+Output: `design_ready.schema.json`. Justify patterns in `why`.
 ```
 
 **`src/agents/qa.ts`**
 
 ```
-Eres QA. Ejecutas plan unit/contract/smoke.
-Salida: `qa_report.schema.json` con failed=0 para aprobar.
+You are QA. You execute unit/contract/smoke plan.
+Output: `qa_report.schema.json` with failed=0 to approve.
 ```
 
 **`src/agents/prbot.ts`**
 
 ```
-Eres PR-BOT. Creas rama, PR draft y checklist de validación.
-Salida: `pr_summary.schema.json` (branch, pr_url, checklist[]).
+You are PR-BOT. You create branch, draft PR and validation checklist.
+Output: `pr_summary.schema.json` (branch, pr_url, checklist[]).
 ```
 
-### 4) Runner y validación
+### 4) Runner and Validation
 
-**`src/orchestrator/runner.ts` (pseudocódigo)**
+**`src/orchestrator/runner.ts` (pseudocode)**
 
 ```ts
 import Ajv from "ajv";
-import { callAgent } from "../vendor/agent-builder.js"; // wrapper a OpenAI Agent Builder
+import { callAgent } from "../vendor/agent-builder.js"; // wrapper to OpenAI Agent Builder
 
 export async function runAgent({agent, input, schemaPath}) {
-  const out = await callAgent(agent, input); // devuelve string JSON
+  const out = await callAgent(agent, input); // returns JSON string
   const json = JSON.parse(out);
   const validate = new Ajv({allErrors:true, strict:false}).compile(require(schemaPath));
   if (!validate(json)) throw new Error("SchemaError:"+JSON.stringify(validate.errors));
@@ -264,7 +264,7 @@ export function nextAgent(tr: TaskRecord){
 }
 ```
 
-### 6) Mapeo de salida → TaskRecord.patch
+### 6) Output Mapping → TaskRecord.patch
 
 **`src/orchestrator/mappers.ts`**
 
@@ -278,32 +278,32 @@ export function mapArchitect(out){ return { modules: out.modules, contracts: out
 export function mapPR(out){ return { branch: out.branch, links: { git: { prUrl: out.pr_url } } } }
 ```
 
-### 7) Pruebas de contrato (Vitest)
+### 7) Contract Tests (Vitest)
 
 **`test/agents.contract.spec.ts`**
 
 ```ts
 import { runAgent } from "../src/orchestrator/runner";
 import poBrief from "../../packages/schemas/po_brief.schema.json";
-// ...carga del resto de schemas
+// ...load the rest of schemas
 
-it("dev cumple schema y umbrales", async () => {
+it("dev complies with schema and thresholds", async () => {
   const out = await runAgent({ agent: "dev", input: { /* brief */ }, schemaPath: "packages/schemas/dev_work_output.schema.json" });
   expect(out.metrics.coverage).toBeGreaterThanOrEqual(0.7);
   expect(out.red_green_refactor_log.length).toBeGreaterThanOrEqual(2);
 });
 ```
 
-### 8) Integración con GitHub
+### 8) GitHub Integration
 
-* PR‑bot MCP actualiza el PR body con checklist y enlaza issue.
-* Si `runAgent('reviewer')` devuelve `severity=high`, añade label `changes-requested` y comenta en el PR con el `violations[]`.
-* Si `runAgent('qa')` falla, marca el PR como draft y añade label `qa-failed`.
+* PR‑bot MCP updates the PR body with checklist and links issue.
+* If `runAgent('reviewer')` returns `severity=high`, adds label `changes-requested` and comments on the PR with the `violations[]`.
+* If `runAgent('qa')` fails, marks the PR as draft and adds label `qa-failed`.
 
-### 9) DoD de EP01‑T03
+### 9) DoD of EP01‑T03
 
-* Schemas `.schema.json` creados y versionados.
-* Prompts implementados por agente.
-* `runner`, `router`, `mappers` funcionando.
-* Tests de contrato verdes.
-* Handoffs validan contra schema antes de actualizar `TaskRecord` y antes de cambiar estado.
+* `.schema.json` schemas created and versioned.
+* Prompts implemented per agent.
+* `runner`, `router`, `mappers` working.
+* Contract tests green.
+* Handoffs validate against schema before updating `TaskRecord` and before changing status.
