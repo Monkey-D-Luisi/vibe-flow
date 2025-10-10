@@ -63,7 +63,7 @@ const tools = [
   },
   {
     name: 'task.transition',
-    description: 'Transición de estado con validaciones mínimas',
+    description: 'Transición de estado con validaciones completas y quality gates',
     inputSchema: {
       type: 'object',
       required: ['id', 'to', 'if_rev'],
@@ -71,7 +71,46 @@ const tools = [
         id: { type: 'string' },
         to: { type: 'string', enum: ['po', 'arch', 'dev', 'review', 'po_check', 'qa', 'pr', 'done'] },
         if_rev: { type: 'integer' },
-        evidence: { type: 'object' }
+        evidence: {
+          type: 'object',
+          properties: {
+            metrics: {
+              type: 'object',
+              properties: {
+                coverage: { type: 'number', minimum: 0, maximum: 1 },
+                lint: {
+                  type: 'object',
+                  properties: {
+                    errors: { type: 'integer', minimum: 0 },
+                    warnings: { type: 'integer', minimum: 0 }
+                  }
+                }
+              }
+            },
+            red_green_refactor_log: { type: 'array', items: { type: 'string' } },
+            qa_report: {
+              type: 'object',
+              properties: {
+                total: { type: 'integer', minimum: 0 },
+                passed: { type: 'integer', minimum: 0 },
+                failed: { type: 'integer', minimum: 0 }
+              }
+            },
+            violations: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  rule: { type: 'string' },
+                  severity: { type: 'string', enum: ['low', 'medium', 'high'] },
+                  message: { type: 'string' }
+                }
+              }
+            },
+            acceptance_criteria_met: { type: 'boolean' },
+            merged: { type: 'boolean' }
+          }
+        }
       }
     }
   }
@@ -148,18 +187,44 @@ class TaskMCPServer {
             const input = args as any;
             const current = repo.get(input.id);
             if (!current) throw new Error('Task not found');
-            const transition = TaskRecordValidator.validateTransition(current.status, input.to, current);
+
+            // Validate transition with evidence
+            const transition = TaskRecordValidator.validateTransition(current.status, input.to, current, input.evidence);
             if (!transition.valid) {
               throw new Error(`Transition invalid: ${transition.reason}`);
             }
+
+            // Build patch based on transition effects
             const patch: Partial<TaskRecord> = { status: input.to };
-            if (input.to === 'review' && input.evidence) {
-              patch.red_green_refactor_log = input.evidence.red_green_refactor_log;
-              patch.metrics = input.evidence.metrics;
+
+            // Handle specific transition effects
+            switch (`${current.status}->${input.to}`) {
+              case 'dev->review':
+                if (input.evidence?.red_green_refactor_log) {
+                  patch.red_green_refactor_log = input.evidence.red_green_refactor_log;
+                }
+                if (input.evidence?.metrics) {
+                  patch.metrics = { ...current.metrics, ...input.evidence.metrics };
+                }
+                break;
+
+              case 'review->dev':
+                patch.rounds_review = (current.rounds_review || 0) + 1;
+                break;
+
+              case 'qa->dev':
+                if (input.evidence?.qa_report) {
+                  patch.qa_report = input.evidence.qa_report;
+                }
+                break;
+
+              case 'qa->pr':
+                if (input.evidence?.qa_report) {
+                  patch.qa_report = input.evidence.qa_report;
+                }
+                break;
             }
-            if (input.to === 'dev') {
-              patch.rounds_review = (current.rounds_review || 0) + 1;
-            }
+
             const updated = repo.update(input.id, input.if_rev, patch);
             return { content: [{ type: 'text', text: JSON.stringify(updated) }] };
           }
