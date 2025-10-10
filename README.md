@@ -1,83 +1,83 @@
 # Agents & MCPs — TaskRecord v1.0.0 Implementation
 
-Este monorepo contiene la implementación completa del **TaskRecord v1.0.0** siguiendo la arquitectura hexagonal, con persistencia SQLite y exposición vía **Model Context Protocol (MCP)**.
+This monorepo contains the complete implementation of **TaskRecord v1.0.0** following hexagonal architecture, with SQLite persistence and exposure via **Model Context Protocol (MCP)**.
 
-## 📋 Descripción del Proyecto
+## 📋 Project Description
 
-Implementación de un sistema de gestión de tareas (TaskRecord) que permite:
-- Crear y gestionar registros de tareas con validaciones estrictas
-- Control de concurrencia optimista
-- Transiciones de estado con reglas de negocio
-- Búsqueda y filtrado avanzado
-- Exposición vía herramientas MCP para integración con agentes IA
+Implementation of a task management system (TaskRecord) that allows:
+- Create and manage task records with strict validations
+- Optimistic concurrency control
+- State transitions with business rules
+- Advanced search and filtering
+- Exposure via MCP tools for integration with AI agents
 
-## 🏗️ Arquitectura
+## 🏗️ Architecture
 
-### Arquitectura Hexagonal
-- **Dominio**: Lógica de negocio pura (TaskRecord, validaciones, reglas de transición)
-- **Persistencia**: Repositorio SQLite con migración automática
-- **Exposición**: Servidor MCP con herramientas JSON-RPC
+### Hexagonal Architecture
+- **Domain**: Pure business logic (TaskRecord, validations, transition rules)
+- **Persistence**: SQLite repository with automatic migration
+- **Exposure**: MCP server with JSON-RPC tools
 
-### Estructura del Monorepo
+### Monorepo Structure
 ```
 agents-mcps/
 ├── packages/
 │   └── schemas/           # JSON Schema v1.0.0
 │       └── taskrecord.schema.json
 ├── services/
-│   └── task-mcp/          # Servicio MCP principal
+│   └── task-mcp/          # Main MCP service
 │       ├── src/
-│       │   ├── domain/    # Tipos y reglas de dominio
-│       │   ├── repo/      # Persistencia SQLite
-│       │   └── mcp/       # Herramientas MCP
-│       └── test/          # Tests TDD
+│       │   ├── domain/    # Domain types and rules
+│       │   ├── repo/      # SQLite persistence
+│       │   └── mcp/       # MCP tools
+│       └── test/          # TDD tests
 └── docs/
-    └── task_record_v_1_0.md  # Documentación completa
+    └── task_record_v_1_0.md  # Complete documentation
 ```
 
-## 🚀 Inicio Rápido
+## 🚀 Quick Start
 
-### Prerrequisitos
+### Prerequisites
 - Node.js 18+
 - pnpm
-- SQLite (viene incluido)
+- SQLite (included)
 
-### Instalación
+### Installation
 ```bash
-# Clonar el repositorio
+# Clone the repository
 git clone <repository-url>
 cd agents-mcps
 
-# Instalar dependencias
+# Install dependencies
 pnpm install
 
-# Aprobar builds de better-sqlite3 (solo primera vez)
+# Approve better-sqlite3 builds (first time only)
 pnpm approve-builds
 ```
 
-### Ejecutar el Servidor MCP
+### Run the MCP Server
 ```bash
-# Desde la raíz del monorepo
+# From the monorepo root
 pnpm --filter @agents/task-mcp dev
 
-# O desde el directorio del servicio
+# Or from the service directory
 cd services/task-mcp
 pnpm dev
 ```
 
-El servidor iniciará y mostrará: `Task MCP server started`
+The server will start and display: `Task MCP server started`
 
-## 🛠️ Herramientas MCP Disponibles
+## 🛠️ Available MCP Tools
 
 ### task.create
-Crea un nuevo TaskRecord en estado inicial (`po`).
+Creates a new TaskRecord in initial state (`po`).
 
 **Input:**
 ```json
 {
-  "title": "Añadir validación de usuario",
-  "description": "Como PO quiero...",
-  "acceptance_criteria": ["cuando usuario inválido → error 422"],
+  "title": "Add user validation",
+  "description": "As PO I want...",
+  "acceptance_criteria": ["when invalid user → error 422"],
   "scope": "minor",
   "links": {
     "jira": {"projectKey": "AGENTSMCPS", "issueKey": "AGENTSMCPS-15"}
@@ -87,7 +87,7 @@ Crea un nuevo TaskRecord en estado inicial (`po`).
 ```
 
 ### task.get
-Obtiene un TaskRecord por su ID.
+Gets a TaskRecord by its ID.
 
 **Input:**
 ```json
@@ -95,7 +95,7 @@ Obtiene un TaskRecord por su ID.
 ```
 
 ### task.update
-Actualiza un TaskRecord con control optimista de concurrencia.
+Updates a TaskRecord with optimistic concurrency control.
 
 **Input:**
 ```json
@@ -110,12 +110,12 @@ Actualiza un TaskRecord con control optimista de concurrencia.
 ```
 
 ### task.search
-Busca TaskRecords con filtros y paginación.
+Searches TaskRecords with filters and pagination.
 
 **Input:**
 ```json
 {
-  "q": "validación",
+  "q": "validation",
   "status": ["dev", "review"],
   "labels": ["area_architecture"],
   "limit": 50,
@@ -149,9 +149,9 @@ Transita un TaskRecord a un nuevo estado con validaciones y efectos secundarios.
 - `qa → dev`: Actualiza `qa_report`
 - `qa → pr`: Actualiza `qa_report`
 
-## 📊 Estados y Transiciones
+## 📊 States and Transitions
 
-Los TaskRecords siguen un flujo de estados con validaciones estrictas y quality gates:
+TaskRecords follow a state flow with strict validations and quality gates:
 
 ```
 po → arch → dev → review → po_check → qa → pr → done
@@ -159,28 +159,28 @@ po → arch → dev → review → po_check → qa → pr → done
    dev (fast-track)
 ```
 
-### Estados Disponibles
-- **`po`**: Product Owner - Requisitos iniciales
-- **`arch`**: Architecture - Diseño y contratos
-- **`dev`**: Development - Implementación con TDD
-- **`review`**: Code Review - Revisión de pares
-- **`po_check`**: PO Check - Validación de criterios
-- **`qa`**: Quality Assurance - Testing automatizado
-- **`pr`**: Pull Request - Integración pendiente
-- **`done`**: Completado - Tarea finalizada
+### Available States
+- **`po`**: Product Owner - Initial requirements
+- **`arch`**: Architecture - Design and contracts
+- **`dev`**: Development - TDD implementation
+- **`review`**: Code Review - Peer review
+- **`po_check`**: PO Check - Acceptance criteria validation
+- **`qa`**: Quality Assurance - Automated testing
+- **`pr`**: Pull Request - Integration pending
+- **`done`**: Completed - Task finalized
 
-### Transiciones y Guards
+### Transitions and Guards
 
-| Desde | Hacia | Condición | Evidencia Requerida |
-|-------|-------|-----------|-------------------|
+| From | To | Condition | Required Evidence |
+|------|----|-----------|-------------------|
 | `po` | `arch` | `acceptance_criteria.length > 0` | - |
 | `po` | `dev` | `scope === 'minor'` (fast-track) | - |
 | `arch` | `dev` | `adr_id && contracts.length > 0` | - |
 | `dev` | `review` | Quality Gate: TDD logs + Coverage + No lint errors | `red_green_refactor_log`, `metrics` |
-| `review` | `dev` | Siempre (hasta 2 rondas) | - |
+| `review` | `dev` | Always (up to 2 rounds) | - |
 | `review` | `po_check` | `!hasHighViolations(evidence)` | `violations` |
 | `po_check` | `qa` | `acceptance_criteria_met === true` | `acceptance_criteria_met` |
-| `qa` | `dev` | `qa_report` presente | `qa_report` |
+| `qa` | `dev` | `qa_report` present | `qa_report` |
 | `qa` | `pr` | `record.qa_report.failed === 0` | - |
 | `pr` | `done` | `merged === true` | `merged` |
 
@@ -192,91 +192,91 @@ po → arch → dev → review → po_check → qa → pr → done
 - **Lint**: `errors === 0`
 
 #### Review Rounds
-- Máximo 2 iteraciones `review → dev`
-- Después del límite: tarea requiere replanificación
+- Maximum 2 iterations `review → dev`
+- After limit: task requires replanning
 
 #### QA Gates
 - **QA Pass**: `qa_report.failed === 0`
-- **QA Fail**: Requiere `qa_report` para regresar a `dev`
+- **QA Fail**: Requires `qa_report` to return to `dev`
 
-### Estados Terminales
-- **`done`**: Estado final, no permite transiciones salientes
+### Terminal States
+- **`done`**: Final state, no outgoing transitions allowed
 
 ## 🧪 Testing
 
-### Ejecutar Tests
+### Run Tests
 ```bash
-# Tests del servicio task-mcp
+# Tests for task-mcp service
 pnpm --filter @agents/task-mcp test
 
-# Tests con watch mode
+# Tests with watch mode
 pnpm --filter @agents/task-mcp test -- --watch
 ```
 
-### Cobertura de Tests
-- ✅ Validaciones de esquema JSON
-- ✅ Operaciones CRUD del repositorio
-- ✅ Control optimista de concurrencia
-- ✅ Transiciones de estado con reglas de negocio
-- ✅ Validaciones de creación
+### Test Coverage
+- ✅ JSON schema validations
+- ✅ Repository CRUD operations
+- ✅ Optimistic concurrency control
+- ✅ State transitions with business rules
+- ✅ Creation validations
 
-## 📚 Esquema de Datos
+## 📚 Data Schema
 
 ### TaskRecord v1.0.0
-Campos principales:
-- `id`: ULID con prefijo `TR-`
-- `title`: Título (5-120 caracteres)
-- `status`: Estado actual del flujo
+Main fields:
+- `id`: ULID with `TR-` prefix
+- `title`: Title (5-120 characters)
+- `status`: Current flow state
 - `scope`: `minor` | `major`
-- `acceptance_criteria`: Lista de criterios de aceptación
-- `metrics`: Cobertura, complejidad, lint
-- `red_green_refactor_log`: Log TDD
-- `links`: Referencias JIRA, Git, ADR
+- `acceptance_criteria`: List of acceptance criteria
+- `metrics`: Coverage, complexity, lint
+- `red_green_refactor_log`: TDD log
+- `links`: JIRA, Git, ADR references
 
-Ver [`docs/task_record_v_1_0.md`](docs/task_record_v_1_0.md) para documentación completa.
+See [`docs/task_record_v_1_0.md`](docs/task_record_v_1_0.md) for complete documentation.
 
-## 🔧 Desarrollo
+## 🔧 Development
 
-### Comandos Disponibles
+### Available Commands
 ```bash
-# Instalar dependencias
+# Install dependencies
 pnpm install
 
-# Ejecutar servicio
+# Run service
 pnpm --filter @agents/task-mcp dev
 
-# Ejecutar tests
+# Run tests
 pnpm --filter @agents/task-mcp test
 
 # Type checking
 cd services/task-mcp && npx tsc --noEmit
 
-# Lint (si configurado)
+# Lint (if configured)
 pnpm lint
 ```
 
 ### Conventional Commits
-Este proyecto usa Conventional Commits:
-- `feat:` para nuevas funcionalidades
-- `fix:` para correcciones
-- `docs:` para documentación
-- `test:` para tests
+This project uses Conventional Commits:
+- `feat:` for new features
+- `fix:` for corrections
+- `docs:` for documentation
+- `test:` for tests
 
-## 🤝 Contribución
+## 🤝 Contributing
 
-1. Fork el proyecto
-2. Crea una rama feature (`git checkout -b feat/amazing-feature`)
-3. Commit tus cambios (`git commit -m 'feat: add amazing feature'`)
-4. Push a la rama (`git push origin feat/amazing-feature`)
-5. Abre un Pull Request
+1. Fork the project
+2. Create a feature branch (`git checkout -b feat/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feat/amazing-feature`)
+5. Open a Pull Request
 
-## 📄 Licencia
+## 📄 License
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📞 Soporte
+## 📞 Support
 
-Para soporte o preguntas:
-- Abre un issue en GitHub
-- Consulta la documentación en [`docs/`](docs/)
-- Revisa los tests para ejemplos de uso
+For support or questions:
+- Open an issue on GitHub
+- Check the documentation in [`docs/`](docs/)
+- Review the tests for usage examples
