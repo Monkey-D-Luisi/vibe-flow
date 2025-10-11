@@ -1,84 +1,118 @@
-import { TaskRecord } from '../domain/TaskRecord';
-import { AgentType } from './router';
+import { TaskRecord } from '../domain/TaskRecord.js';
+import { AgentType } from './router.js';
 
-// Map agent outputs to TaskRecord patches
-export function mapAgentOutput(agent: AgentType, output: any): Partial<TaskRecord> {
+type ArchitectOutput = {
+  modules?: string[];
+  contracts?: TaskRecord['contracts'];
+  patterns?: TaskRecord['patterns'];
+  adr_id?: string;
+  test_plan?: string[];
+};
+
+type DevOutput = {
+  diff_summary?: string;
+  metrics: {
+    coverage: number;
+    lint: {
+      errors: number;
+      warnings: number;
+    };
+  };
+  red_green_refactor_log: string[];
+};
+
+type ReviewerOutput = {
+  violations?: Array<{ rule: string; where?: string; suggested_fix?: string }>;
+};
+
+type QaOutput = {
+  total: number;
+  passed: number;
+  failed: number;
+};
+
+type PrBotOutput = {
+  branch: string;
+  pr_url: string;
+};
+
+type AgentOutput = Record<string, unknown>;
+
+export function mapAgentOutput(agent: AgentType, output: AgentOutput): Partial<TaskRecord> {
   switch (agent) {
     case 'po':
-      return mapPoOutput(output);
+      return {};
     case 'architect':
-      return mapArchitectOutput(output);
+      return mapArchitectOutput(output as ArchitectOutput);
     case 'dev':
-      return mapDevOutput(output);
+      return mapDevOutput(output as DevOutput);
     case 'reviewer':
-      return mapReviewerOutput(output);
+      return mapReviewerOutput(output as ReviewerOutput);
     case 'qa':
-      return mapQaOutput(output);
+      return mapQaOutput(output as QaOutput);
     case 'prbot':
-      return mapPrBotOutput(output);
+      return mapPrBotOutput(output as PrBotOutput);
     default:
       throw new Error(`Unknown agent type: ${agent}`);
   }
 }
 
-function mapPoOutput(output: any): Partial<TaskRecord> {
-  return {
-    // PO output is the brief, but we don't store it directly in TaskRecord
-    // The brief is used as input for the next agent
-  };
-}
-
-function mapArchitectOutput(output: any): Partial<TaskRecord> {
+function mapArchitectOutput(output: ArchitectOutput): Partial<TaskRecord> {
   return {
     modules: output.modules,
     contracts: output.contracts,
     patterns: output.patterns,
     adr_id: output.adr_id,
-    test_plan: output.test_plan,
+    test_plan: output.test_plan
   };
 }
 
-function mapDevOutput(output: any): Partial<TaskRecord> {
+function mapDevOutput(output: DevOutput): Partial<TaskRecord> {
   return {
     diff_summary: output.diff_summary,
     metrics: {
       coverage: output.metrics.coverage,
-      lint: output.metrics.lint,
+      lint: output.metrics.lint
     },
-    red_green_refactor_log: output.red_green_refactor_log,
+    red_green_refactor_log: output.red_green_refactor_log
   };
 }
 
-function mapReviewerOutput(output: any): Partial<TaskRecord> {
-  return {
-    review_notes: output.violations.map((v: any) => `${v.rule}: ${v.where} - ${v.suggested_fix}`),
-  };
+function mapReviewerOutput(output: ReviewerOutput): Partial<TaskRecord> {
+  const violations = output.violations ?? [];
+  const notes = violations.map((violation) => {
+    const location = violation.where ? ` ${violation.where}` : '';
+    const suggestion = violation.suggested_fix ? ` - ${violation.suggested_fix}` : '';
+    return `${violation.rule}:${location}${suggestion}`;
+  });
+
+  return notes.length > 0 ? { review_notes: notes } : {};
 }
 
-function mapQaOutput(output: any): Partial<TaskRecord> {
+function mapQaOutput(output: QaOutput): Partial<TaskRecord> {
   return {
     qa_report: {
       total: output.total,
       passed: output.passed,
-      failed: output.failed,
-    },
+      failed: output.failed
+    }
   };
 }
 
-function mapPrBotOutput(output: any): Partial<TaskRecord> {
+function mapPrBotOutput(output: PrBotOutput): Partial<TaskRecord> {
   return {
     branch: output.branch,
     links: {
       git: {
-        repo: '', // Will be filled by context
+        repo: '',
         branch: output.branch,
-        prNumber: extractPrNumber(output.pr_url),
-      },
-    },
+        prNumber: extractPrNumber(output.pr_url)
+      }
+    }
   };
 }
 
 function extractPrNumber(prUrl: string): number {
   const match = prUrl.match(/\/pull\/(\d+)$/);
-  return match ? parseInt(match[1], 10) : 0;
+  return match ? Number.parseInt(match[1], 10) : 0;
 }
