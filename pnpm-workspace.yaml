@@ -2,6 +2,7 @@ packages:
   - packages/*
   - services/*
   - tooling/*
+  - tooling/quality-mcp/*
 
 onlyBuiltDependencies:
   - better-sqlite3

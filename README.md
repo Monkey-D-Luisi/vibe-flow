@@ -595,6 +595,27 @@ The **Quality MCP** (see `tooling/quality-mcp/`) exposes four tools:
 - `quality.complexity`, invoked via `pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --complexity`, calcula complejidad ciclomática por unidad con `typhonjs-escomplex` (fallback a `ts-morph`) y normaliza rutas en `.qreport/complexity.json`.
 
 All artifacts are uploaded by the CI workflows (`qreport-tests`, `qreport-coverage`, `qreport-lint`, `qreport-complexity`) so downstream jobs (quality gate, reporting bots, etc.) can consume them without rerunning expensive steps.
+
+#### Quality MCP HTTP Server
+- Start locally with `pnpm --filter @agents/quality-mcp-server dev` (defaults to port `8080`).
+- Configure API keys via `QUALITY_MCP_KEYS=abc123:run|read@shared-secret,def456:run`; each key can optionally include an HMAC secret (after `@`) and scope list (`read`, `run`).
+- Rate limits, burst size, concurrency and default tool timeout are controlled with `QUALITY_RPS`, `QUALITY_BURST`, `QUALITY_MAX_CONCURRENCY`, and `QUALITY_TOOL_TIMEOUT_MS`.
+- Example synchronous call:
+  ```bash
+  curl -H "Authorization: Bearer abc123" \
+       -H "Content-Type: application/json" \
+       -d '{"tool":"quality.lint","input":{}}' \
+       http://localhost:8080/mcp/tool | jq
+  ```
+- Streaming SSE:
+  ```bash
+  curl -N -H "Authorization: Bearer abc123" \
+       -H "Content-Type: application/json" \
+       -d '{"tool":"quality.run_tests","input":{},"stream":true}' \
+       http://localhost:8080/mcp/tool/stream
+  ```
+- Observability endpoints: `/healthz` for liveness, `/metrics` (Prometheus format) for counters/histograms.
+
 If the Project Sync workflow targets a **private** user project, provide a classic PAT with the `project` (and `repo`) scopes and store it as the `PROJECT_SYNC_TOKEN` repository secret; the default `GITHUB_TOKEN` already exists automatically and works for organisation-owned boards.
 For the full specification and acceptance criteria see [`docs/ep_02_t_02_quality.md`](docs/ep_02_t_02_quality.md).
 
@@ -616,6 +637,9 @@ pnpm install
 
 # Run service
 pnpm --filter @agents/task-mcp dev
+
+# Run Quality MCP HTTP gateway
+pnpm --filter @agents/quality-mcp-server dev
 
 # Run tests
 pnpm --filter @agents/task-mcp test
