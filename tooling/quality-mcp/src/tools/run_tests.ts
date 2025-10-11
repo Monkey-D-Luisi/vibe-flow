@@ -109,11 +109,6 @@ export async function runTests(input: RunTestsInput): Promise<RunTestsOutput> {
     throw new Error(`PARSE_ERROR: ${(err as Error).message}`);
   }
 
-  // Propagate runner failures once output has been parsed so callers get structured results.
-  if (spawnResult.exitCode !== 0) {
-    throw new Error(`RUNNER_ERROR: Test runner exited with code ${spawnResult.exitCode}`);
-  }
-
   const output: RunTestsOutput = {
     total: parsed.total,
     passed: parsed.passed,
@@ -133,5 +128,6 @@ export async function runTests(input: RunTestsInput): Promise<RunTestsOutput> {
     throw new Error(`Invalid output: ${ajv.errorsText(validateOutput.errors)}`);
   }
 
+  // Consumers are expected to inspect meta.exitCode and decide how to handle failures.
   return output;
 }
