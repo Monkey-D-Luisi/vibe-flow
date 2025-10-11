@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-  - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm --filter @agents/task-mcp test -- --coverage
       - run: pnpm --filter @agents/task-mcp run lint
       - name: Upload coverage reports
@@ -44,7 +44,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-  - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --no-frozen-lockfile
       - name: Create coverage directory
         run: mkdir -p services/task-mcp/coverage
       - name: Download coverage reports
