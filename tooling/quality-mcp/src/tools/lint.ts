@@ -68,6 +68,15 @@ const DEFAULT_ENV_ALLOW = [
 ];
 
 const PACKAGE_MANAGER_NAMES = ['pnpm', 'npm', 'yarn', 'bun'];
+const PACKAGE_MANAGER_PATTERNS: Array<(cmd: string, name: string) => boolean> = [
+  (cmd, name) => cmd === name,
+  (cmd, name) => cmd.endsWith(`/${name}`),
+  (cmd, name) => cmd.endsWith(`\\${name}`),
+  (cmd, name) => cmd.endsWith(`${name}.cmd`),
+  (cmd, name) => cmd.endsWith(`${name}.ps1`)
+];
+
+const NULL_RULE_KEY = '__null__';
 
 function parseCommand(cmd: string): { command: string; args: string[] } {
   const tokens = cmd.trim().split(/\s+/).filter(Boolean);
@@ -82,7 +91,9 @@ function parseCommand(cmd: string): { command: string; args: string[] } {
 
 function looksLikePackageManager(command: string): boolean {
   const lower = command.toLowerCase();
-  return PACKAGE_MANAGER_NAMES.some((name) => lower === name || lower.endsWith(`/${name}`) || lower.endsWith(`\\${name}`) || lower.endsWith(`${name}.cmd`) || lower.endsWith(`${name}.ps1`));
+  return PACKAGE_MANAGER_NAMES.some((name) =>
+    PACKAGE_MANAGER_PATTERNS.some((pattern) => pattern(lower, name))
+  );
 }
 
 function appendPaths(command: string, args: string[], paths?: string[]): string[] {
@@ -127,7 +138,7 @@ function computeTotals(files: NormalizedLintFileReport[]): { errors: number; war
 function buildSummaryByRule(files: NormalizedLintFileReport[]): LintSummaryByRule[] {
   const map = new Map<string, LintSummaryByRule>();
 
-  const keyForRule = (ruleId: string | null): string => (ruleId === null ? '__null__' : ruleId);
+  const keyForRule = (ruleId: string | null): string => (ruleId === null ? NULL_RULE_KEY : ruleId);
 
   for (const file of files) {
     for (const message of file.messages) {
