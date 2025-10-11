@@ -22,9 +22,21 @@ export async function safeSpawn(cmd: string, args: string[], options: SpawnOptio
 
   // Filter environment variables
   const env: Record<string, string> = {};
-  for (const key of envAllow) {
-    if (process.env[key]) {
-      env[key] = process.env[key]!;
+  const sourceEnv = process.env as Record<string, string | undefined>;
+  const allowSet = new Set(envAllow.map((key) => key.toLowerCase()));
+
+  for (const [key, value] of Object.entries(sourceEnv)) {
+    if (value !== undefined && allowSet.has(key.toLowerCase())) {
+      env[key] = value;
+    }
+  }
+
+  if (process.platform === 'win32') {
+    if (env.Path && !env.PATH) {
+      env.PATH = env.Path;
+    }
+    if (env.PATH && !env.Path) {
+      env.Path = env.PATH;
     }
   }
 
@@ -40,6 +52,7 @@ export async function safeSpawn(cmd: string, args: string[], options: SpawnOptio
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
       signal,
+      shell: process.platform === 'win32',
     });
 
     let stdout = '';

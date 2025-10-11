@@ -1,4 +1,6 @@
-import Ajv from 'ajv';
+import Ajv from 'ajv/dist/2020.js';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { loadSchema } from '../../../../services/task-mcp/src/utils/loadSchema.js';
 import { safeSpawn } from '../exec/spawn.js';
 import { parseVitestOutput } from '../parsers/vitest.js';
@@ -51,6 +53,12 @@ function detectRunner(cmd: string): string {
   if (cmd.includes('vitest')) {
     return 'vitest';
   }
+  if (/\bpnpm\b/.test(cmd) && /\btest\b/.test(cmd)) {
+    return 'vitest';
+  }
+  if (/\bnpm\b/.test(cmd) && /\btest\b/.test(cmd)) {
+    return 'vitest';
+  }
   // Add more runners later
   return 'unknown';
 }
@@ -64,10 +72,22 @@ export async function runTests(input: RunTestsInput): Promise<RunTestsOutput> {
     throw new Error(`Invalid input: ${ajv.errorsText(validateInput.errors)}`);
   }
 
-  const cwd = input.cwd || process.cwd();
-  const cmd = input.cmd || 'pnpm -C services/task-mcp test -- --reporter=json';
+  const fallbackCwd = resolve(process.cwd(), 'services/task-mcp');
+  const cwd =
+    input.cwd ||
+    (existsSync(fallbackCwd) ? fallbackCwd : process.cwd());
+  const cmd = input.cmd || 'pnpm exec vitest run --reporter=json';
   const timeoutMs = input.timeoutMs || 600000;
-  const envAllow = input.envAllow || ['NODE_ENV'];
+  const envAllow = input.envAllow || [
+    'NODE_ENV',
+    'PATH',
+    'Path',
+    'PNPM_HOME',
+    'PATHEXT',
+    'ComSpec',
+    'SystemRoot',
+    'SYSTEMROOT'
+  ];
 
   const { command, args } = parseCommand(cmd);
   const runner = detectRunner(cmd);
