@@ -266,7 +266,7 @@ export function normalizeToRepo(filePath: string, repoRoot: string): NormalizedP
     return { normalized: '', outsideRepo: false };
   }
   const repoRootAbs = resolve(repoRoot);
-  const sanitized = trimmed.startsWith('file:///') ? trimmed.slice('file://'.length) : trimmed;
+  const sanitized = trimmed.startsWith('file://') ? trimmed.slice('file://'.length) : trimmed;
   const candidate = toPosix(isAbsolute(sanitized) ? normalizePath(sanitized) : normalizePath(resolve(repoRootAbs, sanitized)));
   const relativePath = toPosix(relative(repoRootAbs, candidate));
 

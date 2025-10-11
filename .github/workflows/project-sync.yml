@@ -73,8 +73,12 @@ jobs:
                   }
                 }
               }`
-              const resUser = await github.graphql(qUser, { login, number })
-              return resUser?.user?.projectV2
+              try {
+                const resUser = await github.graphql(qUser, { login, number })
+                return resUser?.user?.projectV2
+              } catch (e) {
+                return null
+              }
             }
 
             // 1) Get Project and fields

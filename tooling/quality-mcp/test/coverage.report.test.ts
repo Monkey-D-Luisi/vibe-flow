@@ -1,5 +1,4 @@
-import { mkdirSync, writeFileSync } from 'fs';
-import { mkdtempSync } from 'fs';
+import { mkdirSync, writeFileSync, mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { describe, expect, it } from 'vitest';
