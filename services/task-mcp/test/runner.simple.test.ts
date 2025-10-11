@@ -24,7 +24,7 @@ const createTask = (overrides: Partial<TaskRecord> & { id?: string } = {}) => {
   return task;
 };
 
-const createState = (taskId: string, current = 'po') => {
+const createState = (taskId: string, current: TaskRecord['status'] = 'po') => {
   const state = stateRepo.get(taskId) ?? stateRepo.create(taskId);
   if (state.current !== current) {
     stateRepo.update(taskId, state.rev, { current, last_agent: state.last_agent });
@@ -125,6 +125,7 @@ describe('Orchestrator Runner - integration smoke tests', () => {
     const updated = repo.get(task.id)!;
     expect(updated.status).toBe('arch');
     expect(updated.tags).toContain('fast-track:revoked');
+    expect(updated.tags).not.toContain('fast-track:eligible');
     expect(revokeSpy).toHaveBeenCalledWith(expect.objectContaining({ id: task.id }), expect.objectContaining({ reason: 'high_violations', revoke: true }), 654);
     revokeSpy.mockRestore();
   });
@@ -139,15 +140,13 @@ describe('Orchestrator Runner - integration smoke tests', () => {
   });
 
   it('blocks qa -> pr when QA report has failures', async () => {
-    const originalRunAgent = runnerModule.runAgent;
-    const qaFailSpy = vi
-      .spyOn(runnerModule, 'runAgent')
-      .mockImplementation(async (agent, input) => {
-        if (agent === 'qa') {
-          return { total: 10, passed: 8, failed: 2, evidence: ['Integration tests failed'] };
-        }
-        return originalRunAgent(agent, input);
-      });
+    const originalRunner = runnerInternals.defaultAgentRunner;
+    runnerInternals.setAgentRunner(async (agent, input) => {
+      if (agent === 'qa') {
+        return { total: 10, passed: 8, failed: 2, evidence: ['Integration tests failed'] };
+      }
+      return originalRunner(agent, input);
+    });
 
     const task = createTask({ status: 'qa' });
     createState(task.id, 'qa');
@@ -157,7 +156,7 @@ describe('Orchestrator Runner - integration smoke tests', () => {
     const persisted = repo.get(task.id);
     expect(persisted?.status).toBe('qa');
 
-    qaFailSpy.mockRestore();
+    runnerInternals.resetAgentRunner();
   });
 
   it('enforces po_check in the happy path before QA', async () => {

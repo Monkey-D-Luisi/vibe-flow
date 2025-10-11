@@ -31,6 +31,10 @@
         "type": "string"
       },
       "description": "Completion criteria"
+    },
+    "acceptance_criteria_met": {
+      "type": "boolean",
+      "description": "Whether the PO confirms acceptance criteria are satisfied"
     }
   },
   "required": ["title", "acceptance_criteria", "scope", "non_functional", "done_if"],

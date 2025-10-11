@@ -30,11 +30,10 @@ const createTask = async (overrides: Partial<TaskRecord> = {}) => {
     tags: overrides.tags ?? []
   });
 
-  stateRepo.create(base.id);
-
   if (overrides.status && overrides.status !== base.status) {
     const updated = repo.update(base.id, base.rev, { status: overrides.status });
-    stateRepo.update(base.id, 0, { current: overrides.status });
+    const initialState = stateRepo.get(base.id)!;
+    stateRepo.update(base.id, initialState.rev, { current: overrides.status });
     return updated;
   }
 
