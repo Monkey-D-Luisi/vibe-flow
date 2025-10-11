@@ -5,9 +5,10 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { ulid } from 'ulid';
 import { TaskRepository } from '../repo/sqlite.js';
-import { StateRepository, EventRepository, LeaseRepository } from '../repo/state.js';
-import { TaskRecord, TaskRecordValidator } from '../domain/TaskRecord.js';
+import { StateRepository, EventRepository, LeaseRepository, type OrchestratorState } from '../repo/state.js';
+import { TaskRecord, TaskRecordValidator, type TransitionEvidence } from '../domain/TaskRecord.js';
 import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/FastTrack.js';
+import { mergeTaskWithPatch } from '../orchestrator/patch.js';
 
 type ToolName =
   | 'task.create'
@@ -181,6 +182,7 @@ const toolInputSchemas: Record<ToolName, any> = {
           qa_report: {
             type: 'object',
             additionalProperties: false,
+            required: ['total', 'passed', 'failed'],
             properties: {
               total: { type: 'integer', minimum: 0 },
               passed: { type: 'integer', minimum: 0 },
@@ -194,10 +196,12 @@ const toolInputSchemas: Record<ToolName, any> = {
               additionalProperties: false,
               properties: {
                 rule: { type: 'string' },
-                severity: { type: 'string', enum: ['low', 'medium', 'high'] },
-                message: { type: 'string' }
+                where: { type: 'string' },
+                why: { type: 'string' },
+                severity: { type: 'string', enum: ['low', 'med', 'high'] },
+                suggested_fix: { type: 'string' }
               },
-              required: ['rule', 'severity', 'message']
+              required: ['rule', 'where', 'why', 'severity', 'suggested_fix']
             }
           },
           acceptance_criteria_met: { type: 'boolean' },
@@ -489,23 +493,39 @@ const toolHandlers: Record<ToolName, (args: any) => Promise<any>> = {
       throw new SemanticError(404, 'Task not found');
     }
 
-    const validation = TaskRecordValidator.validateTransition(current.status, args.to, current, args.evidence);
-    if (!validation.valid) {
-      throw new SemanticError(409, validation.reason ?? 'Transition not allowed');
+    const state = stateRepo.get(args.id);
+    if (!state) {
+      throw new SemanticError(404, 'State not found');
     }
 
-    const patch: Partial<TaskRecord> = { status: args.to };
+    if (state.current !== current.status) {
+      throw new SemanticError(409, `State mismatch: task is ${current.status} but orchestrator is ${state.current}`);
+    }
+
+    const target = args.to as TaskRecord['status'];
+    const patch: Partial<TaskRecord> = { status: target };
+    const evidence: TransitionEvidence = {};
     const key = `${current.status}->${args.to}`;
+    const suppliedEvidence = args.evidence ?? {};
 
     switch (key) {
       case 'dev->review':
-        if (args.evidence?.red_green_refactor_log) {
-          patch.red_green_refactor_log = args.evidence.red_green_refactor_log;
+        if (Array.isArray(suppliedEvidence.red_green_refactor_log)) {
+          patch.red_green_refactor_log = suppliedEvidence.red_green_refactor_log;
+          evidence.red_green_refactor_log = suppliedEvidence.red_green_refactor_log;
         }
-        if (args.evidence?.metrics) {
+        if (suppliedEvidence.metrics) {
+          const mergedLint = suppliedEvidence.metrics.lint
+            ? { ...(current.metrics?.lint ?? {}), ...suppliedEvidence.metrics.lint }
+            : current.metrics?.lint;
           patch.metrics = {
-            ...current.metrics,
-            ...args.evidence.metrics
+            ...(current.metrics ?? {}),
+            ...suppliedEvidence.metrics,
+            ...(mergedLint ? { lint: mergedLint } : {})
+          };
+          evidence.metrics = {
+            coverage: suppliedEvidence.metrics.coverage,
+            lint: suppliedEvidence.metrics.lint
           };
         }
         break;
@@ -513,34 +533,44 @@ const toolHandlers: Record<ToolName, (args: any) => Promise<any>> = {
         patch.rounds_review = (current.rounds_review ?? 0) + 1;
         break;
       case 'qa->dev':
-        if (args.evidence?.qa_report) {
-          patch.qa_report = args.evidence.qa_report;
+        if (suppliedEvidence.qa_report) {
+          const { total, passed, failed } = suppliedEvidence.qa_report;
+          patch.qa_report = { total, passed, failed };
+          evidence.qa_report = { total, passed, failed };
         }
         break;
       case 'qa->pr':
-        if (args.evidence?.qa_report) {
-          patch.qa_report = args.evidence.qa_report;
+        if (suppliedEvidence.qa_report) {
+          const { total, passed, failed } = suppliedEvidence.qa_report;
+          patch.qa_report = { total, passed, failed };
+          evidence.qa_report = { total, passed, failed };
         }
         break;
       case 'review->po_check':
-        if (args.evidence?.violations) {
-          patch.review_notes = args.evidence.violations.map((v: any) => `${v.rule}: ${v.message}`);
+        if (Array.isArray(suppliedEvidence.violations)) {
+          evidence.violations = suppliedEvidence.violations;
+          patch.review_notes = suppliedEvidence.violations.map(
+            (violation: any) => `${violation.rule} (${violation.where}): ${violation.suggested_fix}`
+          );
         }
         break;
       case 'po_check->qa':
-        if (!args.evidence?.acceptance_criteria_met) {
+        evidence.acceptance_criteria_met = suppliedEvidence.acceptance_criteria_met === true;
+        if (!evidence.acceptance_criteria_met) {
           throw new SemanticError(409, 'PO must confirm acceptance criteria before QA');
         }
         break;
       case 'pr->done':
-        if (!args.evidence?.merged) {
+        evidence.merged = suppliedEvidence.merged === true;
+        if (!evidence.merged) {
           throw new SemanticError(409, 'PR must be merged to complete task');
         }
         break;
     }
 
-    if (args.evidence?.fast_track) {
-      const eligible = args.evidence.fast_track.eligible;
+    if (suppliedEvidence.fast_track) {
+      evidence.fast_track = suppliedEvidence.fast_track;
+      const eligible = suppliedEvidence.fast_track.eligible;
       const tags = new Set(current.tags ?? []);
       tags.add('fast-track');
       tags.delete('fast-track:revoked');
@@ -554,11 +584,34 @@ const toolHandlers: Record<ToolName, (args: any) => Promise<any>> = {
       patch.tags = Array.from(tags);
     }
 
+    const candidate = mergeTaskWithPatch(current, patch);
+    const validation = TaskRecordValidator.validateTransition(current.status, target, candidate, evidence);
+    if (!validation.valid) {
+      throw new SemanticError(409, validation.reason ?? 'Transition not allowed');
+    }
+
     try {
-      return repo.update(args.id, args.if_rev, patch);
+      const updatedTask = repo.update(args.id, args.if_rev, patch);
+
+      const statePatch: Partial<OrchestratorState> = {
+        current: target,
+        previous: state.current
+      };
+      if (key === 'review->dev') {
+        statePatch.rounds_review = (state.rounds_review ?? 0) + 1;
+      }
+
+      stateRepo.update(args.id, state.rev, statePatch);
+
+      return updatedTask;
     } catch (error) {
-      if (error instanceof Error && error.message === 'Optimistic lock failed') {
-        throw new SemanticError(409, 'Optimistic lock failed');
+      if (error instanceof Error) {
+        if (error.message === 'Optimistic lock failed') {
+          throw new SemanticError(409, 'Optimistic lock failed');
+        }
+        if (error.message === 'State not found') {
+          throw new SemanticError(404, 'State not found');
+        }
       }
       throw error;
     }
@@ -604,7 +657,15 @@ const toolHandlers: Record<ToolName, (args: any) => Promise<any>> = {
     }
     return eventRepo.append(args.task_id, args.type, args.payload);
   },
-  'state.search': async (args) => eventRepo.search(args.task_id, args.type, args.limit ?? 100),
+  'state.search': async (args) => {
+    if (args.task_id) {
+      const state = stateRepo.get(args.task_id);
+      if (!state) {
+        throw new SemanticError(404, 'State not found');
+      }
+    }
+    return eventRepo.search(args.task_id, args.type, args.limit ?? 100);
+  },
   'fasttrack.evaluate': async (args) => {
     const task = repo.get(args.task_id);
     if (!task) {
@@ -642,6 +703,10 @@ const toolHandlers: Record<ToolName, (args: any) => Promise<any>> = {
     if (!task) {
       throw new SemanticError(404, 'Task not found');
     }
+    const state = stateRepo.get(args.task_id);
+    if (!state) {
+      throw new SemanticError(404, 'State not found');
+    }
     const context: FastTrackContext = {
       task,
       diff: args.diff,
@@ -654,6 +719,20 @@ const toolHandlers: Record<ToolName, (args: any) => Promise<any>> = {
       tags.add('fast-track:revoked');
       const updated = repo.update(task.id, task.rev, { tags: Array.from(tags), status: 'arch' });
       eventRepo.append(task.id, 'fasttrack', { action: 'revoked', reason: result.reason });
+      try {
+        stateRepo.update(args.task_id, state.rev, {
+          current: 'arch',
+          previous: state.current
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message === 'Optimistic lock failed') {
+          throw new SemanticError(409, 'Optimistic lock failed');
+        }
+        if (error instanceof Error && error.message === 'State not found') {
+          throw new SemanticError(404, 'State not found');
+        }
+        throw error;
+      }
       return { result, task: updated };
     }
     return { result, task };
@@ -819,5 +898,9 @@ export const __test__ = {
   toolHandlers,
   toolValidators,
   toolInputSchemas,
-  schemaValidator
+  schemaValidator,
+  repo,
+  stateRepo,
+  eventRepo,
+  leaseRepo
 };

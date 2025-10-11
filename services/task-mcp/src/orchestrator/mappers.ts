@@ -61,12 +61,8 @@ export function mapAgentOutput(agent: AgentType, output: AgentOutput): Partial<T
   }
 }
 
-function mapPoOutput(output: PoOutput): Partial<TaskRecord> {
-  const patch: Partial<TaskRecord> = {};
-  if (typeof output.acceptance_criteria_met === 'boolean') {
-    patch.acceptance_criteria_met = output.acceptance_criteria_met;
-  }
-  return patch;
+function mapPoOutput(_output: PoOutput): Partial<TaskRecord> {
+  return {};
 }
 
 function mapArchitectOutput(output: ArchitectOutput): Partial<TaskRecord> {
