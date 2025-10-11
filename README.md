@@ -588,11 +588,12 @@ TaskRecord states map to GitHub Projects v2 Status field:
 - **Tests**: All tests passing
 - **RGR Logs**: Required for `dev → review` transitions
 
-The **Quality MCP** (see `tooling/quality-mcp/`) exposes two tools:
+The **Quality MCP** (see `tooling/quality-mcp/`) exposes three tools:
 - `quality.run_tests`, wrapped by `pnpm q:tests`, persists `.qreport/tests.json` with runner metrics.
 - `quality.coverage_report`, invoked via `pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --coverage`, produces `.qreport/coverage.json` by reading `coverage-summary.json` (falling back to `coverage-final.json` when Istanbul omits the summary) and normalising paths to the repo root.
+- `quality.lint`, invoked via `pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --lint --cmd "pnpm -C services/task-mcp lint -f json"`, executes the ESLint pipeline (optionally Ruff) and persists `.qreport/lint.json` with totals, per-file diagnostics and per-rule summaries.
 
-Both artifacts are uploaded by the CI workflows (`qreport-tests`, `qreport-coverage`) so downstream jobs (quality gate, reporting bots, etc.) can consume them without rerunning expensive steps.
+All artifacts are uploaded by the CI workflows (`qreport-tests`, `qreport-coverage`, `qreport-lint`) so downstream jobs (quality gate, reporting bots, etc.) can consume them without rerunning expensive steps.
 If the Project Sync workflow targets a **private** user project, provide a classic PAT with the `project` (and `repo`) scopes and store it as the `PROJECT_SYNC_TOKEN` repository secret; the default `GITHUB_TOKEN` already exists automatically and works for organisation-owned boards.
 For the full specification and acceptance criteria see [`docs/ep_02_t_02_quality.md`](docs/ep_02_t_02_quality.md).
 
@@ -624,6 +625,7 @@ pnpm --filter @agents/task-mcp test -- --coverage
 # Generate Quality MCP reports (.qreport/)
 pnpm q:tests
 pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --coverage
+pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --lint --cmd "pnpm -C services/task-mcp lint -f json"
 
 # Lint code
 pnpm --filter @agents/task-mcp run lint
