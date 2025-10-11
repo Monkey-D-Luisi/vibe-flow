@@ -593,6 +593,7 @@ The **Quality MCP** (see `tooling/quality-mcp/`) exposes two tools:
 - `quality.coverage_report`, invoked via `pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --coverage`, produces `.qreport/coverage.json` by reading `coverage-summary.json` (falling back to `coverage-final.json` when Istanbul omits the summary) and normalising paths to the repo root.
 
 Both artifacts are uploaded by the CI workflows (`qreport-tests`, `qreport-coverage`) so downstream jobs (quality gate, reporting bots, etc.) can consume them without rerunning expensive steps.
+If the Project Sync workflow targets a **private** user project, provide a classic PAT with the `project` (and `repo`) scopes and store it as the `PROJECT_SYNC_TOKEN` repository secret; the default `GITHUB_TOKEN` already exists automatically and works for organisation-owned boards.
 For the full specification and acceptance criteria see [`docs/ep_02_t_02_quality.md`](docs/ep_02_t_02_quality.md).
 
 ### MCP GitHub Tools
