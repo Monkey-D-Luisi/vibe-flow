@@ -2,8 +2,7 @@ import { TaskRecord } from '../domain/TaskRecord';
 import { AgentType } from './router';
 
 // Map agent outputs to TaskRecord patches
-export function mapAgentOutput(agent: AgentType, _agentOutput: any): Partial<TaskRecord> {
-  const output = _agentOutput;
+export function mapAgentOutput(agent: AgentType, output: any): Partial<TaskRecord> {
   switch (agent) {
     case 'po':
       return mapPoOutput(output);
