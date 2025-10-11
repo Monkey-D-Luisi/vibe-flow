@@ -89,6 +89,8 @@ const schema = {
     "branch": {"type": "string", "pattern": "^feature/[a-z0-9._-]+$"},
     "diff_summary": {"type": "string"},
     "review_notes": {"type": "array", "items": {"type": "string"}},
+    "non_functional": {"type": "array", "items": {"type": "string"}},
+    "done_if": {"type": "array", "items": {"type": "string"}},
     "qa_report": {
       "type": "object",
       "required": ["total", "passed", "failed"],
@@ -157,6 +159,8 @@ export interface TaskRecord {
   branch?: string;
   diff_summary?: string;
   review_notes?: string[];
+  non_functional?: string[];
+  done_if?: string[];
   qa_report?: {
     total: number;
     passed: number;
