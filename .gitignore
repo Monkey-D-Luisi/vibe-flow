@@ -74,6 +74,7 @@ services/**/coverage/
 
 # Docker
 **/Dockerfile*
+!tooling/quality-mcp/server/Dockerfile
 **/.dockerignore
 **/docker-compose*.yml
 
