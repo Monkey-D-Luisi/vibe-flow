@@ -27,6 +27,7 @@ export interface ParsedTestResult {
  * Parse Vitest JSON output and extract test results
  */
 export function parseVitestOutput(jsonStr: string): ParsedTestResult {
+  const now = Date.now();
   let data: VitestJson;
   try {
     data = JSON.parse(jsonStr);
@@ -37,7 +38,8 @@ export function parseVitestOutput(jsonStr: string): ParsedTestResult {
   const { numTotalTests, numPassedTests, numFailedTests, startTime, endTime, testResults } = data;
 
   // Calculate duration
-  const durationMs = endTime ? endTime - startTime : Date.now() - startTime;
+  const start = typeof startTime === 'number' ? startTime : now;
+  const durationMs = typeof endTime === 'number' ? endTime - start : now - start;
 
   // Collect failed tests
   const failedTests: string[] = [];

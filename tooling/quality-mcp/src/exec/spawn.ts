@@ -88,9 +88,9 @@ export async function safeSpawn(cmd: string, args: string[], options: SpawnOptio
       });
     });
 
-    child.on('error', (err) => {
+    child.on('error', (err: NodeJS.ErrnoException & { name?: string }) => {
       clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
+      if (err?.name === 'AbortError' || err?.code === 'ABORT_ERR') {
         const durationMs = Date.now() - startTime;
         resolve({
           stdout,
