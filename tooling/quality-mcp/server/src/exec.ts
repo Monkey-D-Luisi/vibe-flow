@@ -78,17 +78,18 @@ export async function invokeTool(tool: string, input: unknown, options: ExecuteO
 
   let timedOut = false;
   const timeoutHandle = setTimeout(() => {
-    if (!finished) {
-      timedOut = true;
-      child.kill('SIGKILL');
+    if (finished) {
+      return;
     }
+    timedOut = true;
+    child.kill('SIGKILL');
   }, timeoutMs);
 
   const [code, signal] = await once(child, 'close') as [number | null, NodeJS.Signals | null];
   finished = true;
   clearTimeout(timeoutHandle);
 
-  if (timedOut || signal === 'SIGKILL') {
+  if (timedOut) {
     throw Object.assign(new Error('TIMEOUT: Tool execution exceeded limit'), { code: 'TIMEOUT' });
   }
   if (code !== 0 && stdoutChunks.length === 0) {

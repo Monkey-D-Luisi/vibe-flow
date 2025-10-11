@@ -70,7 +70,23 @@ async function handleInvocation(request: FastifyRequest<{ Body: ToolBody }>, rep
   const start = currentTime();
   const requestId = request.body.requestId || ulid();
   reply.header('X-Request-Id', requestId);
-  const auth = requireAuth(request, 'run');
+  let auth;
+  try {
+    auth = requireAuth(request, 'run');
+  } catch (error) {
+    const mapped = mapError(error);
+    requestsTotal.inc({ tool: request.body.tool, status: mapped.code.toLowerCase() });
+    if (stream) {
+      sendSse(reply, {
+        event: 'error',
+        data: { code: mapped.code, message: mapped.message, requestId }
+      });
+      reply.raw.end();
+    } else {
+      reply.code(mapped.statusCode).send(errorResponse(requestId, mapped.code, mapped.message));
+    }
+    return;
+  }
 
   if (!rateLimiter.consume(auth.key.key)) {
     requestsTotal.inc({ tool: request.body.tool, status: 'rate_limited' });
