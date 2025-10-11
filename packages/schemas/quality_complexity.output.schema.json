@@ -59,6 +59,11 @@
         "excluded": {
           "type": "array",
           "items": { "type": "string" }
+        },
+        "failed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
         }
       }
     }

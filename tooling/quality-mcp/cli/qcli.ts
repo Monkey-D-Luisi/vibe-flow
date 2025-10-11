@@ -10,6 +10,8 @@ import type { CoverageReportInput } from '../src/tools/coverage_report.js';
 import type { LintInput } from '../src/tools/lint.js';
 import type { ComplexityInput } from '../src/tools/complexity.js';
 
+const MIN_TIMEOUT_MS = 1000;
+
 function ensureValue(args: string[], index: number, flag: string): string {
   const value = args[index];
   if (!value || value.startsWith('--')) {
@@ -124,7 +126,7 @@ function parseComplexityArgs(args: string[]): ComplexityInput {
       case '--timeout-ms': {
         const raw = ensureValue(args, ++i, flag);
         const parsed = Number.parseInt(raw, 10);
-        if (!Number.isFinite(parsed) || parsed < 1000) {
+        if (!Number.isFinite(parsed) || parsed < MIN_TIMEOUT_MS) {
           throw new Error(`Invalid timeout value ${raw}`);
         }
         options.timeoutMs = parsed;

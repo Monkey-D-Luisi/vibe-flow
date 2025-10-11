@@ -47,9 +47,10 @@ const validateOutput = ajv.compile<ComplexityOutput>(outputSchema);
 
 const DEFAULT_ENGINE: ComplexityEngine = 'escomplex';
 const DEFAULT_TIMEOUT_MS = 600000;
+const MIN_TIMEOUT_MS = 1000;
 
 function toPosixPath(path: string): string {
-  return path.split('\\').join('/');
+  return posix.normalize(path.replace(/\\/g, '/'));
 }
 
 function normalizeRelativePath(repoRoot: string, absolutePath: string): string {
@@ -97,6 +98,9 @@ export async function complexity(input: ComplexityInput): Promise<ComplexityOutp
     '**/*.d.ts'
   ];
   const timeoutMs = input.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  if (timeoutMs < MIN_TIMEOUT_MS) {
+    throw new Error(`Invalid input: timeoutMs must be >= ${MIN_TIMEOUT_MS}`);
+  }
   const deadline = Date.now() + timeoutMs;
 
   const files = await resolveGlobPatterns(globs, { cwd: repoRoot, exclude });
@@ -108,6 +112,9 @@ export async function complexity(input: ComplexityInput): Promise<ComplexityOutp
   const outputFiles: ComplexityFileOutput[] = [];
   const allUnits: ComplexityUnit[] = [];
 
+  const failed: string[] = [];
+  let firstParseError: string | null = null;
+
   for (const filePath of files) {
     checkTimeout(deadline, filePath);
     let analysis: EngineFileComplexity;
@@ -115,7 +122,12 @@ export async function complexity(input: ComplexityInput): Promise<ComplexityOutp
       analysis = await analyzer(filePath);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`PARSE_ERROR: Failed to analyze ${normalizeRelativePath(repoRoot, filePath)} - ${message}`);
+      const relativePath = normalizeRelativePath(repoRoot, filePath);
+      failed.push(relativePath);
+      if (!firstParseError) {
+        firstParseError = `PARSE_ERROR: Failed to analyze ${relativePath} - ${message}`;
+      }
+      continue;
     }
 
     const units = [...analysis.units].sort((a, b) => {
@@ -158,12 +170,17 @@ export async function complexity(input: ComplexityInput): Promise<ComplexityOutp
     meta: {
       engine,
       globs,
-      excluded: exclude
+      excluded: exclude,
+      failed
     }
   };
 
   if (!validateOutput(output)) {
     throw new Error(`Invalid output: ${ajv.errorsText(validateOutput.errors)}`);
+  }
+
+  if (firstParseError) {
+    throw new Error(firstParseError);
   }
 
   return output;

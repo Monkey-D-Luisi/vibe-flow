@@ -90,7 +90,8 @@ Fuera de alcance: ejecución de tests (EP02‑T01), cobertura (EP02‑T02), lint
       "properties": {
         "engine": { "type": "string", "enum": ["escomplex", "tsmorph"] },
         "globs": { "type": "array", "items": { "type": "string" } },
-        "excluded": { "type": "array", "items": { "type": "string" } }
+        "excluded": { "type": "array", "items": { "type": "string" } },
+        "failed": { "type": "array", "items": { "type": "string" }, "default": [] }
       }
     }
   }
@@ -99,7 +100,7 @@ Fuera de alcance: ejecución de tests (EP02‑T01), cobertura (EP02‑T02), lint
 
 **Errores semánticos**
 - `NOT_FOUND` cuando los `globs` no rinden archivos.
-- `PARSE_ERROR` si el engine no puede analizar un archivo (se reporta el primero y se sigue con los demás si es posible).
+- `PARSE_ERROR` si el engine no puede analizar un archivo (se reporta el primero en `meta.failed` y se sigue con los demás si es posible).
 - `TIMEOUT` si `timeoutMs` expira.
 
 ---
@@ -205,4 +206,3 @@ Checklist
 **Labels:** `area_quality`, `epic_EP02`, `task`, `agent_dev`.
 
 **Auto‑cierre:** `Closes #87`.
-
