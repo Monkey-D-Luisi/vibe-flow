@@ -2,6 +2,7 @@ name: quality-tests
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
+  workflow_dispatch:
 jobs:
   tests:
     runs-on: ubuntu-latest
