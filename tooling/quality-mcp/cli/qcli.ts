@@ -14,7 +14,11 @@ async function main() {
       mkdirSync(dirname(outputPath), { recursive: true });
       writeFileSync(outputPath, JSON.stringify(result, null, 2));
       console.log(`Test report saved to ${outputPath}`);
-      process.exit(0);
+      const exitCode = result.meta?.exitCode ?? 0;
+      if (exitCode !== 0) {
+        console.error(`Tests finished with exit code ${exitCode}`);
+      }
+      process.exit(exitCode);
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
       process.exit(1);
