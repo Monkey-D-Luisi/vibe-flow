@@ -1,6 +1,9 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 
+// eslint-disable-next-line no-useless-escape
+const idPattern = "^TR-[0-9A-HJKMNP-TV-Z]{26}$";
+
 const schema = {
   "title": "TaskRecord",
   "type": "object",
@@ -13,7 +16,7 @@ const schema = {
     "version": {"type": "string", "const": "1.0.0"},
     "id": {
       "type": "string",
-      "pattern": "^TR-[0-9A-HJKMNP-TV-Z]{26}$",
+      "pattern": idPattern,
       "description": "ULID con prefijo TR-"
     },
     "title": {"type": "string", "minLength": 5, "maxLength": 120},
@@ -186,18 +189,15 @@ export class TaskRecordValidator {
           ? { valid: true }
           : { valid: false, reason: 'Requirements must be groomed before moving to arch' };
 
-      case 'po->dev':
+      case 'po->dev': {
         if (record.scope !== 'minor') {
           return { valid: false, reason: 'Fast-track only available for minor scope' };
         }
-        {
-          const tags = record.tags || [];
-          const eligible = tags.includes('fast-track:eligible') && !tags.includes('fast-track:revoked');
-          if (!eligible) {
-            return { valid: false, reason: 'Fast-track evaluation required with score >= 60' };
-          }
+        if (!((record.tags || []).includes('fast-track:eligible') && !(record.tags || []).includes('fast-track:revoked'))) {
+          return { valid: false, reason: 'Fast-track evaluation required with score >= 60' };
         }
         return { valid: true };
+      }
 
       case 'arch->dev':
         // Guard: ADR and contracts defined
@@ -214,8 +214,7 @@ export class TaskRecordValidator {
 
       case 'review->dev':
         // Check round limit
-        const currentRounds = record.rounds_review || 0;
-        if (currentRounds >= 2) {
+        if ((record.rounds_review || 0) >= 2) {
           return { valid: false, reason: 'Maximum review rounds (2) exceeded' };
         }
         return { valid: true };
