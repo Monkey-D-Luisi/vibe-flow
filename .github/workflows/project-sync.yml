@@ -131,7 +131,7 @@ jobs:
                     nodes {
                       number
                       title
-                      node_id
+                      id
                       labels(first:10) { nodes { name } }
                     }
                   }
@@ -147,7 +147,7 @@ jobs:
               )
               if (epics.length === 0) return
               const epic = epics[0] // Assume first is the epic
-              const epicNodeId = epic.node_id
+              const epicNodeId = epic.id
 
               // Get current epic status in project
               const epicStatus = await getItemStatus(epicNodeId, project.id, statusField.id, github)
@@ -203,7 +203,7 @@ jobs:
                 repository(owner:$owner, name:$repo) {
                   issues(labels:[$epicLabel, $taskLabel], first:50) {
                     nodes {
-                      node_id
+                      id
                     }
                   }
                 }
@@ -214,7 +214,7 @@ jobs:
                 epicLabel,
                 taskLabel: "task"
               })
-              const taskNodeIds = tasksRes.repository.issues.nodes.map(n => n.node_id)
+              const taskNodeIds = tasksRes.repository.issues.nodes.map(n => n.id)
 
               // Check status of each task
               for (const taskId of taskNodeIds) {
