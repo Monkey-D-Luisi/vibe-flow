@@ -2,21 +2,21 @@ import { TaskRecord } from '../domain/TaskRecord';
 import { AgentType } from './router';
 
 // Map agent outputs to TaskRecord patches
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function mapAgentOutput(agent: AgentType, _output: any): Partial<TaskRecord> {
+export function mapAgentOutput(agent: AgentType, _agentOutput: any): Partial<TaskRecord> {
+  const output = _agentOutput;
   switch (agent) {
     case 'po':
-      return mapPoOutput(_output);
+      return mapPoOutput(output);
     case 'architect':
-      return mapArchitectOutput(_output);
+      return mapArchitectOutput(output);
     case 'dev':
-      return mapDevOutput(_output);
+      return mapDevOutput(output);
     case 'reviewer':
-      return mapReviewerOutput(_output);
+      return mapReviewerOutput(output);
     case 'qa':
-      return mapQaOutput(_output);
+      return mapQaOutput(output);
     case 'prbot':
-      return mapPrBotOutput(_output);
+      return mapPrBotOutput(output);
     default:
       throw new Error(`Unknown agent type: ${agent}`);
   }
