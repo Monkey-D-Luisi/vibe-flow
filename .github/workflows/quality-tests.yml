@@ -2,6 +2,10 @@ name: quality-tests
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
+  push:
+    branches:
+      - main
+      - feature/**
   workflow_dispatch:
 jobs:
   tests:
