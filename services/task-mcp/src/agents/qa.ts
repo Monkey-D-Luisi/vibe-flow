@@ -1,5 +1,5 @@
 import Ajv from 'ajv';
-import qaReportSchema from '../../../packages/schemas/qa_report.schema.json' with { type: 'json' };
+import { loadSchema } from '../utils/loadSchema.js';
 
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
 
@@ -27,7 +27,7 @@ const qaInputSchema = {
 };
 const qaInputValidator = ajv.compile(qaInputSchema);
 
-const qaReportValidator = ajv.compile(qaReportSchema as Record<string, unknown>);
+const qaReportValidator = ajv.compile(loadSchema('qa_report.schema.json'));
 
 export interface QaInput {
   violations: Array<{

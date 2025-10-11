@@ -1,5 +1,5 @@
 import Ajv from 'ajv';
-import devWorkOutputSchema from '../../../packages/schemas/dev_work_output.schema.json' with { type: 'json' };
+import { loadSchema } from '../utils/loadSchema.js';
 
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
 
@@ -38,7 +38,7 @@ const devInputSchema = {
 };
 const devInputValidator = ajv.compile(devInputSchema);
 
-const devWorkOutputValidator = ajv.compile(devWorkOutputSchema as Record<string, unknown>);
+const devWorkOutputValidator = ajv.compile(loadSchema('dev_work_output.schema.json'));
 
 export interface DevInput {
   modules: string[];

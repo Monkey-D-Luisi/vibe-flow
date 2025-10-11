@@ -1,5 +1,5 @@
 import Ajv from 'ajv';
-import poBriefSchema from '../../../packages/schemas/po_brief.schema.json' with { type: 'json' };
+import { loadSchema } from '../utils/loadSchema.js';
 
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
 
@@ -25,7 +25,7 @@ const poInputSchema = {
 // Input validation
 const poInputValidator = ajv.compile(poInputSchema);
 
-const poBriefValidator = ajv.compile(poBriefSchema as Record<string, unknown>);
+const poBriefValidator = ajv.compile(loadSchema('po_brief.schema.json'));
 
 export interface PoInput {
   title: string;
