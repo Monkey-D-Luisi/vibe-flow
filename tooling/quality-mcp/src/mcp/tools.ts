@@ -4,9 +4,10 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { runTests } from '../tools/run_tests.js';
+import { coverageReport } from '../tools/coverage_report.js';
 import { loadSchema } from '../../../../services/task-mcp/src/utils/loadSchema.js';
 
-type ToolName = 'quality.run_tests';
+type ToolName = 'quality.run_tests' | 'quality.coverage_report';
 
 class SemanticError extends Error {
   constructor(public readonly code: number, message: string) {
@@ -18,11 +19,13 @@ class SemanticError extends Error {
 const schemaValidator = new Ajv({ allErrors: true });
 
 const toolInputSchemas: Record<ToolName, any> = {
-  'quality.run_tests': loadSchema('quality_tests.input.schema.json')
+  'quality.run_tests': loadSchema('quality_tests.input.schema.json'),
+  'quality.coverage_report': loadSchema('quality_coverage.input.schema.json')
 };
 
 const toolDescriptions: Record<ToolName, string> = {
-  'quality.run_tests': 'Ejecutar suite de pruebas automatizadas y devolver métricas'
+  'quality.run_tests': 'Ejecutar suite de pruebas automatizadas y devolver métricas',
+  'quality.coverage_report': 'Generar reporte de cobertura (total y por archivo) a partir de Istanbul'
 };
 
 const toolValidators = Object.fromEntries(
@@ -38,6 +41,9 @@ const tools = Object.entries(toolInputSchemas).map(([name, schema]) => ({
 const toolHandlers: Record<ToolName, (args: any) => Promise<any>> = {
   'quality.run_tests': async (args) => {
     return await runTests(args);
+  },
+  'quality.coverage_report': async (args) => {
+    return await coverageReport(args);
   }
 };
 
