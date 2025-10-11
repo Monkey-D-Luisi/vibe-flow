@@ -113,14 +113,12 @@ describe('PR Bot Agent', () => {
     });
 
     it('should include commit gating conditions', () => {
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('Commits only if tests pass');
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('coverage ≥ 0.8 major / ≥ 0.7 minor');
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('lint.errors = 0');
+      expect(PR_BOT_SYSTEM_PROMPT).toContain('Commit only if tests pass (coverage >= 0.8 major / >= 0.7 minor, lint.errors = 0)');
     });
 
     it('should include checklist requirements', () => {
       expect(PR_BOT_SYSTEM_PROMPT).toContain('ACs, RGR log, coverage, lint, ADR, QA report');
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('Automatically link issue');
+      expect(PR_BOT_SYSTEM_PROMPT).toContain('Automatically link the related issue');
     });
 
     it('should include example output', () => {

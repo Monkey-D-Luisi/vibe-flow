@@ -1,6 +1,8 @@
 import Ajv from 'ajv';
+import { createRequire } from 'module';
 
 const ajv = new Ajv({ allErrors: true, strict: false });
+const require = createRequire(import.meta.url);
 
 // Input schema for dev agent (uses design ready)
 const devInputSchema = {
@@ -106,7 +108,7 @@ INSTRUCTIONS:
 - Follow SOLID and Clean Code (small functions, descriptive names)
 - Implement contracts defined by architecture
 - Apply specified patterns where appropriate
-- Ensure coverage ≥ 0.8 (major) | ≥ 0.7 (minor)
+- Ensure coverage >= 0.8 (major) | >= 0.7 (minor)
 - Keep lint.errors = 0
 - Record at least 2 entries in red_green_refactor_log
 
