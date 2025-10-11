@@ -1,8 +1,7 @@
 import Ajv from 'ajv';
-import { createRequire } from 'module';
+import qaReportSchema from '../../../packages/schemas/qa_report.schema.json' with { type: 'json' };
 
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
-const require = createRequire(import.meta.url);
 
 // Input schema for QA agent (uses reviewer report)
 const qaInputSchema = {
@@ -28,25 +27,7 @@ const qaInputSchema = {
 };
 const qaInputValidator = ajv.compile(qaInputSchema);
 
-// Output schema validation
-let qaReportSchema;
-try {
-  qaReportSchema = require('../../../packages/schemas/qa_report.schema.json');
-} catch (error) {
-  // Fallback schema for testing when schema files are not available
-  qaReportSchema = {
-    type: 'object',
-    properties: {
-      total: { type: 'integer', minimum: 0 },
-      passed: { type: 'integer', minimum: 0 },
-      failed: { type: 'integer', minimum: 0 },
-      evidence: { type: 'array', items: { type: 'string' } }
-    },
-    required: ['total', 'passed', 'failed', 'evidence'],
-    additionalProperties: false
-  };
-}
-const qaReportValidator = ajv.compile(qaReportSchema);
+const qaReportValidator = ajv.compile(qaReportSchema as Record<string, unknown>);
 
 export interface QaInput {
   violations: Array<{

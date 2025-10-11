@@ -1,8 +1,7 @@
 import Ajv from 'ajv';
-import { createRequire } from 'module';
+import prSummarySchema from '../../../packages/schemas/pr_summary.schema.json' with { type: 'json' };
 
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
-const require = createRequire(import.meta.url);
 
 // Input schema for PR bot agent (uses QA report)
 const prBotInputSchema = {
@@ -17,24 +16,7 @@ const prBotInputSchema = {
 };
 const prBotInputValidator = ajv.compile(prBotInputSchema);
 
-// Output schema validation
-let prSummarySchema;
-try {
-  prSummarySchema = require('../../../packages/schemas/pr_summary.schema.json');
-} catch (error) {
-  // Fallback schema for testing when schema files are not available
-  prSummarySchema = {
-    type: 'object',
-    properties: {
-      branch: { type: 'string', pattern: '^feature/[a-z0-9._-]+$' },
-      pr_url: { type: 'string', format: 'uri' },
-      checklist: { type: 'array', items: { type: 'string' } }
-    },
-    required: ['branch', 'pr_url', 'checklist'],
-    additionalProperties: false
-  };
-}
-const prSummaryValidator = ajv.compile(prSummarySchema);
+const prSummaryValidator = ajv.compile(prSummarySchema as Record<string, unknown>);
 
 export interface PrBotInput {
   total: number;

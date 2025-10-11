@@ -1,8 +1,7 @@
 import Ajv from 'ajv';
-import { createRequire } from 'module';
+import designReadySchema from '../../../packages/schemas/design_ready.schema.json' with { type: 'json' };
 
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
-const require = createRequire(import.meta.url);
 
 // Input schema for architect agent (uses PO brief)
 const architectInputSchema = {
@@ -18,49 +17,7 @@ const architectInputSchema = {
 };
 const architectInputValidator = ajv.compile(architectInputSchema);
 
-// Output schema validation
-let designReadySchema;
-try {
-  designReadySchema = require('../../../packages/schemas/design_ready.schema.json');
-} catch (error) {
-  // Fallback schema for testing when schema files are not available
-  designReadySchema = {
-    type: 'object',
-    properties: {
-      modules: { type: 'array', items: { type: 'string' } },
-      contracts: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            name: { type: 'string', pattern: '^[A-Z][a-zA-Z0-9]*$' },
-            methods: { type: 'array', items: { type: 'string' } }
-          },
-          required: ['name', 'methods'],
-          additionalProperties: false
-        }
-      },
-      patterns: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            where: { type: 'string' },
-            why: { type: 'string' }
-          },
-          required: ['name', 'where', 'why'],
-          additionalProperties: false
-        }
-      },
-      adr_id: { type: 'string', pattern: '^ADR-\\d+$' },
-      test_plan: { type: 'array', items: { type: 'string' } }
-    },
-    required: ['modules', 'contracts', 'patterns', 'adr_id', 'test_plan'],
-    additionalProperties: false
-  };
-}
-const designReadyValidator = ajv.compile(designReadySchema);
+const designReadyValidator = ajv.compile(designReadySchema as Record<string, unknown>);
 
 export interface ArchitectInput {
   title: string;

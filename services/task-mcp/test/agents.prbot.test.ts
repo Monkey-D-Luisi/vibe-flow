@@ -61,10 +61,10 @@ describe('PR Bot Agent', () => {
         branch: 'feature/user-login',
         pr_url: 'https://github.com/org/repo/pull/123',
         checklist: [
-          '✅ ACs fulfilled',
-          '✅ RGR log: red→green→refactor',
-          '✅ Coverage ≥ 80%',
-          '✅ Lint 0 errors'
+          '- ACs fulfilled',
+          '- RGR log: red->green->refactor',
+          '- Coverage >= 80%',
+          '- Lint 0 errors'
         ]
       };
 
@@ -87,7 +87,7 @@ describe('PR Bot Agent', () => {
       const invalidOutput = {
         branch: 'invalid-branch-name', // should match feature/[a-z0-9._-]+
         pr_url: 'https://github.com/org/repo/pull/123',
-        checklist: ['✅ Test']
+        checklist: ['- Test']
       };
 
       expect(() => validatePrSummary(invalidOutput)).toThrow('PR summary validation failed');
@@ -97,7 +97,7 @@ describe('PR Bot Agent', () => {
       const invalidOutput = {
         branch: 'feature/test',
         pr_url: 123, // should be string, not number
-        checklist: ['✅ Test']
+        checklist: ['- Test']
       };
 
       expect(() => validatePrSummary(invalidOutput)).toThrow('PR summary validation failed');

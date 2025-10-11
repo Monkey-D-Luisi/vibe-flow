@@ -1,20 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { validatePoInput, validatePoBrief, PO_SYSTEM_PROMPT } from '../src/agents/po.js';
-
-// Mock the schema requires
-vi.mock('../../../packages/schemas/po_brief.schema.json', () => ({
-  default: {
-    type: 'object',
-    properties: {
-      title: { type: 'string' },
-      acceptance_criteria: { type: 'array', items: { type: 'string' } },
-      scope: { type: 'string', enum: ['minor', 'major'] },
-      non_functional: { type: 'array', items: { type: 'string' } },
-      done_if: { type: 'array', items: { type: 'string' } }
-    },
-    required: ['title', 'acceptance_criteria', 'scope', 'non_functional', 'done_if']
-  }
-}));
 
 describe('PO Agent', () => {
   describe('validatePoInput', () => {
@@ -75,7 +60,8 @@ describe('PO Agent', () => {
         acceptance_criteria: ['User can login', 'Password is encrypted'],
         scope: 'minor' as const,
         non_functional: ['Security: AES encryption', 'Performance: < 2s'],
-        done_if: ['Login works', 'Security tests pass']
+        done_if: ['Login works', 'Security tests pass'],
+        acceptance_criteria_met: true
       };
 
       expect(() => validatePoBrief(validOutput)).not.toThrow();
