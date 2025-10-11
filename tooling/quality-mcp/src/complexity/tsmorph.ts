@@ -21,6 +21,9 @@ const project = new Project({
   }
 });
 
+// Avoid overly verbose identifiers when deriving names for anonymous arrow functions.
+const MAX_ARROW_NAME_LENGTH = 32;
+
 function createSourceFile(path: string, content: string): SourceFile {
   const existing = project.getSourceFile(path);
   if (existing) {
@@ -109,7 +112,7 @@ function getNameFromArrow(fn: ArrowFunction): string {
   if (Node.isReturnStatement(parent) || Node.isExpressionStatement(parent)) {
     return '<arrow>';
   }
-  return parent.getText().slice(0, 32) || '<arrow>';
+  return parent.getText().slice(0, MAX_ARROW_NAME_LENGTH) || '<arrow>';
 }
 
 function createUnit(node: Node, kind: ComplexityUnitKind, name: string): ComplexityUnit {
@@ -133,13 +136,11 @@ export async function analyzeWithTsMorph(path: string): Promise<FileComplexity> 
   const sourceFile = createSourceFile(path, content);
 
   const units: ComplexityUnit[] = [];
-  const classMemberMap = new Map<Node, ComplexityUnit[]>();
+  const classMemberMap = new Map<Node, { classUnit: ComplexityUnit; members: ComplexityUnit[] }>();
 
   const classes = sourceFile.getClasses();
 
   for (const cls of classes) {
-    classMemberMap.set(cls, []);
-
     const name = cls.getName() ?? '<anonymous class>';
     const classUnit: ComplexityUnit = {
       name,
@@ -151,7 +152,7 @@ export async function analyzeWithTsMorph(path: string): Promise<FileComplexity> 
       params: 0
     };
     units.push(classUnit);
-    classMemberMap.set(cls, [classUnit]);
+    classMemberMap.set(cls, { classUnit, members: [] });
 
     const processMember = (member: MethodDeclaration | GetAccessorDeclaration | SetAccessorDeclaration) => {
       if (!member.getBody()) {
@@ -164,9 +165,7 @@ export async function analyzeWithTsMorph(path: string): Promise<FileComplexity> 
       const unit = createUnit(member, memberKind, member.getName() ?? '<method>');
       units.push(unit);
       const bucket = classMemberMap.get(cls);
-      if (bucket) {
-        bucket.push(unit);
-      }
+      bucket?.members.push(unit);
     };
 
     cls.getMethods().forEach(processMember);
@@ -179,9 +178,7 @@ export async function analyzeWithTsMorph(path: string): Promise<FileComplexity> 
       const unit = createUnit(ctor, 'method', 'constructor');
       units.push(unit);
       const bucket = classMemberMap.get(cls);
-      if (bucket) {
-        bucket.push(unit);
-      }
+      bucket?.members.push(unit);
     });
   }
 
@@ -214,13 +211,9 @@ export async function analyzeWithTsMorph(path: string): Promise<FileComplexity> 
   }
 
   // Update class aggregate cyclomatic totals
-  for (const [cls, bucket] of classMemberMap.entries()) {
-    const classUnit = bucket[0];
-    if (!classUnit) {
-      continue;
-    }
-    const memberUnits = bucket.slice(1);
-    classUnit.cyclomatic = memberUnits.reduce((sum, unit) => sum + unit.cyclomatic, 0);
+  for (const [, bucket] of classMemberMap.entries()) {
+    const { classUnit, members } = bucket;
+    classUnit.cyclomatic = members.reduce((sum, unit) => sum + unit.cyclomatic, 0);
   }
 
   sourceFile.forget();
