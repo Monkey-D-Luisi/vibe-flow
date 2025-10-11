@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest';
+import { ulid } from 'ulid';
 import { __test__ as toolInternals } from '../src/mcp/tools.js';
 
 const { toolHandlers, toolValidators } = toolInternals;
 
-describe('MCP tools – contract smoke tests', () => {
-  it('rejects additional properties for task.create', () => {
+const newTaskId = () => `TR-${ulid()}`;
+
+describe('MCP tools contract smoke tests', () => {
+  it('enforces additionalProperties=false on task.create', () => {
     const validator = toolValidators['task.create'];
     const valid = validator({
       title: 'Test task',
@@ -26,20 +29,35 @@ describe('MCP tools – contract smoke tests', () => {
     expect(fetched.status).toBe('po');
   });
 
-  it('returns 404 when fetching unknown task', async () => {
-    await expect(toolHandlers['task.get']({ id: 'TR-UNKNOWN' })).rejects.toMatchObject({
-      code: 404
-    });
+  it('returns 404 for unknown task id', async () => {
+    await expect(
+      toolHandlers['task.get']({ id: 'TR-AAAAAAAAAAAAAAAAAAAAAAAAAA' })
+    ).rejects.toMatchObject({ code: 404 });
   });
 
-  it('fails optimistic lock with 409', async () => {
+  it('fails optimistic lock on task.update with 409', async () => {
     const created = await toolHandlers['task.create']({
       title: 'Lock test',
       acceptance_criteria: ['AC'],
       scope: 'minor'
     });
     await expect(
-      toolHandlers['task.update']({ id: created.id, if_rev: 999, patch: { title: 'Nope' } })
+      toolHandlers['task.update']({ id: created.id, if_rev: created.rev + 5, patch: { title: 'Nope' } })
+    ).rejects.toMatchObject({ code: 409 });
+  });
+
+  it('fails optimistic lock on task.transition with stale rev', async () => {
+    const created = await toolHandlers['task.create']({
+      title: 'Transition test',
+      acceptance_criteria: ['AC'],
+      scope: 'major'
+    });
+    await expect(
+      toolHandlers['task.transition']({
+        id: created.id,
+        to: 'arch',
+        if_rev: created.rev + 2
+      })
     ).rejects.toMatchObject({ code: 409 });
   });
 
@@ -49,19 +67,47 @@ describe('MCP tools – contract smoke tests', () => {
       acceptance_criteria: ['AC'],
       scope: 'minor'
     });
-    await toolHandlers['state.acquire_lock']({ task_id: created.id, owner_agent: 'agent-1', ttl_seconds: 60 });
+    await toolHandlers['state.acquire_lock']({
+      task_id: created.id,
+      owner_agent: 'agent-1',
+      ttl_seconds: 60
+    });
     await expect(
-      toolHandlers['state.acquire_lock']({ task_id: created.id, owner_agent: 'agent-2', ttl_seconds: 60 })
+      toolHandlers['state.acquire_lock']({
+        task_id: created.id,
+        owner_agent: 'agent-2',
+        ttl_seconds: 60
+      })
     ).rejects.toMatchObject({ code: 423 });
   });
 
-  it('appends events only when state exists', async () => {
+  it('allows lease reacquisition after TTL expires', async () => {
+    const created = await toolHandlers['task.create']({
+      title: 'Lease expiry',
+      acceptance_criteria: ['AC'],
+      scope: 'minor'
+    });
+    await toolHandlers['state.acquire_lock']({
+      task_id: created.id,
+      owner_agent: 'agent-1',
+      ttl_seconds: 1
+    });
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    await expect(
+      toolHandlers['state.acquire_lock']({
+        task_id: created.id,
+        owner_agent: 'agent-2',
+        ttl_seconds: 60
+      })
+    ).resolves.toMatchObject({ owner_agent: 'agent-2' });
+  });
+
+  it('appends events only when orchestrator state exists', async () => {
     const created = await toolHandlers['task.create']({
       title: 'Event task',
       acceptance_criteria: ['AC'],
       scope: 'minor'
     });
-    // state.append_event should fail until orchestrator state exists
     await expect(
       toolHandlers['state.append_event']({
         task_id: created.id,

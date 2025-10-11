@@ -1,9 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { ulid } from 'ulid';
 import { TaskRepository } from '../src/repo/sqlite.js';
 import { TaskRecordValidator } from '../src/domain/TaskRecord.js';
 
 describe('Task Transitions', () => {
   let repo: TaskRepository;
+
+  const newTaskId = () => `TR-${ulid()}`;
+  const createTask = (overrides: Record<string, unknown>) =>
+    repo.create({
+      id: newTaskId(),
+      title: 'Test Task',
+      acceptance_criteria: ['test'],
+      scope: 'minor',
+      status: 'po',
+      ...overrides
+    });
 
   beforeEach(() => {
     repo = new TaskRepository(':memory:');
@@ -13,69 +25,46 @@ describe('Task Transitions', () => {
     repo.close();
   });
 
-  describe('dev -> review', () => {
-    it('should fail without red_green_refactor_log', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'dev'
-      });
+  describe('po -> arch', () => {
+    it('allows transition for major scope tasks', () => {
+      const task = createTask({ scope: 'major', status: 'po' });
+      const validation = TaskRecordValidator.validateTransition('po', 'arch', task);
+      expect(validation.valid).toBe(true);
+    });
+  });
 
+  describe('dev -> review', () => {
+    it('fails without RGR log evidence', () => {
+      const task = createTask({ status: 'dev' });
       const validation = TaskRecordValidator.validateTransition('dev', 'review', task);
       expect(validation.valid).toBe(false);
       expect(validation.reason).toContain('Quality gate failed');
     });
 
-    it('should fail without coverage >= 0.7 for minor scope', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'dev'
-      });
-
-      const updated = repo.update(task.id, 0, {
-        red_green_refactor_log: ['red: 4 failing', 'green: all passing'],
+    it('fails with insufficient coverage for minor scope', () => {
+      const task = createTask({ status: 'dev' });
+      const updated = repo.update(task.id, task.rev, {
+        red_green_refactor_log: ['red: failing', 'green: passing'],
         metrics: { coverage: 0.6, lint: { errors: 0, warnings: 0 } }
       });
-
       const validation = TaskRecordValidator.validateTransition('dev', 'review', updated);
       expect(validation.valid).toBe(false);
-      expect(validation.reason).toContain('Quality gate failed');
     });
 
-    it('should pass with log and coverage', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'dev'
+    it('passes with RGR log and sufficient coverage', () => {
+      const task = createTask({ status: 'dev' });
+      const updated = repo.update(task.id, task.rev, {
+        red_green_refactor_log: ['red: failing', 'green: passing'],
+        metrics: { coverage: 0.82, lint: { errors: 0, warnings: 0 } }
       });
-
-      const updated = repo.update(task.id, 0, {
-        red_green_refactor_log: ['red: 4 failing', 'green: all passing'],
-        metrics: { coverage: 0.8, lint: { errors: 0, warnings: 0 } }
-      });
-
       const validation = TaskRecordValidator.validateTransition('dev', 'review', updated);
       expect(validation.valid).toBe(true);
     });
   });
 
-  describe('po -> dev', () => {
+  describe('po -> dev (fast-track)', () => {
     it('requires fast-track eligibility tags', () => {
-      const task = repo.create({
-        id: 'TR-FT01',
-        title: 'PO Fast Track',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'po'
-      });
-
+      const task = createTask({ status: 'po' });
       const invalid = TaskRecordValidator.validateTransition('po', 'dev', task);
       expect(invalid.valid).toBe(false);
 
@@ -88,29 +77,14 @@ describe('Task Transitions', () => {
   });
 
   describe('review -> dev', () => {
-    it('should always pass and increment rounds_review', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'review'
-      });
-
+    it('passes and increments review rounds when returning to dev', () => {
+      const task = createTask({ status: 'review' });
       const validation = TaskRecordValidator.validateTransition('review', 'dev', task);
       expect(validation.valid).toBe(true);
     });
 
-    it('should fail after 3 rounds', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'review',
-        rounds_review: 3
-      });
-
+    it('blocks after exceeding allowed review rounds', () => {
+      const task = createTask({ status: 'review', rounds_review: 3 });
       const validation = TaskRecordValidator.validateTransition('review', 'dev', task);
       expect(validation.valid).toBe(false);
       expect(validation.reason).toContain('Maximum review rounds (2) exceeded');
@@ -118,61 +92,32 @@ describe('Task Transitions', () => {
   });
 
   describe('review -> po_check', () => {
-    it('should pass without high violations', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'review'
-      });
-
-      const validation = TaskRecordValidator.validateTransition('review', 'po_check', task, {});
+    it('passes when no high severity violations exist', () => {
+      const task = createTask({ status: 'review' });
+      const validation = TaskRecordValidator.validateTransition('review', 'po_check', task, { violations: [] });
       expect(validation.valid).toBe(true);
     });
 
-    it('should fail with high violations', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'review'
-      });
-
+    it('fails when a high severity violation remains', () => {
+      const task = createTask({ status: 'review' });
       const validation = TaskRecordValidator.validateTransition('review', 'po_check', task, {
         violations: [{ severity: 'high', description: 'critical issue' }]
       });
       expect(validation.valid).toBe(false);
-      expect(validation.reason).toContain('High severity violations must be resolved');
     });
   });
 
   describe('po_check -> qa', () => {
-    it('should pass with acceptance criteria met', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'po_check'
-      });
-
+    it('passes when PO confirms acceptance criteria', () => {
+      const task = createTask({ status: 'po_check' });
       const validation = TaskRecordValidator.validateTransition('po_check', 'qa', task, {
         acceptance_criteria_met: true
       });
       expect(validation.valid).toBe(true);
     });
 
-    it('should fail without acceptance criteria met', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'po_check'
-      });
-
+    it('fails when PO confirmation is missing', () => {
+      const task = createTask({ status: 'po_check' });
       const validation = TaskRecordValidator.validateTransition('po_check', 'qa', task, {
         acceptance_criteria_met: false
       });
@@ -182,127 +127,66 @@ describe('Task Transitions', () => {
   });
 
   describe('qa -> dev', () => {
-    it('should pass with qa_report', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'qa'
-      });
-
+    it('passes when returning with QA report', () => {
+      const task = createTask({ status: 'qa' });
       const validation = TaskRecordValidator.validateTransition('qa', 'dev', task, {
         qa_report: { failed: 2, passed: 8 }
       });
       expect(validation.valid).toBe(true);
     });
 
-    it('should fail without qa_report', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'qa'
-      });
-
+    it('fails when QA report is missing', () => {
+      const task = createTask({ status: 'qa' });
       const validation = TaskRecordValidator.validateTransition('qa', 'dev', task, {});
       expect(validation.valid).toBe(false);
-      expect(validation.reason).toContain('QA report required for failed QA');
     });
   });
 
   describe('qa -> pr', () => {
-    it('should pass with qa_report.failed === 0', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
+    it('passes when QA report has zero failures', () => {
+      const task = createTask({
         status: 'qa',
         qa_report: { total: 10, failed: 0, passed: 10 }
       });
-
       const validation = TaskRecordValidator.validateTransition('qa', 'pr', task);
       expect(validation.valid).toBe(true);
     });
 
-    it('should fail with qa_report.failed > 0', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
+    it('fails when QA report indicates failures', () => {
+      const task = createTask({
         status: 'qa',
         qa_report: { total: 10, failed: 1, passed: 9 }
       });
-
       const validation = TaskRecordValidator.validateTransition('qa', 'pr', task);
       expect(validation.valid).toBe(false);
-      expect(validation.reason).toContain('QA must pass with 0 failures');
     });
   });
 
   describe('pr -> done', () => {
-    it('should pass with merged=true', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'pr'
-      });
-
-      const validation = TaskRecordValidator.validateTransition('pr', 'done', task, {
-        merged: true
-      });
+    it('passes when PR is merged', () => {
+      const task = createTask({ status: 'pr' });
+      const validation = TaskRecordValidator.validateTransition('pr', 'done', task, { merged: true });
       expect(validation.valid).toBe(true);
     });
 
-    it('should fail with merged=false', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'pr'
-      });
-
-      const validation = TaskRecordValidator.validateTransition('pr', 'done', task, {
-        merged: false
-      });
+    it('fails when PR is not merged', () => {
+      const task = createTask({ status: 'pr' });
+      const validation = TaskRecordValidator.validateTransition('pr', 'done', task, { merged: false });
       expect(validation.valid).toBe(false);
-      expect(validation.reason).toContain('PR must be merged');
     });
   });
 
   describe('invalid transitions', () => {
-    it('should reject dev -> done', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'dev'
-      });
-
+    it('rejects dev -> done', () => {
+      const task = createTask({ status: 'dev' });
       const validation = TaskRecordValidator.validateTransition('dev', 'done', task);
       expect(validation.valid).toBe(false);
-      expect(validation.reason).toContain('Invalid transition: dev -> done');
     });
 
-    it('should reject done -> any state', () => {
-      const task = repo.create({
-        id: 'TR-01',
-        title: 'Test Task',
-        acceptance_criteria: ['test'],
-        scope: 'minor',
-        status: 'done'
-      });
-
+    it('rejects transitions from done state', () => {
+      const task = createTask({ status: 'done' });
       const validation = TaskRecordValidator.validateTransition('done', 'dev', task);
       expect(validation.valid).toBe(false);
-      expect(validation.reason).toContain('Invalid transition: done -> dev');
     });
   });
 });

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { ulid } from 'ulid';
 import { TaskRepository } from '../src/repo/sqlite.js';
 
 describe('TaskRepository', () => {
@@ -13,14 +14,15 @@ describe('TaskRepository', () => {
   });
 
   it('should create and get task', () => {
+    const id = newTaskId();
     const task = repo.create({
-      id: 'TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C',
+      id,
       title: 'Test Task',
       acceptance_criteria: ['test'],
       scope: 'minor',
       status: 'po'
     });
-    expect(task.id).toBe('TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C');
+    expect(task.id).toBe(id);
     expect(task.rev).toBe(0);
 
     const retrieved = repo.get(task.id);
@@ -28,8 +30,9 @@ describe('TaskRepository', () => {
   });
 
   it('should update with optimistic locking', () => {
+    const id = newTaskId();
     const task = repo.create({
-      id: 'TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C',
+      id,
       title: 'Test Task',
       acceptance_criteria: ['test'],
       scope: 'minor',
@@ -44,15 +47,16 @@ describe('TaskRepository', () => {
   });
 
   it('should search tasks', () => {
+    const firstId = newTaskId();
     repo.create({
-      id: 'TR-01',
+      id: firstId,
       title: 'Search Test',
       acceptance_criteria: ['test'],
       scope: 'minor',
       status: 'po'
     });
     repo.create({
-      id: 'TR-02',
+      id: newTaskId(),
       title: 'Another Task',
       acceptance_criteria: ['test'],
       scope: 'minor',
@@ -68,3 +72,4 @@ describe('TaskRepository', () => {
     expect(statusResult.items[0].status).toBe('dev');
   });
 });
+  const newTaskId = () => `TR-${ulid()}`;
