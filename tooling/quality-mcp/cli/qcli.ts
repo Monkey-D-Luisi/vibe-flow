@@ -91,7 +91,10 @@ function parseLintArgs(args: string[]): LintInput {
 }
 
 function usage(): never {
-  console.log('Usage: qcli run --tests | qcli run --coverage [--summary <path>] [--lcov <path>] [--repo <path>] [--exclude <glob>] | qcli run --lint [--tool <eslint|ruff>] [--cmd <command>] [--cwd <path>] [--timeout <ms>] [--env <VAR>] [--path <glob>]');
+  console.log(`Usage:
+  qcli run --tests
+  qcli run --coverage [--summary <path>] [--lcov <path>] [--repo <path>] [--exclude <glob>]
+  qcli run --lint [--tool <eslint|ruff>] [--cmd <command>] [--cwd <path>] [--timeout <ms>] [--env <VAR>] [--path <glob>]`);
   process.exit(1);
 }
 
