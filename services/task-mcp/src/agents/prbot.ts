@@ -1,5 +1,5 @@
 import Ajv from 'ajv';
-import prSummarySchema from '../../../packages/schemas/pr_summary.schema.json' with { type: 'json' };
+import { loadSchema } from '../utils/loadSchema.js';
 
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
 
@@ -16,7 +16,7 @@ const prBotInputSchema = {
 };
 const prBotInputValidator = ajv.compile(prBotInputSchema);
 
-const prSummaryValidator = ajv.compile(prSummarySchema as Record<string, unknown>);
+const prSummaryValidator = ajv.compile(loadSchema('pr_summary.schema.json'));
 
 export interface PrBotInput {
   total: number;

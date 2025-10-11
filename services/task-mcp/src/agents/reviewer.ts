@@ -1,5 +1,5 @@
 import Ajv from 'ajv';
-import reviewerReportSchema from '../../../packages/schemas/reviewer_report.schema.json' with { type: 'json' };
+import { loadSchema } from '../utils/loadSchema.js';
 
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
 
@@ -29,7 +29,7 @@ const reviewerInputSchema = {
 };
 const reviewerInputValidator = ajv.compile(reviewerInputSchema);
 
-const reviewerReportValidator = ajv.compile(reviewerReportSchema as Record<string, unknown>);
+const reviewerReportValidator = ajv.compile(loadSchema('reviewer_report.schema.json'));
 
 export interface ReviewerInput {
   diff_summary: string;

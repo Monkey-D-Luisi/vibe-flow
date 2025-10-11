@@ -1,5 +1,5 @@
 import Ajv from 'ajv';
-import designReadySchema from '../../../packages/schemas/design_ready.schema.json' with { type: 'json' };
+import { loadSchema } from '../utils/loadSchema.js';
 
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
 
@@ -17,7 +17,7 @@ const architectInputSchema = {
 };
 const architectInputValidator = ajv.compile(architectInputSchema);
 
-const designReadyValidator = ajv.compile(designReadySchema as Record<string, unknown>);
+const designReadyValidator = ajv.compile(loadSchema('design_ready.schema.json'));
 
 export interface ArchitectInput {
   title: string;
