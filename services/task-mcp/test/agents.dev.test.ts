@@ -114,7 +114,7 @@ describe('Dev Agent', () => {
     });
 
     it('should include coverage requirements', () => {
-      expect(DEV_SYSTEM_PROMPT).toContain('coverage ≥ 0.8 (major) | ≥ 0.7 (minor)');
+      expect(DEV_SYSTEM_PROMPT).toContain('coverage >= 0.8 (major) | >= 0.7 (minor)');
       expect(DEV_SYSTEM_PROMPT).toContain('lint.errors = 0');
     });
 
@@ -125,3 +125,5 @@ describe('Dev Agent', () => {
     });
   });
 });
+
+

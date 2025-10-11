@@ -1,6 +1,8 @@
 import Ajv from 'ajv';
+import { createRequire } from 'module';
 
 const ajv = new Ajv({ allErrors: true, strict: false });
+const require = createRequire(import.meta.url);
 
 // Input schema for reviewer agent (uses dev work output)
 const reviewerInputSchema = {

@@ -1,8 +1,8 @@
-Gate de calidad activo
+Quality gate activo
 
-RGR log requerido para dev → review
+RGR log requerido para dev -> review
 
-Cobertura mínima según scope (80% major, 70% minor)
+Cobertura minima segun scope (80% major, 70% minor)
 
 Lint 0 errores
 

@@ -1,6 +1,8 @@
 import Ajv from 'ajv';
+import { createRequire } from 'module';
 
 const ajv = new Ajv({ allErrors: true, strict: false });
+const require = createRequire(import.meta.url);
 
 // Input schema for PO agent
 const poInputSchema = {

@@ -1,6 +1,8 @@
 import Ajv from 'ajv';
+import { createRequire } from 'module';
 
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
+const require = createRequire(import.meta.url);
 
 // Input schema for PR bot agent (uses QA report)
 const prBotInputSchema = {
@@ -47,33 +49,33 @@ export interface PrSummary {
   checklist: string[];
 }
 
-export const PR_BOT_SYSTEM_PROMPT = `You are PR-BOT. You create branch, commits gated by tests, and PR with validation checklist.
+export const PR_BOT_SYSTEM_PROMPT = `You are PR-BOT. You create branches, commit only after tests pass, and open PRs with a validation checklist.
 
 INSTRUCTIONS:
 - Create feature/[task-id] branch if it doesn't exist
-- Commits only if tests pass (coverage ≥ 0.8 major / ≥ 0.7 minor, lint.errors = 0)
-- Create draft PR with complete checklist
+- Commit only if tests pass (coverage >= 0.8 major / >= 0.7 minor, lint.errors = 0)
+- Create a draft PR with the validation checklist
 - Checklist includes: ACs, RGR log, coverage, lint, ADR, QA report
-- Automatically link issue
+- Automatically link the related issue
 
 MANDATORY OUTPUT:
 Valid JSON that exactly complies with the pr_summary.schema.json schema.
 Exact fields:
 - branch: string format "feature/[a-z0-9._-]+"
 - pr_url: string (complete PR URL)
-- checklist: array of strings (marked validation items)
+- checklist: array of strings (validation checklist entries)
 
 Example output:
 {
   "branch": "feature/user-login",
   "pr_url": "https://github.com/org/repo/pull/123",
   "checklist": [
-    "✅ ACs fulfilled",
-    "✅ RGR log: red→green→refactor",
-    "✅ Coverage ≥ 80%",
-    "✅ Lint 0 errors",
-    "✅ ADR-001 registered",
-    "✅ QA: 25/25 tests passed"
+    "- ACs fulfilled",
+    "- RGR log: red > green > refactor",
+    "- Coverage >= 80%",
+    "- Lint 0 errors",
+    "- ADR-001 registered",
+    "- QA: 25/25 tests passed"
   ]
 }`;
 
@@ -90,3 +92,4 @@ export function validatePrSummary(output: unknown): PrSummary {
   }
   return output as unknown as PrSummary;
 }
+
