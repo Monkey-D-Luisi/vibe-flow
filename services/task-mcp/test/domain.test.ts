@@ -31,6 +31,20 @@ describe('TaskRecordValidator', () => {
       };
       expect(TaskRecordValidator.validateSchema(record)).toBe(false);
     });
+
+    it('should reject invalid task id format', () => {
+      const record = {
+        id: 'INVALID-ID',
+        title: 'Valid title',
+        acceptance_criteria: ['criteria'],
+        scope: 'minor',
+        status: 'po',
+        rev: 0,
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z'
+      };
+      expect(TaskRecordValidator.validateSchema(record)).toBe(false);
+    });
   });
 
   describe('validateCreation', () => {
