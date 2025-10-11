@@ -5,8 +5,10 @@ import { dirname } from 'path';
 import { runTests } from '../src/tools/run_tests.js';
 import { coverageReport } from '../src/tools/coverage_report.js';
 import { lint } from '../src/tools/lint.js';
+import { complexity } from '../src/tools/complexity.js';
 import type { CoverageReportInput } from '../src/tools/coverage_report.js';
 import type { LintInput } from '../src/tools/lint.js';
+import type { ComplexityInput } from '../src/tools/complexity.js';
 
 function ensureValue(args: string[], index: number, flag: string): string {
   const value = args[index];
@@ -90,11 +92,57 @@ function parseLintArgs(args: string[]): LintInput {
   return options;
 }
 
+function parseComplexityArgs(args: string[]): ComplexityInput {
+  const options: ComplexityInput = {};
+  for (let i = 2; i < args.length; i += 1) {
+    const flag = args[i];
+    switch (flag) {
+      case '--engine': {
+        const value = ensureValue(args, ++i, '--engine');
+        if (value !== 'escomplex' && value !== 'tsmorph') {
+          throw new Error(`Unsupported complexity engine ${value}`);
+        }
+        options.engine = value;
+        break;
+      }
+      case '--glob':
+      case '--globs': {
+        const value = ensureValue(args, ++i, flag);
+        options.globs = [...(options.globs ?? []), value];
+        break;
+      }
+      case '--repo':
+      case '--repo-root':
+        options.repoRoot = ensureValue(args, ++i, flag);
+        break;
+      case '--exclude': {
+        const value = ensureValue(args, ++i, '--exclude');
+        options.exclude = [...(options.exclude ?? []), value];
+        break;
+      }
+      case '--timeout':
+      case '--timeout-ms': {
+        const raw = ensureValue(args, ++i, flag);
+        const parsed = Number.parseInt(raw, 10);
+        if (!Number.isFinite(parsed) || parsed < 1000) {
+          throw new Error(`Invalid timeout value ${raw}`);
+        }
+        options.timeoutMs = parsed;
+        break;
+      }
+      default:
+        throw new Error(`Unknown option ${flag}`);
+    }
+  }
+  return options;
+}
+
 function usage(): never {
   console.log(`Usage:
   qcli run --tests
   qcli run --coverage [--summary <path>] [--lcov <path>] [--repo <path>] [--exclude <glob>]
-  qcli run --lint [--tool <eslint|ruff>] [--cmd <command>] [--cwd <path>] [--timeout <ms>] [--env <VAR>] [--path <glob>]`);
+  qcli run --lint [--tool <eslint|ruff>] [--cmd <command>] [--cwd <path>] [--timeout <ms>] [--env <VAR>] [--path <glob>]
+  qcli run --complexity [--engine <escomplex|tsmorph>] [--glob <pattern>]... [--repo <path>] [--exclude <glob>] [--timeout <ms>]`);
   process.exit(1);
 }
 
@@ -135,6 +183,16 @@ async function handleLint(args: string[]): Promise<never> {
   process.exit(exitCode);
 }
 
+async function handleComplexity(args: string[]): Promise<never> {
+  const options = parseComplexityArgs(args);
+  const result = await complexity(options);
+  const outputPath = '.qreport/complexity.json';
+  mkdirSync(dirname(outputPath), { recursive: true });
+  writeFileSync(outputPath, JSON.stringify(result, null, 2));
+  console.log(`Complexity report saved to ${outputPath}`);
+  process.exit(0);
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -149,6 +207,8 @@ async function main() {
       await handleCoverage(args);
     } else if (args[1] === '--lint') {
       await handleLint(args);
+    } else if (args[1] === '--complexity') {
+      await handleComplexity(args);
     } else {
       usage();
     }

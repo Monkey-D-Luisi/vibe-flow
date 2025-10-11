@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ComplexityOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["avgCyclomatic", "maxCyclomatic", "files", "meta"],
+  "properties": {
+    "avgCyclomatic": {
+      "type": "number",
+      "minimum": 0
+    },
+    "maxCyclomatic": {
+      "type": "number",
+      "minimum": 0
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "avg", "max", "units"],
+        "properties": {
+          "path": { "type": "string" },
+          "avg": { "type": "number", "minimum": 0 },
+          "max": { "type": "number", "minimum": 0 },
+          "units": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "kind", "cyclomatic", "startLine", "endLine"],
+              "properties": {
+                "name": { "type": "string" },
+                "kind": {
+                  "type": "string",
+                  "enum": ["function", "method", "class", "arrow", "getter", "setter"]
+                },
+                "cyclomatic": { "type": "number", "minimum": 0 },
+                "startLine": { "type": "integer", "minimum": 1 },
+                "endLine": { "type": "integer", "minimum": 1 },
+                "loc": { "type": "integer", "minimum": 0 },
+                "params": { "type": "integer", "minimum": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine", "globs", "excluded"],
+      "properties": {
+        "engine": { "type": "string", "enum": ["escomplex", "tsmorph"] },
+        "globs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "excluded": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
