@@ -66,6 +66,7 @@ storybook-static/
 # Monorepo package outputs
 packages/**/dist/
 services/**/dist/
+tooling/**/dist/
 packages/**/build/
 services/**/build/
 packages/**/coverage/

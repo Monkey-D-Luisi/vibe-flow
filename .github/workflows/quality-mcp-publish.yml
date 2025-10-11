@@ -1,0 +1,41 @@
+name: quality-mcp-publish
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'tooling/quality-mcp/**'
+      - 'packages/schemas/**'
+      - '.github/workflows/quality-mcp-publish.yml'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+      - name: Build packages
+        run: pnpm -r build
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: tooling/quality-mcp/server/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/quality-mcp:latest
