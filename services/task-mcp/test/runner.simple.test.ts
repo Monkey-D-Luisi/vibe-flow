@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ulid } from 'ulid';
 import { runAgent, runOrchestratorStep, __test__ as runnerInternals } from '../src/orchestrator/runner.js';
 import { type FastTrackContext } from '../src/domain/FastTrack.js';
 import { type TaskRecord } from '../src/domain/TaskRecord.js';
 
-const { repo, stateRepo } = runnerInternals;
+const { repo, stateRepo, fastTrackGitHub } = runnerInternals;
 
 const createTask = (overrides: Partial<TaskRecord> & { id?: string } = {}) => {
   const task = repo.create({
@@ -62,11 +62,46 @@ describe('Orchestrator Runner - integration smoke tests', () => {
     expect(updated.tags).toContain('fast-track');
   });
 
+  it('notifies GitHub automation when PR number present', async () => {
+    const evalSpy = vi.spyOn(fastTrackGitHub, 'onFastTrackEvaluated').mockResolvedValue();
+    const task = createTask({
+      scope: 'minor',
+      links: {
+        git: {
+          repo: 'org/repo',
+          branch: 'feature/fast-track',
+          prNumber: 321
+        }
+      }
+    });
+    createState(task.id, 'po');
+
+    const ctx: FastTrackContext = {
+      task,
+      diff: { files: ['src/feature.ts'], locAdded: 10, locDeleted: 1 },
+      quality: { coverage: 0.9, avgCyclomatic: 2, lintErrors: 0 },
+      metadata: { modulesChanged: false, publicApiChanged: false }
+    };
+
+    await runOrchestratorStep(task.id, 'po', { fastTrackContext: ctx });
+
+    expect(evalSpy).toHaveBeenCalledWith(expect.objectContaining({ id: task.id }), expect.objectContaining({ eligible: true }), 321);
+    evalSpy.mockRestore();
+  });
+
   it('revokes fast-track post-dev when reviewer reports high violations', async () => {
+    const revokeSpy = vi.spyOn(fastTrackGitHub, 'onFastTrackRevoked').mockResolvedValue();
     const task = createTask({
       status: 'dev',
       tags: ['fast-track', 'fast-track:eligible'],
-      metrics: { coverage: 0.9, lint: { errors: 0, warnings: 0 } }
+      metrics: { coverage: 0.9, lint: { errors: 0, warnings: 0 } },
+      links: {
+        git: {
+          repo: 'org/repo',
+          branch: 'feature/fast-track',
+          prNumber: 654
+        }
+      }
     });
     createState(task.id, 'dev');
 
@@ -88,6 +123,8 @@ describe('Orchestrator Runner - integration smoke tests', () => {
     const updated = repo.get(task.id)!;
     expect(updated.status).toBe('arch');
     expect(updated.tags).toContain('fast-track:revoked');
+    expect(revokeSpy).toHaveBeenCalledWith(expect.objectContaining({ id: task.id }), expect.objectContaining({ reason: 'high_violations', revoke: true }), 654);
+    revokeSpy.mockRestore();
   });
 
   it('provides baseline runAgent implementations', async () => {

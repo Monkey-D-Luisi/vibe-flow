@@ -13,6 +13,15 @@ Implementation of a complete **agent-orchestrated task management system** with:
 
 The system enables end-to-end automated task execution from requirements to deployment, with strict quality controls and seamless agent handoffs.
 
+## Required CI Checks
+
+To keep `main` protected, configure branch protection rules so that the following GitHub Actions jobs from `.github/workflows/ci.yml` are required before merge:
+
+- `test-lint`
+- `quality-gate`
+
+The lint job now fails on any ESLint error, and the quality gate job consumes the uploaded coverage artifact and exits non-zero when `scripts/check-quality.mjs` detects coverage gaps.
+
 ## 🏗️ Architecture
 
 ### Hexagonal Architecture
