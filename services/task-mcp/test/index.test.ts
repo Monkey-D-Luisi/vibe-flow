@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the TaskMCPServer to avoid actual server startup in tests
+const mockStart = vi.fn().mockResolvedValue(undefined);
 vi.mock('../src/mcp/tools.js', () => ({
   TaskMCPServer: vi.fn().mockImplementation(() => ({
-    start: vi.fn().mockResolvedValue(undefined)
+    start: mockStart
   }))
 }));
 
@@ -11,6 +12,7 @@ describe('Index', () => {
   let mockConsoleError: any;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -26,22 +28,20 @@ describe('Index', () => {
     // Re-import index to trigger the server startup
     await import('../src/index.js');
 
-    expect(mockServer.start).toHaveBeenCalled();
+    expect(mockStart).toHaveBeenCalled();
     expect(mockConsoleError).not.toHaveBeenCalled();
   });
 
   it('should handle server startup errors', async () => {
-    const { TaskMCPServer } = await import('../src/mcp/tools.js');
-    const mockServer = new TaskMCPServer();
     const testError = new Error('Server startup failed');
 
     // Mock the start method to throw an error
-    mockServer.start.mockRejectedValueOnce(testError);
+    mockStart.mockRejectedValueOnce(testError);
 
     // Re-import index to trigger the server startup with error
     await import('../src/index.js');
 
-    expect(mockServer.start).toHaveBeenCalled();
+    expect(mockStart).toHaveBeenCalled();
     expect(mockConsoleError).toHaveBeenCalledWith(testError);
   });
 });

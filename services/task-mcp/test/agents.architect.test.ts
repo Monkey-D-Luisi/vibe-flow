@@ -88,7 +88,7 @@ describe('Architect Agent', () => {
       expect(ARCHITECT_SYSTEM_PROMPT).toContain('You are the ARCHITECT agent');
       expect(ARCHITECT_SYSTEM_PROMPT).toContain('MANDATORY OUTPUT');
       expect(ARCHITECT_SYSTEM_PROMPT).toContain('design_ready.schema.json');
-      expect(ARCHITECT_SYSTEM_PROMPT).toContain('adr_id: string format "ADR-\\\\d+"');
+      expect(ARCHITECT_SYSTEM_PROMPT).toContain('adr_id: string format "ADR-\\d+"');
     });
 
     it('should include example output', () => {

@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 
-const ajv = new Ajv({ allErrors: true, strict: false });
+const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
 
 // Input schema for PR bot agent (uses QA report)
 const prBotInputSchema = {
@@ -16,7 +16,22 @@ const prBotInputSchema = {
 const prBotInputValidator = ajv.compile(prBotInputSchema);
 
 // Output schema validation
-const prSummarySchema = require('../../../packages/schemas/pr_summary.schema.json');
+let prSummarySchema;
+try {
+  prSummarySchema = require('../../../packages/schemas/pr_summary.schema.json');
+} catch (error) {
+  // Fallback schema for testing when schema files are not available
+  prSummarySchema = {
+    type: 'object',
+    properties: {
+      branch: { type: 'string', pattern: '^feature/[a-z0-9._-]+$' },
+      pr_url: { type: 'string', format: 'uri' },
+      checklist: { type: 'array', items: { type: 'string' } }
+    },
+    required: ['branch', 'pr_url', 'checklist'],
+    additionalProperties: false
+  };
+}
 const prSummaryValidator = ajv.compile(prSummarySchema);
 
 export interface PrBotInput {

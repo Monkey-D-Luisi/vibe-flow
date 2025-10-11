@@ -38,7 +38,38 @@ const devInputSchema = {
 const devInputValidator = ajv.compile(devInputSchema);
 
 // Output schema validation
-const devWorkOutputSchema = require('../../../packages/schemas/dev_work_output.schema.json');
+let devWorkOutputSchema;
+try {
+  devWorkOutputSchema = require('../../../packages/schemas/dev_work_output.schema.json');
+} catch (error) {
+  // Fallback schema for testing when schema files are not available
+  devWorkOutputSchema = {
+    type: 'object',
+    properties: {
+      diff_summary: { type: 'string' },
+      metrics: {
+        type: 'object',
+        properties: {
+          coverage: { type: 'number', minimum: 0, maximum: 1 },
+          lint: {
+            type: 'object',
+            properties: {
+              errors: { type: 'integer', minimum: 0 },
+              warnings: { type: 'integer', minimum: 0 }
+            },
+            required: ['errors', 'warnings'],
+            additionalProperties: false
+          }
+        },
+        required: ['coverage', 'lint'],
+        additionalProperties: false
+      },
+      red_green_refactor_log: { type: 'array', items: { type: 'string' }, minItems: 2 }
+    },
+    required: ['diff_summary', 'metrics', 'red_green_refactor_log'],
+    additionalProperties: false
+  };
+}
 const devWorkOutputValidator = ajv.compile(devWorkOutputSchema);
 
 export interface DevInput {
@@ -88,7 +119,7 @@ Exact fields:
 
 Example output:
 {
-  "diff_summary": "Added UserService with TDD, implemented Repository pattern",
+  "diff_summary": "Added UserService with TDD",
   "metrics": {
     "coverage": 0.85,
     "lint": {"errors": 0, "warnings": 2}

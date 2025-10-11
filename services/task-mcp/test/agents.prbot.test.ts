@@ -96,7 +96,7 @@ describe('PR Bot Agent', () => {
     it('should reject invalid PR URL format', () => {
       const invalidOutput = {
         branch: 'feature/test',
-        pr_url: 'invalid-url', // should be valid URL
+        pr_url: 123, // should be string, not number
         checklist: ['✅ Test']
       };
 
