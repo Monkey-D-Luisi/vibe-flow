@@ -56,7 +56,7 @@ describe('FastTrack Evaluation', () => {
       };
       const result = evaluateFastTrack(ctx);
       expect(result.eligible).toBe(true);
-      expect(result.reasons).toContain('only_tests_docs');
+      expect(result.reasons).toContain('tests_docs_only');
     });
 
     it('should reject major scope by default', () => {
@@ -133,27 +133,27 @@ describe('FastTrack Evaluation', () => {
     it('should reject if contracts exist', () => {
       const ctx = {
         ...baseContext,
-        task: {
-          ...baseTask,
-          contracts: [{ name: 'TestContract', methods: ['test'] }]
+        metadata: {
+          ...baseContext.metadata,
+          contractsChanged: true
         }
       };
       const result = evaluateFastTrack(ctx);
       expect(result.eligible).toBe(false);
-      expect(result.hardBlocks).toContain('contracts_touched');
+      expect(result.hardBlocks).toContain('contracts_changed');
     });
 
     it('should reject if ADR required', () => {
       const ctx = {
         ...baseContext,
-        task: {
-          ...baseTask,
-          adr_id: 'ADR-001'
+        metadata: {
+          ...baseContext.metadata,
+          adrChanged: true
         }
       };
       const result = evaluateFastTrack(ctx);
       expect(result.eligible).toBe(false);
-      expect(result.hardBlocks).toContain('adr_required');
+      expect(result.hardBlocks).toContain('adr_changed');
     });
 
     it('should reject if lint errors exist', () => {
@@ -172,13 +172,16 @@ describe('FastTrack Evaluation', () => {
     it('should calculate score correctly', () => {
       // Test scoring components
       const result = evaluateFastTrack(baseContext);
-      expect(result.score).toBe(40 + 15 + 10 + 5); // scope_minor + diff_small + complexity_ok + no_modules_changed
+      expect(result.score).toBe(85); // scope_minor + diff_small + coverage + complexity + lint + boundaries
     });
   });
 
   describe('guardPostDev', () => {
     it('should not revoke if still eligible', () => {
-      const result = guardPostDev(baseContext);
+      const result = guardPostDev({
+        ...baseContext,
+        quality: { ...baseContext.quality, lintErrors: 0 }
+      });
       expect(result.revoke).toBe(false);
     });
 

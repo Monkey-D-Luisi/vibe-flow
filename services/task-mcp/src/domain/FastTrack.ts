@@ -15,6 +15,10 @@ export interface FastTrackContext {
   metadata: {
     modulesChanged: boolean;
     publicApiChanged: boolean;
+    contractsChanged?: boolean;
+    patternsChanged?: boolean;
+    adrChanged?: boolean;
+    packagesSchemaChanged?: boolean;
   };
 }
 
@@ -30,110 +34,118 @@ export interface PostDevGuardResult {
   reason?: string;
 }
 
-/**
- * Evalúa si un task es elegible para fast-track (PO → DEV omitiendo Arquitectura)
- * Basado en reglas duras y scoring objetivo según EP01-T05
- */
+const SENSITIVE_PATHS = /^(security|auth|payments|infra|migrations)\//;
+const TEST_OR_DOC_FILE = /(test|spec)\.[tj]s$/i;
+const DOC_EXT = /\.(md|rst|adoc)$/i;
+
 export function evaluateFastTrack(ctx: FastTrackContext): FastTrackResult {
-  const { task, diff, quality, metadata } = ctx;
   const hardBlocks: string[] = [];
   const reasons: string[] = [];
+  const { diff, quality, metadata, task } = ctx;
 
-  // Función helper para verificar si toca rutas sensibles
-  const touches = (pattern: RegExp) => diff.files.some(f => pattern.test(f));
+  const touchesSensitivePath = diff.files.some(file => SENSITIVE_PATHS.test(file));
+  const touchesSchemas = diff.files.some(file => file.startsWith('packages/schemas/'));
 
-  // REGLAS DURAS (cualquier violación desactiva fast-track)
-  if (metadata.publicApiChanged) {
-    hardBlocks.push('public_api');
-  }
-  if (metadata.modulesChanged) {
-    hardBlocks.push('modules_changed');
-  }
-  if (touches(/^(security|auth|payments|infra|migrations)\//)) {
-    hardBlocks.push('sensitive_path');
-  }
-  if (touches(/^packages\/schemas\//)) {
-    hardBlocks.push('schema_change');
-  }
-  if (task.contracts && task.contracts.length > 0) {
-    hardBlocks.push('contracts_touched');
-  }
-  if (task.adr_id) {
-    hardBlocks.push('adr_required');
-  }
-  if (quality.lintErrors > 0) {
-    hardBlocks.push('lint_errors');
-  }
+  const registerHardBlock = (code: string, condition: boolean) => {
+    if (condition) {
+      hardBlocks.push(code);
+    }
+  };
 
-  // SCORING OBJETIVO (0-100)
-  let score = task.scope === 'minor' ? 40 : 0;
+  registerHardBlock('public_api', metadata.publicApiChanged);
+  registerHardBlock('modules_changed', metadata.modulesChanged);
+  registerHardBlock('contracts_changed', Boolean(metadata.contractsChanged));
+  registerHardBlock('patterns_changed', Boolean(metadata.patternsChanged));
+  registerHardBlock('adr_changed', Boolean(metadata.adrChanged));
+  registerHardBlock('sensitive_path', touchesSensitivePath);
+  registerHardBlock('schema_change', metadata.packagesSchemaChanged ?? touchesSchemas);
+  registerHardBlock('lint_errors', (quality.lintErrors ?? 0) > 0);
 
-  // Señales positivas
-  const totalLOC = diff.locAdded + diff.locDeleted;
-  if (diff.files.every(f => /\b(test|spec|docs?)\b/.test(f) || /\.(md|rst|adoc)$/.test(f))) {
-    score += 20;
-    reasons.push('only_tests_docs');
+  let score = 0;
+
+  if (task.scope === 'minor') {
+    score += 40;
+    reasons.push('scope_minor');
   }
 
-  if (totalLOC <= 60) {
+  const totalLoc = diff.locAdded + diff.locDeleted;
+  if (totalLoc === 0) {
+    score += 10;
+    reasons.push('no_code_changes');
+  } else if (totalLoc <= 60) {
     score += 15;
     reasons.push('diff_small');
-  } else if (totalLOC <= 120) {
+  } else if (totalLoc <= 120) {
     score += 10;
     reasons.push('diff_medium');
   }
 
-  if ((quality.avgCyclomatic ?? 0) <= 5) {
+  const onlyTestsOrDocs = diff.files.length > 0 && diff.files.every(file => TEST_OR_DOC_FILE.test(file) || DOC_EXT.test(file));
+  if (onlyTestsOrDocs) {
+    score += 15;
+    reasons.push('tests_docs_only');
+  }
+
+  const coverage = quality.coverage ?? 0;
+  if (coverage >= 0.85) {
     score += 10;
+    reasons.push('coverage_strong');
+  } else if (coverage >= 0.75) {
+    score += 5;
+    reasons.push('coverage_ok');
+  }
+
+  if ((quality.avgCyclomatic ?? Number.POSITIVE_INFINITY) <= 5) {
+    score += 5;
     reasons.push('complexity_ok');
+  }
+
+  if (quality.lintErrors === 0) {
+    score += 5;
+    reasons.push('lint_clean');
   }
 
   if (!metadata.modulesChanged) {
     score += 5;
-    reasons.push('no_modules_changed');
+    reasons.push('module_boundary_safe');
   }
 
-  // Señales negativas (ya manejadas en hardBlocks, pero afectan score)
-  if (metadata.publicApiChanged) score -= 20;
-  if (metadata.modulesChanged) score -= 60;
-  if (touches(/^(security|auth|payments|infra|migrations)\//)) score -= 40;
-  if (touches(/^packages\/schemas\//)) score -= 25;
-  if (task.contracts?.length) score -= 60;
-  if (task.adr_id) score -= 60;
+  if (!metadata.publicApiChanged) {
+    score += 5;
+    reasons.push('public_api_stable');
+  }
 
-  // Umbral final
+  score = Math.max(0, Math.min(100, score));
+
   const eligible = hardBlocks.length === 0 && score >= 60;
-
-  if (task.scope === 'minor') reasons.push('scope_minor');
-  if (eligible) reasons.push('eligible');
+  if (!eligible && hardBlocks.length === 0) {
+    reasons.push('score_below_threshold');
+  }
+  if (eligible) {
+    reasons.push('eligible');
+  }
 
   return { eligible, score, reasons, hardBlocks };
 }
 
-/**
- * Reevalúa después de DEV para verificar si el fast-track debe revocarse
- */
-export function guardPostDev(ctx: FastTrackContext, reviewerViolations?: any[]): PostDevGuardResult {
-  // Verificar quality gates primero
+export function guardPostDev(ctx: FastTrackContext, reviewerViolations?: Array<{ severity: string }>): PostDevGuardResult {
   const coverageThreshold = ctx.task.scope === 'major' ? 0.8 : 0.7;
   if ((ctx.quality.coverage ?? 0) < coverageThreshold) {
     return { revoke: true, reason: 'coverage_below_threshold' };
   }
 
-  const evaluation = evaluateFastTrack(ctx);
+  if ((ctx.quality.lintErrors ?? 0) > 0) {
+    return { revoke: true, reason: 'lint_errors' };
+  }
 
-  // Si ya no es elegible, revocar
+  const evaluation = evaluateFastTrack(ctx);
   if (!evaluation.eligible) {
-    const reason = evaluation.hardBlocks.length > 0 ? evaluation.hardBlocks[0] : 'score_below_threshold';
+    const reason = evaluation.hardBlocks[0] ?? 'score_below_threshold';
     return { revoke: true, reason };
   }
 
-  // Verificar violaciones del reviewer
-  if (reviewerViolations) {
-    const highViolations = reviewerViolations.filter(v => v.severity === 'high');
-    if (highViolations.length > 0) {
-      return { revoke: true, reason: 'high_violations' };
-    }
+  if (reviewerViolations?.some(v => v.severity === 'high')) {
+    return { revoke: true, reason: 'high_violations' };
   }
 
   return { revoke: false };

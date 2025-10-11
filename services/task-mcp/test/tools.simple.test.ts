@@ -1,63 +1,73 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { TaskMCPServer } from '../src/mcp/tools.js';
+import { describe, it, expect } from 'vitest';
+import { __test__ as toolInternals } from '../src/mcp/tools.js';
 
-// Mock the MCP SDK to avoid actual connections
-vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => {
-  const mockStdioServerTransport = vi.fn();
-  return {
-    StdioServerTransport: mockStdioServerTransport
-  };
-});
+const { toolHandlers, toolValidators } = toolInternals;
 
-vi.mock('../src/repo/state.js', () => ({
-  StateRepository: vi.fn().mockImplementation(() => ({
-    get: vi.fn().mockReturnValue({ current: 'po' }),
-    update: vi.fn().mockReturnValue({ current: 'arch' })
-  })),
-  EventRepository: vi.fn().mockImplementation(() => ({
-    getByTaskId: vi.fn().mockReturnValue([])
-  })),
-  LeaseRepository: vi.fn().mockImplementation(() => ({
-    acquire: vi.fn().mockReturnValue({ lease_id: 'lease-123' }),
-    release: vi.fn().mockReturnValue(true)
-  }))
-}));
-
-describe('TaskMCPServer', () => {
-  let server: TaskMCPServer;
-
-  beforeEach(() => {
-    server = new TaskMCPServer();
+describe('MCP tools – contract smoke tests', () => {
+  it('rejects additional properties for task.create', () => {
+    const validator = toolValidators['task.create'];
+    const valid = validator({
+      title: 'Test task',
+      acceptance_criteria: ['AC'],
+      scope: 'minor',
+      extra: true
+    });
+    expect(valid).toBe(false);
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
+  it('creates and retrieves a task record', async () => {
+    const created = await toolHandlers['task.create']({
+      title: 'Test',
+      acceptance_criteria: ['AC'],
+      scope: 'minor'
+    });
+    const fetched = await toolHandlers['task.get']({ id: created.id });
+    expect(fetched.id).toBe(created.id);
+    expect(fetched.status).toBe('po');
   });
 
-  it('should instantiate without errors', () => {
-    expect(server).toBeInstanceOf(TaskMCPServer);
+  it('returns 404 when fetching unknown task', async () => {
+    await expect(toolHandlers['task.get']({ id: 'TR-UNKNOWN' })).rejects.toMatchObject({
+      code: 404
+    });
   });
 
-  it('should have server property', () => {
-    expect(server).toHaveProperty('server');
+  it('fails optimistic lock with 409', async () => {
+    const created = await toolHandlers['task.create']({
+      title: 'Lock test',
+      acceptance_criteria: ['AC'],
+      scope: 'minor'
+    });
+    await expect(
+      toolHandlers['task.update']({ id: created.id, if_rev: 999, patch: { title: 'Nope' } })
+    ).rejects.toMatchObject({ code: 409 });
   });
 
-  it('should have start method', () => {
-    expect(typeof server.start).toBe('function');
+  it('enforces lease exclusivity with 423', async () => {
+    const created = await toolHandlers['task.create']({
+      title: 'Lease task',
+      acceptance_criteria: ['AC'],
+      scope: 'minor'
+    });
+    await toolHandlers['state.acquire_lock']({ task_id: created.id, owner_agent: 'agent-1', ttl_seconds: 60 });
+    await expect(
+      toolHandlers['state.acquire_lock']({ task_id: created.id, owner_agent: 'agent-2', ttl_seconds: 60 })
+    ).rejects.toMatchObject({ code: 423 });
   });
 
-  // Test that the server can be started (this will execute the setupHandlers code)
-  it('should start without errors', async () => {
-    // Mock console.error to avoid output during tests
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    // This will execute the setupHandlers method and attempt to connect
-    try {
-      await server.start();
-    } catch (e) {
-      // Expected to fail due to mocked transport
-    }
-
-    consoleSpy.mockRestore();
+  it('appends events only when state exists', async () => {
+    const created = await toolHandlers['task.create']({
+      title: 'Event task',
+      acceptance_criteria: ['AC'],
+      scope: 'minor'
+    });
+    // state.append_event should fail until orchestrator state exists
+    await expect(
+      toolHandlers['state.append_event']({
+        task_id: created.id,
+        type: 'transition',
+        payload: { from: 'po', to: 'arch' }
+      })
+    ).rejects.toMatchObject({ code: 404 });
   });
 });
