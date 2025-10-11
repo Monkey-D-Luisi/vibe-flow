@@ -27,7 +27,7 @@ jobs:
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm --filter @agents/task-mcp test -- --coverage
       - run: pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --coverage
-      - run: pnpm --filter @agents/task-mcp run lint
+      - run: pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --lint --cmd "pnpm -C services/task-mcp lint -f json"
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         with:
@@ -38,6 +38,11 @@ jobs:
         with:
           name: qreport-coverage
           path: ./.qreport/coverage.json
+      - name: Upload quality lint report
+        uses: actions/upload-artifact@v4
+        with:
+          name: qreport-lint
+          path: ./.qreport/lint.json
 
   quality-gate:
     needs: test-lint

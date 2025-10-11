@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LintInput",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "cwd": {
+      "type": "string",
+      "description": "Directorio de trabajo"
+    },
+    "tool": {
+      "type": "string",
+      "enum": ["eslint", "ruff"],
+      "default": "eslint"
+    },
+    "cmd": {
+      "type": "string",
+      "description": "Comando de linter a ejecutar; debe producir JSON",
+      "default": "pnpm -C services/task-mcp lint -f json"
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Rutas o globs a analizar"
+    },
+    "timeoutMs": {
+      "type": "integer",
+      "minimum": 1000,
+      "default": 600000
+    },
+    "envAllow": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["NODE_ENV"]
+    }
+  }
+}
