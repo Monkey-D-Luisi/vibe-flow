@@ -6,6 +6,7 @@ import { TaskRecord, TaskRecordValidator, type TransitionEvidence } from '../dom
 import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/FastTrack';
 import { FastTrackGitHub } from '../domain/FastTrackGitHub';
 import { mapAgentOutput } from './mappers.js';
+import { mergeTaskWithPatch } from './patch.js';
 
 const ajv = new Ajv({ allErrors: true, strict: false });
 
@@ -216,7 +217,7 @@ export async function runOrchestratorStep(
       patch.status = nextState as TaskRecord['status'];
     }
 
-    const candidateTask = applyPatchToTask(task, patch);
+    const candidateTask = mergeTaskWithPatch(task, patch);
     const transitionEvidence = buildTransitionEvidence(
       state.current as TaskRecord['status'],
       nextState as TaskRecord['status'],
@@ -407,63 +408,6 @@ function prepareAgentInput(task: TaskRecord, state: any, agentType: AgentType): 
     default:
       return baseInput;
   }
-}
-
-function applyPatchToTask(task: TaskRecord, patch: Partial<TaskRecord>): TaskRecord {
-  const candidate: TaskRecord = {
-    ...task,
-    ...patch,
-    status: (patch.status ?? task.status) as TaskRecord['status']
-  };
-
-  if (task.metrics || patch.metrics) {
-    candidate.metrics = {
-      ...(task.metrics ?? {}),
-      ...(patch.metrics ?? {}),
-      lint: patch.metrics?.lint
-        ? { ...(task.metrics?.lint ?? {}), ...patch.metrics.lint }
-        : task.metrics?.lint
-    };
-  }
-
-  if (task.qa_report || patch.qa_report) {
-    candidate.qa_report = { ...(task.qa_report ?? {}), ...(patch.qa_report ?? {}) };
-  }
-
-  if (patch.review_notes) {
-    candidate.review_notes = [...patch.review_notes];
-  } else if (task.review_notes) {
-    candidate.review_notes = [...task.review_notes];
-  }
-
-  if (patch.red_green_refactor_log) {
-    candidate.red_green_refactor_log = [...patch.red_green_refactor_log];
-  } else if (task.red_green_refactor_log) {
-    candidate.red_green_refactor_log = [...task.red_green_refactor_log];
-  }
-
-  if (task.links || patch.links) {
-    candidate.links = {
-      ...(task.links ?? {}),
-      ...(patch.links ?? {}),
-      github: patch.links?.github
-        ? { ...(task.links?.github ?? {}), ...patch.links.github }
-        : task.links?.github,
-      git: patch.links?.git ? { ...(task.links?.git ?? {}), ...patch.links.git } : task.links?.git
-    };
-  }
-
-  if (patch.tags) {
-    candidate.tags = [...patch.tags];
-  } else if (task.tags) {
-    candidate.tags = [...task.tags];
-  }
-
-  if (typeof patch.acceptance_criteria_met === 'boolean') {
-    candidate.acceptance_criteria_met = patch.acceptance_criteria_met;
-  }
-
-  return candidate;
 }
 
 function buildTransitionEvidence(
