@@ -105,8 +105,8 @@ describe('coverageReport tool', () => {
 
     expect(report.meta).toEqual({
       source: 'istanbul',
-      summaryPath,
-      lcovPath,
+      summaryPath: toPosix(summaryPath),
+      lcovPath: toPosix(lcovPath),
       excluded: ['services/task-mcp/src/ignored.test.ts']
     });
   });
@@ -149,6 +149,9 @@ describe('coverageReport tool', () => {
       repoRoot,
       exclude: []
     });
+
+    expect(report.meta?.summaryPath).toBe(toPosix(finalPath));
+    expect(report.meta?.lcovPath).toBe(toPosix(lcovPath));
 
     expect(report.total).toEqual({
       lines: 0.25,

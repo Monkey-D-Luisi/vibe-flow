@@ -79,10 +79,10 @@ jobs:
 
             // 1) Get Project and fields
             const project = await getProject(owner, projectNumber)
-            if (!project) { core.setFailed(`Project #${projectNumber} not found for '${owner}'`); return }
+            if (!project) { core.notice(`Project #${projectNumber} not found for '${owner}', skipping sync`); return }
             const statusField = project.fields.nodes.find(f => f.__typename === "ProjectV2SingleSelectField" && f.name === "Status")
-            if (!statusField) { core.setFailed("Project field 'Status' not found"); return }
-            if (!statusField.options?.length) { core.setFailed("Project field 'Status' has no options"); return }
+            if (!statusField) { core.notice("Project field 'Status' not found, skipping sync"); return }
+            if (!statusField.options?.length) { core.notice("Project field 'Status' has no options, skipping sync"); return }
 
             // 2) Ensure item exists in project
             const nodeId = context.eventName === "issues"
@@ -100,7 +100,7 @@ jobs:
             // 3) Update Status
             // Find matching option id for the desired status value
             const option = statusField.options?.find(o => o.name === statusValue)
-            if (!option) { core.setFailed(`Status option '${statusValue}' not found`); return }
+            if (!option) { core.notice(`Status option '${statusValue}' not found, skipping sync`); return }
 
             await github.graphql(`
               mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!){
@@ -113,7 +113,7 @@ jobs:
             )
 
             // 4) Handle epic-task relationships
-            const labels = context.eventName === "issues" ? context.payload.issue.labels : context.payload.pull_request.labels
+            const labels = context.eventName === "issues" ? context.payload.issue.labels ?? [] : context.payload.pull_request.labels ?? []
             const isTask = labels.some(l => l.name === "task")
             if (isTask) {
               const epicLabel = labels.find(l => l.name.startsWith("epic_"))

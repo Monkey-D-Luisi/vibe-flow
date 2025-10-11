@@ -99,6 +99,18 @@ export async function safeSpawn(cmd: string, args: string[], options: SpawnOptio
           durationMs,
           timedOut: true,
         });
+      } else if (err?.code === 'ENOENT' || err?.code === 'EACCES') {
+        const durationMs = Date.now() - startTime;
+        if (!stderr) {
+          stderr = err.message;
+        }
+        resolve({
+          stdout,
+          stderr,
+          exitCode: -1,
+          durationMs,
+          timedOut,
+        });
       } else {
         reject(err);
       }
