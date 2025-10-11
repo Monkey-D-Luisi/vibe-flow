@@ -37,7 +37,19 @@ jobs:
             async function getProject(login, number){
               const qOrg = `query($login:String!,$number:Int!){
                 organization(login:$login){
-                  projectV2(number:$number){ id fields(first:50){ nodes { id name } } }
+                  projectV2(number:$number){
+                    id
+                    fields(first:50){
+                      nodes {
+                        id
+                        name
+                        dataType
+                        ... on ProjectV2SingleSelectField {
+                          options { id name }
+                        }
+                      }
+                    }
+                  }
                 }
               }`
               try {
@@ -46,7 +58,19 @@ jobs:
               } catch (e) {}
               const qUser = `query($login:String!,$number:Int!){
                 user(login:$login){
-                  projectV2(number:$number){ id fields(first:50){ nodes { id name } } }
+                  projectV2(number:$number){
+                    id
+                    fields(first:50){
+                      nodes {
+                        id
+                        name
+                        dataType
+                        ... on ProjectV2SingleSelectField {
+                          options { id name }
+                        }
+                      }
+                    }
+                  }
                 }
               }`
               const resUser = await github.graphql(qUser, { login, number })
@@ -73,12 +97,16 @@ jobs:
             const itemId = addRes.addProjectV2ItemById.item.id
 
             // 3) Update Status
+            // Find matching option id for the desired status value
+            const option = statusField.options?.find(o => o.name === statusValue)
+            if (!option) { core.setFailed(`Status option '${statusValue}' not found`); return }
+
             await github.graphql(`
-              mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $value:String!){
+              mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!){
                 updateProjectV2ItemFieldValue(input:{
                   projectId:$projectId, itemId:$itemId,
-                  fieldId:$fieldId, value:{singleSelectOptionName:$value}
+                  fieldId:$fieldId, value:{singleSelectOptionId:$optionId}
                 }) { clientMutationId }
               }`,
-              { projectId: project.id, itemId, fieldId: statusField.id, value: statusValue }
+              { projectId: project.id, itemId, fieldId: statusField.id, optionId: option.id }
             )
