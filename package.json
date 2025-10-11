@@ -9,10 +9,11 @@
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "tsx": "^4.16.0"
   },
   "scripts": {
     "prepare": "husky",
-    "q:tests": "npx tsx tooling/quality-mcp/cli/qcli.ts run --tests"
+    "q:tests": "pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --tests"
   }
 }
