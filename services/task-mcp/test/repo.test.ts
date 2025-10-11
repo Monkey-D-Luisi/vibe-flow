@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ulid } from 'ulid';
 import { TaskRepository } from '../src/repo/sqlite.js';
 
+const newTaskId = () => `TR-${ulid()}`;
+
 describe('TaskRepository', () => {
   let repo: TaskRepository;
 
@@ -72,4 +74,3 @@ describe('TaskRepository', () => {
     expect(statusResult.items[0].status).toBe('dev');
   });
 });
-  const newTaskId = () => `TR-${ulid()}`;
