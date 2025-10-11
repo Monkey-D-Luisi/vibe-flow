@@ -35,20 +35,29 @@ jobs:
 
             // Helper: get project for org or user owner
             async function getProject(login, number){
+              const fieldSelection = `
+                fields(first:50){
+                  nodes {
+                    __typename
+                    ... on ProjectV2Field {
+                      id
+                      name
+                      dataType
+                    }
+                    ... on ProjectV2SingleSelectField {
+                      id
+                      name
+                      dataType
+                      options { id name }
+                    }
+                  }
+                }
+              `
               const qOrg = `query($login:String!,$number:Int!){
                 organization(login:$login){
                   projectV2(number:$number){
                     id
-                    fields(first:50){
-                      nodes {
-                        id
-                        name
-                        dataType
-                        ... on ProjectV2SingleSelectField {
-                          options { id name }
-                        }
-                      }
-                    }
+                    ${fieldSelection}
                   }
                 }
               }`
@@ -60,16 +69,7 @@ jobs:
                 user(login:$login){
                   projectV2(number:$number){
                     id
-                    fields(first:50){
-                      nodes {
-                        id
-                        name
-                        dataType
-                        ... on ProjectV2SingleSelectField {
-                          options { id name }
-                        }
-                      }
-                    }
+                    ${fieldSelection}
                   }
                 }
               }`
@@ -80,8 +80,9 @@ jobs:
             // 1) Get Project and fields
             const project = await getProject(owner, projectNumber)
             if (!project) { core.setFailed(`Project #${projectNumber} not found for '${owner}'`); return }
-            const statusField = project.fields.nodes.find(f => f.name === "Status")
+            const statusField = project.fields.nodes.find(f => f.__typename === "ProjectV2SingleSelectField" && f.name === "Status")
             if (!statusField) { core.setFailed("Project field 'Status' not found"); return }
+            if (!statusField.options?.length) { core.setFailed("Project field 'Status' has no options"); return }
 
             // 2) Ensure item exists in project
             const nodeId = context.eventName === "issues"

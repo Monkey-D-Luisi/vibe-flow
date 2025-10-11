@@ -14,6 +14,16 @@ export interface SpawnResult {
   timedOut: boolean;
 }
 
+function normalizeWindowsPathEnv(env: Record<string, string>): void {
+  const pathMixed = env.Path;
+  const pathUpper = env.PATH;
+  if (pathMixed && !pathUpper) {
+    env.PATH = pathMixed;
+  } else if (pathUpper && !pathMixed) {
+    env.Path = pathUpper;
+  }
+}
+
 /**
  * Secure spawn wrapper with timeout and env filtering
  */
@@ -32,12 +42,7 @@ export async function safeSpawn(cmd: string, args: string[], options: SpawnOptio
   }
 
   if (process.platform === 'win32') {
-    if (env.Path && !env.PATH) {
-      env.PATH = env.Path;
-    }
-    if (env.PATH && !env.Path) {
-      env.Path = env.PATH;
-    }
+    normalizeWindowsPathEnv(env);
   }
 
   const startTime = Date.now();
