@@ -111,3 +111,115 @@ jobs:
               }`,
               { projectId: project.id, itemId, fieldId: statusField.id, optionId: option.id }
             )
+
+            // 4) Handle epic-task relationships
+            const labels = context.eventName === "issues" ? context.payload.issue.labels : context.payload.pull_request.labels
+            const isTask = labels.some(l => l.name === "task")
+            if (isTask) {
+              const epicLabel = labels.find(l => l.name.startsWith("epic_"))
+              if (epicLabel) {
+                await handleEpicUpdate(epicLabel.name, statusValue, project, statusField, github, context)
+              }
+            }
+
+            // Helper functions
+            async function handleEpicUpdate(epicLabel, taskStatus, project, statusField, github, context) {
+              // Find epic issue
+              const epicQuery = `query($owner:String!, $repo:String!, $label:String!) {
+                repository(owner:$owner, name:$repo) {
+                  issues(labels:[$label], first:10) {
+                    nodes {
+                      number
+                      title
+                      node_id
+                      labels(first:10) { nodes { name } }
+                    }
+                  }
+                }
+              }`
+              const epicRes = await github.graphql(epicQuery, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                label: epicLabel
+              })
+              const epics = epicRes.repository.issues.nodes.filter(issue => 
+                !issue.labels.nodes.some(l => l.name === "task")
+              )
+              if (epics.length === 0) return
+              const epic = epics[0] // Assume first is the epic
+              const epicNodeId = epic.node_id
+
+              // Get current epic status in project
+              const epicStatus = await getItemStatus(epicNodeId, project.id, statusField.id, github)
+              if (!epicStatus) return // Epic not in project
+
+              if (taskStatus === "In Progress" && epicStatus === "To Do") {
+                await updateItemStatus(epicNodeId, "In Progress", project.id, statusField, github)
+              } else if (taskStatus === "Done") {
+                const allTasksDone = await checkAllTasksDone(epicLabel, project.id, statusField.id, github, context)
+                if (allTasksDone) {
+                  await updateItemStatus(epicNodeId, "Done", project.id, statusField, github)
+                }
+              }
+            }
+
+            async function getItemStatus(itemNodeId, projectId, fieldId, github) {
+              const query = `query($projectId:ID!, $itemId:ID!, $fieldId:ID!) {
+                node(id:$itemId) {
+                  ... on ProjectV2Item {
+                    fieldValueByName(name:"Status") {
+                      ... on ProjectV2ItemFieldSingleSelectValue {
+                        name
+                      }
+                    }
+                  }
+                }
+              }`
+              try {
+                const res = await github.graphql(query, { projectId, itemId: itemNodeId, fieldId })
+                return res.node?.fieldValueByName?.name
+              } catch (e) {
+                return null
+              }
+            }
+
+            async function updateItemStatus(itemNodeId, newStatus, projectId, statusField, github) {
+              const option = statusField.options.find(o => o.name === newStatus)
+              if (!option) return
+              await github.graphql(`
+                mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!){
+                  updateProjectV2ItemFieldValue(input:{
+                    projectId:$projectId, itemId:$itemId,
+                    fieldId:$fieldId, value:{singleSelectOptionId:$optionId}
+                  }) { clientMutationId }
+                }`,
+                { projectId, itemId: itemNodeId, fieldId: statusField.id, optionId: option.id }
+              )
+            }
+
+            async function checkAllTasksDone(epicLabel, projectId, fieldId, github, context) {
+              // Get all tasks for epic
+              const tasksQuery = `query($owner:String!, $repo:String!, $epicLabel:String!, $taskLabel:String!) {
+                repository(owner:$owner, name:$repo) {
+                  issues(labels:[$epicLabel, $taskLabel], first:50) {
+                    nodes {
+                      node_id
+                    }
+                  }
+                }
+              }`
+              const tasksRes = await github.graphql(tasksQuery, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                epicLabel,
+                taskLabel: "task"
+              })
+              const taskNodeIds = tasksRes.repository.issues.nodes.map(n => n.node_id)
+
+              // Check status of each task
+              for (const taskId of taskNodeIds) {
+                const status = await getItemStatus(taskId, projectId, fieldId, github)
+                if (status !== "Done") return false
+              }
+              return true
+            }
