@@ -130,7 +130,11 @@ export async function runAgent(agent: AgentType, input: any): Promise<any> {
 }
 
 // Run one step of the orchestrator for a task
-export async function runOrchestratorStep(taskId: string, agentName: string): Promise<any> {
+export async function runOrchestratorStep(
+  taskId: string,
+  agentName: string,
+  options: { fastTrackContext?: FastTrackContext; reviewerViolations?: Array<{ severity: string }> } = {}
+): Promise<any> {
   // Acquire lease for exclusive access
   const lease = leaseRepo.acquire(taskId, agentName, 300); // 5 minute lease
 
@@ -154,6 +158,8 @@ export async function runOrchestratorStep(taskId: string, agentName: string): Pr
       throw new Error(`Agent ${agentType} cannot run in state ${state.current}`);
     }
 
+    const { fastTrackContext, reviewerViolations } = options;
+
     // Prepare input for the agent
     const input = prepareAgentInput(task, state, agentType);
 
@@ -165,23 +171,22 @@ export async function runOrchestratorStep(taskId: string, agentName: string): Pr
       input_summary: summarizeInput(input)
     });
 
-    // Log fast-track evaluation if applicable
-    if (agentType === 'dev' && state.current === 'po') {
-      // Get the fast-track context from the input (assuming it's passed)
-      const fastTrackCtx = input.fastTrackContext as FastTrackContext | undefined;
-      let evaluation;
-
-      if (fastTrackCtx) {
-        evaluation = evaluateFastTrack(fastTrackCtx);
+    if (state.current === 'po' && agentType === 'po' && fastTrackContext) {
+      const evaluationContext = cloneFastTrackContext(fastTrackContext, task);
+      const evaluation = evaluateFastTrack(evaluationContext);
+      const tagsSet = new Set(task.tags ?? []);
+      tagsSet.add('fast-track');
+      tagsSet.delete('fast-track:revoked');
+      if (evaluation.eligible) {
+        tagsSet.add('fast-track:eligible');
+        tagsSet.delete('fast-track:blocked');
       } else {
-        // Fallback evaluation for minor scope
-        evaluation = {
-          eligible: true,
-          score: 75,
-          reasons: ['scope_minor', 'fallback_evaluation'],
-          hardBlocks: []
-        };
+        tagsSet.add('fast-track:blocked');
+        tagsSet.delete('fast-track:eligible');
       }
+
+      const updated = repo.update(task.id, task.rev, { tags: Array.from(tagsSet) });
+      Object.assign(task, updated);
 
       eventRepo.append(taskId, 'fasttrack', {
         action: 'evaluated',
@@ -191,9 +196,9 @@ export async function runOrchestratorStep(taskId: string, agentName: string): Pr
         hardBlocks: evaluation.hardBlocks
       });
 
-      // GitHub automation for fast-track evaluation
-      if (task.pr_number) {
-        await fastTrackGitHub.onFastTrackEvaluated(task, evaluation, task.pr_number);
+      const prNumber = getPrNumber(task);
+      if (prNumber) {
+        await fastTrackGitHub.onFastTrackEvaluated(task, evaluation, prNumber);
       }
     }
 
@@ -203,11 +208,11 @@ export async function runOrchestratorStep(taskId: string, agentName: string): Pr
     // Validate output
     const validatedOutput = validateAgentOutput(agentType, output);
 
-    // Update task record with agent output
-    updateTaskWithAgentOutput(task, agentType, validatedOutput);
+    // Update task record with agent output and new status
+    const nextState = determineNextState(state.current, task);
+    const updatedTask = updateTaskWithAgentOutput(task, agentType, validatedOutput, nextState as TaskRecord['status']);
 
     // Update orchestrator state
-    const nextState = getNextState(state.current, agentType);
     const stateUpdate: any = {
       current: nextState,
       previous: state.current,
@@ -222,27 +227,19 @@ export async function runOrchestratorStep(taskId: string, agentName: string): Pr
     const updatedState = stateRepo.update(taskId, state.rev, stateUpdate);
 
     // POST-DEV GUARD: Check if fast-track should be revoked
-    if (agentType === 'dev' && wasFastTrack(task)) {
-      const guardResult = guardPostDev({
-        task,
-        diff: { files: [], locAdded: 0, locDeleted: 0 }, // TODO: Get real diff
-        quality: {
-          coverage: task.metrics?.coverage,
-          avgCyclomatic: 4.0, // TODO: Calculate from diff
-          lintErrors: task.metrics?.lint?.errors || 0
-        },
-        metadata: {
-          modulesChanged: false, // TODO: Analyze diff
-          publicApiChanged: false // TODO: Analyze diff
-        }
-      });
+    if (agentType === 'dev' && wasFastTrack(updatedTask)) {
+      const guardCtx = cloneFastTrackContext(
+        fastTrackContext ?? buildDefaultFastTrackContext(updatedTask),
+        updatedTask
+      );
+      const guardResult = guardPostDev(guardCtx, reviewerViolations);
 
-      if (guardResult.revoke) {
-        // Revoke fast-track: move back to architect state
-        const revokedState = stateRepo.update(taskId, updatedState.rev, {
-          current: 'arch',
-          previous: updatedState.current,
-          last_agent: 'system'
+        if (guardResult.revoke) {
+          // Revoke fast-track: move back to architect state
+          const revokedState = stateRepo.update(taskId, updatedState.rev, {
+            current: 'arch',
+            previous: updatedState.current,
+            last_agent: 'system'
         });
 
         // Log revocation event
@@ -253,20 +250,22 @@ export async function runOrchestratorStep(taskId: string, agentName: string): Pr
           new_state: 'arch'
         });
 
-        // GitHub automation for fast-track revocation
-        if (task.pr_number) {
-          await fastTrackGitHub.onFastTrackRevoked(task, guardResult, task.pr_number);
-        }
+          // GitHub automation for fast-track revocation
+          const prNumber = getPrNumber(updatedTask);
+          if (prNumber) {
+            await fastTrackGitHub.onFastTrackRevoked(updatedTask, guardResult, prNumber);
+          }
 
-        // Update task tags
-        const tags = task.tags || [];
-        tags.push('fast-track-revoked');
-        repo.update(taskId, task.rev, { tags });
+          // Update task tags
+          const tags = updatedTask.tags ? [...updatedTask.tags] : [];
+          tags.push('fast-track:revoked');
+          const revokedTask = repo.update(taskId, updatedTask.rev, { tags, status: 'arch' });
+          Object.assign(updatedTask, revokedTask);
 
-        return {
-          task_id: taskId,
-          agent: agentType,
-          output: validatedOutput,
+          return {
+            task_id: taskId,
+            agent: agentType,
+            output: validatedOutput,
           new_state: revokedState,
           lease_id: lease.lease_id,
           fasttrack_revoked: true,
@@ -303,32 +302,45 @@ function canRunAgent(currentState: string, agentType: AgentType): boolean {
     'arch': ['architect'],
     'dev': ['dev'],
     'review': ['reviewer'],
-    'po_check': ['po'], // PO can re-review
+    'po_check': ['po'],
     'qa': ['qa'],
-    'pr': ['prbot']
+    'pr': ['prbot'],
+    'done': []
   };
 
   const allowedAgents = stateToAgentMap[currentState as keyof typeof stateToAgentMap] || [];
   return allowedAgents.includes(agentType);
 }
 
-function getNextState(currentState: string, agentType: AgentType): string {
-  const transitions = {
-    'po': 'arch',
-    'arch': 'dev',
-    'dev': 'review',
-    'review': 'qa', // Assuming review passes
-    'qa': 'pr', // Assuming QA passes
-    'pr': 'done'
-  };
-
-  // Special cases
-  if (agentType === 'reviewer') {
-    // This would be determined by the reviewer output
-    return 'qa'; // For now, assume it passes
+function shouldFastTrack(task: TaskRecord): boolean {
+  if (task.scope !== 'minor') {
+    return false;
   }
+  const tags = task.tags || [];
+  const hasEligible = tags.includes('fast-track') && tags.includes('fast-track:eligible');
+  const revoked = tags.includes('fast-track:revoked');
+  return hasEligible && !revoked;
+}
 
-  return transitions[currentState as keyof typeof transitions] || currentState;
+function determineNextState(currentState: string, task: TaskRecord): TaskRecord['status'] {
+  switch (currentState) {
+    case 'po':
+      return shouldFastTrack(task) ? 'dev' : 'arch';
+    case 'arch':
+      return 'dev';
+    case 'dev':
+      return 'review';
+    case 'review':
+      return 'po_check';
+    case 'po_check':
+      return 'qa';
+    case 'qa':
+      return 'pr';
+    case 'pr':
+      return 'done';
+    default:
+      return currentState as TaskRecord['status'];
+  }
 }
 
 function prepareAgentInput(task: TaskRecord, state: any, agentType: AgentType): any {
@@ -373,8 +385,13 @@ function prepareAgentInput(task: TaskRecord, state: any, agentType: AgentType): 
   }
 }
 
-function updateTaskWithAgentOutput(task: TaskRecord, agentType: AgentType, output: any): void {
-  const patch: any = {};
+function updateTaskWithAgentOutput(
+  task: TaskRecord,
+  agentType: AgentType,
+  output: any,
+  nextStatus?: TaskRecord['status']
+): TaskRecord {
+  const patch: Partial<TaskRecord> = {};
 
   switch (agentType) {
     case 'po':
@@ -409,13 +426,22 @@ function updateTaskWithAgentOutput(task: TaskRecord, agentType: AgentType, outpu
       break;
   }
 
-  if (Object.keys(patch).length > 0) {
-    repo.update(task.id, task.rev, patch);
+  if (nextStatus && task.status !== nextStatus) {
+    patch.status = nextStatus;
   }
+
+  if (Object.keys(patch).length === 0) {
+    return task;
+  }
+
+  const updated = repo.update(task.id, task.rev, patch);
+  Object.assign(task, updated);
+  return task;
 }
 
 function wasFastTrack(task: TaskRecord): boolean {
-  return task.tags?.includes('fast-track') || false;
+  const tags = task.tags || [];
+  return tags.includes('fast-track:eligible') && !tags.includes('fast-track:revoked');
 }
 
 function summarizeInput(input: any): string {
@@ -429,6 +455,71 @@ function summarizeOutput(output: any): string {
   if (output.total !== undefined) return `Tests: ${output.passed}/${output.total} passed`;
   return 'Output generated';
 }
+
+function getPrNumber(task: TaskRecord): number | undefined {
+  const gitLink = task.links?.git;
+  if (gitLink?.prNumber) {
+    return gitLink.prNumber;
+  }
+  const githubLink = task.links?.github;
+  return githubLink?.issueNumber;
+}
+
+function cloneFastTrackContext(ctx: FastTrackContext, task: TaskRecord): FastTrackContext {
+  return {
+    task,
+    diff: {
+      files: [...ctx.diff.files],
+      locAdded: ctx.diff.locAdded,
+      locDeleted: ctx.diff.locDeleted
+    },
+    quality: {
+      coverage: ctx.quality.coverage,
+      avgCyclomatic: ctx.quality.avgCyclomatic,
+      lintErrors: ctx.quality.lintErrors
+    },
+    metadata: {
+      modulesChanged: ctx.metadata.modulesChanged,
+      publicApiChanged: ctx.metadata.publicApiChanged,
+      contractsChanged: ctx.metadata.contractsChanged,
+      patternsChanged: ctx.metadata.patternsChanged,
+      adrChanged: ctx.metadata.adrChanged,
+      packagesSchemaChanged: ctx.metadata.packagesSchemaChanged
+    }
+  };
+}
+
+function buildDefaultFastTrackContext(task: TaskRecord): FastTrackContext {
+  return {
+    task,
+    diff: {
+      files: [],
+      locAdded: 0,
+      locDeleted: 0
+    },
+    quality: {
+      coverage: task.metrics?.coverage,
+      avgCyclomatic: undefined,
+      lintErrors: task.metrics?.lint?.errors ?? 0
+    },
+    metadata: {
+      modulesChanged: false,
+      publicApiChanged: false,
+      contractsChanged: false,
+      patternsChanged: false,
+      adrChanged: false,
+      packagesSchemaChanged: false
+    }
+  };
+}
+
+export const __test__ = {
+  repo,
+  stateRepo,
+  eventRepo,
+  leaseRepo,
+  fastTrackGitHub
+};
 
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';

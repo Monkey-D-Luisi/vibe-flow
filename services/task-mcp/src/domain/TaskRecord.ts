@@ -187,10 +187,17 @@ export class TaskRecordValidator {
           : { valid: false, reason: 'Requirements must be groomed before moving to arch' };
 
       case 'po->dev':
-        // Fast-track: only for minor scope without design changes
-        return record.scope === 'minor'
-          ? { valid: true }
-          : { valid: false, reason: 'Fast-track only available for minor scope' };
+        if (record.scope !== 'minor') {
+          return { valid: false, reason: 'Fast-track only available for minor scope' };
+        }
+        {
+          const tags = record.tags || [];
+          const eligible = tags.includes('fast-track:eligible') && !tags.includes('fast-track:revoked');
+          if (!eligible) {
+            return { valid: false, reason: 'Fast-track evaluation required with score >= 60' };
+          }
+        }
+        return { valid: true };
 
       case 'arch->dev':
         // Guard: ADR and contracts defined

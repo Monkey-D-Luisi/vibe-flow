@@ -1,346 +1,768 @@
+import Ajv, { type AnyValidateFunction } from 'ajv';
+import addFormats from 'ajv-formats';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { ulid } from 'ulid';
 import { TaskRepository } from '../repo/sqlite.js';
 import { StateRepository, EventRepository, LeaseRepository } from '../repo/state.js';
 import { TaskRecord, TaskRecordValidator } from '../domain/TaskRecord.js';
 import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/FastTrack.js';
 
-const repo = new TaskRepository();
-const stateRepo = new StateRepository(repo.database);
-const eventRepo = new EventRepository(repo.database);
-const leaseRepo = new LeaseRepository(repo.database);
+type ToolName =
+  | 'task.create'
+  | 'task.get'
+  | 'task.update'
+  | 'task.search'
+  | 'task.transition'
+  | 'state.get'
+  | 'state.patch'
+  | 'state.acquire_lock'
+  | 'state.release_lock'
+  | 'state.append_event'
+  | 'state.search'
+  | 'fasttrack.evaluate'
+  | 'fasttrack.guard_post_dev'
+  | 'quality.run_tests'
+  | 'quality.coverage_report'
+  | 'quality.lint'
+  | 'quality.complexity'
+  | 'quality.enforce_gates'
+  | 'gh.createBranch'
+  | 'gh.openPR'
+  | 'gh.comment'
+  | 'gh.setProjectStatus'
+  | 'gh.addLabels';
 
-const tools = [
-  {
-    name: 'task.create',
-    description: 'Crear TaskRecord en estado inicial',
-    inputSchema: {
-      type: 'object',
-      required: ['title', 'acceptance_criteria', 'scope'],
-      properties: {
-        title: { type: 'string' },
-        description: { type: 'string' },
-        acceptance_criteria: { type: 'array', items: { type: 'string' } },
-        scope: { type: 'string', enum: ['minor', 'major'] },
-        links: { type: 'object' },
-        tags: { type: 'array', items: { type: 'string' } }
-      }
-    }
+class SemanticError extends Error {
+  constructor(public readonly code: number, message: string) {
+    super(message);
+    this.name = 'SemanticError';
+  }
+}
+
+const schemaValidator = new Ajv({ allErrors: true, coerceTypes: false });
+addFormats(schemaValidator);
+
+const fastTrackDiffSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['files', 'locAdded', 'locDeleted'],
+  properties: {
+    files: { type: 'array', items: { type: 'string' } },
+    locAdded: { type: 'integer', minimum: 0 },
+    locDeleted: { type: 'integer', minimum: 0 }
+  }
+};
+
+const fastTrackQualitySchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    coverage: { type: 'number', minimum: 0, maximum: 1 },
+    avgCyclomatic: { type: 'number', minimum: 0 },
+    lintErrors: { type: 'integer', minimum: 0 }
   },
-  {
-    name: 'task.get',
-    description: 'Obtener TaskRecord por id',
-    inputSchema: {
-      type: 'object',
-      required: ['id'],
-      properties: {
-        id: { type: 'string' }
-      }
-    }
-  },
-  {
-    name: 'task.update',
-    description: 'Actualizar con control optimista',
-    inputSchema: {
-      type: 'object',
-      required: ['id', 'if_rev', 'patch'],
-      properties: {
-        id: { type: 'string' },
-        if_rev: { type: 'integer' },
-        patch: { type: 'object' }
-      }
-    }
-  },
-  {
-    name: 'task.search',
-    description: 'Buscar por texto/estado/labels',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        q: { type: 'string' },
-        status: { type: 'array', items: { type: 'string' } },
-        labels: { type: 'array', items: { type: 'string' } },
-        limit: { type: 'integer', minimum: 1, maximum: 200 },
-        offset: { type: 'integer', minimum: 0 }
-      }
-    }
-  },
-  {
-    name: 'task.transition',
-    description: 'Transición de estado con validaciones completas y quality gates',
-    inputSchema: {
-      type: 'object',
-      required: ['id', 'to', 'if_rev'],
-      properties: {
-        id: { type: 'string' },
-        to: { type: 'string', enum: ['po', 'arch', 'dev', 'review', 'po_check', 'qa', 'pr', 'done'] },
-        if_rev: { type: 'integer' },
-        evidence: {
-          type: 'object',
-          properties: {
-            metrics: {
-              type: 'object',
-              properties: {
-                coverage: { type: 'number', minimum: 0, maximum: 1 },
-                lint: {
-                  type: 'object',
-                  properties: {
-                    errors: { type: 'integer', minimum: 0 },
-                    warnings: { type: 'integer', minimum: 0 }
-                  }
-                }
-              }
-            },
-            red_green_refactor_log: { type: 'array', items: { type: 'string' } },
-            qa_report: {
-              type: 'object',
-              properties: {
-                total: { type: 'integer', minimum: 0 },
-                passed: { type: 'integer', minimum: 0 },
-                failed: { type: 'integer', minimum: 0 }
-              }
-            },
-            violations: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  rule: { type: 'string' },
-                  severity: { type: 'string', enum: ['low', 'medium', 'high'] },
-                  message: { type: 'string' }
-                }
-              }
-            },
-            acceptance_criteria_met: { type: 'boolean' },
-            merged: { type: 'boolean' }
-          }
-        }
-      }
-    }
-  },
-  {
-    name: 'state.get',
-    description: 'Obtener estado del orquestador para una tarea',
-    inputSchema: {
-      type: 'object',
-      required: ['task_id'],
-      properties: {
-        task_id: { type: 'string' }
-      }
-    }
-  },
-  {
-    name: 'state.patch',
-    description: 'Actualizar estado con control optimista de concurrencia',
-    inputSchema: {
-      type: 'object',
-      required: ['task_id', 'if_rev', 'patch'],
-      properties: {
-        task_id: { type: 'string' },
-        if_rev: { type: 'integer' },
-        patch: {
-          type: 'object',
-          properties: {
-            current: { type: 'string', enum: ['po', 'arch', 'dev', 'review', 'po_check', 'qa', 'pr', 'done'] },
-            previous: { type: 'string', enum: ['po', 'arch', 'dev', 'review', 'po_check', 'qa', 'pr', 'done'] },
-            last_agent: { type: 'string' },
-            rounds_review: { type: 'integer' }
-          }
-        }
-      }
-    }
-  },
-  {
-    name: 'state.acquire_lock',
-    description: 'Adquirir lease para acceso exclusivo a una tarea',
-    inputSchema: {
-      type: 'object',
-      required: ['task_id', 'owner_agent'],
-      properties: {
-        task_id: { type: 'string' },
-        owner_agent: { type: 'string' },
-        ttl_seconds: { type: 'integer', minimum: 30, maximum: 3600, default: 300 }
-      }
-    }
-  },
-  {
-    name: 'state.release_lock',
-    description: 'Liberar lease de una tarea',
-    inputSchema: {
-      type: 'object',
-      required: ['task_id', 'lease_id'],
-      properties: {
-        task_id: { type: 'string' },
-        lease_id: { type: 'string' }
-      }
-    }
-  },
-  {
-    name: 'state.events',
-    description: 'Obtener historial de eventos para una tarea',
-    inputSchema: {
-      type: 'object',
-      required: ['task_id'],
-      properties: {
-        task_id: { type: 'string' },
-        limit: { type: 'integer', minimum: 1, maximum: 100, default: 50 }
-      }
-    }
-  },
-  {
-    name: 'fasttrack.evaluate',
-    description: 'Evalúa si un task es elegible para fast-track (PO → DEV omitiendo Arquitectura)',
-    inputSchema: {
-      type: 'object',
-      required: ['task_id', 'diff', 'quality', 'metadata'],
-      properties: {
-        task_id: { type: 'string' },
-        diff: {
-          type: 'object',
-          required: ['files', 'locAdded', 'locDeleted'],
-          properties: {
-            files: { type: 'array', items: { type: 'string' } },
-            locAdded: { type: 'integer', minimum: 0 },
-            locDeleted: { type: 'integer', minimum: 0 }
-          }
-        },
-        quality: {
-          type: 'object',
-          required: ['lintErrors'],
-          properties: {
-            coverage: { type: 'number', minimum: 0, maximum: 1 },
-            avgCyclomatic: { type: 'number', minimum: 0 },
-            lintErrors: { type: 'integer', minimum: 0 }
-          }
-        },
-        metadata: {
-          type: 'object',
-          required: ['modulesChanged', 'publicApiChanged'],
-          properties: {
-            modulesChanged: { type: 'boolean' },
-            publicApiChanged: { type: 'boolean' }
-          }
-        }
-      }
-    }
-  },
-  {
-    name: 'fasttrack.guard_post_dev',
-    description: 'Reevalúa después de DEV si el fast-track debe revocarse',
-    inputSchema: {
-      type: 'object',
-      required: ['task_id', 'diff', 'quality', 'metadata'],
-      properties: {
-        task_id: { type: 'string' },
-        diff: {
-          type: 'object',
-          required: ['files', 'locAdded', 'locDeleted'],
-          properties: {
-            files: { type: 'array', items: { type: 'string' } },
-            locAdded: { type: 'integer', minimum: 0 },
-            locDeleted: { type: 'integer', minimum: 0 }
-          }
-        },
-        quality: {
-          type: 'object',
-          required: ['lintErrors'],
-          properties: {
-            coverage: { type: 'number', minimum: 0, maximum: 1 },
-            avgCyclomatic: { type: 'number', minimum: 0 },
-            lintErrors: { type: 'integer', minimum: 0 }
-          }
-        },
-        metadata: {
-          type: 'object',
-          required: ['modulesChanged', 'publicApiChanged'],
-          properties: {
-            modulesChanged: { type: 'boolean' },
-            publicApiChanged: { type: 'boolean' }
-          }
-        },
-        reviewer_violations: {
-          type: 'array',
-          items: {
+  required: ['lintErrors']
+};
+
+const fastTrackMetadataSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['modulesChanged', 'publicApiChanged'],
+  properties: {
+    modulesChanged: { type: 'boolean' },
+    publicApiChanged: { type: 'boolean' },
+    contractsChanged: { type: 'boolean' },
+    patternsChanged: { type: 'boolean' },
+    adrChanged: { type: 'boolean' },
+    packagesSchemaChanged: { type: 'boolean' }
+  }
+};
+
+const toolInputSchemas: Record<ToolName, any> = {
+  'task.create': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['title', 'acceptance_criteria', 'scope'],
+    properties: {
+      title: { type: 'string', minLength: 5, maxLength: 120 },
+      description: { type: 'string', maxLength: 4000 },
+      acceptance_criteria: {
+        type: 'array',
+        minItems: 1,
+        items: { type: 'string', minLength: 3, maxLength: 300 }
+      },
+      scope: { type: 'string', enum: ['minor', 'major'] },
+      links: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          github: {
             type: 'object',
-            required: ['severity'],
+            additionalProperties: false,
             properties: {
-              severity: { type: 'string', enum: ['low', 'med', 'high'] }
+              owner: { type: 'string' },
+              repo: { type: 'string' },
+              issueNumber: { type: 'integer', minimum: 1 }
+            }
+          },
+          git: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              repo: { type: 'string' },
+              branch: { type: 'string' },
+              prNumber: { type: 'integer', minimum: 1 }
+            }
+          }
+        }
+      },
+      tags: { type: 'array', items: { type: 'string' } }
+    }
+  },
+  'task.get': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['id'],
+    properties: {
+      id: { type: 'string', minLength: 5 }
+    }
+  },
+  'task.update': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['id', 'if_rev', 'patch'],
+    properties: {
+      id: { type: 'string', minLength: 5 },
+      if_rev: { type: 'integer', minimum: 0 },
+      patch: { type: 'object' }
+    }
+  },
+  'task.search': {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      q: { type: 'string' },
+      status: { type: 'array', items: { type: 'string' } },
+      labels: { type: 'array', items: { type: 'string' } },
+      limit: { type: 'integer', minimum: 1, maximum: 200 },
+      offset: { type: 'integer', minimum: 0 }
+    }
+  },
+  'task.transition': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['id', 'to', 'if_rev'],
+    properties: {
+      id: { type: 'string', minLength: 5 },
+      to: { type: 'string', enum: ['po', 'arch', 'dev', 'review', 'po_check', 'qa', 'pr', 'done'] },
+      if_rev: { type: 'integer', minimum: 0 },
+      evidence: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          metrics: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              coverage: { type: 'number', minimum: 0, maximum: 1 },
+              lint: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  errors: { type: 'integer', minimum: 0 },
+                  warnings: { type: 'integer', minimum: 0 }
+                }
+              }
+            }
+          },
+          red_green_refactor_log: { type: 'array', items: { type: 'string' } },
+          qa_report: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              total: { type: 'integer', minimum: 0 },
+              passed: { type: 'integer', minimum: 0 },
+              failed: { type: 'integer', minimum: 0 }
+            }
+          },
+          violations: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                rule: { type: 'string' },
+                severity: { type: 'string', enum: ['low', 'medium', 'high'] },
+                message: { type: 'string' }
+              },
+              required: ['rule', 'severity', 'message']
+            }
+          },
+          acceptance_criteria_met: { type: 'boolean' },
+          merged: { type: 'boolean' },
+          fast_track: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              eligible: { type: 'boolean' },
+              score: { type: 'number', minimum: 0, maximum: 100 }
             }
           }
         }
       }
     }
   },
-  {
-    name: 'gh.createBranch',
-    inputSchema: {
-      type: 'object',
-      required: ['name'],
-      properties: {
-        name: { type: 'string', pattern: '^feature/|^bugfix/|^hotfix/' },
-        base: { type: 'string', default: 'main' }
+  'state.get': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_id'],
+    properties: {
+      task_id: { type: 'string', minLength: 5 }
+    }
+  },
+  'state.patch': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_id', 'if_rev', 'patch'],
+    properties: {
+      task_id: { type: 'string', minLength: 5 },
+      if_rev: { type: 'integer', minimum: 0 },
+      patch: { type: 'object' }
+    }
+  },
+  'state.acquire_lock': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_id', 'owner_agent'],
+    properties: {
+      task_id: { type: 'string', minLength: 5 },
+      owner_agent: { type: 'string', minLength: 2 },
+      ttl_seconds: { type: 'integer', minimum: 1, maximum: 3600 }
+    }
+  },
+  'state.release_lock': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_id', 'lease_id'],
+    properties: {
+      task_id: { type: 'string', minLength: 5 },
+      lease_id: { type: 'string', minLength: 5 }
+    }
+  },
+  'state.append_event': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_id', 'type', 'payload'],
+    properties: {
+      task_id: { type: 'string', minLength: 5 },
+      type: { type: 'string', minLength: 2 },
+      payload: { type: 'object' }
+    }
+  },
+  'state.search': {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      task_id: { type: 'string', minLength: 5 },
+      type: { type: 'string', minLength: 2 },
+      limit: { type: 'integer', minimum: 1, maximum: 200 }
+    }
+  },
+  'fasttrack.evaluate': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_id', 'diff', 'quality', 'metadata'],
+    properties: {
+      task_id: { type: 'string', minLength: 5 },
+      diff: fastTrackDiffSchema,
+      quality: fastTrackQualitySchema,
+      metadata: fastTrackMetadataSchema
+    }
+  },
+  'fasttrack.guard_post_dev': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_id', 'diff', 'quality', 'metadata'],
+    properties: {
+      task_id: { type: 'string', minLength: 5 },
+      diff: fastTrackDiffSchema,
+      quality: fastTrackQualitySchema,
+      metadata: fastTrackMetadataSchema,
+      reviewer_violations: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            severity: { type: 'string', enum: ['low', 'medium', 'high'] },
+            rule: { type: 'string' }
+          },
+          required: ['severity', 'rule']
+        }
       }
     }
   },
-  {
-    name: 'gh.openPR',
-    description: 'Abrir Pull Request en GitHub',
-    inputSchema: {
-      type: 'object',
-      required: ['title', 'head', 'base'],
-      properties: {
-        title: { type: 'string' },
-        head: { type: 'string' },
-        base: { type: 'string', default: 'main' },
-        body: { type: 'string' },
-        draft: { type: 'boolean', default: true },
-        labels: { type: 'array', items: { type: 'string' } }
+  'quality.run_tests': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_id'],
+    properties: {
+      task_id: { type: 'string', minLength: 5 }
+    }
+  },
+  'quality.coverage_report': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_id'],
+    properties: {
+      task_id: { type: 'string', minLength: 5 }
+    }
+  },
+  'quality.lint': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_id'],
+    properties: {
+      task_id: { type: 'string', minLength: 5 }
+    }
+  },
+  'quality.complexity': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_id'],
+    properties: {
+      task_id: { type: 'string', minLength: 5 }
+    }
+  },
+  'quality.enforce_gates': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['task_id', 'metrics'],
+    properties: {
+      task_id: { type: 'string', minLength: 5 },
+      metrics: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['coverage', 'lintErrors', 'testsFailed'],
+        properties: {
+          coverage: { type: 'number', minimum: 0, maximum: 1 },
+          lintErrors: { type: 'integer', minimum: 0 },
+          testsFailed: { type: 'integer', minimum: 0 }
+        }
       }
     }
   },
-  {
-    name: 'gh.comment',
-    description: 'Añadir comentario a Issue o PR',
-    inputSchema: {
-      type: 'object',
-      required: ['number', 'body'],
-      properties: {
-        number: { type: 'integer' },
-        body: { type: 'string' },
-        type: { type: 'string', enum: ['issue', 'pr'], default: 'pr' }
-      }
+  'gh.createBranch': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['name'],
+    properties: {
+      name: { type: 'string', minLength: 3 },
+      base: { type: 'string', minLength: 2 }
     }
   },
-  {
-    name: 'gh.setProjectStatus',
-    description: 'Actualizar estado en GitHub Projects',
-    inputSchema: {
-      type: 'object',
-      required: ['itemId', 'status'],
-      properties: {
-        itemId: { type: 'string' },
-        status: { type: 'string', enum: ['To Do', 'In Progress', 'In Review', 'Done'] }
-      }
+  'gh.openPR': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['title', 'head'],
+    properties: {
+      title: { type: 'string', minLength: 5 },
+      head: { type: 'string', minLength: 2 },
+      base: { type: 'string', minLength: 2 },
+      body: { type: 'string' },
+      draft: { type: 'boolean' },
+      labels: { type: 'array', items: { type: 'string' } }
     }
   },
-  {
-    name: 'gh.addLabels',
-    description: 'Añadir etiquetas a Issue/PR',
-    inputSchema: {
-      type: 'object',
-      required: ['number', 'labels'],
-      properties: {
-        number: { type: 'integer' },
-        labels: { type: 'array', items: { type: 'string' } },
-        type: { type: 'string', enum: ['issue', 'pr'], default: 'pr' }
-      }
+  'gh.comment': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['number', 'body'],
+    properties: {
+      number: { type: 'integer', minimum: 1 },
+      body: { type: 'string', minLength: 1 },
+      type: { type: 'string', enum: ['issue', 'pr'] }
+    }
+  },
+  'gh.setProjectStatus': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['itemId', 'status'],
+    properties: {
+      itemId: { type: 'string', minLength: 5 },
+      status: { type: 'string', enum: ['To Do', 'In Progress', 'In Review', 'Done'] }
+    }
+  },
+  'gh.addLabels': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['number', 'labels'],
+    properties: {
+      number: { type: 'integer', minimum: 1 },
+      labels: { type: 'array', items: { type: 'string' }, minItems: 1 },
+      type: { type: 'string', enum: ['issue', 'pr'] }
     }
   }
-];
+};
+
+const toolDescriptions: Record<ToolName, string> = {
+  'task.create': 'Crear TaskRecord en estado inicial',
+  'task.get': 'Obtener TaskRecord por id',
+  'task.update': 'Actualizar TaskRecord con control de versión',
+  'task.search': 'Buscar TaskRecords por texto/estado/etiquetas',
+  'task.transition': 'Aplicar transición de estado con validaciones de negocio',
+  'state.get': 'Obtener el estado del orquestador para una tarea',
+  'state.patch': 'Actualizar campos del estado del orquestador',
+  'state.acquire_lock': 'Adquirir un lease de ejecución para una tarea',
+  'state.release_lock': 'Liberar un lease previamente adquirido',
+  'state.append_event': 'Registrar un evento en el journal del orquestador',
+  'state.search': 'Consultar eventos del orquestador',
+  'fasttrack.evaluate': 'Evaluar elegibilidad fast-track con reglas duras y puntaje',
+  'fasttrack.guard_post_dev': 'Reevaluar fast-track después de DEV (guard post-dev)',
+  'quality.run_tests': 'Ejecutar suite de pruebas automatizadas',
+  'quality.coverage_report': 'Generar reporte de cobertura',
+  'quality.lint': 'Ejecutar análisis estático (lint)',
+  'quality.complexity': 'Calcular métricas de complejidad',
+  'quality.enforce_gates': 'Aplicar quality gates (coverage, lint, tests)',
+  'gh.createBranch': 'Crear una rama local/remota',
+  'gh.openPR': 'Abrir un Pull Request',
+  'gh.comment': 'Publicar un comentario en Issue/PR',
+  'gh.setProjectStatus': 'Actualizar estado en GitHub Projects',
+  'gh.addLabels': 'Añadir etiquetas a un Issue/PR'
+};
+
+const toolValidators = Object.fromEntries(
+  Object.entries(toolInputSchemas).map(([name, schema]) => [name, schemaValidator.compile(schema)])
+) as Record<string, AnyValidateFunction>;
+
+const repo = new TaskRepository();
+const stateRepo = new StateRepository(repo.database);
+const eventRepo = new EventRepository(repo.database);
+const leaseRepo = new LeaseRepository(repo.database);
+
+const tools = Object.entries(toolInputSchemas).map(([name, schema]) => ({
+  name,
+  description: toolDescriptions[name as ToolName] ?? `MCP tool ${name}`,
+  inputSchema: schema
+}));
+
+const toolHandlers: Record<ToolName, (args: any) => Promise<any>> = {
+  'task.create': async (args) => {
+    const record = repo.create({
+      id: `TR-${ulid()}`,
+      title: args.title,
+      description: args.description,
+      acceptance_criteria: args.acceptance_criteria,
+      scope: args.scope,
+      status: 'po',
+      tags: args.tags ?? [],
+      links: args.links ?? {}
+    });
+    return record;
+  },
+  'task.get': async (args) => {
+    const record = repo.get(args.id);
+    if (!record) {
+      throw new SemanticError(404, 'Task not found');
+    }
+    return record;
+  },
+  'task.update': async (args) => {
+    try {
+      return repo.update(args.id, args.if_rev, args.patch);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Task not found') {
+        throw new SemanticError(404, 'Task not found');
+      }
+      if (error instanceof Error && error.message === 'Optimistic lock failed') {
+        throw new SemanticError(409, 'Optimistic lock failed');
+      }
+      throw error;
+    }
+  },
+  'task.search': async (args) => repo.search(args),
+  'task.transition': async (args) => {
+    const current = repo.get(args.id);
+    if (!current) {
+      throw new SemanticError(404, 'Task not found');
+    }
+
+    const validation = TaskRecordValidator.validateTransition(current.status, args.to, current, args.evidence);
+    if (!validation.valid) {
+      throw new SemanticError(409, validation.reason ?? 'Transition not allowed');
+    }
+
+    const patch: Partial<TaskRecord> = { status: args.to };
+    const key = `${current.status}->${args.to}`;
+
+    switch (key) {
+      case 'dev->review':
+        if (args.evidence?.red_green_refactor_log) {
+          patch.red_green_refactor_log = args.evidence.red_green_refactor_log;
+        }
+        if (args.evidence?.metrics) {
+          patch.metrics = {
+            ...current.metrics,
+            ...args.evidence.metrics
+          };
+        }
+        break;
+      case 'review->dev':
+        patch.rounds_review = (current.rounds_review ?? 0) + 1;
+        break;
+      case 'qa->dev':
+        if (args.evidence?.qa_report) {
+          patch.qa_report = args.evidence.qa_report;
+        }
+        break;
+      case 'qa->pr':
+        if (args.evidence?.qa_report) {
+          patch.qa_report = args.evidence.qa_report;
+        }
+        break;
+      case 'review->po_check':
+        if (args.evidence?.violations) {
+          patch.review_notes = args.evidence.violations.map((v: any) => `${v.rule}: ${v.message}`);
+        }
+        break;
+      case 'po_check->qa':
+        if (!args.evidence?.acceptance_criteria_met) {
+          throw new SemanticError(409, 'PO must confirm acceptance criteria before QA');
+        }
+        break;
+      case 'pr->done':
+        if (!args.evidence?.merged) {
+          throw new SemanticError(409, 'PR must be merged to complete task');
+        }
+        break;
+    }
+
+    if (args.evidence?.fast_track) {
+      const eligible = args.evidence.fast_track.eligible;
+      const tags = new Set(current.tags ?? []);
+      tags.add('fast-track');
+      tags.delete('fast-track:revoked');
+      if (eligible) {
+        tags.add('fast-track:eligible');
+        tags.delete('fast-track:blocked');
+      } else {
+        tags.add('fast-track:blocked');
+        tags.delete('fast-track:eligible');
+      }
+      patch.tags = Array.from(tags);
+    }
+
+    try {
+      return repo.update(args.id, args.if_rev, patch);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Optimistic lock failed') {
+        throw new SemanticError(409, 'Optimistic lock failed');
+      }
+      throw error;
+    }
+  },
+  'state.get': async (args) => {
+    const state = stateRepo.get(args.task_id);
+    if (!state) {
+      throw new SemanticError(404, 'State not found');
+    }
+    return state;
+  },
+  'state.patch': async (args) => {
+    try {
+      return stateRepo.update(args.task_id, args.if_rev, args.patch);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'State not found') {
+        throw new SemanticError(404, 'State not found');
+      }
+      if (error instanceof Error && error.message === 'Optimistic lock failed') {
+        throw new SemanticError(409, 'Optimistic lock failed');
+      }
+      throw error;
+    }
+  },
+  'state.acquire_lock': async (args) => {
+    try {
+      return leaseRepo.acquire(args.task_id, args.owner_agent, args.ttl_seconds ?? 300);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Lease held by another agent') {
+        throw new SemanticError(423, error.message);
+      }
+      throw error;
+    }
+  },
+  'state.release_lock': async (args) => {
+    const released = leaseRepo.release(args.task_id, args.lease_id);
+    return { released };
+  },
+  'state.append_event': async (args) => {
+    const state = stateRepo.get(args.task_id);
+    if (!state) {
+      throw new SemanticError(404, 'State not found');
+    }
+    return eventRepo.append(args.task_id, args.type, args.payload);
+  },
+  'state.search': async (args) => eventRepo.search(args.task_id, args.type, args.limit ?? 100),
+  'fasttrack.evaluate': async (args) => {
+    const task = repo.get(args.task_id);
+    if (!task) {
+      throw new SemanticError(404, 'Task not found');
+    }
+    const context: FastTrackContext = {
+      task,
+      diff: args.diff,
+      quality: args.quality,
+      metadata: args.metadata
+    };
+    const result = evaluateFastTrack(context);
+    const tags = new Set(task.tags ?? []);
+    tags.add('fast-track');
+    tags.delete('fast-track:revoked');
+    if (result.eligible) {
+      tags.add('fast-track:eligible');
+      tags.delete('fast-track:blocked');
+    } else {
+      tags.add('fast-track:blocked');
+      tags.delete('fast-track:eligible');
+    }
+    const updated = repo.update(task.id, task.rev, { tags: Array.from(tags) });
+    eventRepo.append(task.id, 'fasttrack', {
+      action: 'evaluated',
+      eligible: result.eligible,
+      score: result.score,
+      reasons: result.reasons,
+      hardBlocks: result.hardBlocks
+    });
+    return { result, task: updated };
+  },
+  'fasttrack.guard_post_dev': async (args) => {
+    const task = repo.get(args.task_id);
+    if (!task) {
+      throw new SemanticError(404, 'Task not found');
+    }
+    const context: FastTrackContext = {
+      task,
+      diff: args.diff,
+      quality: args.quality,
+      metadata: args.metadata
+    };
+    const result = guardPostDev(context, args.reviewer_violations);
+    if (result.revoke) {
+      const tags = new Set(task.tags ?? []);
+      tags.add('fast-track:revoked');
+      const updated = repo.update(task.id, task.rev, { tags: Array.from(tags), status: 'arch' });
+      eventRepo.append(task.id, 'fasttrack', { action: 'revoked', reason: result.reason });
+      return { result, task: updated };
+    }
+    return { result, task };
+  },
+  'quality.run_tests': async (args) => ({
+    task_id: args.task_id,
+    status: 'passed',
+    summary: 'Tests executed via quality runner mock',
+    tests: []
+  }),
+  'quality.coverage_report': async (args) => ({
+    task_id: args.task_id,
+    coverage: {
+      lines: 0.82,
+      statements: 0.8,
+      functions: 0.78,
+      branches: 0.75
+    }
+  }),
+  'quality.lint': async (args) => ({
+    task_id: args.task_id,
+    errors: 0,
+    warnings: 2,
+    summary: 'No lint errors detected'
+  }),
+  'quality.complexity': async (args) => ({
+    task_id: args.task_id,
+    avgCyclomatic: 4.2,
+    hotspots: []
+  }),
+  'quality.enforce_gates': async (args) => {
+    const { coverage, lintErrors, testsFailed } = args.metrics;
+    const failures: string[] = [];
+    if (coverage < 0.7) failures.push('coverage');
+    if (lintErrors > 0) failures.push('lint');
+    if (testsFailed > 0) failures.push('tests');
+    return {
+      task_id: args.task_id,
+      passed: failures.length === 0,
+      failures
+    };
+  },
+  'gh.createBranch': async (args) => ({
+    branch: args.name,
+    base: args.base ?? 'main',
+    command: `git checkout -b ${args.name} ${args.base ?? 'main'}`
+  }),
+  'gh.openPR': async (args) => {
+    const prNumber = Math.floor(Math.random() * 10_000) + 1;
+    return {
+    number: prNumber,
+    title: args.title,
+    head: args.head,
+    base: args.base ?? 'main',
+    draft: args.draft ?? true,
+    labels: args.labels ?? [],
+    url: `https://github.com/example/repo/pull/${prNumber}`
+    };
+  },
+  'gh.comment': async (args) => ({
+    number: args.number,
+    type: args.type ?? 'pr',
+    body: args.body,
+    commented: true
+  }),
+  'gh.setProjectStatus': async (args) => ({
+    itemId: args.itemId,
+    status: args.status,
+    updated: true
+  }),
+  'gh.addLabels': async (args) => ({
+    number: args.number,
+    type: args.type ?? 'pr',
+    labels: args.labels,
+    added: true
+  })
+};
+
+function asSuccess(payload: any) {
+  return {
+    content: [
+      {
+        type: 'application/json',
+        text: JSON.stringify(payload)
+      }
+    ]
+  };
+}
+
+function asError(code: number, message: string, details?: any) {
+  return {
+    content: [
+      {
+        type: 'application/json',
+        text: JSON.stringify({
+          error: {
+            code,
+            message,
+            details
+          }
+        })
+      }
+    ],
+    isError: true
+  };
+}
 
 class TaskMCPServer {
-  private server: Server;
+  private readonly server: Server;
 
   constructor() {
     this.server = new Server(
@@ -355,245 +777,32 @@ class TaskMCPServer {
       }
     );
 
-    this.setupHandlers();
-  }
-
-  private setupHandlers() {
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return { tools };
-    });
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
+      const { name, arguments: args = {} } = request.params;
 
-      if (!args) {
-        return { content: [{ type: 'text', text: 'Error: No arguments provided' }], isError: true };
+      if (!toolHandlers[name as ToolName]) {
+        return asError(404, `Unknown tool: ${name}`);
+      }
+
+      const validator = toolValidators[name as ToolName];
+      if (validator && !validator(args)) {
+        const details = validator.errors ?? [];
+        return asError(422, 'Input validation failed', details);
       }
 
       try {
-        switch (name) {
-          case 'task.create': {
-            const input = args as any;
-            const validation = TaskRecordValidator.validateCreation(input);
-            if (!validation.valid) {
-              throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
-            }
-            const record = repo.create({
-              id: `TR-${Date.now().toString(36).toUpperCase().padStart(26, '0')}`, // Simple ULID mock
-              title: input.title,
-              description: input.description,
-              acceptance_criteria: input.acceptance_criteria,
-              scope: input.scope,
-              status: 'po',
-              links: input.links,
-              tags: input.tags
-            });
-            return { content: [{ type: 'text', text: JSON.stringify(record) }] };
-          }
-          case 'task.get': {
-            const input = args as any;
-            const record = repo.get(input.id);
-            if (!record) throw new Error('Task not found');
-            return { content: [{ type: 'text', text: JSON.stringify(record) }] };
-          }
-          case 'task.update': {
-            const input = args as any;
-            const record = repo.update(input.id, input.if_rev, input.patch);
-            return { content: [{ type: 'text', text: JSON.stringify(record) }] };
-          }
-          case 'task.search': {
-            const input = args as any;
-            const result = repo.search(input);
-            return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-          }
-          case 'task.transition': {
-            const input = args as any;
-            const current = repo.get(input.id);
-            if (!current) throw new Error('Task not found');
-
-            // Validate transition with evidence
-            const transition = TaskRecordValidator.validateTransition(current.status, input.to, current, input.evidence);
-            if (!transition.valid) {
-              throw new Error(`Transition invalid: ${transition.reason}`);
-            }
-
-            // Build patch based on transition effects
-            const patch: Partial<TaskRecord> = { status: input.to };
-
-            // Handle specific transition effects
-            switch (`${current.status}->${input.to}`) {
-              case 'dev->review':
-                if (input.evidence?.red_green_refactor_log) {
-                  patch.red_green_refactor_log = input.evidence.red_green_refactor_log;
-                }
-                if (input.evidence?.metrics) {
-                  patch.metrics = { ...current.metrics, ...input.evidence.metrics };
-                }
-                break;
-
-              case 'review->dev':
-                patch.rounds_review = (current.rounds_review || 0) + 1;
-                break;
-
-              case 'qa->dev':
-                if (input.evidence?.qa_report) {
-                  patch.qa_report = input.evidence.qa_report;
-                }
-                break;
-
-              case 'qa->pr':
-                if (input.evidence?.qa_report) {
-                  patch.qa_report = input.evidence.qa_report;
-                }
-                break;
-            }
-
-            const updated = repo.update(input.id, input.if_rev, patch);
-            return { content: [{ type: 'text', text: JSON.stringify(updated) }] };
-          }
-          case 'gh.createBranch': {
-            const input = args as any;
-            // In a real implementation, this would use GitHub CLI or API
-            // For now, return mock response
-            return {
-              content: [{
-                type: 'text',
-                text: JSON.stringify({
-                  branch: input.name,
-                  base: input.base || 'main',
-                  created: true,
-                  command: `git checkout -b ${input.name} ${input.base || 'main'}`
-                })
-              }]
-            };
-          }
-          case 'gh.openPR': {
-            const input = args as any;
-            // Mock PR creation - in real implementation would use GitHub API
-            const prNumber = Math.floor(Math.random() * 1000) + 1;
-            return {
-              content: [{
-                type: 'text',
-                text: JSON.stringify({
-                  number: prNumber,
-                  title: input.title,
-                  head: input.head,
-                  base: input.base || 'main',
-                  draft: input.draft !== false,
-                  url: `https://github.com/Monkey-D-Luisi/agents-mcps/pull/${prNumber}`,
-                  labels: input.labels || []
-                })
-              }]
-            };
-          }
-          case 'gh.comment': {
-            const input = args as any;
-            // Mock comment creation
-            return {
-              content: [{
-                type: 'text',
-                text: JSON.stringify({
-                  number: input.number,
-                  type: input.type || 'pr',
-                  body: input.body,
-                  commented: true
-                })
-              }]
-            };
-          }
-          case 'gh.setProjectStatus': {
-            const input = args as any;
-            // Mock project status update
-            return {
-              content: [{
-                type: 'text',
-                text: JSON.stringify({
-                  itemId: input.itemId,
-                  status: input.status,
-                  updated: true
-                })
-              }]
-            };
-          }
-          case 'gh.addLabels': {
-            const input = args as any;
-            // Mock label addition
-            return {
-              content: [{
-                type: 'text',
-                text: JSON.stringify({
-                  number: input.number,
-                  type: input.type || 'pr',
-                  labels: input.labels,
-                  added: true
-                })
-              }]
-            };
-          }
-          case 'state.get': {
-            const input = args as any;
-            const state = stateRepo.get(input.task_id);
-            if (!state) throw new Error('State not found');
-            return { content: [{ type: 'text', text: JSON.stringify(state) }] };
-          }
-          case 'state.patch': {
-            const input = args as any;
-            const updated = stateRepo.update(input.task_id, input.if_rev, input.patch);
-            return { content: [{ type: 'text', text: JSON.stringify(updated) }] };
-          }
-          case 'state.acquire_lock': {
-            const input = args as any;
-            const lease = leaseRepo.acquire(input.task_id, input.owner_agent, input.ttl_seconds || 300);
-            return { content: [{ type: 'text', text: JSON.stringify(lease) }] };
-          }
-          case 'state.release_lock': {
-            const input = args as any;
-            const released = leaseRepo.release(input.task_id, input.lease_id);
-            return { content: [{ type: 'text', text: JSON.stringify({ released }) }] };
-          }
-          case 'state.events': {
-            const input = args as any;
-            const events = eventRepo.getByTaskId(input.task_id, input.limit || 50);
-            return { content: [{ type: 'text', text: JSON.stringify(events) }] };
-          }
-          case 'fasttrack.evaluate': {
-            const input = args as any;
-            const task = repo.get(input.task_id);
-            if (!task) throw new Error('Task not found');
-
-            const ctx: FastTrackContext = {
-              task,
-              diff: input.diff,
-              quality: input.quality,
-              metadata: input.metadata
-            };
-
-            const result = evaluateFastTrack(ctx);
-            return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-          }
-          case 'fasttrack.guard_post_dev': {
-            const input = args as any;
-            const task = repo.get(input.task_id);
-            if (!task) throw new Error('Task not found');
-
-            const ctx: FastTrackContext = {
-              task,
-              diff: input.diff,
-              quality: input.quality,
-              metadata: input.metadata
-            };
-
-            const result = guardPostDev(ctx, input.reviewer_violations);
-            return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-          }
-          default:
-            throw new Error(`Unknown tool: ${name}`);
-        }
-        // This should never be reached due to the default case above
-        return { content: [{ type: 'text', text: 'Unexpected error' }], isError: true };
+        const result = await toolHandlers[name as ToolName](args);
+        return asSuccess(result);
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        return { content: [{ type: 'text', text: `Error: ${message}` }], isError: true };
+        if (error instanceof SemanticError) {
+          return asError(error.code, error.message);
+        }
+        if (error instanceof Error) {
+          return asError(500, error.message);
+        }
+        return asError(500, 'Unknown error');
       }
     });
   }
@@ -606,3 +815,9 @@ class TaskMCPServer {
 }
 
 export { TaskMCPServer };
+export const __test__ = {
+  toolHandlers,
+  toolValidators,
+  toolInputSchemas,
+  schemaValidator
+};

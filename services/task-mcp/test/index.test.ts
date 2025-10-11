@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the TaskMCPServer to avoid actual server startup in tests
 const mockStart = vi.fn().mockResolvedValue(undefined);
-vi.mock('../src/mcp/tools.js', () => ({
+vi.mock('../src/mcp/tools.ts', () => ({
   TaskMCPServer: vi.fn().mockImplementation(() => ({
     start: mockStart
   }))
@@ -13,6 +13,7 @@ describe('Index', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
     mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -22,7 +23,7 @@ describe('Index', () => {
 
   it('should start the server successfully', async () => {
     // Import after mocking to ensure the mock is used
-    const { TaskMCPServer } = await import('../src/mcp/tools.js');
+    const { TaskMCPServer } = await import('../src/mcp/tools.ts');
     const mockServer = new TaskMCPServer();
 
     // Re-import index to trigger the server startup

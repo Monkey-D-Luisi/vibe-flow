@@ -1,43 +1,52 @@
-import { TaskRecord } from '../domain/TaskRecord';
-import { evaluateFastTrack, FastTrackContext } from '../domain/FastTrack';
+import { TaskRecord } from '../domain/TaskRecord.js';
+import { evaluateFastTrack, FastTrackContext } from '../domain/FastTrack.js';
 
 export type AgentType = 'po' | 'architect' | 'dev' | 'reviewer' | 'qa' | 'prbot';
 
-export function nextAgent(tr: TaskRecord, fastTrackCtx?: FastTrackContext): AgentType | null {
-  // Fast-track evaluation for minor scope: PO → DEV (skip architect)
-  if (tr.status === 'po' && tr.scope === 'minor') {
-    if (fastTrackCtx) {
-      const evaluation = evaluateFastTrack(fastTrackCtx);
-      if (evaluation.eligible) {
-        return 'dev'; // Fast-track: PO → DEV
-      }
-    } else {
-      // Fallback: if no context provided, assume fast-track for minor scope
-      return 'dev';
-    }
-  }
+export interface NextAgentOptions {
+  fastTrack?: FastTrackContext;
+}
 
-  // Normal flow
+export function nextAgent(tr: TaskRecord, options: NextAgentOptions = {}): AgentType | null {
   switch (tr.status) {
-    case 'po':
+    case 'po': {
+      if (tr.scope === 'minor' && options.fastTrack) {
+        const evaluation = evaluateFastTrack(options.fastTrack);
+        if (evaluation.eligible) {
+          return 'dev';
+        }
+      }
       return 'architect';
+    }
     case 'arch':
       return 'dev';
     case 'dev':
       return 'reviewer';
     case 'review':
+      return 'po'; // PO realiza el PO Check
+    case 'po_check':
       return 'qa';
     case 'qa':
       return 'prbot';
     case 'pr':
-      return null; // End of flow
+      return null;
     default:
       return null;
   }
 }
 
 export function canTransitionTo(currentStatus: string, targetAgent: AgentType): boolean {
-  const expectedNext = nextAgent({ status: currentStatus } as TaskRecord);
+  const stubRecord: TaskRecord = {
+    id: 'TR-STUB00000000000000000000',
+    title: 'stub',
+    acceptance_criteria: ['stub'],
+    scope: 'major',
+    status: currentStatus as TaskRecord['status'],
+    rev: 0,
+    created_at: new Date(0).toISOString(),
+    updated_at: new Date(0).toISOString()
+  };
+  const expectedNext = nextAgent(stubRecord);
   return expectedNext === targetAgent;
 }
 
@@ -49,7 +58,7 @@ export function getAgentInputSchema(agent: AgentType): string {
     reviewer: 'dev_work_output',
     qa: 'reviewer_report',
     prbot: 'qa_report'
-  };
+  } as const;
   return schemas[agent];
 }
 
@@ -61,6 +70,6 @@ export function getAgentOutputSchema(agent: AgentType): string {
     reviewer: 'reviewer_report',
     qa: 'qa_report',
     prbot: 'pr_summary'
-  };
+  } as const;
   return schemas[agent];
 }

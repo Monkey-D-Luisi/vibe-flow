@@ -1,206 +1,101 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { runAgent, validateAgentOutput, runOrchestratorStep } from '../src/orchestrator/runner.js';
+import { describe, it, expect } from 'vitest';
+import { ulid } from 'ulid';
+import { runAgent, runOrchestratorStep, __test__ as runnerInternals } from '../src/orchestrator/runner.js';
+import { type FastTrackContext } from '../src/domain/FastTrack.js';
+import { type TaskRecord } from '../src/domain/TaskRecord.js';
 
-// Mock the repositories
-vi.mock('../src/repo/sqlite.js', () => ({
-  TaskRepository: vi.fn().mockImplementation(() => ({
-    get: vi.fn(),
-    update: vi.fn()
-  }))
-}));
+const { repo, stateRepo } = runnerInternals;
 
-vi.mock('../src/repo/state.js', () => ({
-  StateRepository: vi.fn().mockImplementation(() => ({
-    get: vi.fn(),
-    update: vi.fn(),
-    create: vi.fn()
-  })),
-  EventRepository: vi.fn().mockImplementation(() => ({
-    add: vi.fn()
-  })),
-  LeaseRepository: vi.fn().mockImplementation(() => ({
-    acquire: vi.fn().mockReturnValue({ lease_id: 'lease-123' }),
-    release: vi.fn()
-  }))
-}));
+const createTask = (overrides: Partial<TaskRecord> & { id?: string } = {}) => {
+  const task = repo.create({
+    id: overrides.id ?? `TR-${ulid()}`,
+    title: overrides.title ?? 'Test Task',
+    acceptance_criteria: overrides.acceptance_criteria ?? ['AC'],
+    scope: overrides.scope ?? 'minor',
+    status: overrides.status ?? 'po',
+    tags: overrides.tags ?? [],
+    metrics: overrides.metrics,
+    qa_report: overrides.qa_report,
+    links: overrides.links ?? {},
+    description: overrides.description
+  });
+  return task;
+};
 
-// Mock router functions
-vi.mock('../src/orchestrator/router.js', () => ({
-  nextAgent: vi.fn(),
-  getAgentInputSchema: vi.fn(),
-  getAgentOutputSchema: vi.fn()
-}));
+const createState = (taskId: string, current = 'po') => {
+  const state = stateRepo.get(taskId) ?? stateRepo.create(taskId);
+  if (state.current !== current) {
+    stateRepo.update(taskId, state.rev, { current, last_agent: state.last_agent });
+  }
+};
 
-// Mock FastTrack
-vi.mock('../src/domain/FastTrack.js', () => ({
-  evaluateFastTrack: vi.fn(),
-  guardPostDev: vi.fn()
-}));
+describe('Orchestrator Runner - integration smoke tests', () => {
+  it('runs PO step without fast-track and moves to architect', async () => {
+    const task = createTask({ scope: 'major' });
+    createState(task.id, 'po');
 
-// Mock FastTrackGitHub
-vi.mock('../src/domain/FastTrackGitHub.js', () => ({
-  FastTrackGitHub: vi.fn().mockImplementation(() => ({
-    handleFastTrackTransition: vi.fn()
-  }))
-}));
+    const result = await runOrchestratorStep(task.id, 'po');
+    expect(result.new_state.current).toBe('arch');
 
-// Mock fs for schema validation
-vi.mock('fs', () => ({
-  readFileSync: vi.fn()
-}));
-
-vi.mock('path', () => ({
-  join: vi.fn(),
-  dirname: vi.fn(),
-  fileURLToPath: vi.fn()
-}));
-
-vi.mock('url', () => ({
-  fileURLToPath: vi.fn()
-}));
-
-describe('Runner', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+    const updated = repo.get(task.id);
+    expect(updated?.status).toBe('arch');
+    expect(updated?.tags ?? []).not.toContain('fast-track:eligible');
   });
 
-  describe('runAgent', () => {
-    it('should run po agent', async () => {
-      const input = {
-        title: 'Test Task',
-        description: 'Test description',
-        acceptance_criteria: ['criteria1'],
-        scope: 'minor'
-      };
+  it('applies fast-track evaluation when context eligible', async () => {
+    const task = createTask({ scope: 'minor' });
+    createState(task.id, 'po');
 
-      const result = await runAgent('po', input);
-      expect(result).toBeDefined();
-      expect(typeof result).toBe('object');
-    });
+    const ctx: FastTrackContext = {
+      task,
+      diff: { files: ['src/feature.ts'], locAdded: 12, locDeleted: 2 },
+      quality: { coverage: 0.85, avgCyclomatic: 3, lintErrors: 0 },
+      metadata: { modulesChanged: false, publicApiChanged: false }
+    };
 
-    it('should run architect agent', async () => {
-      const input = {
-        title: 'Test Task',
-        acceptance_criteria: ['criteria1'],
-        scope: 'minor'
-      };
+    const result = await runOrchestratorStep(task.id, 'po', { fastTrackContext: ctx });
+    expect(result.new_state.current).toBe('dev');
 
-      const result = await runAgent('architect', input);
-      expect(result).toBeDefined();
-      expect(typeof result).toBe('object');
-    });
-
-    it('should run dev agent', async () => {
-      const input = {
-        modules: ['UserService'],
-        contracts: [{ name: 'UserRepository', methods: [] }],
-        patterns: [{ name: 'Repository', where: 'data', why: 'abstraction' }]
-      };
-
-      const result = await runAgent('dev', input);
-      expect(result).toBeDefined();
-      expect(typeof result).toBe('object');
-    });
-
-    it('should run reviewer agent', async () => {
-      const input = {
-        diff_summary: 'Implemented UserService',
-        metrics: { coverage: 0.85, lint: { errors: 0, warnings: 2 } },
-        red_green_refactor_log: ['RED: test fails', 'GREEN: implemented']
-      };
-
-      const result = await runAgent('reviewer', input);
-      expect(result).toBeDefined();
-      expect(typeof result).toBe('object');
-    });
-
-    it('should run qa agent', async () => {
-      const input = {
-        violations: [{
-          rule: 'SOLID',
-          where: 'UserService',
-          why: 'Single responsibility',
-          severity: 'med',
-          suggested_fix: 'Extract validator'
-        }],
-        summary: 'Good implementation'
-      };
-
-      const result = await runAgent('qa', input);
-      expect(result).toBeDefined();
-      expect(typeof result).toBe('object');
-    });
-
-    it('should run prbot agent', async () => {
-      const input = {
-        total: 25,
-        passed: 23,
-        failed: 2,
-        evidence: ['Unit tests passed', 'Integration failed']
-      };
-
-      const result = await runAgent('prbot', input);
-      expect(result).toBeDefined();
-      expect(typeof result).toBe('object');
-    });
+    const updated = repo.get(task.id)!;
+    expect(updated.status).toBe('dev');
+    expect(updated.tags).toContain('fast-track:eligible');
+    expect(updated.tags).toContain('fast-track');
   });
 
-  describe('validateAgentOutput', () => {
-    it('should validate po output', () => {
-      // Mock fs.readFileSync
-      const fs = require('fs');
-      fs.readFileSync.mockReturnValue(JSON.stringify({
-        type: 'object',
-        required: ['title'],
-        properties: { title: { type: 'string' } }
-      }));
+  it('revokes fast-track post-dev when reviewer reports high violations', async () => {
+    const task = createTask({
+      status: 'dev',
+      tags: ['fast-track', 'fast-track:eligible'],
+      metrics: { coverage: 0.9, lint: { errors: 0, warnings: 0 } }
+    });
+    createState(task.id, 'dev');
 
-      const output = { title: 'Test Task' };
-      expect(() => validateAgentOutput('po', output)).not.toThrow();
+    const ctx: FastTrackContext = {
+      task,
+      diff: { files: ['src/component.ts'], locAdded: 40, locDeleted: 10 },
+      quality: { coverage: 0.9, avgCyclomatic: 4, lintErrors: 0 },
+      metadata: { modulesChanged: false, publicApiChanged: false }
+    };
+
+    const result = await runOrchestratorStep(task.id, 'dev', {
+      fastTrackContext: ctx,
+      reviewerViolations: [{ severity: 'high', rule: 'SEC-001' }]
     });
 
-    it('should throw on invalid output', () => {
-      const fs = require('fs');
-      fs.readFileSync.mockReturnValue(JSON.stringify({
-        type: 'object',
-        required: ['title'],
-        properties: { title: { type: 'string' } }
-      }));
+    expect(result.fasttrack_revoked).toBe(true);
+    expect(result.revocation_reason).toBe('high_violations');
 
-      const output = { invalid: 'data' };
-      expect(() => validateAgentOutput('po', output)).toThrow();
-    });
+    const updated = repo.get(task.id)!;
+    expect(updated.status).toBe('arch');
+    expect(updated.tags).toContain('fast-track:revoked');
   });
 
-    it('should run orchestrator step for a task', async () => {
-      const taskId = 'TR-123';
-      const agentName = 'po';
-
-      // Mock the task repository to return a task
-      const { TaskRepository } = require('../src/repo/sqlite.js');
-      const mockTaskRepo = vi.mocked(TaskRepository).mock.results[0]?.value || TaskRepository.mock.results[0]?.value;
-      if (mockTaskRepo) {
-        mockTaskRepo.get.mockReturnValue({
-          id: taskId,
-          title: 'Test Task',
-          description: 'Test description',
-          acceptance_criteria: ['criteria1'],
-          scope: 'minor',
-          rev: 'rev-1'
-        });
-      }
-
-      // Mock the state repository to return a state
-      const { StateRepository } = require('../src/repo/state.js');
-      const mockStateRepo = vi.mocked(StateRepository).mock.results[0]?.value || StateRepository.mock.results[0]?.value;
-      if (mockStateRepo) {
-        mockStateRepo.get.mockReturnValue({
-          current: 'po',
-          rev: 'rev-1'
-        });
-      }
-
-      // This should execute without throwing
-      await expect(runOrchestratorStep(taskId, agentName)).resolves.not.toThrow();
+  it('provides baseline runAgent implementations', async () => {
+    const output = await runAgent('po', {
+      title: 'Task',
+      acceptance_criteria: ['AC'],
+      scope: 'minor'
     });
+    expect(output).toHaveProperty('title');
+  });
 });

@@ -66,6 +66,27 @@ describe('Task Transitions', () => {
     });
   });
 
+  describe('po -> dev', () => {
+    it('requires fast-track eligibility tags', () => {
+      const task = repo.create({
+        id: 'TR-FT01',
+        title: 'PO Fast Track',
+        acceptance_criteria: ['test'],
+        scope: 'minor',
+        status: 'po'
+      });
+
+      const invalid = TaskRecordValidator.validateTransition('po', 'dev', task);
+      expect(invalid.valid).toBe(false);
+
+      const tagged = repo.update(task.id, task.rev, {
+        tags: ['fast-track', 'fast-track:eligible']
+      });
+      const valid = TaskRecordValidator.validateTransition('po', 'dev', tagged);
+      expect(valid.valid).toBe(true);
+    });
+  });
+
   describe('review -> dev', () => {
     it('should always pass and increment rounds_review', () => {
       const task = repo.create({
