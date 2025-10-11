@@ -1,8 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ulid } from 'ulid';
-import { runAgent, runOrchestratorStep, __test__ as runnerInternals } from '../src/orchestrator/runner.js';
+import * as runnerModule from '../src/orchestrator/runner.js';
 import { type FastTrackContext } from '../src/domain/FastTrack.js';
 import { type TaskRecord } from '../src/domain/TaskRecord.js';
+
+const { runAgent, runOrchestratorStep, __test__: runnerInternals } = runnerModule;
 
 const { repo, stateRepo, fastTrackGitHub } = runnerInternals;
 
@@ -134,5 +136,50 @@ describe('Orchestrator Runner - integration smoke tests', () => {
       scope: 'minor'
     });
     expect(output).toHaveProperty('title');
+  });
+
+  it('blocks qa -> pr when QA report has failures', async () => {
+    const originalRunAgent = runnerModule.runAgent;
+    const qaFailSpy = vi
+      .spyOn(runnerModule, 'runAgent')
+      .mockImplementation(async (agent, input) => {
+        if (agent === 'qa') {
+          return { total: 10, passed: 8, failed: 2, evidence: ['Integration tests failed'] };
+        }
+        return originalRunAgent(agent, input);
+      });
+
+    const task = createTask({ status: 'qa' });
+    createState(task.id, 'qa');
+
+    await expect(runOrchestratorStep(task.id, 'qa')).rejects.toThrow('QA must pass with 0 failures');
+
+    const persisted = repo.get(task.id);
+    expect(persisted?.status).toBe('qa');
+
+    qaFailSpy.mockRestore();
+  });
+
+  it('enforces po_check in the happy path before QA', async () => {
+    const task = createTask({ scope: 'major' });
+    createState(task.id, 'po');
+
+    await runOrchestratorStep(task.id, 'po');
+    expect(stateRepo.get(task.id)?.current).toBe('arch');
+
+    await runOrchestratorStep(task.id, 'architect');
+    expect(stateRepo.get(task.id)?.current).toBe('dev');
+
+    await runOrchestratorStep(task.id, 'dev');
+    expect(stateRepo.get(task.id)?.current).toBe('review');
+
+    await runOrchestratorStep(task.id, 'reviewer');
+    expect(stateRepo.get(task.id)?.current).toBe('po_check');
+
+    await runOrchestratorStep(task.id, 'po');
+    expect(stateRepo.get(task.id)?.current).toBe('qa');
+
+    await runOrchestratorStep(task.id, 'qa');
+    expect(stateRepo.get(task.id)?.current).toBe('pr');
   });
 });

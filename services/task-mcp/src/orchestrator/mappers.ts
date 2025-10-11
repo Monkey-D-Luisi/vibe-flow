@@ -1,6 +1,10 @@
 import { TaskRecord } from '../domain/TaskRecord.js';
 import { AgentType } from './router.js';
 
+type PoOutput = {
+  acceptance_criteria_met?: boolean;
+};
+
 type ArchitectOutput = {
   modules?: string[];
   contracts?: TaskRecord['contracts'];
@@ -41,7 +45,7 @@ type AgentOutput = Record<string, unknown>;
 export function mapAgentOutput(agent: AgentType, output: AgentOutput): Partial<TaskRecord> {
   switch (agent) {
     case 'po':
-      return {};
+      return mapPoOutput(output as PoOutput);
     case 'architect':
       return mapArchitectOutput(output as ArchitectOutput);
     case 'dev':
@@ -55,6 +59,14 @@ export function mapAgentOutput(agent: AgentType, output: AgentOutput): Partial<T
     default:
       throw new Error(`Unknown agent type: ${agent}`);
   }
+}
+
+function mapPoOutput(output: PoOutput): Partial<TaskRecord> {
+  const patch: Partial<TaskRecord> = {};
+  if (typeof output.acceptance_criteria_met === 'boolean') {
+    patch.acceptance_criteria_met = output.acceptance_criteria_met;
+  }
+  return patch;
 }
 
 function mapArchitectOutput(output: ArchitectOutput): Partial<TaskRecord> {

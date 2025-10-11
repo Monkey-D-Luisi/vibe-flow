@@ -2,9 +2,10 @@ import Ajv from 'ajv';
 import { AgentType } from './router';
 import { TaskRepository } from '../repo/sqlite';
 import { StateRepository, EventRepository, LeaseRepository } from '../repo/state';
-import { TaskRecord } from '../domain/TaskRecord';
+import { TaskRecord, TaskRecordValidator, type TransitionEvidence } from '../domain/TaskRecord';
 import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/FastTrack';
 import { FastTrackGitHub } from '../domain/FastTrackGitHub';
+import { mapAgentOutput } from './mappers.js';
 
 const ajv = new Ajv({ allErrors: true, strict: false });
 
@@ -52,7 +53,8 @@ export async function runAgent(agent: AgentType, input: any): Promise<any> {
         acceptance_criteria: input.acceptance_criteria,
         scope: input.scope,
         non_functional: ['Security: data encryption', 'Performance: < 2s response'],
-        done_if: ['User can login successfully', 'Password is encrypted']
+        done_if: ['User can login successfully', 'Password is encrypted'],
+        acceptance_criteria_met: true
       };
 
     case 'architect':
@@ -101,11 +103,10 @@ export async function runAgent(agent: AgentType, input: any): Promise<any> {
     case 'qa':
       return {
         total: 25,
-        passed: 23,
-        failed: 2,
+        passed: 25,
+        failed: 0,
         evidence: [
-          'Unit tests: 20/20 passed',
-          'Integration tests: 3/5 failed - timeout issues',
+          'Unit tests: 25/25 passed',
           'Coverage report: coverage.json'
         ]
       };
@@ -208,9 +209,32 @@ export async function runOrchestratorStep(
     // Validate output
     const validatedOutput = validateAgentOutput(agentType, output);
 
-    // Update task record with agent output and new status
     const nextState = determineNextState(state.current, task);
-    const updatedTask = updateTaskWithAgentOutput(task, agentType, validatedOutput, nextState as TaskRecord['status']);
+    const agentPatch = mapAgentOutput(agentType, validatedOutput);
+    const patch: Partial<TaskRecord> = { ...agentPatch };
+    if (nextState && task.status !== nextState) {
+      patch.status = nextState as TaskRecord['status'];
+    }
+
+    const candidateTask = applyPatchToTask(task, patch);
+    const transitionEvidence = buildTransitionEvidence(
+      state.current as TaskRecord['status'],
+      nextState as TaskRecord['status'],
+      validatedOutput
+    );
+    const validation = TaskRecordValidator.validateTransition(
+      task.status,
+      nextState as TaskRecord['status'],
+      candidateTask,
+      transitionEvidence
+    );
+
+    if (!validation.valid) {
+      throw new Error(`Transition guard failed: ${validation.reason ?? 'Unknown reason'}`);
+    }
+
+    const updatedTask = repo.update(task.id, task.rev, patch);
+    Object.assign(task, updatedTask);
 
     // Update orchestrator state
     const stateUpdate: any = {
@@ -385,58 +409,95 @@ function prepareAgentInput(task: TaskRecord, state: any, agentType: AgentType): 
   }
 }
 
-function updateTaskWithAgentOutput(
-  task: TaskRecord,
-  agentType: AgentType,
-  output: any,
-  nextStatus?: TaskRecord['status']
-): TaskRecord {
-  const patch: Partial<TaskRecord> = {};
+function applyPatchToTask(task: TaskRecord, patch: Partial<TaskRecord>): TaskRecord {
+  const candidate: TaskRecord = {
+    ...task,
+    ...patch,
+    status: (patch.status ?? task.status) as TaskRecord['status']
+  };
 
-  switch (agentType) {
-    case 'po':
-      // Store PO output in appropriate fields
-      break;
-    case 'architect':
-      // Store architect output (ADR, contracts, etc.)
-      if (output.adr_id) patch.adr_id = output.adr_id;
-      if (output.contracts) patch.contracts = output.contracts;
-      if (output.patterns) patch.patterns = output.patterns;
-      if (output.test_plan) patch.test_plan = output.test_plan;
-      break;
-    case 'dev':
-      // Store dev output (metrics, logs, etc.)
-      if (output.metrics) patch.metrics = output.metrics;
-      if (output.red_green_refactor_log) patch.red_green_refactor_log = output.red_green_refactor_log;
-      if (output.diff_summary) patch.diff_summary = output.diff_summary;
-      break;
-    case 'reviewer':
-      // Store reviewer output
-      if (output.violations) patch.review_notes = output.violations.map((v: any) => `${v.rule}: ${v.message}`);
-      break;
-    case 'qa':
-      // Store QA output
-      if (output.total !== undefined && output.passed !== undefined && output.failed !== undefined) {
-        patch.qa_report = { total: output.total, passed: output.passed, failed: output.failed };
+  if (task.metrics || patch.metrics) {
+    candidate.metrics = {
+      ...(task.metrics ?? {}),
+      ...(patch.metrics ?? {}),
+      lint: patch.metrics?.lint
+        ? { ...(task.metrics?.lint ?? {}), ...patch.metrics.lint }
+        : task.metrics?.lint
+    };
+  }
+
+  if (task.qa_report || patch.qa_report) {
+    candidate.qa_report = { ...(task.qa_report ?? {}), ...(patch.qa_report ?? {}) };
+  }
+
+  if (patch.review_notes) {
+    candidate.review_notes = [...patch.review_notes];
+  } else if (task.review_notes) {
+    candidate.review_notes = [...task.review_notes];
+  }
+
+  if (patch.red_green_refactor_log) {
+    candidate.red_green_refactor_log = [...patch.red_green_refactor_log];
+  } else if (task.red_green_refactor_log) {
+    candidate.red_green_refactor_log = [...task.red_green_refactor_log];
+  }
+
+  if (task.links || patch.links) {
+    candidate.links = {
+      ...(task.links ?? {}),
+      ...(patch.links ?? {}),
+      github: patch.links?.github
+        ? { ...(task.links?.github ?? {}), ...patch.links.github }
+        : task.links?.github,
+      git: patch.links?.git ? { ...(task.links?.git ?? {}), ...patch.links.git } : task.links?.git
+    };
+  }
+
+  if (patch.tags) {
+    candidate.tags = [...patch.tags];
+  } else if (task.tags) {
+    candidate.tags = [...task.tags];
+  }
+
+  if (typeof patch.acceptance_criteria_met === 'boolean') {
+    candidate.acceptance_criteria_met = patch.acceptance_criteria_met;
+  }
+
+  return candidate;
+}
+
+function buildTransitionEvidence(
+  from: TaskRecord['status'],
+  to: TaskRecord['status'],
+  output: any
+): TransitionEvidence | undefined {
+  switch (`${from}->${to}`) {
+    case 'review->po_check':
+      return { violations: output?.violations ?? [] };
+    case 'po_check->qa':
+      if (typeof output?.acceptance_criteria_met === 'boolean') {
+        return { acceptance_criteria_met: output.acceptance_criteria_met };
       }
-      break;
-    case 'prbot':
-      // Store PR output
-      if (output.branch) patch.branch = output.branch;
-      break;
+      return undefined;
+    case 'qa->pr':
+      if (output && typeof output.total === 'number') {
+        return {
+          qa_report: {
+            total: output.total,
+            passed: output.passed,
+            failed: output.failed
+          }
+        };
+      }
+      return undefined;
+    case 'pr->done':
+      if (typeof output?.merged === 'boolean') {
+        return { merged: output.merged };
+      }
+      return undefined;
+    default:
+      return undefined;
   }
-
-  if (nextStatus && task.status !== nextStatus) {
-    patch.status = nextStatus;
-  }
-
-  if (Object.keys(patch).length === 0) {
-    return task;
-  }
-
-  const updated = repo.update(task.id, task.rev, patch);
-  Object.assign(task, updated);
-  return task;
 }
 
 function wasFastTrack(task: TaskRecord): boolean {
