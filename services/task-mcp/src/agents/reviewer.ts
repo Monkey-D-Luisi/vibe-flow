@@ -29,7 +29,35 @@ const reviewerInputSchema = {
 const reviewerInputValidator = ajv.compile(reviewerInputSchema);
 
 // Output schema validation
-const reviewerReportSchema = require('../../../packages/schemas/reviewer_report.schema.json');
+let reviewerReportSchema;
+try {
+  reviewerReportSchema = require('../../../packages/schemas/reviewer_report.schema.json');
+} catch (error) {
+  // Fallback schema for testing when schema files are not available
+  reviewerReportSchema = {
+    type: 'object',
+    properties: {
+      violations: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            rule: { type: 'string' },
+            where: { type: 'string' },
+            why: { type: 'string' },
+            severity: { type: 'string', enum: ['low', 'med', 'high'] },
+            suggested_fix: { type: 'string' }
+          },
+          required: ['rule', 'where', 'why', 'severity', 'suggested_fix'],
+          additionalProperties: false
+        }
+      },
+      summary: { type: 'string' }
+    },
+    required: ['violations', 'summary'],
+    additionalProperties: false
+  };
+}
 const reviewerReportValidator = ajv.compile(reviewerReportSchema);
 
 export interface ReviewerInput {

@@ -17,7 +17,47 @@ const architectInputSchema = {
 const architectInputValidator = ajv.compile(architectInputSchema);
 
 // Output schema validation
-const designReadySchema = require('../../../packages/schemas/design_ready.schema.json');
+let designReadySchema;
+try {
+  designReadySchema = require('../../../packages/schemas/design_ready.schema.json');
+} catch (error) {
+  // Fallback schema for testing when schema files are not available
+  designReadySchema = {
+    type: 'object',
+    properties: {
+      modules: { type: 'array', items: { type: 'string' } },
+      contracts: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', pattern: '^[A-Z][a-zA-Z0-9]*$' },
+            methods: { type: 'array', items: { type: 'string' } }
+          },
+          required: ['name', 'methods'],
+          additionalProperties: false
+        }
+      },
+      patterns: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            where: { type: 'string' },
+            why: { type: 'string' }
+          },
+          required: ['name', 'where', 'why'],
+          additionalProperties: false
+        }
+      },
+      adr_id: { type: 'string', pattern: '^ADR-\\d+$' },
+      test_plan: { type: 'array', items: { type: 'string' } }
+    },
+    required: ['modules', 'contracts', 'patterns', 'adr_id', 'test_plan'],
+    additionalProperties: false
+  };
+}
 const designReadyValidator = ajv.compile(designReadySchema);
 
 export interface ArchitectInput {

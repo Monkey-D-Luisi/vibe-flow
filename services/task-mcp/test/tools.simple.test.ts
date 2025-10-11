@@ -1,15 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TaskMCPServer } from '../src/mcp/tools.js';
 
-// Mock the repositories to avoid database dependencies
-vi.mock('../src/repo/sqlite.js', () => ({
-  TaskRepository: vi.fn().mockImplementation(() => ({
-    create: vi.fn().mockReturnValue({ id: 'TR-123', title: 'Test Task' }),
-    get: vi.fn().mockReturnValue({ id: 'TR-123', title: 'Test Task', status: 'po' }),
-    update: vi.fn().mockReturnValue({ id: 'TR-123', status: 'arch' }),
-    search: vi.fn().mockReturnValue([])
-  }))
-}));
+// Mock the MCP SDK to avoid actual connections
+vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => {
+  const mockStdioServerTransport = vi.fn();
+  return {
+    StdioServerTransport: mockStdioServerTransport
+  };
+});
 
 vi.mock('../src/repo/state.js', () => ({
   StateRepository: vi.fn().mockImplementation(() => ({
@@ -52,16 +50,6 @@ describe('TaskMCPServer', () => {
   it('should start without errors', async () => {
     // Mock console.error to avoid output during tests
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    // Mock the transport to avoid actual connection
-    const mockTransport = {
-      start: vi.fn(),
-      close: vi.fn()
-    };
-
-    // Replace the transport creation
-    const originalTransport = require('@modelcontextprotocol/sdk/server/stdio.js').StdioServerTransport;
-    vi.mocked(originalTransport).mockImplementation(() => mockTransport);
 
     // This will execute the setupHandlers method and attempt to connect
     try {

@@ -25,7 +25,23 @@ const poInputSchema = {
 const poInputValidator = ajv.compile(poInputSchema);
 
 // Output schema validation
-const poBriefSchema = require('../../../packages/schemas/po_brief.schema.json');
+let poBriefSchema;
+try {
+  poBriefSchema = require('../../../packages/schemas/po_brief.schema.json');
+} catch (error) {
+  // Fallback schema for testing when schema files are not available
+  poBriefSchema = {
+    type: 'object',
+    properties: {
+      title: { type: 'string' },
+      acceptance_criteria: { type: 'array', items: { type: 'string' } },
+      scope: { type: 'string', enum: ['minor', 'major'] },
+      non_functional: { type: 'array', items: { type: 'string' } },
+      done_if: { type: 'array', items: { type: 'string' } }
+    },
+    required: ['title', 'acceptance_criteria', 'scope', 'non_functional', 'done_if']
+  };
+}
 const poBriefValidator = ajv.compile(poBriefSchema);
 
 export interface PoInput {

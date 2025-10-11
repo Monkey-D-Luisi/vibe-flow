@@ -12,7 +12,8 @@ vi.mock('../src/repo/sqlite.js', () => ({
 vi.mock('../src/repo/state.js', () => ({
   StateRepository: vi.fn().mockImplementation(() => ({
     get: vi.fn(),
-    update: vi.fn()
+    update: vi.fn(),
+    create: vi.fn()
   })),
   EventRepository: vi.fn().mockImplementation(() => ({
     add: vi.fn()
@@ -147,39 +148,59 @@ describe('Runner', () => {
   describe('validateAgentOutput', () => {
     it('should validate po output', () => {
       // Mock fs.readFileSync
-      const mockReadFileSync = vi.fn().mockReturnValue(JSON.stringify({
+      const fs = require('fs');
+      fs.readFileSync.mockReturnValue(JSON.stringify({
         type: 'object',
         required: ['title'],
         properties: { title: { type: 'string' } }
       }));
-
-      vi.mocked(require('fs')).readFileSync = mockReadFileSync;
 
       const output = { title: 'Test Task' };
       expect(() => validateAgentOutput('po', output)).not.toThrow();
     });
 
     it('should throw on invalid output', () => {
-      const mockReadFileSync = vi.fn().mockReturnValue(JSON.stringify({
+      const fs = require('fs');
+      fs.readFileSync.mockReturnValue(JSON.stringify({
         type: 'object',
         required: ['title'],
         properties: { title: { type: 'string' } }
       }));
-
-      vi.mocked(require('fs')).readFileSync = mockReadFileSync;
 
       const output = { invalid: 'data' };
       expect(() => validateAgentOutput('po', output)).toThrow();
     });
   });
 
-  describe('runOrchestratorStep', () => {
     it('should run orchestrator step for a task', async () => {
       const taskId = 'TR-123';
       const agentName = 'po';
 
+      // Mock the task repository to return a task
+      const { TaskRepository } = require('../src/repo/sqlite.js');
+      const mockTaskRepo = vi.mocked(TaskRepository).mock.results[0]?.value || TaskRepository.mock.results[0]?.value;
+      if (mockTaskRepo) {
+        mockTaskRepo.get.mockReturnValue({
+          id: taskId,
+          title: 'Test Task',
+          description: 'Test description',
+          acceptance_criteria: ['criteria1'],
+          scope: 'minor',
+          rev: 'rev-1'
+        });
+      }
+
+      // Mock the state repository to return a state
+      const { StateRepository } = require('../src/repo/state.js');
+      const mockStateRepo = vi.mocked(StateRepository).mock.results[0]?.value || StateRepository.mock.results[0]?.value;
+      if (mockStateRepo) {
+        mockStateRepo.get.mockReturnValue({
+          current: 'po',
+          rev: 'rev-1'
+        });
+      }
+
       // This should execute without throwing
       await expect(runOrchestratorStep(taskId, agentName)).resolves.not.toThrow();
     });
-  });
 });
