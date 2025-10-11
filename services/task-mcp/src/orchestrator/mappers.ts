@@ -121,6 +121,20 @@ function mapPrBotOutput(output: PrBotOutput): Partial<TaskRecord> {
 }
 
 function extractPrNumber(prUrl: string): number {
-  const match = prUrl.match(/\/pull\/(\d+)$/);
+  try {
+    const parsed = new URL(prUrl);
+    const segments = parsed.pathname.split('/').filter(Boolean);
+    const pullIndex = segments.findIndex((segment) => segment === 'pull' || segment === 'pulls');
+    if (pullIndex >= 0 && segments[pullIndex + 1]) {
+      const candidate = Number.parseInt(segments[pullIndex + 1], 10);
+      if (Number.isFinite(candidate)) {
+        return candidate;
+      }
+    }
+  } catch (error) {
+    // Fall through to regex fallback when URL parsing fails
+  }
+
+  const match = prUrl.match(/pulls?\/(\d+)/);
   return match ? Number.parseInt(match[1], 10) : 0;
 }

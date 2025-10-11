@@ -128,7 +128,10 @@ export function evaluateFastTrack(ctx: FastTrackContext): FastTrackResult {
   return { eligible, score, reasons, hardBlocks };
 }
 
-export function guardPostDev(ctx: FastTrackContext, reviewerViolations?: Array<{ severity: string }>): PostDevGuardResult {
+export function guardPostDev(
+  ctx: FastTrackContext,
+  reviewerViolations?: Array<{ severity: string; rule?: string }>
+): PostDevGuardResult {
   const coverageThreshold = ctx.task.scope === 'major' ? 0.8 : 0.7;
   if ((ctx.quality.coverage ?? 0) < coverageThreshold) {
     return { revoke: true, reason: 'coverage_below_threshold' };

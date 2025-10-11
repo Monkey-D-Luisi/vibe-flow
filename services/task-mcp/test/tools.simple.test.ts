@@ -103,14 +103,9 @@ describe('MCP tools contract smoke tests', () => {
   });
 
   it('appends events only when orchestrator state exists', async () => {
-    const created = await toolHandlers['task.create']({
-      title: 'Event task',
-      acceptance_criteria: ['AC'],
-      scope: 'minor'
-    });
     await expect(
       toolHandlers['state.append_event']({
-        task_id: created.id,
+        task_id: 'TR-AAAAAAAAAAAAAAAAAAAAAAAAAA',
         type: 'transition',
         payload: { from: 'po', to: 'arch' }
       })

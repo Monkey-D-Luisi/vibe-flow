@@ -65,7 +65,7 @@ describe('FastTrackGitHub helpers', () => {
     const guard: PostDevGuardResult = { revoke: true, reason: 'coverage_below_threshold' };
     await github.onFastTrackRevoked(task, guard, 55);
 
-    expect(addLabels).toHaveBeenCalledWith({ number: 55, labels: ['fast-track:revoked'], type: 'pr' });
+    expect(addLabels).toHaveBeenCalledWith({ number: 55, labels: ['fast-track', 'fast-track:revoked'], type: 'pr' });
     const body = comment.mock.calls[0][0].body;
     expect(body).toContain('Fast-track revoked for Fast Track Task');
     expect(body).toContain('Coverage dropped below required threshold');

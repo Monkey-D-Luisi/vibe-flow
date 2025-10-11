@@ -56,7 +56,7 @@ export class FastTrackGitHub {
   async onFastTrackRevoked(task: TaskRecord, guardResult: PostDevGuardResult, prNumber?: number): Promise<void> {
     if (!prNumber || !guardResult.revoke) return;
 
-    await this.addLabels({ number: prNumber, labels: [LABEL_REVOKED], type: 'pr' });
+    await this.addLabels({ number: prNumber, labels: [LABEL_FAST_TRACK, LABEL_REVOKED], type: 'pr' });
 
     await this.comment({
       number: prNumber,
@@ -77,37 +77,33 @@ export class FastTrackGitHub {
   }
 
   private getLabelsForEvaluation(result: FastTrackResult): string[] {
-    if (result.eligible) {
-      return [LABEL_FAST_TRACK, LABEL_ELIGIBLE];
-    }
-
-    const labels = [LABEL_FAST_TRACK];
-    if (result.hardBlocks.length > 0) {
-      labels.push(LABEL_BLOCKED);
-    }
-    return labels;
+    return result.eligible
+      ? [LABEL_FAST_TRACK, LABEL_ELIGIBLE]
+      : [LABEL_FAST_TRACK, LABEL_BLOCKED];
   }
 
   private buildEvaluationComment(task: TaskRecord, result: FastTrackResult): string {
     const header = `## Fast-track evaluation for ${task.title}`;
-    const summary = [
-      `**Eligible:** ${result.eligible ? 'Yes' : 'No'}`,
-      `**Score:** ${result.score}/100`
+    const summaryTable = [
+      '| Metric | Value |',
+      '| --- | --- |',
+      `| Eligible | ${result.eligible ? 'YES' : 'NO'} |`,
+      `| Score | ${result.score}/100 |`
     ].join('\n');
 
     const reasonsSection = result.reasons.length
-      ? `\n**Reasons**\n${result.reasons.map(reason => `- ${this.formatReason(reason)}`).join('\n')}`
+      ? [``, '### Reasons', ...result.reasons.map(reason => `- ${this.formatReason(reason)}`)].join('\n')
       : '';
 
     const blocksSection = result.hardBlocks.length
-      ? `\n**Hard blocks**\n${result.hardBlocks.map(block => `- ${this.formatHardBlock(block)}`).join('\n')}`
+      ? [``, '### Hard blocks', ...result.hardBlocks.map(block => `- ${this.formatHardBlock(block)}`)].join('\n')
       : '';
 
     const footer = result.eligible
-      ? '\nFast-track approved. The task can skip Architecture and move directly to Development.'
-      : '\nFast-track blocked. Follow the standard Architecture review before continuing.';
+      ? '\nFast-track approved. The task can move directly to Development.'
+      : '\nFast-track blocked. Continue with the Architecture review path.';
 
-    return [header, summary, reasonsSection, blocksSection, footer].join('\n').trim();
+    return [header, summaryTable, reasonsSection, blocksSection, footer].filter(Boolean).join('\n').trim();
   }
 
   private buildRevocationComment(task: TaskRecord, guardResult: PostDevGuardResult): string {

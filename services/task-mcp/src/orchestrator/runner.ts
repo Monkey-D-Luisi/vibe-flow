@@ -39,8 +39,9 @@ const fastTrackGitHub = new FastTrackGitHub(
   mockGitHub.comment
 );
 
-// Mock agent execution - in real implementation this would call OpenAI Agent Builder or similar
-export async function runAgent(agent: AgentType, input: any): Promise<any> {
+type AgentRunner = (agent: AgentType, input: any) => Promise<any>;
+
+const defaultAgentRunner: AgentRunner = async (agent, input) => {
   // This is a placeholder - in real implementation would call the actual agent
   // For now, return mock data that matches the expected schema
 
@@ -117,25 +118,30 @@ export async function runAgent(agent: AgentType, input: any): Promise<any> {
         branch: 'feature/user-auth',
         pr_url: 'https://github.com/org/repo/pull/123',
         checklist: [
-          '✅ ACs cumplidos',
-          '✅ RGR log: red→green→refactor',
-          '✅ Cobertura ≥ 80%',
-          '✅ Lint 0 errores',
-          '✅ ADR-001 registrado',
-          '✅ QA: 23/25 tests pasaron'
+          '[x] ACs cumplidos',
+          '[x] RGR log: red>green>refactor',
+          '[x] Cobertura >= 80%',
+          '[x] Lint 0 errores',
+          '[x] ADR-001 registrado',
+          '[x] QA: 23/25 tests pasaron'
         ]
       };
 
     default:
       throw new Error(`Unknown agent: ${agent}`);
   }
-}
+};
+
+let agentRunner: AgentRunner = defaultAgentRunner;
+
+// Mock agent execution - in real implementation this would call OpenAI Agent Builder or similar
+export const runAgent: AgentRunner = async (agent, input) => agentRunner(agent, input);
 
 // Run one step of the orchestrator for a task
 export async function runOrchestratorStep(
   taskId: string,
   agentName: string,
-  options: { fastTrackContext?: FastTrackContext; reviewerViolations?: Array<{ severity: string }> } = {}
+  options: { fastTrackContext?: FastTrackContext; reviewerViolations?: Array<{ severity: string; rule?: string }> } = {}
 ): Promise<any> {
   // Acquire lease for exclusive access
   const lease = leaseRepo.acquire(taskId, agentName, 300); // 5 minute lease
@@ -281,10 +287,13 @@ export async function runOrchestratorStep(
             await fastTrackGitHub.onFastTrackRevoked(updatedTask, guardResult, prNumber);
           }
 
-          // Update task tags
-          const tags = updatedTask.tags ? [...updatedTask.tags] : [];
-          tags.push('fast-track:revoked');
-          const revokedTask = repo.update(taskId, updatedTask.rev, { tags, status: 'arch' });
+          // Update task tags then persist revocation status
+          const tags = new Set(updatedTask.tags ?? []);
+          tags.add('fast-track');
+          tags.add('fast-track:revoked');
+          tags.delete('fast-track:eligible');
+          tags.delete('fast-track:blocked');
+          const revokedTask = repo.update(taskId, updatedTask.rev, { tags: Array.from(tags), status: 'arch' });
           Object.assign(updatedTask, revokedTask);
 
           return {
@@ -463,11 +472,10 @@ function summarizeOutput(output: any): string {
 
 function getPrNumber(task: TaskRecord): number | undefined {
   const gitLink = task.links?.git;
-  if (gitLink?.prNumber) {
+  if (gitLink?.prNumber && Number.isInteger(gitLink.prNumber) && gitLink.prNumber > 0) {
     return gitLink.prNumber;
   }
-  const githubLink = task.links?.github;
-  return githubLink?.issueNumber;
+  return undefined;
 }
 
 function cloneFastTrackContext(ctx: FastTrackContext, task: TaskRecord): FastTrackContext {
@@ -518,12 +526,19 @@ function buildDefaultFastTrackContext(task: TaskRecord): FastTrackContext {
   };
 }
 
+function setAgentRunnerOverride(fn?: AgentRunner) {
+  agentRunner = fn ?? defaultAgentRunner;
+}
+
 export const __test__ = {
   repo,
   stateRepo,
   eventRepo,
   leaseRepo,
-  fastTrackGitHub
+  fastTrackGitHub,
+  setAgentRunner: setAgentRunnerOverride,
+  resetAgentRunner: () => setAgentRunnerOverride(),
+  defaultAgentRunner
 };
 
 import { readFileSync } from 'fs';

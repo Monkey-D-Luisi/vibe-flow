@@ -1,4 +1,4 @@
-import Ajv, { type AnyValidateFunction } from 'ajv';
+import Ajv, { type ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -439,7 +439,7 @@ const toolDescriptions: Record<ToolName, string> = {
 
 const toolValidators = Object.fromEntries(
   Object.entries(toolInputSchemas).map(([name, schema]) => [name, schemaValidator.compile(schema)])
-) as Record<string, AnyValidateFunction>;
+) as Record<string, ValidateFunction>;
 
 const repo = new TaskRepository();
 const stateRepo = new StateRepository(repo.database);
@@ -464,6 +464,7 @@ const toolHandlers: Record<ToolName, (args: any) => Promise<any>> = {
       tags: args.tags ?? [],
       links: args.links ?? {}
     });
+    stateRepo.create(record.id);
     return record;
   },
   'task.get': async (args) => {
