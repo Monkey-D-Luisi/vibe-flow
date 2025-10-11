@@ -64,6 +64,43 @@ importers:
         specifier: ^2.0.5
         version: 2.1.9(@types/node@22.18.9)
 
+  tooling/quality-mcp:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^0.5.0
+        version: 0.5.0
+      ajv:
+        specifier: ^8.17.1
+        version: 8.17.1
+      ajv-formats:
+        specifier: ^3.0.1
+        version: 3.0.1(ajv@8.17.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.5.4
+        version: 22.18.9
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^6.21.0
+        version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^6.21.0
+        version: 6.21.0(eslint@8.57.1)(typescript@5.9.3)
+      '@vitest/coverage-v8':
+        specifier: ^2.0.5
+        version: 2.1.9(vitest@2.1.9(@types/node@22.18.9))
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      tsx:
+        specifier: ^4.16.0
+        version: 4.20.6
+      typescript:
+        specifier: ^5.6.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.5
+        version: 2.1.9(@types/node@22.18.9)
+
 packages:
 
   '@ampproject/remapping@2.3.0':

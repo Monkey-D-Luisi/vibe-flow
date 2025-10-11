@@ -12,6 +12,7 @@
     "husky": "^9.1.7"
   },
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "q:tests": "npx tsx tooling/quality-mcp/cli/qcli.ts run --tests"
   }
 }

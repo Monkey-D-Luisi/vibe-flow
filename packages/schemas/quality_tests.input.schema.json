@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunTestsInput",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "cwd": { "type": "string", "description": "Directorio desde el que ejecutar" },
+    "cmd": { "type": "string", "description": "Comando de test", "default": "pnpm -C services/task-mcp test -- --reporter=json" },
+    "timeoutMs": { "type": "integer", "minimum": 1000, "default": 600000 },
+    "envAllow": { "type": "array", "items": { "type": "string" }, "default": ["NODE_ENV"] }
+  }
+}
