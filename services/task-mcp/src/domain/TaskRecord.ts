@@ -1,6 +1,38 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 
+export interface TransitionViolation {
+  rule?: string;
+  where?: string;
+  why?: string;
+  severity: 'low' | 'medium' | 'high';
+  suggested_fix?: string;
+  message?: string;
+}
+
+export interface TransitionEvidence {
+  metrics?: {
+    coverage?: number;
+    lint?: {
+      errors?: number;
+      warnings?: number;
+    };
+  };
+  red_green_refactor_log?: string[];
+  qa_report?: {
+    total?: number;
+    passed?: number;
+    failed?: number;
+  };
+  violations?: TransitionViolation[];
+  acceptance_criteria_met?: boolean;
+  merged?: boolean;
+  fast_track?: {
+    eligible: boolean;
+    score: number;
+  };
+}
+
 const idPattern = "^TR-[0-9A-HJKMNP-TV-Z]{26}$";
 
 const schema = {
@@ -25,7 +57,7 @@ const schema = {
     },
     "scope": {"type": "string", "enum": ["minor", "major"]},
     "modules": {
-      "type": "array", "items": {"type": "string", "pattern": "^[a-z][a-z0-9_\-]*(/[a-z0-9_\-]+)*$"}, "uniqueItems": true
+      "type": "array", "items": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*(/[a-z0-9_-]+)*$"}, "uniqueItems": true
     },
     "contracts": {
       "type": "array",
@@ -162,11 +194,16 @@ export interface TaskRecord {
 
 // Domain invariants and specific validations beyond schema
 export class TaskRecordValidator {
-  static validateSchema(record: any): boolean {
+  static validateSchema(record: unknown): boolean {
     return validateSchema(record);
   }
 
-  static validateTransition(from: TaskRecord['status'], to: TaskRecord['status'], record: TaskRecord, evidence?: any): { valid: boolean; reason?: string } {
+  static validateTransition(
+    from: TaskRecord['status'],
+    to: TaskRecord['status'],
+    record: TaskRecord,
+    evidence?: TransitionEvidence
+  ): { valid: boolean; reason?: string } {
     // Helper function for quality gate validation
     const validateQualityGate = (record: TaskRecord): boolean => {
       const hasTddLogs = record.red_green_refactor_log && record.red_green_refactor_log.length >= 2;
@@ -177,9 +214,8 @@ export class TaskRecordValidator {
     };
 
     // Helper function for violations check
-    const hasHighViolations = (evidence?: any): boolean => {
-      return evidence?.violations?.some((v: any) => v.severity === 'high') || false;
-    };
+    const hasHighViolations = (transitionEvidence?: TransitionEvidence): boolean =>
+      Boolean(transitionEvidence?.violations?.some((violation) => violation.severity === 'high'));
 
     switch (`${from}->${to}`) {
       case 'po->arch':
@@ -219,7 +255,7 @@ export class TaskRecordValidator {
         return { valid: true };
 
       case 'review->po_check':
-        // Guard: no high violations in rúbrica
+        // Guard: no high severity violations pending
         return !hasHighViolations(evidence)
           ? { valid: true }
           : { valid: false, reason: 'High severity violations must be resolved' };
@@ -267,3 +303,4 @@ export class TaskRecordValidator {
     return { valid: errors.length === 0, errors };
   }
 }
+
