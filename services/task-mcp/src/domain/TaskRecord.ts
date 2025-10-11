@@ -1,9 +1,7 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 
-/* eslint-disable no-useless-escape */
-const idPattern = "^TR-[0-9A-HJKMNP-TV-Z]{26}$";
-/* eslint-enable no-useless-escape */
+const idPattern = new RegExp("^TR-[0-9A-HJKMNP-TV-Z]{26}$");
 
 const schema = {
   "title": "TaskRecord",
