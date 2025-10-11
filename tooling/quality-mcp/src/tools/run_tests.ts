@@ -38,7 +38,7 @@ const validateOutput = ajv.compile(outputSchema);
  * Parse command string into command and args
  */
 function parseCommand(cmd: string): { command: string; args: string[] } {
-  // Simple space split, doesn't handle quotes properly, but for now
+  // NOTE: this intentionally keeps a naive split; callers with spaces should set cmd/args explicitly.
   const parts = cmd.split(' ');
   return {
     command: parts[0],
@@ -109,6 +109,7 @@ export async function runTests(input: RunTestsInput): Promise<RunTestsOutput> {
     throw new Error(`PARSE_ERROR: ${(err as Error).message}`);
   }
 
+  // Propagate runner failures once output has been parsed so callers get structured results.
   if (spawnResult.exitCode !== 0) {
     throw new Error(`RUNNER_ERROR: Test runner exited with code ${spawnResult.exitCode}`);
   }
