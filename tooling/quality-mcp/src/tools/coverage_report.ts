@@ -107,7 +107,7 @@ export async function coverageReport(input: CoverageReportInput): Promise<Covera
   let lcovMetaPath = toPosixPath(lcovPath);
   try {
     lcovRecords = await parseLcovFile(lcovAbsolute);
-    lcovMetaPath = toPosixPath(lcovPath);
+    lcovMetaPath = normalizeMetaPath(lcovAbsolute);
   } catch (error) {
     if (error instanceof Error && error.message.startsWith('NOT_FOUND')) {
       lcovRecords = new Map();
@@ -149,6 +149,7 @@ export async function coverageReport(input: CoverageReportInput): Promise<Covera
     const lcovRatios = lcovByPath.get(normalizedPath);
     const merged = mergeRatios(ratios, lcovRatios);
 
+    // Vitest's coverage-final does not include separate line metrics; we reuse statement ratios as an approximation.
     files.push({
       path: normalizedPath,
       lines: merged.lines,

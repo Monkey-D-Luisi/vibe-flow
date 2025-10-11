@@ -20,7 +20,7 @@ jobs:
           version: 9
           run_install: false
       - run: pnpm i --no-frozen-lockfile
-      - run: pnpm --filter @agents/task-mcp test --coverage
+      - run: pnpm --filter @agents/task-mcp test -- --coverage
       - run: pnpm q:tests
       - run: pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --coverage
       - name: Save test report

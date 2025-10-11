@@ -171,6 +171,7 @@ export async function parseCoverageFinal(coverageFinalPath: string): Promise<Sum
 
     files.set(toPosix(filePath), {
       statements: statementsRatio,
+      // coverage-final only ships statement ratios; reuse them as a proxy for line coverage.
       lines: statementsRatio,
       functions: functionsRatio,
       branches: branchesRatio
@@ -179,6 +180,7 @@ export async function parseCoverageFinal(coverageFinalPath: string): Promise<Sum
 
   const total: CoverageRatios = {
     statements: computeRatio(totalStatementsCovered, totalStatements),
+    // coverage-final lacks aggregated line totals, so fall back to statement coverage.
     lines: computeRatio(totalStatementsCovered, totalStatements),
     functions: computeRatio(totalFunctionsCovered, totalFunctions),
     branches: computeRatio(totalBranchesCovered, totalBranches)
