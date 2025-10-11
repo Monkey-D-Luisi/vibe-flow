@@ -1,8 +1,7 @@
 import Ajv from 'ajv';
-import { createRequire } from 'module';
+import devWorkOutputSchema from '../../../packages/schemas/dev_work_output.schema.json' with { type: 'json' };
 
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
-const require = createRequire(import.meta.url);
 
 // Input schema for dev agent (uses design ready)
 const devInputSchema = {
@@ -39,40 +38,7 @@ const devInputSchema = {
 };
 const devInputValidator = ajv.compile(devInputSchema);
 
-// Output schema validation
-let devWorkOutputSchema;
-try {
-  devWorkOutputSchema = require('../../../packages/schemas/dev_work_output.schema.json');
-} catch (error) {
-  // Fallback schema for testing when schema files are not available
-  devWorkOutputSchema = {
-    type: 'object',
-    properties: {
-      diff_summary: { type: 'string' },
-      metrics: {
-        type: 'object',
-        properties: {
-          coverage: { type: 'number', minimum: 0, maximum: 1 },
-          lint: {
-            type: 'object',
-            properties: {
-              errors: { type: 'integer', minimum: 0 },
-              warnings: { type: 'integer', minimum: 0 }
-            },
-            required: ['errors', 'warnings'],
-            additionalProperties: false
-          }
-        },
-        required: ['coverage', 'lint'],
-        additionalProperties: false
-      },
-      red_green_refactor_log: { type: 'array', items: { type: 'string' }, minItems: 2 }
-    },
-    required: ['diff_summary', 'metrics', 'red_green_refactor_log'],
-    additionalProperties: false
-  };
-}
-const devWorkOutputValidator = ajv.compile(devWorkOutputSchema);
+const devWorkOutputValidator = ajv.compile(devWorkOutputSchema as Record<string, unknown>);
 
 export interface DevInput {
   modules: string[];

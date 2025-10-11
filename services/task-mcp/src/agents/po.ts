@@ -1,8 +1,7 @@
 import Ajv from 'ajv';
-import { createRequire } from 'module';
+import poBriefSchema from '../../../packages/schemas/po_brief.schema.json' with { type: 'json' };
 
 const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
-const require = createRequire(import.meta.url);
 
 // Input schema for PO agent
 const poInputSchema = {
@@ -26,25 +25,7 @@ const poInputSchema = {
 // Input validation
 const poInputValidator = ajv.compile(poInputSchema);
 
-// Output schema validation
-let poBriefSchema;
-try {
-  poBriefSchema = require('../../../packages/schemas/po_brief.schema.json');
-} catch (error) {
-  // Fallback schema for testing when schema files are not available
-  poBriefSchema = {
-    type: 'object',
-    properties: {
-      title: { type: 'string' },
-      acceptance_criteria: { type: 'array', items: { type: 'string' } },
-      scope: { type: 'string', enum: ['minor', 'major'] },
-      non_functional: { type: 'array', items: { type: 'string' } },
-      done_if: { type: 'array', items: { type: 'string' } }
-    },
-    required: ['title', 'acceptance_criteria', 'scope', 'non_functional', 'done_if']
-  };
-}
-const poBriefValidator = ajv.compile(poBriefSchema);
+const poBriefValidator = ajv.compile(poBriefSchema as Record<string, unknown>);
 
 export interface PoInput {
   title: string;
@@ -64,6 +45,7 @@ export interface PoBrief {
   scope: 'minor' | 'major';
   non_functional: string[];
   done_if: string[];
+  acceptance_criteria_met?: boolean;
 }
 
 export const PO_SYSTEM_PROMPT = `You are the PO agent (Product Owner). Your goal is to distill clear requirements and actionable acceptance criteria from the user's input.

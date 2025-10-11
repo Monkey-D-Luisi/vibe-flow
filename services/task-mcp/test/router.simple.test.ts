@@ -53,7 +53,7 @@ describe('Router - Direct Tests', () => {
     expect(nextAgent(tr)).toBe('po');
   });
 
-  it('rejects invalid transitions such as po → dev without context', () => {
+  it('rejects invalid transitions such as po -> dev without context', () => {
     expect(canTransitionTo('po', 'dev')).toBe(false);
     expect(canTransitionTo('qa', 'architect')).toBe(false);
   });
