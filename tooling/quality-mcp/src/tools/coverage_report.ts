@@ -74,6 +74,11 @@ const normalizeMetaPath = (absolutePath: string): string => {
   return toPosixPath(absolutePath);
 };
 
+/**
+ * Build a normalized coverage report from Istanbul artifacts.
+ * If coverage-summary.json is missing (Vitest can omit it when only coverage-final.json is produced),
+ * we fall back to reading coverage-final.json and reuse statement ratios as a proxy for line coverage.
+ */
 export async function coverageReport(input: CoverageReportInput): Promise<CoverageReportOutput> {
   if (!validateInput(input)) {
     throw new Error(`Invalid input: ${ajv.errorsText(validateInput.errors)}`);

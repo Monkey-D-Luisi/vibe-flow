@@ -55,27 +55,37 @@ The system implements a complete agent orchestration framework with:
 ```
 agents-mcps/
 ├── packages/
-│   └── schemas/           # JSON Schemas for TaskRecord and agents
+│   └── schemas/              # JSON Schemas for TaskRecord, agents and quality tools
 │       ├── taskrecord.schema.json
 │       ├── po_brief.schema.json
 │       ├── design_ready.schema.json
 │       ├── dev_work_output.schema.json
 │       ├── reviewer_report.schema.json
 │       ├── qa_report.schema.json
-│       └── pr_summary.schema.json
+│       ├── pr_summary.schema.json
+│       ├── quality_coverage.input.schema.json
+│       └── quality_coverage.output.schema.json
 ├── services/
-│   └── task-mcp/          # Main MCP service
+│   └── task-mcp/             # Main MCP service
 │       ├── src/
-│       │   ├── domain/    # Domain types and rules
-│       │   ├── repo/      # SQLite persistence
-│       │   ├── mcp/       # MCP tools
-│       │   ├── agents/    # Agent implementations with prompts
+│       │   ├── domain/       # Domain types and rules
+│       │   ├── repo/         # SQLite persistence
+│       │   ├── mcp/          # MCP tools
+│       │   ├── agents/       # Agent implementations with prompts
 │       │   └── orchestrator/ # Agent orchestration (router, runner, mappers)
-│       └── test/          # TDD tests including agent contracts
+│       └── test/             # TDD tests including agent contracts
+├── tooling/
+│   └── quality-mcp/          # Quality MCP CLI (run_tests & coverage_report)
+│       ├── src/
+│       │   ├── exec/
+│       │   ├── parsers/
+│       │   └── tools/
+│       └── test/
 └── docs/
-    ├── task_record_v_1_0.md
+    ├── ep_01_t_01_task_record_v_1_0.md
+    ├── ep_01_t_02_grafo_de_estados_y_handoffs__especificacion_tecnica.md
     ├── ep_01_t_03_prompts_por_agente_y_contratos_de_salida_especificacion.md
-    └── grafo_de_estados_y_handoffs_ep_01_t_02_especificacion_tecnica.md
+    └── ep_02_t_02_quality.md
 ```
 
 ## 🤖 Agent System
@@ -535,7 +545,7 @@ Main fields:
 - `red_green_refactor_log`: TDD log
 - `links`: GitHub, Git, ADR references
 
-See [`docs/task_record_v_1_0.md`](docs/task_record_v_1_0.md) for complete documentation.
+See [`docs/ep_01_t_01_task_record_v_1_0.md`](docs/ep_01_t_01_task_record_v_1_0.md) for complete documentation.
 
 ## � GitHub Workflow Integration
 
@@ -570,13 +580,20 @@ TaskRecord states map to GitHub Projects v2 Status field:
 
 #### Project Sync (`project-sync.yml`)
 - **Triggers**: Issues/PRs opened, reviews, merges
-- **Actions**: Automatically move items between project columns based on state
+- **Actions**: Automatically move items between project columns based on state (safely skips when the configured Project V2 board is missing so a misconfigured repo does not fail the workflow)
 
 ### Quality Gates
 - **Coverage**: ≥80% (major scope) / ≥70% (minor scope)
 - **Lint**: Zero errors required
 - **Tests**: All tests passing
 - **RGR Logs**: Required for `dev → review` transitions
+
+The **Quality MCP** (see `tooling/quality-mcp/`) exposes two tools:
+- `quality.run_tests`, wrapped by `pnpm q:tests`, persists `.qreport/tests.json` with runner metrics.
+- `quality.coverage_report`, invoked via `pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --coverage`, produces `.qreport/coverage.json` by reading `coverage-summary.json` (falling back to `coverage-final.json` when Istanbul omits the summary) and normalising paths to the repo root.
+
+Both artifacts are uploaded by the CI workflows (`qreport-tests`, `qreport-coverage`) so downstream jobs (quality gate, reporting bots, etc.) can consume them without rerunning expensive steps.
+For the full specification and acceptance criteria see [`docs/ep_02_t_02_quality.md`](docs/ep_02_t_02_quality.md).
 
 ### MCP GitHub Tools
 Additional MCP tools for GitHub automation:
@@ -602,6 +619,10 @@ pnpm --filter @agents/task-mcp test
 
 # Run tests with coverage
 pnpm --filter @agents/task-mcp test -- --coverage
+
+# Generate Quality MCP reports (.qreport/)
+pnpm q:tests
+pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --coverage
 
 # Lint code
 pnpm --filter @agents/task-mcp run lint
@@ -654,3 +675,4 @@ For support or questions:
 - Open an issue on GitHub
 - Check the documentation in [`docs/`](docs/)
 - Review the tests for usage examples
+
