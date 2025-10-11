@@ -17,8 +17,16 @@ FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY --from=build /app .
+# Copy only the runtime artifacts required for the HTTP server
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/tooling/quality-mcp/server/dist ./tooling/quality-mcp/server/dist
+COPY --from=build /app/tooling/quality-mcp/server/package.json ./tooling/quality-mcp/server/package.json
+COPY --from=build /app/tooling/quality-mcp/server/node_modules ./tooling/quality-mcp/server/node_modules
 
-EXPOSE 8080
+ARG PORT=8080
+ENV PORT=$PORT
+
+# Expose the configured port (BuildKit is required for variable expansion).
+EXPOSE $PORT
 
 CMD ["node", "tooling/quality-mcp/server/dist/index.js"]
