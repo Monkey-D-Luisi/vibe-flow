@@ -1,7 +1,9 @@
 import Ajv, { type ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
-import { TaskRepository } from '../../../repo/repository.js';
-import { StateRepository, EventRepository, LeaseRepository } from '../../../repo/state.js';
+import { TaskNotFoundError, OptimisticLockError } from '../../../repo/repository.js';
+import { mergeTaskWithPatch } from '../../../orchestrator/patch.js'
+import { TaskRecord } from '../../../domain/TaskRecord.js';
+import { repo } from './sharedRepos.js';
 
 class SemanticError extends Error {
   constructor(public readonly code: number, message: string) {
@@ -49,11 +51,6 @@ const validateGetInput = schemaValidator.compile(getInputSchema);
 const validateUpdateInput = schemaValidator.compile(updateInputSchema);
 const validateSearchInput = schemaValidator.compile(searchInputSchema);
 
-const repo = new TaskRepository();
-const stateRepo = new StateRepository(repo.database);
-const eventRepo = new EventRepository(repo.database);
-const leaseRepo = new LeaseRepository(repo.database);
-
 export async function handleTaskGet(input: unknown): Promise<any> {
   if (!validateGetInput(input)) {
     throw new SemanticError(422, 'Input validation failed');
@@ -74,11 +71,11 @@ export async function handleTaskUpdate(input: unknown): Promise<any> {
   try {
     return repo.update(args.id, args.if_rev, args.patch);
   } catch (error) {
-    if (error instanceof Error && error.message === 'Task not found') {
-      throw new SemanticError(404, 'Task not found');
+    if (error instanceof TaskNotFoundError) {
+      throw new SemanticError(404, error.message);
     }
-    if (error instanceof Error && error.message === 'Optimistic lock failed') {
-      throw new SemanticError(409, 'Optimistic lock failed');
+    if (error instanceof OptimisticLockError) {
+      throw new SemanticError(409, error.message);
     }
     throw error;
   }

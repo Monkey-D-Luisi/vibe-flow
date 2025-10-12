@@ -3,6 +3,7 @@ import { handleTaskGet, handleTaskUpdate, handleTaskSearch } from './taskHandler
 import { handleTaskTransition } from './taskTransitionHandler.js';
 import { handleStateGet, handleStatePatch, handleStateAcquireLock, handleStateReleaseLock, handleStateAppendEvent, handleStateSearch } from './stateHandlers.js';
 import { runTests, coverageReport, lint, complexity, enforceGates } from './qualityHandlers.js';
+import { handleFastTrackEvaluate, handleFastTrackGuardPostDev } from './fastTrackHandlers.js';
 
 // Dispatcher por tabla
 const handlers: Record<string, (input: unknown) => Promise<unknown>> = {
@@ -17,6 +18,8 @@ const handlers: Record<string, (input: unknown) => Promise<unknown>> = {
   'state.release_lock': handleStateReleaseLock,
   'state.append_event': handleStateAppendEvent,
   'state.search': handleStateSearch,
+  'fasttrack.evaluate': handleFastTrackEvaluate,
+  'fasttrack.guard_post_dev': handleFastTrackGuardPostDev,
   'quality.run_tests': runTests,
   'quality.coverage_report': coverageReport,
   'quality.lint': lint,

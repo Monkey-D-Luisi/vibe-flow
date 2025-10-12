@@ -1,5 +1,12 @@
 import Database from 'better-sqlite3';
 
+export class TaskNotFoundError extends Error {
+  constructor(id: string) {
+    super(`Task not found: ${id}`);
+    this.name = 'TaskNotFoundError';
+  }
+}
+
 export class OptimisticLockError extends Error {
   constructor(id: string, expectedRev: number) {
     super(`Optimistic lock failed for task ${id}, expected rev ${expectedRev}`);
@@ -10,7 +17,7 @@ export class OptimisticLockError extends Error {
 export function ensureTaskExists(db: Database.Database, id: string): void {
   const stmt = db.prepare('SELECT 1 FROM task_records WHERE id = ?');
   if (!stmt.get(id)) {
-    throw new Error('Task not found');
+    throw new TaskNotFoundError(id);
   }
 }
 

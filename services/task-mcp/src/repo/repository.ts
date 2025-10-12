@@ -2,7 +2,9 @@ import Database from 'better-sqlite3';
 import { TaskRecord } from '../domain/TaskRecord.js';
 import { MIGRATION_SQL, prepareInsertTask, prepareSelectTaskById, prepareUpdateTask, prepareSearchTasks, prepareCountTasks, SEARCH_TASKS_SQL_BASE, COUNT_TASKS_SQL_BASE } from './statements.js';
 import { rowToRecord, recordToParams, updatedRecordToParams } from './row-mapper.js';
-import { ensureTaskExists, withOptimisticLock } from './guards.js';
+import { TaskNotFoundError, OptimisticLockError, ensureTaskExists, withOptimisticLock } from './guards.js';
+
+export { TaskNotFoundError, OptimisticLockError } from './guards.js';
 
 function buildSearchQuery(query: { q?: string; status?: string[]; labels?: string[]; limit?: number; offset?: number }): { sql: string; countSql: string; params: any[] } {
   let sql = SEARCH_TASKS_SQL_BASE;
@@ -81,7 +83,7 @@ export class TaskRepository {
   update(id: string, ifRev: number, patch: Partial<TaskRecord>): TaskRecord {
     return withOptimisticLock(this.db, id, ifRev, () => {
       const current = this.get(id);
-      if (!current) throw new Error('Task not found');
+      if (!current) throw new TaskNotFoundError(id);
 
       const updated = { ...current, ...patch, rev: current.rev + 1, updated_at: new Date().toISOString() };
       const params = updatedRecordToParams(updated);
