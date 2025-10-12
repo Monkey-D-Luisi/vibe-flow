@@ -299,10 +299,7 @@ export async function runOrchestratorStep(
       };
       candidateTask.tags = nextTags;
 
-      patch.metrics = {
-        ...(patch.metrics ?? candidateTask.metrics),
-        ...metricsPatch
-      };
+      patch.metrics = { ...candidateTask.metrics };
       patch.tags = nextTags;
     }
 

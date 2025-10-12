@@ -11,6 +11,7 @@ import type { CoverageReportInput } from '../src/tools/coverage_report.js';
 import type { LintInput } from '../src/tools/lint.js';
 import type { ComplexityInput } from '../src/tools/complexity.js';
 import type { GateEnforceInput } from '../src/tools/gate_enforce.js';
+import type { GatePaths, GateThresholds } from '../src/gate/types.js';
 
 const MIN_TIMEOUT_MS = 1000;
 
@@ -163,8 +164,8 @@ function parseGateArgs(args: string[]): GateCliParseResult {
   let source: 'artifacts' | 'tools' = 'artifacts';
   let scope: 'minor' | 'major' = 'minor';
   let taskId = 'task';
-  const thresholds: Record<string, number | boolean> = {};
-  const paths: Record<string, string> = {};
+  const thresholds: Partial<GateThresholds> = {};
+  const paths: Partial<GatePaths> = {};
   const env: GateCliParseResult['env'] = {};
 
   for (let i = 2; i < args.length; i += 1) {
@@ -236,8 +237,8 @@ function parseGateArgs(args: string[]): GateCliParseResult {
       scope
     },
     source,
-    thresholds: Object.keys(thresholds).length > 0 ? (thresholds as any) : undefined,
-    paths: Object.keys(paths).length > 0 ? (paths as any) : undefined
+    thresholds: Object.keys(thresholds).length > 0 ? thresholds : undefined,
+    paths: Object.keys(paths).length > 0 ? paths : undefined
   };
 
   return { input, env };

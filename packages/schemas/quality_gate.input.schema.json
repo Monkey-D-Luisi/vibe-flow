@@ -3,7 +3,7 @@
   "title": "QualityGateInput",
   "type": "object",
   "additionalProperties": false,
-  "required": ["task", "source"],
+  "required": ["task"],
   "properties": {
     "task": {
       "type": "object",
