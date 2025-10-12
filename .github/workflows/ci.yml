@@ -27,8 +27,14 @@ jobs:
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm --filter @agents/task-mcp test -- --coverage
       - run: pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --coverage
+      - run: pnpm q:tests
       - run: pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --lint --cmd "pnpm -C services/task-mcp lint -f json"
       - run: pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --complexity
+      - name: Upload quality tests report
+        uses: actions/upload-artifact@v4
+        with:
+          name: qreport-tests
+          path: ./.qreport/tests.json
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         with:
@@ -50,33 +56,3 @@ jobs:
           name: qreport-complexity
           path: ./.qreport/complexity.json
 
-  quality-gate:
-    needs: test-lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: pnpm install --no-frozen-lockfile
-      - name: Create coverage directory
-        run: mkdir -p services/task-mcp/coverage
-      - name: Download coverage reports
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report
-          path: services/task-mcp/coverage/
-      - name: List coverage files
-        run: ls -la services/task-mcp/coverage/
-      - name: Check test coverage
-        id: coverage_check
-        run: node scripts/check-quality.mjs --output services/task-mcp/coverage/quality-summary.json
-      - name: Upload coverage summary
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-quality-summary
-          path: services/task-mcp/coverage/quality-summary.json

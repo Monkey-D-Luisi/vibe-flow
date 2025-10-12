@@ -5,7 +5,7 @@ import fs from 'fs';
 
 // Mock file system operations
 vi.mock('fs', () => {
-  const mockReadFileSync = vi.fn();
+  const mockReadFileSync = vi.fn(() => '{}');
   return {
     readFileSync: mockReadFileSync,
     default: { readFileSync: mockReadFileSync }
@@ -15,7 +15,8 @@ vi.mock('fs', () => {
 vi.mock('path', () => ({
   fileURLToPath: vi.fn(() => '/mock/path'),
   dirname: vi.fn(() => '/mock/dir'),
-  join: vi.fn((...args) => args.join('/'))
+  join: vi.fn((...args) => args.join('/')),
+  resolve: vi.fn((...args) => args.join('/'))
 }));
 
 // Mock the import.meta.url to avoid path resolution issues
@@ -100,7 +101,9 @@ describe('Runner', () => {
     vi.clearAllMocks();
     // Set up default mock to return PO schema
     vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockSchemas['po_brief.schema.json']));
-  });    it('should validate valid PO output', () => {
+  });
+
+  it('should validate valid PO output', () => {
       vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockSchemas['po_brief.schema.json']));
 
       const validOutput = {

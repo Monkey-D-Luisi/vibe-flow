@@ -1,5 +1,4 @@
-import Ajv from 'ajv/dist/2020.js';
-import type { ValidateFunction } from 'ajv';
+import Ajv, { type ValidateFunction } from 'ajv/dist/2020.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -7,9 +6,15 @@ import { runTests } from '../tools/run_tests.js';
 import { coverageReport } from '../tools/coverage_report.js';
 import { lint } from '../tools/lint.js';
 import { complexity } from '../tools/complexity.js';
+import { gateEnforce } from '../tools/gate_enforce.js';
 import { loadSchema } from '../../../../services/task-mcp/src/utils/loadSchema.js';
 
-type ToolName = 'quality.run_tests' | 'quality.coverage_report' | 'quality.lint' | 'quality.complexity';
+type ToolName =
+  | 'quality.run_tests'
+  | 'quality.coverage_report'
+  | 'quality.lint'
+  | 'quality.complexity'
+  | 'quality.gate_enforce';
 
 class SemanticError extends Error {
   constructor(public readonly code: number, message: string) {
@@ -24,14 +29,16 @@ const toolInputSchemas: Record<ToolName, any> = {
   'quality.run_tests': loadSchema('quality_tests.input.schema.json'),
   'quality.coverage_report': loadSchema('quality_coverage.input.schema.json'),
   'quality.lint': loadSchema('quality_lint.input.schema.json'),
-  'quality.complexity': loadSchema('quality_complexity.input.schema.json')
+  'quality.complexity': loadSchema('quality_complexity.input.schema.json'),
+  'quality.gate_enforce': loadSchema('quality_gate.input.schema.json')
 };
 
 const toolDescriptions: Record<ToolName, string> = {
   'quality.run_tests': 'Ejecutar suite de pruebas automatizadas y devolver métricas',
   'quality.coverage_report': 'Generar reporte de cobertura (total y por archivo) a partir de Istanbul',
   'quality.lint': 'Ejecutar linter del repositorio y devolver reporte normalizado (errores y avisos)',
-  'quality.complexity': 'Calcular complejidad ciclomática por archivo y unidad (funciones, métodos, clases)'
+  'quality.complexity': 'Calcular complejidad ciclomática por archivo y unidad (funciones, métodos, clases)',
+  'quality.gate_enforce': 'Evaluar el quality gate combinando resultados de tests, cobertura, lint y complejidad'
 };
 
 const toolValidators = Object.fromEntries(
@@ -56,6 +63,9 @@ const toolHandlers: Record<ToolName, (args: any) => Promise<any>> = {
   },
   'quality.complexity': async (args) => {
     return await complexity(args);
+  },
+  'quality.gate_enforce': async (args) => {
+    return await gateEnforce(args);
   }
 };
 
@@ -142,3 +152,4 @@ class QualityMCPServer {
 }
 
 export { QualityMCPServer };
+

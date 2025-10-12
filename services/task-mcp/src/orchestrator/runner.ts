@@ -7,6 +7,7 @@ import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/Fas
 import { FastTrackGitHub } from '../domain/FastTrackGitHub';
 import { mapAgentOutput } from './mappers.js';
 import { mergeTaskWithPatch } from './patch.js';
+import { gateEnforce } from '../../../../tooling/quality-mcp/src/tools/gate_enforce.js';
 
 const ajv = new Ajv({ allErrors: true, strict: false });
 
@@ -38,6 +39,19 @@ const fastTrackGitHub = new FastTrackGitHub(
   mockGitHub.addLabels,
   mockGitHub.comment
 );
+
+const QUALITY_GATE_TRANSITIONS = new Set<string>([
+  'dev->review',
+  'review->po_check',
+  'qa->pr'
+]);
+
+function requiresQualityGate(from: TaskRecord['status'], to?: TaskRecord['status'] | null): boolean {
+  if (!to) {
+    return false;
+  }
+  return QUALITY_GATE_TRANSITIONS.has(`${from}->${to}`);
+}
 
 type AgentRunner = (agent: AgentType, input: any) => Promise<any>;
 
@@ -224,6 +238,74 @@ export async function runOrchestratorStep(
     }
 
     const candidateTask = mergeTaskWithPatch(task, patch);
+    const nextStateStatus = nextState as TaskRecord['status'];
+
+    if (requiresQualityGate(task.status, nextStateStatus)) {
+      const rgrLogCount =
+        candidateTask.red_green_refactor_log?.length ?? task.red_green_refactor_log?.length ?? 0;
+
+      const gateResult = await gateEnforce(
+        {
+          task: { id: task.id, scope: task.scope },
+          source: 'tools'
+        },
+        { rgrLogCount }
+      );
+
+      const metricsPatch = {
+        coverage: gateResult.metrics.coverage.lines,
+        lint: {
+          errors: gateResult.metrics.lint.errors,
+          warnings: gateResult.metrics.lint.warnings
+        },
+        complexity: {
+          avgCyclomatic: gateResult.metrics.complexity.avgCyclomatic,
+          maxCyclomatic: gateResult.metrics.complexity.maxCyclomatic
+        }
+      };
+
+      const tags = new Set(candidateTask.tags ?? task.tags ?? []);
+
+      eventRepo.append(taskId, 'quality.gate', {
+        passed: gateResult.passed,
+        violations: gateResult.violations,
+        metrics: gateResult.metrics
+      });
+
+      if (!gateResult.passed) {
+        tags.add('quality_gate_failed');
+        const failedUpdate = repo.update(task.id, task.rev, {
+          metrics: {
+            ...(task.metrics ?? {}),
+            ...metricsPatch
+          },
+          tags: Array.from(tags)
+        });
+        Object.assign(task, failedUpdate);
+
+        const summary = gateResult.violations
+          .map((violation) => `[${violation.code}] ${violation.message}`)
+          .join('; ');
+        throw new Error(`Quality gate failed: ${summary}`);
+      }
+
+      tags.delete('quality_gate_failed');
+
+      const nextTags = Array.from(tags);
+
+      candidateTask.metrics = {
+        ...(candidateTask.metrics ?? {}),
+        ...metricsPatch
+      };
+      candidateTask.tags = nextTags;
+
+      patch.metrics = {
+        ...(patch.metrics ?? candidateTask.metrics),
+        ...metricsPatch
+      };
+      patch.tags = nextTags;
+    }
+
     const transitionEvidence = buildTransitionEvidence(
       state.current as TaskRecord['status'],
       nextState as TaskRecord['status'],

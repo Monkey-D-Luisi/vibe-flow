@@ -1,5 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ulid } from 'ulid';
+
+vi.mock('../../../tooling/quality-mcp/src/tools/gate_enforce.js', () => ({
+  gateEnforce: vi.fn()
+}));
+
+import { gateEnforce } from '../../../tooling/quality-mcp/src/tools/gate_enforce.js';
 import * as runnerModule from '../src/orchestrator/runner.js';
 import { type FastTrackContext } from '../src/domain/FastTrack.js';
 import { type TaskRecord } from '../src/domain/TaskRecord.js';
@@ -7,6 +13,23 @@ import { type TaskRecord } from '../src/domain/TaskRecord.js';
 const { runAgent, runOrchestratorStep, __test__: runnerInternals } = runnerModule;
 
 const { repo, stateRepo, fastTrackGitHub } = runnerInternals;
+const gateEnforceMock = vi.mocked(gateEnforce);
+
+const makeGateMetrics = () => ({
+  tests: { total: 24, failed: 0 },
+  coverage: { lines: 0.87 },
+  lint: { errors: 0, warnings: 1 },
+  complexity: { avgCyclomatic: 3.2, maxCyclomatic: 7.1 }
+});
+
+beforeEach(() => {
+  gateEnforceMock.mockReset();
+  gateEnforceMock.mockResolvedValue({
+    passed: true,
+    metrics: makeGateMetrics(),
+    violations: []
+  });
+});
 
 const createTask = (overrides: Partial<TaskRecord> & { id?: string } = {}) => {
   const task = repo.create({
@@ -180,5 +203,29 @@ describe('Orchestrator Runner - integration smoke tests', () => {
 
     await runOrchestratorStep(task.id, 'qa');
     expect(stateRepo.get(task.id)?.current).toBe('pr');
+    expect(repo.get(task.id)?.tags ?? []).not.toContain('quality_gate_failed');
+  });
+
+  it('blocks transition when quality gate fails and logs violations', async () => {
+    const task = createTask({
+      status: 'dev',
+      red_green_refactor_log: ['RED', 'GREEN', 'REFACTOR'],
+      metrics: { coverage: 0.9, lint: { errors: 0, warnings: 0 } }
+    });
+    createState(task.id, 'dev');
+
+    gateEnforceMock.mockResolvedValueOnce({
+      passed: false,
+      metrics: makeGateMetrics(),
+      violations: [{ code: 'COVERAGE_BELOW', message: 'Coverage too low' }]
+    });
+
+    await expect(runOrchestratorStep(task.id, 'dev')).rejects.toThrow(/Quality gate failed/);
+
+    const events = runnerInternals.eventRepo.search(task.id, 'quality.gate', 5);
+    expect(events[0]?.payload?.violations?.[0]?.code).toBe('COVERAGE_BELOW');
+    const current = repo.get(task.id);
+    expect(current?.status).toBe('dev');
+    expect(current?.tags).toContain('quality_gate_failed');
   });
 });
