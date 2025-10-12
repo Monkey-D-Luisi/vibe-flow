@@ -14,7 +14,7 @@ export interface OrchestratorState {
 export interface StateEvent {
   id: string;
   task_id: string;
-  type: 'handoff' | 'transition' | 'comment' | 'quality' | 'error' | 'fasttrack';
+  type: 'handoff' | 'transition' | 'comment' | 'quality' | 'quality.gate' | 'error' | 'fasttrack';
   payload: Record<string, any>;
   created_at: string;
 }

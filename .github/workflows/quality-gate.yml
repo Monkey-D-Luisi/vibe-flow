@@ -1,0 +1,170 @@
+name: quality-gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+  workflow_dispatch:
+
+jobs:
+  quality-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm --filter @agents/task-mcp test -- --coverage
+      - run: pnpm q:tests
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: qreport-tests
+          path: ./.qreport/tests.json
+      - name: Upload coverage workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-workdir
+          path: services/task-mcp/coverage
+
+  coverage:
+    runs-on: ubuntu-latest
+    needs: quality-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: pnpm install --no-frozen-lockfile
+      - name: Restore coverage workspace
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-workdir
+          path: services/task-mcp/coverage
+      - run: pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --coverage
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: qreport-coverage
+          path: ./.qreport/coverage.json
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --lint --cmd "pnpm -C services/task-mcp lint -f json"
+      - name: Upload lint report
+        uses: actions/upload-artifact@v4
+        with:
+          name: qreport-lint
+          path: ./.qreport/lint.json
+
+  complexity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --complexity
+      - name: Upload complexity report
+        uses: actions/upload-artifact@v4
+        with:
+          name: qreport-complexity
+          path: ./.qreport/complexity.json
+
+  gate:
+    runs-on: ubuntu-latest
+    needs: [quality-tests, coverage, lint, complexity]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: pnpm install --no-frozen-lockfile
+      - name: Prepare report directory
+        run: mkdir -p ./.qreport
+      - name: Download test report
+        uses: actions/download-artifact@v4
+        with:
+          name: qreport-tests
+          path: ./.qreport
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: qreport-coverage
+          path: ./.qreport
+      - name: Download lint report
+        uses: actions/download-artifact@v4
+        with:
+          name: qreport-lint
+          path: ./.qreport
+      - name: Download complexity report
+        uses: actions/download-artifact@v4
+        with:
+          name: qreport-complexity
+          path: ./.qreport
+      - name: Run quality gate
+        id: gate
+        continue-on-error: true
+        env:
+          GATE_SCOPE: ${{ vars.TASK_SCOPE || 'minor' }}
+          TASK_ID: ${{ github.event.pull_request.number || github.run_id }}
+        run: pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --gate --source artifacts --scope "$GATE_SCOPE" --task-id "$TASK_ID"
+      - name: Upload gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qreport-gate
+          path: ./.qreport/gate.json
+      - name: Publish gate summary
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+          const reportPath = '.qreport/gate.json';
+          let output = '## Quality Gate\n\n';
+          if (!fs.existsSync(reportPath)) {
+            output += 'Gate report not generated.\n';
+          } else {
+            const result = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+            const { passed, metrics, violations } = result;
+            output += `Result: ${passed ? 'Passed' : 'Failed'}\n\n`;
+            output += '### Metrics\n';
+            output += `- Tests: ${metrics.tests.total - metrics.tests.failed}/${metrics.tests.total} passed\n`;
+            output += `- Coverage (lines): ${(metrics.coverage.lines * 100).toFixed(1)}%\n`;
+            output += `- Lint: ${metrics.lint.errors} errors / ${metrics.lint.warnings} warnings\n`;
+            output += `- Complexity: avg ${metrics.complexity.avgCyclomatic.toFixed(2)} / max ${metrics.complexity.maxCyclomatic.toFixed(2)}\n`;
+            if (violations.length) {
+              output += '\n### Violations\n';
+              for (const violation of violations) {
+                output += `- [${violation.code}] ${violation.message}\n`;
+              }
+            }
+          }
+          fs.appendFileSync(summaryPath, output);
+          NODE
+      - name: Fail when gate fails
+        if: steps.gate.outcome == 'failure'
+        run: exit 1
