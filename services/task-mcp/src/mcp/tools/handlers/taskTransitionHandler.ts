@@ -240,4 +240,3 @@ function handleFastTrackEvidence(suppliedEvidence: any, evidence: TransitionEvid
     patch.tags = Array.from(tags);
   }
 }
-}
