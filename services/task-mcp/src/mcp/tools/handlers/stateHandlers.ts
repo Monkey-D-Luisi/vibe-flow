@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import { StateRepository, EventRepository, LeaseRepository } from '../../../repo/state.js';
+import { stateRepo, eventRepo, leaseRepo } from './sharedRepos.js';
 
 class SemanticError extends Error {
   constructor(public readonly code: number, message: string) {
@@ -81,36 +81,12 @@ const validateReleaseLockInput = schemaValidator.compile(releaseLockInputSchema)
 const validateAppendEventInput = schemaValidator.compile(appendEventInputSchema);
 const validateSearchEventInput = schemaValidator.compile(searchEventInputSchema);
 
-let _repo: any = null;
-let stateRepo: StateRepository | null = null;
-let eventRepo: EventRepository | null = null;
-let leaseRepo: LeaseRepository | null = null;
-
-function getStateRepo() {
-  if (!stateRepo) stateRepo = new StateRepository(_repo.database);
-  return stateRepo;
-}
-
-function getEventRepo() {
-  if (!eventRepo) eventRepo = new EventRepository(_repo.database);
-  return eventRepo;
-}
-
-function getLeaseRepo() {
-  if (!leaseRepo) leaseRepo = new LeaseRepository(_repo.database);
-  return leaseRepo;
-}
-
-export function setRepos(repo: any) {
-  _repo = repo;
-}
-
 export async function handleStateGet(input: unknown): Promise<any> {
   if (!validateGetStateInput(input)) {
     throw new SemanticError(422, 'Input validation failed');
   }
   const args = input as { task_id: string };
-  const state = getStateRepo().get(args.task_id);
+  const state = stateRepo.get(args.task_id);
   if (!state) {
     throw new SemanticError(404, 'State not found');
   }
@@ -123,7 +99,7 @@ export async function handleStatePatch(input: unknown): Promise<any> {
   }
   const args = input as { task_id: string; if_rev: number; patch: any };
   try {
-    return getStateRepo().update(args.task_id, args.if_rev, args.patch);
+    return stateRepo.update(args.task_id, args.if_rev, args.patch);
   } catch (error) {
     if (error instanceof Error && error.message === 'State not found') {
       throw new SemanticError(404, 'State not found');
@@ -141,7 +117,7 @@ export async function handleStateAcquireLock(input: unknown): Promise<any> {
   }
   const args = input as { task_id: string; owner_agent: string; ttl_seconds?: number };
   try {
-    return getLeaseRepo().acquire(args.task_id, args.owner_agent, args.ttl_seconds ?? 300);
+    return leaseRepo.acquire(args.task_id, args.owner_agent, args.ttl_seconds ?? 300);
   } catch (error) {
     if (error instanceof Error && error.message === 'Lease held by another agent') {
       throw new SemanticError(423, error.message);
@@ -155,7 +131,7 @@ export async function handleStateReleaseLock(input: unknown): Promise<any> {
     throw new SemanticError(422, 'Input validation failed');
   }
   const args = input as { task_id: string; lease_id: string };
-  const released = getLeaseRepo().release(args.task_id, args.lease_id);
+  const released = leaseRepo.release(args.task_id, args.lease_id);
   return { released };
 }
 
@@ -164,11 +140,11 @@ export async function handleStateAppendEvent(input: unknown): Promise<any> {
     throw new SemanticError(422, 'Input validation failed');
   }
   const args = input as { task_id: string; type: string; payload: any };
-  const state = getStateRepo().get(args.task_id);
+  const state = stateRepo.get(args.task_id);
   if (!state) {
     throw new SemanticError(404, 'State not found');
   }
-  return getEventRepo().append(args.task_id, args.type, args.payload);
+  return eventRepo.append(args.task_id, args.type, args.payload);
 }
 
 export async function handleStateSearch(input: unknown): Promise<any> {
@@ -177,10 +153,10 @@ export async function handleStateSearch(input: unknown): Promise<any> {
   }
   const args = input as { task_id?: string; type?: string; limit?: number };
   if (args.task_id) {
-    const state = getStateRepo().get(args.task_id);
+    const state = stateRepo.get(args.task_id);
     if (!state) {
       throw new SemanticError(404, 'State not found');
     }
   }
-  return getEventRepo().search(args.task_id, args.type, args.limit ?? 100);
+  return eventRepo.search(args.task_id, args.type, args.limit ?? 100);
 }

@@ -1,9 +1,10 @@
 import Ajv, { type ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
-import { TaskRepository } from '../../../repo/repository.js';
-import { StateRepository, EventRepository, LeaseRepository, type OrchestratorState } from '../../../repo/state.js';
+import { TaskNotFoundError, OptimisticLockError } from '../../../repo/repository.js';
+import { type OrchestratorState } from '../../../repo/state.js';
 import { TaskRecord, TaskRecordValidator, type TransitionEvidence } from '../../../domain/TaskRecord.js';
 import { mergeTaskWithPatch } from '../../../orchestrator/patch.js';
+import { repo, stateRepo, eventRepo } from './sharedRepos.js';
 
 class SemanticError extends Error {
   constructor(public readonly code: number, message: string) {
@@ -84,11 +85,6 @@ const transitionInputSchema = {
 };
 
 const validateTransitionInput = schemaValidator.compile(transitionInputSchema);
-
-const repo = new TaskRepository();
-const stateRepo = new StateRepository(repo.database);
-const eventRepo = new EventRepository(repo.database);
-const leaseRepo = new LeaseRepository(repo.database);
 
 export async function handleTaskTransition(input: unknown): Promise<any> {
   if (!validateTransitionInput(input)) {
@@ -211,13 +207,11 @@ export async function handleTaskTransition(input: unknown): Promise<any> {
 
     return updatedTask;
   } catch (error) {
-    if (error instanceof Error) {
-      if (error.message === 'Optimistic lock failed') {
-        throw new SemanticError(409, 'Optimistic lock failed');
-      }
-      if (error.message === 'State not found') {
-        throw new SemanticError(404, 'State not found');
-      }
+    if (error instanceof OptimisticLockError) {
+      throw new SemanticError(409, error.message);
+    }
+    if (error instanceof TaskNotFoundError) {
+      throw new SemanticError(404, error.message);
     }
     throw error;
   }

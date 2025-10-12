@@ -9,8 +9,8 @@ import { StateRepository, EventRepository, LeaseRepository, type OrchestratorSta
 import { TaskRecord, TaskRecordValidator, type TransitionEvidence } from '../domain/TaskRecord.js';
 import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/FastTrack.js';
 import { mergeTaskWithPatch } from '../orchestrator/patch.js';
-import { setRepos } from './tools/handlers/stateHandlers.js';
 import { handleToolCall } from './tools/handlers/index.js';
+import { repo, stateRepo, eventRepo, leaseRepo } from './tools/handlers/sharedRepos.js';
 
 type ToolName =
   | 'task.create'
@@ -438,13 +438,6 @@ const toolDescriptions: Record<ToolName, string> = {
   'gh.setProjectStatus': 'Actualizar estado en GitHub Projects',
   'gh.addLabels': 'Añadir etiquetas a un Issue/PR'
 };
-
-const repo = new TaskRepository();
-const stateRepo = new StateRepository(repo.database);
-const eventRepo = new EventRepository(repo.database);
-const leaseRepo = new LeaseRepository(repo.database);
-
-setRepos(repo);
 
 const tools = Object.entries(toolInputSchemas).map(([name, schema]) => ({
   name,
