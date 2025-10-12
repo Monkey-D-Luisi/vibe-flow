@@ -1,14 +1,8 @@
-import Ajv, { type ValidateFunction } from 'ajv';
+import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { ulid } from 'ulid';
-import { TaskRepository } from '../repo/repository.js';
-import { StateRepository, EventRepository, LeaseRepository, type OrchestratorState } from '../repo/state.js';
-import { TaskRecord, TaskRecordValidator, type TransitionEvidence } from '../domain/TaskRecord.js';
-import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/FastTrack.js';
-import { mergeTaskWithPatch } from '../orchestrator/patch.js';
 import { handleToolCall } from './tools/handlers/index.js';
 import { repo, stateRepo, eventRepo, leaseRepo } from './tools/handlers/sharedRepos.js';
 

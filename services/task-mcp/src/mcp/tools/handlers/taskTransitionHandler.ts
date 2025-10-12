@@ -1,10 +1,10 @@
-import Ajv, { type ValidateFunction } from 'ajv';
+import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { TaskNotFoundError, OptimisticLockError } from '../../../repo/repository.js';
 import { type OrchestratorState } from '../../../repo/state.js';
 import { TaskRecord, TaskRecordValidator, type TransitionEvidence } from '../../../domain/TaskRecord.js';
 import { mergeTaskWithPatch } from '../../../orchestrator/patch.js';
-import { repo, stateRepo, eventRepo } from './sharedRepos.js';
+import { repo, stateRepo } from './sharedRepos.js';
 
 class SemanticError extends Error {
   constructor(public readonly code: number, message: string) {

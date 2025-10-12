@@ -1,6 +1,5 @@
 import { FastTrackResult, PostDevGuardResult } from './FastTrack.js';
 import { TaskRecord } from './TaskRecord.js';
-import { formatReason, formatHardBlock, formatRevocationReason } from './fastTrackMessages.js';
 import { buildEvaluationComment, buildRevocationComment, buildPullRequestBody } from './fastTrackCommentBuilders.js';
 
 type PullRequestParams = {

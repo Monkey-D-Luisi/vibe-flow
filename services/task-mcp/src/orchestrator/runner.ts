@@ -389,7 +389,7 @@ export async function runOrchestratorStep(
     const nextStateStatus = nextState as TaskRecord['status'];
 
     // Handle quality gate if required
-    const gateResult = await handleQualityGate(taskId, task, candidateTask, nextStateStatus, patch);
+    await handleQualityGate(taskId, task, candidateTask, nextStateStatus, patch);
 
     const transitionEvidence = buildTransitionEvidence(
       state.current as TaskRecord['status'],
