@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { TaskRecord } from '../domain/TaskRecord.js';
 import { MIGRATION_SQL, prepareInsertTask, prepareSelectTaskById, prepareUpdateTask, prepareSearchTasks, prepareCountTasks, SEARCH_TASKS_SQL_BASE, COUNT_TASKS_SQL_BASE } from './statements.js';
 import { rowToRecord, recordToParams, updatedRecordToParams } from './row-mapper.js';
-import { TaskNotFoundError, OptimisticLockError, ensureTaskExists, withOptimisticLock } from './guards.js';
+import { TaskNotFoundError, withOptimisticLock } from './guards.js';
 
 export { TaskNotFoundError, OptimisticLockError } from './guards.js';
 

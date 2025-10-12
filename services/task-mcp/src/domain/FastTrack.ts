@@ -40,7 +40,7 @@ const DOC_EXT = /\.(md|rst|adoc)$/i;
 
 export function evaluateFastTrack(ctx: FastTrackContext): FastTrackResult {
   const hardBlocks: string[] = [];
-  const { diff, quality, metadata, task } = ctx;
+  const { diff, quality, metadata } = ctx;
 
   const touchesSensitivePath = diff.files.some(file => SENSITIVE_PATHS.test(file));
   const touchesSchemas = diff.files.some(file => file.startsWith('packages/schemas/'));

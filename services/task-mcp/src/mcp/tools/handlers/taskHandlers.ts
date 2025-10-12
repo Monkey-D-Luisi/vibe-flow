@@ -1,8 +1,6 @@
-import Ajv, { type ValidateFunction } from 'ajv';
+import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { TaskNotFoundError, OptimisticLockError } from '../../../repo/repository.js';
-import { mergeTaskWithPatch } from '../../../orchestrator/patch.js'
-import { TaskRecord } from '../../../domain/TaskRecord.js';
 import { repo } from './sharedRepos.js';
 
 class SemanticError extends Error {

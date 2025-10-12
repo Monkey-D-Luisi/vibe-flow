@@ -1,4 +1,5 @@
 import { evaluateFastTrack, guardPostDev, type FastTrackContext } from '../../../domain/FastTrack.js';
+import { TaskNotFoundError, OptimisticLockError } from '../../../repo/repository.js';
 import { repo, stateRepo, eventRepo } from './sharedRepos.js';
 
 class SemanticError extends Error {
@@ -93,11 +94,11 @@ export async function handleFastTrackGuardPostDev(input: unknown): Promise<any> 
         previous: state.current
       });
     } catch (error) {
-      if (error instanceof Error && error.message === 'Optimistic lock failed') {
-        throw new SemanticError(409, 'Optimistic lock failed');
+      if (error instanceof OptimisticLockError) {
+        throw new SemanticError(409, error.message);
       }
-      if (error instanceof Error && error.message === 'State not found') {
-        throw new SemanticError(404, 'State not found');
+      if (error instanceof TaskNotFoundError) {
+        throw new SemanticError(404, error.message);
       }
       throw error;
     }
