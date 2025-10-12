@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { TaskRepository } from '../src/repo/sqlite.js';
+import { TaskRepository } from '../src/repo/repository.js';
 import { StateRepository, EventRepository, LeaseRepository } from '../src/repo/state.js';
 
 describe('State Management', () => {

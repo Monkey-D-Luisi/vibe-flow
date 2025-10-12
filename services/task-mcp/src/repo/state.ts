@@ -178,13 +178,9 @@ export class LeaseRepository {
     const expiresAt = new Date(now.getTime() + ttlSeconds * 1000).toISOString();
     const leaseId = `LE-${ulid()}`;
 
-    // Check for existing lease
     const existing = this.get(taskId);
-    if (existing && existing.owner_agent !== ownerAgent) {
-      // Check if expired
-      if (new Date(existing.expires_at) > now) {
-        throw new Error('Lease held by another agent');
-      }
+    if (existing && existing.owner_agent !== ownerAgent && new Date(existing.expires_at) > now) {
+      throw new Error('Lease held by another agent');
     }
 
     // Insert or replace lease

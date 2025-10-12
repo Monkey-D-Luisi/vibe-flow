@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ulid } from 'ulid';
-import { TaskRepository } from '../src/repo/sqlite.js';
+import { TaskRepository } from '../src/repo/repository.js';
 
 const newTaskId = () => `TR-${ulid()}`;
 

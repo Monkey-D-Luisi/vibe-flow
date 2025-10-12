@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 import { AgentType } from './router';
-import { TaskRepository } from '../repo/sqlite';
+import { TaskRepository } from '../repo/repository.js';
 import { StateRepository, EventRepository, LeaseRepository } from '../repo/state';
 import { TaskRecord, TaskRecordValidator, type TransitionEvidence } from '../domain/TaskRecord';
 import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/FastTrack';
@@ -151,6 +151,182 @@ let agentRunner: AgentRunner = defaultAgentRunner;
 // Mock agent execution - in real implementation this would call OpenAI Agent Builder or similar
 export const runAgent: AgentRunner = async (agent, input) => agentRunner(agent, input);
 
+async function handleFastTrackEvaluation(
+  taskId: string,
+  task: TaskRecord,
+  state: any,
+  agentType: AgentType,
+  fastTrackContext?: FastTrackContext
+): Promise<void> {
+  if (state.current === 'po' && agentType === 'po' && fastTrackContext) {
+    const evaluationContext = cloneFastTrackContext(fastTrackContext, task);
+    const evaluation = evaluateFastTrack(evaluationContext);
+    const tagsSet = new Set<string>(task.tags ?? []);
+    tagsSet.add('fast-track');
+    tagsSet.delete('fast-track:revoked');
+    if (evaluation.eligible) {
+      tagsSet.add('fast-track:eligible');
+      tagsSet.delete('fast-track:blocked');
+    } else {
+      tagsSet.add('fast-track:blocked');
+      tagsSet.delete('fast-track:eligible');
+    }
+
+    const updated = repo.update(task.id, task.rev, { tags: Array.from(tagsSet) });
+    Object.assign(task, updated);
+
+    eventRepo.append(taskId, 'fasttrack', {
+      action: 'evaluated',
+      eligible: evaluation.eligible,
+      score: evaluation.score,
+      reasons: evaluation.reasons,
+      hardBlocks: evaluation.hardBlocks
+    });
+
+    const prNumber = getPrNumber(task);
+    if (prNumber) {
+      await fastTrackGitHub.onFastTrackEvaluated(task, evaluation, prNumber);
+    }
+  }
+}
+
+async function handleQualityGate(
+  taskId: string,
+  task: TaskRecord,
+  candidateTask: TaskRecord,
+  nextStateStatus: TaskRecord['status'],
+  patch: Partial<TaskRecord>
+): Promise<any> {
+  if (!requiresQualityGate(task.status, nextStateStatus)) {
+    return null;
+  }
+
+  const rgrLogCount = candidateTask.red_green_refactor_log?.length ?? task.red_green_refactor_log?.length ?? 0;
+
+  const gateResult = await gateEnforce(
+    {
+      task: { id: task.id, scope: task.scope },
+      source: 'tools'
+    },
+    { rgrLogCount }
+  );
+
+  const metricsPatch = {
+    coverage: gateResult.metrics.coverage.lines,
+    lint: {
+      errors: gateResult.metrics.lint.errors,
+      warnings: gateResult.metrics.lint.warnings
+    },
+    complexity: {
+      avgCyclomatic: gateResult.metrics.complexity.avgCyclomatic,
+      maxCyclomatic: gateResult.metrics.complexity.maxCyclomatic
+    }
+  };
+
+  const tags = new Set<string>(candidateTask.tags ?? task.tags ?? []);
+
+  eventRepo.append(taskId, 'quality.gate', {
+    passed: gateResult.passed,
+    violations: gateResult.violations,
+    metrics: gateResult.metrics
+  });
+
+  if (!gateResult.passed) {
+    tags.add('quality_gate_failed');
+    const failedUpdate = repo.update(task.id, task.rev, {
+      metrics: {
+        ...(task.metrics ?? {}),
+        ...metricsPatch
+      },
+      tags: Array.from(tags)
+    });
+    Object.assign(task, failedUpdate);
+
+    const summary = gateResult.violations
+      .map((violation) => `[${violation.code}] ${violation.message}`)
+      .join('; ');
+    throw new Error(`Quality gate failed: ${summary}`);
+  }
+
+  tags.delete('quality_gate_failed');
+
+  const nextTags = Array.from(tags);
+
+  candidateTask.metrics = {
+    ...(candidateTask.metrics ?? {}),
+    ...metricsPatch
+  };
+  candidateTask.tags = nextTags;
+
+  patch.metrics = { ...candidateTask.metrics };
+  patch.tags = nextTags;
+
+  return gateResult;
+}
+
+async function handlePostDevGuard(
+  taskId: string,
+  updatedTask: TaskRecord,
+  updatedState: any,
+  agentType: AgentType,
+  fastTrackContext?: FastTrackContext,
+  reviewerViolations?: Array<{ severity: string; rule?: string }>
+): Promise<any> {
+  if (agentType !== 'dev' || !wasFastTrack(updatedTask)) {
+    return null;
+  }
+
+  const guardCtx = cloneFastTrackContext(
+    fastTrackContext ?? buildDefaultFastTrackContext(updatedTask),
+    updatedTask
+  );
+  const guardResult = guardPostDev(guardCtx, reviewerViolations);
+
+  if (!guardResult.revoke) {
+    return null;
+  }
+
+  // Revoke fast-track: move back to architect state
+  const revokedState = stateRepo.update(taskId, updatedState.rev, {
+    current: 'arch',
+    previous: updatedState.current,
+    last_agent: 'system'
+  });
+
+  // Log revocation event
+  eventRepo.append(taskId, 'fasttrack', {
+    action: 'revoked',
+    reason: guardResult.reason,
+    previous_state: updatedState.current,
+    new_state: 'arch'
+  });
+
+  // GitHub automation for fast-track revocation
+  const prNumber = getPrNumber(updatedTask);
+  if (prNumber) {
+    await fastTrackGitHub.onFastTrackRevoked(updatedTask, guardResult, prNumber);
+  }
+
+  // Update task tags then persist revocation status
+  const tags = new Set<string>(updatedTask.tags ?? []);
+  tags.add('fast-track');
+  tags.add('fast-track:revoked');
+  tags.delete('fast-track:eligible');
+  tags.delete('fast-track:blocked');
+  const revokedTask = repo.update(taskId, updatedTask.rev, { tags: Array.from(tags), status: 'arch' });
+  Object.assign(updatedTask, revokedTask);
+
+  return {
+    task_id: taskId,
+    agent: agentType,
+    output: {}, // No output since revocation happens after
+    new_state: revokedState,
+    lease_id: 0, // Will be set by caller
+    fasttrack_revoked: true,
+    revocation_reason: guardResult.reason
+  };
+}
+
 // Run one step of the orchestrator for a task
 export async function runOrchestratorStep(
   taskId: string,
@@ -193,36 +369,8 @@ export async function runOrchestratorStep(
       input_summary: summarizeInput(input)
     });
 
-    if (state.current === 'po' && agentType === 'po' && fastTrackContext) {
-      const evaluationContext = cloneFastTrackContext(fastTrackContext, task);
-      const evaluation = evaluateFastTrack(evaluationContext);
-      const tagsSet = new Set(task.tags ?? []);
-      tagsSet.add('fast-track');
-      tagsSet.delete('fast-track:revoked');
-      if (evaluation.eligible) {
-        tagsSet.add('fast-track:eligible');
-        tagsSet.delete('fast-track:blocked');
-      } else {
-        tagsSet.add('fast-track:blocked');
-        tagsSet.delete('fast-track:eligible');
-      }
-
-      const updated = repo.update(task.id, task.rev, { tags: Array.from(tagsSet) });
-      Object.assign(task, updated);
-
-      eventRepo.append(taskId, 'fasttrack', {
-        action: 'evaluated',
-        eligible: evaluation.eligible,
-        score: evaluation.score,
-        reasons: evaluation.reasons,
-        hardBlocks: evaluation.hardBlocks
-      });
-
-      const prNumber = getPrNumber(task);
-      if (prNumber) {
-        await fastTrackGitHub.onFastTrackEvaluated(task, evaluation, prNumber);
-      }
-    }
+    // Handle fast-track evaluation if applicable
+    await handleFastTrackEvaluation(taskId, task, state, agentType, fastTrackContext);
 
     // Run the agent
     const output = await runAgent(agentType, input);
@@ -240,68 +388,8 @@ export async function runOrchestratorStep(
     const candidateTask = mergeTaskWithPatch(task, patch);
     const nextStateStatus = nextState as TaskRecord['status'];
 
-    if (requiresQualityGate(task.status, nextStateStatus)) {
-      const rgrLogCount =
-        candidateTask.red_green_refactor_log?.length ?? task.red_green_refactor_log?.length ?? 0;
-
-      const gateResult = await gateEnforce(
-        {
-          task: { id: task.id, scope: task.scope },
-          source: 'tools'
-        },
-        { rgrLogCount }
-      );
-
-      const metricsPatch = {
-        coverage: gateResult.metrics.coverage.lines,
-        lint: {
-          errors: gateResult.metrics.lint.errors,
-          warnings: gateResult.metrics.lint.warnings
-        },
-        complexity: {
-          avgCyclomatic: gateResult.metrics.complexity.avgCyclomatic,
-          maxCyclomatic: gateResult.metrics.complexity.maxCyclomatic
-        }
-      };
-
-      const tags = new Set(candidateTask.tags ?? task.tags ?? []);
-
-      eventRepo.append(taskId, 'quality.gate', {
-        passed: gateResult.passed,
-        violations: gateResult.violations,
-        metrics: gateResult.metrics
-      });
-
-      if (!gateResult.passed) {
-        tags.add('quality_gate_failed');
-        const failedUpdate = repo.update(task.id, task.rev, {
-          metrics: {
-            ...(task.metrics ?? {}),
-            ...metricsPatch
-          },
-          tags: Array.from(tags)
-        });
-        Object.assign(task, failedUpdate);
-
-        const summary = gateResult.violations
-          .map((violation) => `[${violation.code}] ${violation.message}`)
-          .join('; ');
-        throw new Error(`Quality gate failed: ${summary}`);
-      }
-
-      tags.delete('quality_gate_failed');
-
-      const nextTags = Array.from(tags);
-
-      candidateTask.metrics = {
-        ...(candidateTask.metrics ?? {}),
-        ...metricsPatch
-      };
-      candidateTask.tags = nextTags;
-
-      patch.metrics = { ...candidateTask.metrics };
-      patch.tags = nextTags;
-    }
+    // Handle quality gate if required
+    const gateResult = await handleQualityGate(taskId, task, candidateTask, nextStateStatus, patch);
 
     const transitionEvidence = buildTransitionEvidence(
       state.current as TaskRecord['status'],
@@ -336,55 +424,10 @@ export async function runOrchestratorStep(
 
     const updatedState = stateRepo.update(taskId, state.rev, stateUpdate);
 
-    // POST-DEV GUARD: Check if fast-track should be revoked
-    if (agentType === 'dev' && wasFastTrack(updatedTask)) {
-      const guardCtx = cloneFastTrackContext(
-        fastTrackContext ?? buildDefaultFastTrackContext(updatedTask),
-        updatedTask
-      );
-      const guardResult = guardPostDev(guardCtx, reviewerViolations);
-
-        if (guardResult.revoke) {
-          // Revoke fast-track: move back to architect state
-          const revokedState = stateRepo.update(taskId, updatedState.rev, {
-            current: 'arch',
-            previous: updatedState.current,
-            last_agent: 'system'
-        });
-
-        // Log revocation event
-        eventRepo.append(taskId, 'fasttrack', {
-          action: 'revoked',
-          reason: guardResult.reason,
-          previous_state: updatedState.current,
-          new_state: 'arch'
-        });
-
-          // GitHub automation for fast-track revocation
-          const prNumber = getPrNumber(updatedTask);
-          if (prNumber) {
-            await fastTrackGitHub.onFastTrackRevoked(updatedTask, guardResult, prNumber);
-          }
-
-          // Update task tags then persist revocation status
-          const tags = new Set(updatedTask.tags ?? []);
-          tags.add('fast-track');
-          tags.add('fast-track:revoked');
-          tags.delete('fast-track:eligible');
-          tags.delete('fast-track:blocked');
-          const revokedTask = repo.update(taskId, updatedTask.rev, { tags: Array.from(tags), status: 'arch' });
-          Object.assign(updatedTask, revokedTask);
-
-          return {
-            task_id: taskId,
-            agent: agentType,
-            output: validatedOutput,
-          new_state: revokedState,
-          lease_id: lease.lease_id,
-          fasttrack_revoked: true,
-          revocation_reason: guardResult.reason
-        };
-      }
+    // Handle post-dev guard and potential revocation
+    const revocationResult = await handlePostDevGuard(taskId, updatedTask, updatedState, agentType, fastTrackContext, reviewerViolations);
+    if (revocationResult) {
+      return revocationResult;
     }
 
     // Log transition event
@@ -410,7 +453,7 @@ export async function runOrchestratorStep(
 }
 
 function canRunAgent(currentState: string, agentType: AgentType): boolean {
-  const stateToAgentMap = {
+  const stateToAgentMap: Record<string, AgentType[]> = {
     'po': ['po'],
     'arch': ['architect'],
     'dev': ['dev'],
@@ -421,7 +464,7 @@ function canRunAgent(currentState: string, agentType: AgentType): boolean {
     'done': []
   };
 
-  const allowedAgents = stateToAgentMap[currentState as keyof typeof stateToAgentMap] || [];
+  const allowedAgents = stateToAgentMap[currentState] || [];
   return allowedAgents.includes(agentType);
 }
 
@@ -648,7 +691,7 @@ export function validateAgentOutput(agent: AgentType, output: any): any {
 }
 
 function getAgentOutputSchemaFile(agent: AgentType): string {
-  const files = {
+  const files: Record<AgentType, string> = {
     po: 'po_brief',
     architect: 'design_ready',
     dev: 'dev_work_output',

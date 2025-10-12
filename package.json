@@ -1,19 +1,25 @@
 {
   "name": "agents-mcps-starter",
   "private": true,
-  "workspaces": [
-    "packages/*",
-    "services/*",
-    "tooling/*"
-  ],
+  "type": "module",
+  "workspaces": ["packages/*", "services/*", "tooling/*"],
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
+    "cross-env": "^7.0.3",
     "husky": "^9.1.7",
     "tsx": "^4.16.0"
   },
   "scripts": {
     "prepare": "husky",
-    "q:tests": "pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --tests"
+    "q:tests": "tsx tooling/quality-mcp/cli/qcli.ts run --tests",
+    "q:coverage": "tsx tooling/quality-mcp/cli/qcli.ts run --coverage",
+    "q:lint": "tsx tooling/quality-mcp/cli/qcli.ts run --lint",
+    "q:complexity": "tsx tooling/quality-mcp/cli/qcli.ts run --complexity",
+    "q:gate": "tsx tooling/quality-mcp/cli/qcli.ts run --gate",
+    "start:server": "cross-env PORT=8080 node tooling/quality-mcp/server/dist/index.js"
+  },
+  "pnpm": {
+    "trustedDependencies": ["core-js"]
   }
 }

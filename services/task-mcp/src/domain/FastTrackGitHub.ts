@@ -1,5 +1,7 @@
 import { FastTrackResult, PostDevGuardResult } from './FastTrack.js';
 import { TaskRecord } from './TaskRecord.js';
+import { formatReason, formatHardBlock, formatRevocationReason } from './fastTrackMessages.js';
+import { buildEvaluationComment, buildRevocationComment, buildPullRequestBody } from './fastTrackCommentBuilders.js';
 
 type PullRequestParams = {
   title: string;
@@ -48,7 +50,7 @@ export class FastTrackGitHub {
 
     await this.comment({
       number: prNumber,
-      body: this.buildEvaluationComment(task, result),
+      body: buildEvaluationComment(task, result),
       type: 'pr'
     });
   }
@@ -60,7 +62,7 @@ export class FastTrackGitHub {
 
     await this.comment({
       number: prNumber,
-      body: this.buildRevocationComment(task, guardResult),
+      body: buildRevocationComment(task, guardResult),
       type: 'pr'
     });
   }
@@ -70,7 +72,7 @@ export class FastTrackGitHub {
       title: `${task.title} [FAST-TRACK]`,
       head: branchName,
       base,
-      body: this.buildPullRequestBody(task, result),
+      body: buildPullRequestBody(task, result),
       draft: result.eligible,
       labels: this.getLabelsForEvaluation(result)
     });
@@ -80,109 +82,5 @@ export class FastTrackGitHub {
     return result.eligible
       ? [LABEL_FAST_TRACK, LABEL_ELIGIBLE]
       : [LABEL_FAST_TRACK, LABEL_BLOCKED];
-  }
-
-  private buildEvaluationComment(task: TaskRecord, result: FastTrackResult): string {
-    const header = `## Fast-track evaluation for ${task.title}`;
-    const summaryTable = [
-      '| Metric | Value |',
-      '| --- | --- |',
-      `| Eligible | ${result.eligible ? 'YES' : 'NO'} |`,
-      `| Score | ${result.score}/100 |`
-    ].join('\n');
-
-    const reasonsSection = result.reasons.length
-      ? [``, '### Reasons', ...result.reasons.map(reason => `- ${this.formatReason(reason)}`)].join('\n')
-      : '';
-
-    const blocksSection = result.hardBlocks.length
-      ? [``, '### Hard blocks', ...result.hardBlocks.map(block => `- ${this.formatHardBlock(block)}`)].join('\n')
-      : '';
-
-    const footer = result.eligible
-      ? '\nFast-track approved. The task can move directly to Development.'
-      : '\nFast-track blocked. Continue with the Architecture review path.';
-
-    return [header, summaryTable, reasonsSection, blocksSection, footer].filter(Boolean).join('\n').trim();
-  }
-
-  private buildRevocationComment(task: TaskRecord, guardResult: PostDevGuardResult): string {
-    return [
-      `## Fast-track revoked for ${task.title}`,
-      `**Reason:** ${this.formatRevocationReason(guardResult.reason ?? 'unknown')}`,
-      '',
-      'The task must continue through the standard Architecture review.',
-      'Fast-track status was revoked after the development guard checks.'
-    ].join('\n');
-  }
-
-  private buildPullRequestBody(task: TaskRecord, result: FastTrackResult): string {
-    const eligibilitySection = result.eligible
-      ? `**Fast-track score:** ${result.score}/100`
-      : [
-          '**Fast-track blocked**',
-          result.hardBlocks.length ? result.hardBlocks.map(block => `- ${this.formatHardBlock(block)}`).join('\n') : 'No hard blocks reported.'
-        ].join('\n');
-
-    return [
-      `## ${task.title}`,
-      `**Task ID:** ${task.id}`,
-      `**Scope:** ${task.scope}`,
-      '',
-      eligibilitySection,
-      '',
-      '**Acceptance criteria**',
-      ...(task.acceptance_criteria ?? []).map(ac => `- ${ac}`)
-    ].join('\n');
-  }
-
-  private formatReason(reason: string): string {
-    const map: Record<string, string> = {
-      scope_minor: 'Scope minor',
-      diff_small: 'Diff <= 60 LOC',
-      diff_medium: 'Diff <= 120 LOC',
-      tests_docs_only: 'Only tests or documentation changed',
-  coverage_strong: 'Coverage >= 85%',
-  coverage_ok: 'Coverage >= 75%',
-  complexity_ok: 'Cyclomatic complexity <= 5',
-      lint_clean: 'Lint errors = 0',
-      module_boundary_safe: 'Module boundaries unchanged',
-      public_api_stable: 'Public API unchanged',
-      no_code_changes: 'No code changes detected',
-      eligible: 'Meets all criteria',
-      score_below_threshold: 'Score below threshold'
-    };
-    return map[reason] ?? reason;
-  }
-
-  private formatHardBlock(code: string): string {
-    const map: Record<string, string> = {
-      public_api: 'Public API changed',
-      modules_changed: 'Module boundaries changed',
-      contracts_changed: 'Contracts changed',
-      patterns_changed: 'Patterns changed',
-      adr_changed: 'ADR changes detected',
-      sensitive_path: 'Changes in sensitive paths (security/auth/payments/infra/migrations)',
-      schema_change: 'Schema changes detected',
-      lint_errors: 'Lint errors present'
-    };
-    return map[code] ?? code;
-  }
-
-  private formatRevocationReason(reason: string): string {
-    const map: Record<string, string> = {
-      public_api: 'Public API changed after development',
-      modules_changed: 'Module boundaries changed after development',
-      contracts_changed: 'Contracts changed after development',
-      patterns_changed: 'Patterns changed after development',
-      adr_changed: 'ADR changes detected',
-      sensitive_path: 'Changes in sensitive paths detected after development',
-      schema_change: 'Schema changes detected after development',
-      lint_errors: 'Lint errors introduced during development',
-      coverage_below_threshold: 'Coverage dropped below required threshold',
-      high_violations: 'High-severity review violations detected',
-      score_below_threshold: 'Fast-track score dropped below threshold'
-    };
-    return map[reason] ?? reason;
   }
 }

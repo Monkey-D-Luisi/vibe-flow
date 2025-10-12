@@ -259,6 +259,18 @@ const transitionHandlers: Record<string, TransitionHandler> = {
       : { valid: false, reason: 'PR must be merged to complete' }
 };
 
+function checkQualityGate(record: TaskRecord): boolean {
+  const hasTddLogs = record.red_green_refactor_log && record.red_green_refactor_log.length >= 2;
+  const requiredCoverage = record.scope === 'major' ? 0.8 : 0.7;
+  const hasCoverage = record.metrics?.coverage && record.metrics.coverage >= requiredCoverage;
+  const noLintErrors = !record.metrics?.lint?.errors || record.metrics.lint.errors === 0;
+  return Boolean(hasTddLogs && hasCoverage && noLintErrors);
+}
+
+function checkHighViolations(evidence?: TransitionEvidence): boolean {
+  return Boolean(evidence?.violations?.some((violation) => violation.severity === 'high'));
+}
+
 // Domain invariants and specific validations beyond schema
 export class TaskRecordValidator {
   static validateSchema(record: unknown): boolean {
@@ -277,19 +289,14 @@ export class TaskRecordValidator {
       return { valid: false, reason: `Invalid transition: ${transitionKey}` };
     }
 
-    const hasTddLogs = record.red_green_refactor_log && record.red_green_refactor_log.length >= 2;
-    const requiredCoverage = record.scope === 'major' ? 0.8 : 0.7;
-    const hasCoverage = record.metrics?.coverage && record.metrics.coverage >= requiredCoverage;
-    const noLintErrors = !record.metrics?.lint?.errors || record.metrics.lint.errors === 0;
-
-    const qualityGatePassed = Boolean(hasTddLogs && hasCoverage && noLintErrors);
-    const hasViolations = Boolean(evidence?.violations?.some((violation) => violation.severity === 'high'));
+    const qualityGatePassed = checkQualityGate(record);
+    const hasHighViolations = checkHighViolations(evidence);
 
     return handler({
       record,
       evidence,
       qualityGatePassed,
-      hasHighViolations: hasViolations
+      hasHighViolations
     });
   }
 

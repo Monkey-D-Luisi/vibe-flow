@@ -1,6 +1,6 @@
 import Ajv from 'ajv/dist/2020.js';
 import { loadSchema } from '../../../../services/task-mcp/src/utils/loadSchema.js';
-import { TaskRepository } from '../../../../services/task-mcp/src/repo/sqlite.js';
+import { TaskRepository } from '../../../../services/task-mcp/src/repo/repository.js';
 import { evaluateGate, DEFAULT_THRESHOLDS } from '../gate/policy.js';
 import { defaultPaths, loadMetricsFromArtifacts, loadMetricsFromTools } from '../gate/sources.js';
 import type { GateMetrics, GatePaths, GateResult, GateScope, GateThresholds } from '../gate/types.js';

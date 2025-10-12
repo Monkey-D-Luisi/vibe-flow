@@ -4,11 +4,13 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { ulid } from 'ulid';
-import { TaskRepository } from '../repo/sqlite.js';
+import { TaskRepository } from '../repo/repository.js';
 import { StateRepository, EventRepository, LeaseRepository, type OrchestratorState } from '../repo/state.js';
 import { TaskRecord, TaskRecordValidator, type TransitionEvidence } from '../domain/TaskRecord.js';
 import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/FastTrack.js';
 import { mergeTaskWithPatch } from '../orchestrator/patch.js';
+import { setRepos } from './tools/handlers/stateHandlers.js';
+import { handleToolCall } from './tools/handlers/index.js';
 
 type ToolName =
   | 'task.create'
@@ -437,14 +439,12 @@ const toolDescriptions: Record<ToolName, string> = {
   'gh.addLabels': 'Añadir etiquetas a un Issue/PR'
 };
 
-const toolValidators = Object.fromEntries(
-  Object.entries(toolInputSchemas).map(([name, schema]) => [name, schemaValidator.compile(schema)])
-) as Record<string, ValidateFunction>;
-
 const repo = new TaskRepository();
 const stateRepo = new StateRepository(repo.database);
 const eventRepo = new EventRepository(repo.database);
 const leaseRepo = new LeaseRepository(repo.database);
+
+setRepos(repo);
 
 const tools = Object.entries(toolInputSchemas).map(([name, schema]) => ({
   name,
@@ -452,365 +452,9 @@ const tools = Object.entries(toolInputSchemas).map(([name, schema]) => ({
   inputSchema: schema
 }));
 
-const toolHandlers: Record<ToolName, (args: any) => Promise<any>> = {
-  'task.create': async (args) => {
-    const record = repo.create({
-      id: `TR-${ulid()}`,
-      title: args.title,
-      description: args.description,
-      acceptance_criteria: args.acceptance_criteria,
-      scope: args.scope,
-      status: 'po',
-      tags: args.tags ?? [],
-      links: args.links ?? {}
-    });
-    stateRepo.create(record.id);
-    return record;
-  },
-  'task.get': async (args) => {
-    const record = repo.get(args.id);
-    if (!record) {
-      throw new SemanticError(404, 'Task not found');
-    }
-    return record;
-  },
-  'task.update': async (args) => {
-    try {
-      return repo.update(args.id, args.if_rev, args.patch);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Task not found') {
-        throw new SemanticError(404, 'Task not found');
-      }
-      if (error instanceof Error && error.message === 'Optimistic lock failed') {
-        throw new SemanticError(409, 'Optimistic lock failed');
-      }
-      throw error;
-    }
-  },
-  'task.search': async (args) => repo.search(args),
-  'task.transition': async (args) => {
-    const current = repo.get(args.id);
-    if (!current) {
-      throw new SemanticError(404, 'Task not found');
-    }
-
-    const state = stateRepo.get(args.id);
-    if (!state) {
-      throw new SemanticError(404, 'State not found');
-    }
-
-    if (state.current !== current.status) {
-      throw new SemanticError(409, `State mismatch: task is ${current.status} but orchestrator is ${state.current}`);
-    }
-
-    const target = args.to as TaskRecord['status'];
-    const patch: Partial<TaskRecord> = { status: target };
-    const evidence: TransitionEvidence = {};
-    const key = `${current.status}->${args.to}`;
-    const suppliedEvidence = args.evidence ?? {};
-
-    switch (key) {
-      case 'dev->review':
-        if (Array.isArray(suppliedEvidence.red_green_refactor_log)) {
-          patch.red_green_refactor_log = suppliedEvidence.red_green_refactor_log;
-          evidence.red_green_refactor_log = suppliedEvidence.red_green_refactor_log;
-        }
-        if (suppliedEvidence.metrics) {
-          const mergedLint = suppliedEvidence.metrics.lint
-            ? { ...(current.metrics?.lint ?? {}), ...suppliedEvidence.metrics.lint }
-            : current.metrics?.lint;
-          patch.metrics = {
-            ...(current.metrics ?? {}),
-            ...suppliedEvidence.metrics,
-            ...(mergedLint ? { lint: mergedLint } : {})
-          };
-          evidence.metrics = {
-            coverage: suppliedEvidence.metrics.coverage,
-            lint: suppliedEvidence.metrics.lint
-          };
-        }
-        break;
-      case 'review->dev':
-        patch.rounds_review = (current.rounds_review ?? 0) + 1;
-        break;
-      case 'qa->dev':
-        if (suppliedEvidence.qa_report) {
-          const { total, passed, failed } = suppliedEvidence.qa_report;
-          patch.qa_report = { total, passed, failed };
-          evidence.qa_report = { total, passed, failed };
-        }
-        break;
-      case 'qa->pr':
-        if (suppliedEvidence.qa_report) {
-          const { total, passed, failed } = suppliedEvidence.qa_report;
-          patch.qa_report = { total, passed, failed };
-          evidence.qa_report = { total, passed, failed };
-        }
-        break;
-      case 'review->po_check':
-        if (Array.isArray(suppliedEvidence.violations)) {
-          evidence.violations = suppliedEvidence.violations;
-          patch.review_notes = suppliedEvidence.violations.map(
-            (violation: any) => `${violation.rule} (${violation.where}): ${violation.suggested_fix}`
-          );
-        }
-        break;
-      case 'po_check->qa':
-        evidence.acceptance_criteria_met = suppliedEvidence.acceptance_criteria_met === true;
-        if (!evidence.acceptance_criteria_met) {
-          throw new SemanticError(409, 'PO must confirm acceptance criteria before QA');
-        }
-        break;
-      case 'pr->done':
-        evidence.merged = suppliedEvidence.merged === true;
-        if (!evidence.merged) {
-          throw new SemanticError(409, 'PR must be merged to complete task');
-        }
-        break;
-    }
-
-    if (suppliedEvidence.fast_track) {
-      evidence.fast_track = suppliedEvidence.fast_track;
-      const eligible = suppliedEvidence.fast_track.eligible;
-      const tags = new Set(current.tags ?? []);
-      tags.add('fast-track');
-      tags.delete('fast-track:revoked');
-      if (eligible) {
-        tags.add('fast-track:eligible');
-        tags.delete('fast-track:blocked');
-      } else {
-        tags.add('fast-track:blocked');
-        tags.delete('fast-track:eligible');
-      }
-      patch.tags = Array.from(tags);
-    }
-
-    const candidate = mergeTaskWithPatch(current, patch);
-    const validation = TaskRecordValidator.validateTransition(current.status, target, candidate, evidence);
-    if (!validation.valid) {
-      throw new SemanticError(409, validation.reason ?? 'Transition not allowed');
-    }
-
-    try {
-      const updatedTask = repo.update(args.id, args.if_rev, patch);
-
-      const statePatch: Partial<OrchestratorState> = {
-        current: target,
-        previous: state.current
-      };
-      if (key === 'review->dev') {
-        statePatch.rounds_review = (state.rounds_review ?? 0) + 1;
-      }
-
-      stateRepo.update(args.id, state.rev, statePatch);
-
-      return updatedTask;
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message === 'Optimistic lock failed') {
-          throw new SemanticError(409, 'Optimistic lock failed');
-        }
-        if (error.message === 'State not found') {
-          throw new SemanticError(404, 'State not found');
-        }
-      }
-      throw error;
-    }
-  },
-  'state.get': async (args) => {
-    const state = stateRepo.get(args.task_id);
-    if (!state) {
-      throw new SemanticError(404, 'State not found');
-    }
-    return state;
-  },
-  'state.patch': async (args) => {
-    try {
-      return stateRepo.update(args.task_id, args.if_rev, args.patch);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'State not found') {
-        throw new SemanticError(404, 'State not found');
-      }
-      if (error instanceof Error && error.message === 'Optimistic lock failed') {
-        throw new SemanticError(409, 'Optimistic lock failed');
-      }
-      throw error;
-    }
-  },
-  'state.acquire_lock': async (args) => {
-    try {
-      return leaseRepo.acquire(args.task_id, args.owner_agent, args.ttl_seconds ?? 300);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Lease held by another agent') {
-        throw new SemanticError(423, error.message);
-      }
-      throw error;
-    }
-  },
-  'state.release_lock': async (args) => {
-    const released = leaseRepo.release(args.task_id, args.lease_id);
-    return { released };
-  },
-  'state.append_event': async (args) => {
-    const state = stateRepo.get(args.task_id);
-    if (!state) {
-      throw new SemanticError(404, 'State not found');
-    }
-    return eventRepo.append(args.task_id, args.type, args.payload);
-  },
-  'state.search': async (args) => {
-    if (args.task_id) {
-      const state = stateRepo.get(args.task_id);
-      if (!state) {
-        throw new SemanticError(404, 'State not found');
-      }
-    }
-    return eventRepo.search(args.task_id, args.type, args.limit ?? 100);
-  },
-  'fasttrack.evaluate': async (args) => {
-    const task = repo.get(args.task_id);
-    if (!task) {
-      throw new SemanticError(404, 'Task not found');
-    }
-    const context: FastTrackContext = {
-      task,
-      diff: args.diff,
-      quality: args.quality,
-      metadata: args.metadata
-    };
-    const result = evaluateFastTrack(context);
-    const tags = new Set(task.tags ?? []);
-    tags.add('fast-track');
-    tags.delete('fast-track:revoked');
-    if (result.eligible) {
-      tags.add('fast-track:eligible');
-      tags.delete('fast-track:blocked');
-    } else {
-      tags.add('fast-track:blocked');
-      tags.delete('fast-track:eligible');
-    }
-    const updated = repo.update(task.id, task.rev, { tags: Array.from(tags) });
-    eventRepo.append(task.id, 'fasttrack', {
-      action: 'evaluated',
-      eligible: result.eligible,
-      score: result.score,
-      reasons: result.reasons,
-      hardBlocks: result.hardBlocks
-    });
-    return { result, task: updated };
-  },
-  'fasttrack.guard_post_dev': async (args) => {
-    const task = repo.get(args.task_id);
-    if (!task) {
-      throw new SemanticError(404, 'Task not found');
-    }
-    const state = stateRepo.get(args.task_id);
-    if (!state) {
-      throw new SemanticError(404, 'State not found');
-    }
-    const context: FastTrackContext = {
-      task,
-      diff: args.diff,
-      quality: args.quality,
-      metadata: args.metadata
-    };
-    const result = guardPostDev(context, args.reviewer_violations);
-    if (result.revoke) {
-      const tags = new Set(task.tags ?? []);
-      tags.add('fast-track:revoked');
-      const updated = repo.update(task.id, task.rev, { tags: Array.from(tags), status: 'arch' });
-      eventRepo.append(task.id, 'fasttrack', { action: 'revoked', reason: result.reason });
-      try {
-        stateRepo.update(args.task_id, state.rev, {
-          current: 'arch',
-          previous: state.current
-        });
-      } catch (error) {
-        if (error instanceof Error && error.message === 'Optimistic lock failed') {
-          throw new SemanticError(409, 'Optimistic lock failed');
-        }
-        if (error instanceof Error && error.message === 'State not found') {
-          throw new SemanticError(404, 'State not found');
-        }
-        throw error;
-      }
-      return { result, task: updated };
-    }
-    return { result, task };
-  },
-  'quality.run_tests': async (args) => ({
-    task_id: args.task_id,
-    status: 'passed',
-    summary: 'Tests executed via quality runner mock',
-    tests: []
-  }),
-  'quality.coverage_report': async (args) => ({
-    task_id: args.task_id,
-    coverage: {
-      lines: 0.82,
-      statements: 0.8,
-      functions: 0.78,
-      branches: 0.75
-    }
-  }),
-  'quality.lint': async (args) => ({
-    task_id: args.task_id,
-    errors: 0,
-    warnings: 2,
-    summary: 'No lint errors detected'
-  }),
-  'quality.complexity': async (args) => ({
-    task_id: args.task_id,
-    avgCyclomatic: 4.2,
-    hotspots: []
-  }),
-  'quality.enforce_gates': async (args) => {
-    const { coverage, lintErrors, testsFailed } = args.metrics;
-    const failures: string[] = [];
-    if (coverage < 0.7) failures.push('coverage');
-    if (lintErrors > 0) failures.push('lint');
-    if (testsFailed > 0) failures.push('tests');
-    return {
-      task_id: args.task_id,
-      passed: failures.length === 0,
-      failures
-    };
-  },
-  'gh.createBranch': async (args) => ({
-    branch: args.name,
-    base: args.base ?? 'main',
-    command: `git checkout -b ${args.name} ${args.base ?? 'main'}`
-  }),
-  'gh.openPR': async (args) => {
-    const prNumber = Math.floor(Math.random() * 10_000) + 1;
-    return {
-    number: prNumber,
-    title: args.title,
-    head: args.head,
-    base: args.base ?? 'main',
-    draft: args.draft ?? true,
-    labels: args.labels ?? [],
-    url: `https://github.com/example/repo/pull/${prNumber}`
-    };
-  },
-  'gh.comment': async (args) => ({
-    number: args.number,
-    type: args.type ?? 'pr',
-    body: args.body,
-    commented: true
-  }),
-  'gh.setProjectStatus': async (args) => ({
-    itemId: args.itemId,
-    status: args.status,
-    updated: true
-  }),
-  'gh.addLabels': async (args) => ({
-    number: args.number,
-    type: args.type ?? 'pr',
-    labels: args.labels,
-    added: true
-  })
-};
+const toolValidators = Object.fromEntries(
+  Object.entries(toolInputSchemas).map(([name, schema]) => [name, schemaValidator.compile(schema)])
+);
 
 function asSuccess(payload: any) {
   return {
@@ -862,22 +506,15 @@ class TaskMCPServer {
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args = {} } = request.params;
 
-      if (!toolHandlers[name as ToolName]) {
-        return asError(404, `Unknown tool: ${name}`);
-      }
-
-      const validator = toolValidators[name as ToolName];
-      if (validator && !validator(args)) {
-        const details = validator.errors ?? [];
-        return asError(422, 'Input validation failed', details);
-      }
-
       try {
-        const result = await toolHandlers[name as ToolName](args);
+        const result = await handleToolCall(name, args);
         return asSuccess(result);
       } catch (error) {
         if (error instanceof SemanticError) {
           return asError(error.code, error.message);
+        }
+        if ((error as any).name === 'NotFound404') {
+          return asError(404, (error as Error).message);
         }
         if (error instanceof Error) {
           return asError(500, error.message);
@@ -896,12 +533,12 @@ class TaskMCPServer {
 
 export { TaskMCPServer };
 export const __test__ = {
-  toolHandlers,
-  toolValidators,
   toolInputSchemas,
   schemaValidator,
+  toolValidators,
   repo,
   stateRepo,
   eventRepo,
-  leaseRepo
+  leaseRepo,
+  toolHandlers: new Proxy({}, { get: (_, prop) => (input: any) => handleToolCall(prop as string, input) })
 };

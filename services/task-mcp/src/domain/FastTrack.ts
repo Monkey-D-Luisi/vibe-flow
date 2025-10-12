@@ -40,7 +40,6 @@ const DOC_EXT = /\.(md|rst|adoc)$/i;
 
 export function evaluateFastTrack(ctx: FastTrackContext): FastTrackResult {
   const hardBlocks: string[] = [];
-  const reasons: string[] = [];
   const { diff, quality, metadata, task } = ctx;
 
   const touchesSensitivePath = diff.files.some(file => SENSITIVE_PATHS.test(file));
@@ -61,71 +60,111 @@ export function evaluateFastTrack(ctx: FastTrackContext): FastTrackResult {
   registerHardBlock('schema_change', metadata.packagesSchemaChanged ?? touchesSchemas);
   registerHardBlock('lint_errors', (quality.lintErrors ?? 0) > 0);
 
+  const { score, reasons } = calculateFastTrackScore(ctx, hardBlocks);
+
+  return { eligible: hardBlocks.length === 0 && score >= 60, score, reasons, hardBlocks };
+}
+
+function calculateFastTrackScore(ctx: FastTrackContext, hardBlocks: string[]): { score: number; reasons: string[] } {
+  const reasons: string[] = [];
+  const { diff, quality, metadata, task } = ctx;
+
   let score = 0;
 
-  if (task.scope === 'minor') {
-    score += 40;
-    reasons.push('scope_minor');
-  }
-
-  const totalLoc = diff.locAdded + diff.locDeleted;
-  if (totalLoc === 0) {
-    score += 10;
-    reasons.push('no_code_changes');
-  } else if (totalLoc <= 60) {
-    score += 15;
-    reasons.push('diff_small');
-  } else if (totalLoc <= 120) {
-    score += 10;
-    reasons.push('diff_medium');
-  }
-
-  const onlyTestsOrDocs = diff.files.length > 0 && diff.files.every(file => TEST_OR_DOC_FILE.test(file) || DOC_EXT.test(file));
-  if (onlyTestsOrDocs) {
-    score += 15;
-    reasons.push('tests_docs_only');
-  }
-
-  const coverage = quality.coverage ?? 0;
-  if (coverage >= 0.85) {
-    score += 10;
-    reasons.push('coverage_strong');
-  } else if (coverage >= 0.75) {
-    score += 5;
-    reasons.push('coverage_ok');
-  }
-
-  if ((quality.avgCyclomatic ?? Number.POSITIVE_INFINITY) <= 5) {
-    score += 5;
-    reasons.push('complexity_ok');
-  }
-
-  if (quality.lintErrors === 0) {
-    score += 5;
-    reasons.push('lint_clean');
-  }
-
-  if (!metadata.modulesChanged) {
-    score += 5;
-    reasons.push('module_boundary_safe');
-  }
-
-  if (!metadata.publicApiChanged) {
-    score += 5;
-    reasons.push('public_api_stable');
-  }
+  score += calculateScopeBonus(task.scope, reasons);
+  score += calculateDiffBonus(diff, reasons);
+  score += calculateFileTypeBonus(diff.files, reasons);
+  score += calculateQualityBonuses(quality, reasons);
+  score += calculateMetadataBonuses(metadata, reasons);
 
   score = Math.max(0, Math.min(100, score));
 
-  const eligible = hardBlocks.length === 0 && score >= 60;
-  if (!eligible && hardBlocks.length === 0) {
-    reasons.push('score_below_threshold');
+  addEligibilityReason(score, hardBlocks, reasons);
+
+  return { score, reasons };
+}
+
+function calculateScopeBonus(scope: string, reasons: string[]): number {
+  if (scope === 'minor') {
+    reasons.push('scope_minor');
+    return 40;
   }
-  if (eligible) {
-    reasons.push('eligible');
+  return 0;
+}
+
+function calculateDiffBonus(diff: FastTrackContext['diff'], reasons: string[]): number {
+  const totalLoc = diff.locAdded + diff.locDeleted;
+  if (totalLoc === 0) {
+    reasons.push('no_code_changes');
+    return 10;
+  } else if (totalLoc <= 60) {
+    reasons.push('diff_small');
+    return 15;
+  } else if (totalLoc <= 120) {
+    reasons.push('diff_medium');
+    return 10;
+  }
+  return 0;
+}
+
+function calculateFileTypeBonus(files: string[], reasons: string[]): number {
+  const onlyTestsOrDocs = files.length > 0 && files.every(file => TEST_OR_DOC_FILE.test(file) || DOC_EXT.test(file));
+  if (onlyTestsOrDocs) {
+    reasons.push('tests_docs_only');
+    return 15;
+  }
+  return 0;
+}
+
+function calculateQualityBonuses(quality: FastTrackContext['quality'], reasons: string[]): number {
+  let bonus = 0;
+
+  const coverage = quality.coverage ?? 0;
+  if (coverage >= 0.85) {
+    reasons.push('coverage_strong');
+    bonus += 10;
+  } else if (coverage >= 0.75) {
+    reasons.push('coverage_ok');
+    bonus += 5;
   }
 
-  return { eligible, score, reasons, hardBlocks };
+  if ((quality.avgCyclomatic ?? Number.POSITIVE_INFINITY) <= 5) {
+    reasons.push('complexity_ok');
+    bonus += 5;
+  }
+
+  if (quality.lintErrors === 0) {
+    reasons.push('lint_clean');
+    bonus += 5;
+  }
+
+  return bonus;
+}
+
+function calculateMetadataBonuses(metadata: FastTrackContext['metadata'], reasons: string[]): number {
+  let bonus = 0;
+
+  if (!metadata.modulesChanged) {
+    reasons.push('module_boundary_safe');
+    bonus += 5;
+  }
+
+  if (!metadata.publicApiChanged) {
+    reasons.push('public_api_stable');
+    bonus += 5;
+  }
+
+  return bonus;
+}
+
+function addEligibilityReason(score: number, hardBlocks: string[], reasons: string[]): void {
+  if (hardBlocks.length === 0) {
+    if (score >= 60) {
+      reasons.push('eligible');
+    } else {
+      reasons.push('score_below_threshold');
+    }
+  }
 }
 
 export function guardPostDev(

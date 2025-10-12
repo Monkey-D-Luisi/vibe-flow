@@ -1,0 +1,26 @@
+{
+  "passed": false,
+  "metrics": {
+    "tests": {
+      "total": 183,
+      "failed": 0
+    },
+    "coverage": {
+      "lines": 0.8346138293570562
+    },
+    "lint": {
+      "errors": 0,
+      "warnings": 32
+    },
+    "complexity": {
+      "avgCyclomatic": 2.642857142857143,
+      "maxCyclomatic": 13
+    }
+  },
+  "violations": [
+    {
+      "code": "COMPLEXITY_HIGH",
+      "message": "Complexity too high (avg 2.64 / max 13.00; allowed avg <= 5, max <= 12)."
+    }
+  ]
+}
