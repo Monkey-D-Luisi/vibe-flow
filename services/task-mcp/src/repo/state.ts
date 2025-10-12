@@ -166,6 +166,17 @@ export class EventRepository {
   }
 }
 
+// Helper function for lease validation
+function isLeaseValid(lease: Lease | null, leaseId?: string): boolean {
+  if (!lease) return false;
+  
+  if (leaseId !== undefined && lease.lease_id !== leaseId) {
+    return false;
+  }
+  
+  return new Date(lease.expires_at) > new Date();
+}
+
 export class LeaseRepository {
   private db: Database.Database;
 
@@ -179,8 +190,15 @@ export class LeaseRepository {
     const leaseId = `LE-${ulid()}`;
 
     const existing = this.get(taskId);
-    if (existing && existing.owner_agent !== ownerAgent && new Date(existing.expires_at) > now) {
-      throw new Error('Lease held by another agent');
+    // Block only if held by a different agent and not expired
+    if (existing !== null) {
+      const isDifferentOwner = existing.owner_agent !== ownerAgent;
+      if (isDifferentOwner) {
+        const isStillValid = new Date(existing.expires_at) > now;
+        if (isStillValid) {
+          throw new Error('Lease held by another agent');
+        }
+      }
     }
 
     // Insert or replace lease
@@ -225,8 +243,6 @@ export class LeaseRepository {
 
   isValid(taskId: string, leaseId?: string): boolean {
     const lease = this.get(taskId);
-    if (!lease) return false;
-    if (leaseId && lease.lease_id !== leaseId) return false;
-    return new Date(lease.expires_at) > new Date();
+    return isLeaseValid(lease, leaseId);
   }
 }

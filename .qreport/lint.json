@@ -1,11 +1,11 @@
 {
   "errors": 0,
-  "warnings": 32,
+  "warnings": 72,
   "byFile": [
     {
       "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\orchestrator\\runner.ts",
       "errors": 0,
-      "warnings": 14,
+      "warnings": 18,
       "messages": [
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
@@ -56,82 +56,285 @@
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 159,
+          "line": 157,
+          "column": 10,
+          "endLine": 157,
+          "endColumn": 13
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 199,
           "column": 12,
-          "endLine": 159,
+          "endLine": 199,
           "endColumn": 15
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 326,
+          "line": 270,
+          "column": 17,
+          "endLine": 270,
+          "endColumn": 20
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 274,
+          "column": 12,
+          "endLine": 274,
+          "endColumn": 15
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 335,
+          "column": 12,
+          "endLine": 335,
+          "endColumn": 15
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 414,
           "column": 24,
-          "endLine": 326,
+          "endLine": 414,
           "endColumn": 27
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 459,
+          "line": 502,
           "column": 53,
-          "endLine": 459,
+          "endLine": 502,
           "endColumn": 56
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 459,
+          "line": 502,
           "column": 81,
-          "endLine": 459,
+          "endLine": 502,
           "endColumn": 84
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 504,
+          "line": 547,
           "column": 11,
-          "endLine": 504,
+          "endLine": 547,
           "endColumn": 14
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 540,
+          "line": 583,
           "column": 32,
-          "endLine": 540,
+          "endLine": 583,
           "endColumn": 35
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 545,
+          "line": 588,
           "column": 34,
-          "endLine": 545,
+          "endLine": 588,
           "endColumn": 37
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 631,
+          "line": 674,
           "column": 63,
-          "endLine": 631,
+          "endLine": 674,
           "endColumn": 66
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 631,
+          "line": 674,
           "column": 69,
-          "endLine": 631,
+          "endLine": 674,
           "endColumn": 72
+        }
+      ]
+    },
+    {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\mcp\\tools\\handlers\\fastTrackHandlers.ts",
+      "errors": 0,
+      "warnings": 9,
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 12,
+          "column": 72,
+          "endLine": 12,
+          "endColumn": 75
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 15,
+          "column": 11,
+          "endLine": 15,
+          "endColumn": 14
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 16,
+          "column": 14,
+          "endLine": 16,
+          "endColumn": 17
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 17,
+          "column": 15,
+          "endLine": 17,
+          "endColumn": 18
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 57,
+          "column": 76,
+          "endLine": 57,
+          "endColumn": 79
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 60,
+          "column": 11,
+          "endLine": 60,
+          "endColumn": 14
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 61,
+          "column": 14,
+          "endLine": 61,
+          "endColumn": 17
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 62,
+          "column": 15,
+          "endLine": 62,
+          "endColumn": 18
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 63,
+          "column": 27,
+          "endLine": 63,
+          "endColumn": 30
+        }
+      ]
+    },
+    {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\mcp\\tools\\handlers\\stateHandlers.ts",
+      "errors": 0,
+      "warnings": 8,
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 84,
+          "column": 63,
+          "endLine": 84,
+          "endColumn": 66
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 96,
+          "column": 65,
+          "endLine": 96,
+          "endColumn": 68
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 100,
+          "column": 67,
+          "endLine": 100,
+          "endColumn": 70
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 114,
+          "column": 71,
+          "endLine": 114,
+          "endColumn": 74
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 129,
+          "column": 71,
+          "endLine": 129,
+          "endColumn": 74
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 138,
+          "column": 71,
+          "endLine": 138,
+          "endColumn": 74
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 142,
+          "column": 67,
+          "endLine": 142,
+          "endColumn": 70
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 150,
+          "column": 66,
+          "endLine": 150,
+          "endColumn": 69
         }
       ]
     },
@@ -198,9 +401,9 @@
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 207,
+          "line": 203,
           "column": 37,
-          "endLine": 207,
+          "endLine": 203,
           "endColumn": 40
         }
       ]
@@ -208,66 +411,57 @@
     {
       "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\mcp\\tools.ts",
       "errors": 0,
-      "warnings": 6,
+      "warnings": 5,
       "messages": [
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 84,
+          "line": 80,
           "column": 42,
-          "endLine": 84,
+          "endLine": 80,
           "endColumn": 45
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 455,
-          "column": 45,
-          "endLine": 455,
-          "endColumn": 48
-        },
-        {
-          "ruleId": "@typescript-eslint/no-explicit-any",
-          "severity": "warning",
-          "message": "Unexpected any. Specify a different type.",
-          "line": 455,
-          "column": 61,
-          "endLine": 455,
-          "endColumn": 64
-        },
-        {
-          "ruleId": "@typescript-eslint/no-explicit-any",
-          "severity": "warning",
-          "message": "Unexpected any. Specify a different type.",
-          "line": 554,
-          "column": 25,
-          "endLine": 554,
-          "endColumn": 28
-        },
-        {
-          "ruleId": "@typescript-eslint/no-explicit-any",
-          "severity": "warning",
-          "message": "Unexpected any. Specify a different type.",
-          "line": 815,
+          "line": 446,
           "column": 29,
-          "endLine": 815,
+          "endLine": 446,
           "endColumn": 32
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 826,
+          "line": 457,
           "column": 59,
-          "endLine": 826,
+          "endLine": 457,
+          "endColumn": 62
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 503,
+          "column": 23,
+          "endLine": 503,
+          "endColumn": 26
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 530,
+          "column": 59,
+          "endLine": 530,
           "endColumn": 62
         }
       ]
     },
     {
-      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\repo\\sqlite.ts",
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\mcp\\tools\\handlers\\qualityHandlers.ts",
       "errors": 0,
       "warnings": 5,
       "messages": [
@@ -275,46 +469,268 @@
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 116,
+          "line": 45,
+          "column": 57,
+          "endLine": 45,
+          "endColumn": 60
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 58,
+          "column": 63,
+          "endLine": 58,
+          "endColumn": 66
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 74,
+          "column": 53,
+          "endLine": 74,
+          "endColumn": 56
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 87,
+          "column": 59,
+          "endLine": 87,
+          "endColumn": 62
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 99,
+          "column": 61,
+          "endLine": 99,
+          "endColumn": 64
+        }
+      ]
+    },
+    {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\mcp\\tools\\handlers\\taskHandlers.ts",
+      "errors": 0,
+      "warnings": 5,
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 52,
+          "column": 62,
+          "endLine": 52,
+          "endColumn": 65
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 64,
+          "column": 65,
+          "endLine": 64,
+          "endColumn": 68
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 68,
+          "column": 62,
+          "endLine": 68,
+          "endColumn": 65
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 82,
+          "column": 65,
+          "endLine": 82,
+          "endColumn": 68
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 86,
+          "column": 25,
+          "endLine": 86,
+          "endColumn": 28
+        }
+      ]
+    },
+    {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\repo\\repository.ts",
+      "errors": 0,
+      "warnings": 5,
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 9,
+          "column": 163,
+          "endLine": 9,
+          "endColumn": 166
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 12,
+          "column": 17,
+          "endLine": 12,
+          "endColumn": 20
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 78,
           "column": 33,
-          "endLine": 116,
+          "endLine": 78,
           "endColumn": 36
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 151,
-          "column": 19,
-          "endLine": 151,
-          "endColumn": 22
-        },
-        {
-          "ruleId": "@typescript-eslint/no-explicit-any",
-          "severity": "warning",
-          "message": "Unexpected any. Specify a different type.",
-          "line": 169,
+          "line": 101,
           "column": 48,
-          "endLine": 169,
+          "endLine": 101,
           "endColumn": 51
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 182,
+          "line": 104,
           "column": 41,
-          "endLine": 182,
+          "endLine": 104,
           "endColumn": 44
+        }
+      ]
+    },
+    {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\mcp\\tools\\handlers\\taskTransitionHandler.ts",
+      "errors": 0,
+      "warnings": 4,
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 89,
+          "column": 69,
+          "endLine": 89,
+          "endColumn": 72
         },
         {
           "ruleId": "@typescript-eslint/no-explicit-any",
           "severity": "warning",
           "message": "Unexpected any. Specify a different type.",
-          "line": 188,
-          "column": 28,
-          "endLine": 188,
-          "endColumn": 31
+          "line": 98,
+          "column": 16,
+          "endLine": 98,
+          "endColumn": 19
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 164,
+          "column": 23,
+          "endLine": 164,
+          "endColumn": 26
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 220,
+          "column": 52,
+          "endLine": 220,
+          "endColumn": 55
+        }
+      ]
+    },
+    {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\repo\\row-mapper.ts",
+      "errors": 0,
+      "warnings": 3,
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 3,
+          "column": 34,
+          "endLine": 3,
+          "endColumn": 37
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 36,
+          "column": 96,
+          "endLine": 36,
+          "endColumn": 99
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 99,
+          "column": 61,
+          "endLine": 99,
+          "endColumn": 64
+        }
+      ]
+    },
+    {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\mcp\\tools\\handlers\\taskCreateHandler.ts",
+      "errors": 0,
+      "warnings": 2,
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 4,
+          "column": 65,
+          "endLine": 4,
+          "endColumn": 68
+        },
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 12,
+          "column": 13,
+          "endLine": 12,
+          "endColumn": 16
+        }
+      ]
+    },
+    {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\repo\\guards.ts",
+      "errors": 0,
+      "warnings": 1,
+      "messages": [
+        {
+          "ruleId": "@typescript-eslint/no-explicit-any",
+          "severity": "warning",
+          "message": "Unexpected any. Specify a different type.",
+          "line": 26,
+          "column": 31,
+          "endLine": 26,
+          "endColumn": 34
         }
       ]
     },
@@ -361,7 +777,19 @@
       "messages": []
     },
     {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\domain\\fastTrackCommentBuilders.ts",
+      "errors": 0,
+      "warnings": 0,
+      "messages": []
+    },
+    {
       "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\domain\\FastTrackGitHub.ts",
+      "errors": 0,
+      "warnings": 0,
+      "messages": []
+    },
+    {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\domain\\fastTrackMessages.ts",
       "errors": 0,
       "warnings": 0,
       "messages": []
@@ -374,6 +802,18 @@
     },
     {
       "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\index.ts",
+      "errors": 0,
+      "warnings": 0,
+      "messages": []
+    },
+    {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\mcp\\tools\\handlers\\index.ts",
+      "errors": 0,
+      "warnings": 0,
+      "messages": []
+    },
+    {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\mcp\\tools\\handlers\\sharedRepos.ts",
       "errors": 0,
       "warnings": 0,
       "messages": []
@@ -397,6 +837,18 @@
       "messages": []
     },
     {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\repo\\sqlite.ts",
+      "errors": 0,
+      "warnings": 0,
+      "messages": []
+    },
+    {
+      "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\repo\\statements.ts",
+      "errors": 0,
+      "warnings": 0,
+      "messages": []
+    },
+    {
       "file": "C:\\Users\\luiss\\source\\repos\\agents-mcps\\services\\task-mcp\\src\\types\\json.d.ts",
       "errors": 0,
       "warnings": 0,
@@ -413,7 +865,7 @@
     {
       "ruleId": "@typescript-eslint/no-explicit-any",
       "errors": 0,
-      "warnings": 32
+      "warnings": 72
     }
   ],
   "meta": {

@@ -1,5 +1,5 @@
 {
-  "passed": false,
+  "passed": true,
   "metrics": {
     "tests": {
       "total": 183,
@@ -10,17 +10,12 @@
     },
     "lint": {
       "errors": 0,
-      "warnings": 32
+      "warnings": 72
     },
     "complexity": {
-      "avgCyclomatic": 2.642857142857143,
-      "maxCyclomatic": 13
+      "avgCyclomatic": 2.6208530805687205,
+      "maxCyclomatic": 12
     }
   },
-  "violations": [
-    {
-      "code": "COMPLEXITY_HIGH",
-      "message": "Complexity too high (avg 2.64 / max 13.00; allowed avg <= 5, max <= 12)."
-    }
-  ]
+  "violations": []
 }
