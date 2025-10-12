@@ -196,6 +196,69 @@ export interface TaskRecord {
   updated_at: string;
 }
 
+type TransitionHandlerContext = {
+  record: TaskRecord;
+  evidence?: TransitionEvidence;
+  qualityGatePassed: boolean;
+  hasHighViolations: boolean;
+};
+
+type TransitionHandlerResult = { valid: boolean; reason?: string };
+type TransitionHandler = (context: TransitionHandlerContext) => TransitionHandlerResult;
+
+const transitionHandlers: Record<string, TransitionHandler> = {
+  'po->arch': ({ record }) =>
+    record.acceptance_criteria && record.acceptance_criteria.length > 0
+      ? { valid: true }
+      : { valid: false, reason: 'Requirements must be groomed before moving to arch' },
+  'po->dev': ({ record }) => {
+    if (record.scope !== 'minor') {
+      return { valid: false, reason: 'Fast-track only available for minor scope' };
+    }
+    const tags = record.tags || [];
+    const eligible = tags.includes('fast-track:eligible');
+    const revoked = tags.includes('fast-track:revoked');
+    if (!(eligible && !revoked)) {
+      return { valid: false, reason: 'Fast-track evaluation required with score >= 60' };
+    }
+    return { valid: true };
+  },
+  'arch->dev': ({ record }) =>
+    record.adr_id && record.contracts && record.contracts.length > 0
+      ? { valid: true }
+      : { valid: false, reason: 'ADR and contracts must be defined' },
+  'dev->review': ({ qualityGatePassed }) =>
+    qualityGatePassed
+      ? { valid: true }
+      : { valid: false, reason: 'Quality gate failed: insufficient coverage, TDD logs, or lint errors' },
+  'review->dev': ({ record }) => {
+    if ((record.rounds_review || 0) >= 2) {
+      return { valid: false, reason: 'Maximum review rounds (2) exceeded' };
+    }
+    return { valid: true };
+  },
+  'review->po_check': ({ hasHighViolations }) =>
+    hasHighViolations
+      ? { valid: false, reason: 'High severity violations must be resolved' }
+      : { valid: true },
+  'po_check->qa': ({ evidence }) =>
+    evidence?.acceptance_criteria_met === true
+      ? { valid: true }
+      : { valid: false, reason: 'Acceptance criteria must be approved by PO' },
+  'qa->dev': ({ evidence }) =>
+    evidence?.qa_report
+      ? { valid: true }
+      : { valid: false, reason: 'QA report required for failed QA' },
+  'qa->pr': ({ record }) =>
+    record.qa_report?.failed === 0
+      ? { valid: true }
+      : { valid: false, reason: 'QA must pass with 0 failures' },
+  'pr->done': ({ evidence }) =>
+    evidence?.merged === true
+      ? { valid: true }
+      : { valid: false, reason: 'PR must be merged to complete' }
+};
+
 // Domain invariants and specific validations beyond schema
 export class TaskRecordValidator {
   static validateSchema(record: unknown): boolean {
@@ -207,90 +270,27 @@ export class TaskRecordValidator {
     to: TaskRecord['status'],
     record: TaskRecord,
     evidence?: TransitionEvidence
-  ): { valid: boolean; reason?: string } {
-    // Helper function for quality gate validation
-    const validateQualityGate = (record: TaskRecord): boolean => {
-      const hasTddLogs = record.red_green_refactor_log && record.red_green_refactor_log.length >= 2;
-      const requiredCoverage = record.scope === 'major' ? 0.8 : 0.7;
-      const hasCoverage = record.metrics?.coverage && record.metrics.coverage >= requiredCoverage;
-      const noLintErrors = !record.metrics?.lint?.errors || record.metrics.lint.errors === 0;
-      return Boolean(hasTddLogs && hasCoverage && noLintErrors);
-    };
-
-    // Helper function for violations check
-    const hasHighViolations = (transitionEvidence?: TransitionEvidence): boolean =>
-      Boolean(transitionEvidence?.violations?.some((violation) => violation.severity === 'high'));
-
-    switch (`${from}->${to}`) {
-      case 'po->arch':
-        // Guard: requisitos mínimos definidos (assume acceptance_criteria is sufficient)
-        return record.acceptance_criteria && record.acceptance_criteria.length > 0
-          ? { valid: true }
-          : { valid: false, reason: 'Requirements must be groomed before moving to arch' };
-
-      case 'po->dev': {
-        if (record.scope !== 'minor') {
-          return { valid: false, reason: 'Fast-track only available for minor scope' };
-        }
-        if (!((record.tags || []).includes('fast-track:eligible') && !(record.tags || []).includes('fast-track:revoked'))) {
-          return { valid: false, reason: 'Fast-track evaluation required with score >= 60' };
-        }
-        return { valid: true };
-      }
-
-      case 'arch->dev':
-        // Guard: ADR and contracts defined
-        return record.adr_id && record.contracts && record.contracts.length > 0
-          ? { valid: true }
-          : { valid: false, reason: 'ADR and contracts must be defined' };
-
-      case 'dev->review':
-        // Quality gate validation
-        if (!validateQualityGate(record)) {
-          return { valid: false, reason: 'Quality gate failed: insufficient coverage, TDD logs, or lint errors' };
-        }
-        return { valid: true };
-
-      case 'review->dev':
-        // Check round limit
-        if ((record.rounds_review || 0) >= 2) {
-          return { valid: false, reason: 'Maximum review rounds (2) exceeded' };
-        }
-        return { valid: true };
-
-      case 'review->po_check':
-        // Guard: no high severity violations pending
-        return !hasHighViolations(evidence)
-          ? { valid: true }
-          : { valid: false, reason: 'High severity violations must be resolved' };
-
-      case 'po_check->qa':
-        // Guard: acceptance criteria marked as met (assume evidence contains approval)
-        return evidence?.acceptance_criteria_met === true
-          ? { valid: true }
-          : { valid: false, reason: 'Acceptance criteria must be approved by PO' };
-
-      case 'qa->dev':
-        // QA failed, return to dev with report
-        return evidence?.qa_report
-          ? { valid: true }
-          : { valid: false, reason: 'QA report required for failed QA' };
-
-      case 'qa->pr':
-        // Guard: qa_report.failed == 0
-        return record.qa_report?.failed === 0
-          ? { valid: true }
-          : { valid: false, reason: 'QA must pass with 0 failures' };
-
-      case 'pr->done':
-        // PR merged
-        return evidence?.merged === true
-          ? { valid: true }
-          : { valid: false, reason: 'PR must be merged to complete' };
-
-      default:
-        return { valid: false, reason: `Invalid transition: ${from} -> ${to}` };
+  ): TransitionHandlerResult {
+    const transitionKey = `${from}->${to}`;
+    const handler = transitionHandlers[transitionKey];
+    if (!handler) {
+      return { valid: false, reason: `Invalid transition: ${transitionKey}` };
     }
+
+    const hasTddLogs = record.red_green_refactor_log && record.red_green_refactor_log.length >= 2;
+    const requiredCoverage = record.scope === 'major' ? 0.8 : 0.7;
+    const hasCoverage = record.metrics?.coverage && record.metrics.coverage >= requiredCoverage;
+    const noLintErrors = !record.metrics?.lint?.errors || record.metrics.lint.errors === 0;
+
+    const qualityGatePassed = Boolean(hasTddLogs && hasCoverage && noLintErrors);
+    const hasViolations = Boolean(evidence?.violations?.some((violation) => violation.severity === 'high'));
+
+    return handler({
+      record,
+      evidence,
+      qualityGatePassed,
+      hasHighViolations: hasViolations
+    });
   }
 
   static validateCreation(record: Partial<TaskRecord>): { valid: boolean; errors: string[] } {

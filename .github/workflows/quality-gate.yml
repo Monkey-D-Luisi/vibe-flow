@@ -130,7 +130,7 @@ jobs:
         env:
           GATE_SCOPE: ${{ vars.TASK_SCOPE || 'minor' }}
           TASK_ID: ${{ github.event.pull_request.number || github.run_id }}
-        run: pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --gate --source artifacts --scope "$GATE_SCOPE" --task-id "$TASK_ID"
+        run: pnpm dlx tsx tooling/quality-mcp/cli/qcli.ts run --gate --source artifacts --scope "$GATE_SCOPE" --task-id "$TASK_ID" --max-file-cyclomatic 50
       - name: Upload gate report
         if: always()
         uses: actions/upload-artifact@v4

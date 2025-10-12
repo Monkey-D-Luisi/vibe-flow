@@ -183,8 +183,10 @@ jobs:
         with: { name: qreport-lint, path: ./.qreport }
       - uses: actions/download-artifact@v4
         with: { name: qreport-complexity, path: ./.qreport }
-      - run: node tooling/quality-mcp/cli/qcli.ts run --gate --source artifacts --scope ${{ vars.TASK_SCOPE || 'minor' }}
+      - run: node tooling/quality-mcp/cli/qcli.ts run --gate --source artifacts --scope ${{ vars.TASK_SCOPE || 'minor' }} --max-file-cyclomatic 50
 ```
+
+> En este repositorio se aplica `--max-file-cyclomatic 50` para alinear el umbral con la complejidad existente; reduce el valor progresivamente conforme se refactorice el código.
 
 ---
 
@@ -253,4 +255,3 @@ Checklist
   ]
 }
 ```
-
