@@ -15,7 +15,8 @@ function resolveWorker(): { command: string; args: string[] } {
     return { command: process.execPath, args: [distWorker] };
   }
   const srcWorker = resolve(__dirname, 'worker.ts');
-  return { command: process.execPath, args: ['--loader', 'tsx', srcWorker] };
+  // Use pnpm exec to ensure tsx is available
+  return { command: 'pnpm', args: ['exec', 'tsx', srcWorker] };
 }
 
 function buildEnv(): NodeJS.ProcessEnv {
@@ -30,7 +31,9 @@ function buildEnv(): NodeJS.ProcessEnv {
     'COMSPEC',
     'HOME',
     'TMP',
-    'TEMP'
+    'TEMP',
+    'APPDATA',
+    'LOCALAPPDATA'
   ]);
   const filtered: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(process.env)) {

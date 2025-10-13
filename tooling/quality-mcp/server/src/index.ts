@@ -3,16 +3,14 @@ import pino from 'pino';
 import { config } from './config.js';
 import { registerRoutes } from './router.js';
 
-const logger = pino({
-  level: process.env.LOG_LEVEL ?? 'info',
-  transport: process.env.NODE_ENV === 'production' ? undefined : {
-    target: 'pino-pretty',
-    options: { colorize: true }
-  }
-});
+const level = process.env.LOG_LEVEL ?? 'info';
+const pretty = process.env.QUALITY_PRETTY_LOGS === 'true';
+export const log = pretty
+  ? pino({ level, transport: { target: 'pino-pretty', options: { colorize: true, singleLine: true, translateTime: 'SYS:standard' } } })
+  : pino({ level });
 
 const app = Fastify({
-  logger: logger as any,
+  logger: log as any,
   bodyLimit: config.maxBodySize
 });
 

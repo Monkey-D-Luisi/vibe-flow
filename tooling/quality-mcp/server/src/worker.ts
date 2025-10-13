@@ -1,5 +1,11 @@
 import { stdin, stdout, stderr, exit } from 'node:process';
-import { URL } from 'node:url';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 type ToolName =
   | 'quality.run_tests'
@@ -9,34 +15,22 @@ type ToolName =
 
 type ToolHandler = (input: unknown) => Promise<unknown>;
 
+function resolveToolModule(tool: string) {
+  const map: Record<string, string> = {
+    'quality.run_tests': resolve(__dirname, '../../src/tools/run_tests.ts'),
+    'quality.coverage_report': resolve(__dirname, '../../src/tools/coverage_report.ts'),
+    'quality.lint': resolve(__dirname, '../../src/tools/lint.ts'),
+    'quality.complexity': resolve(__dirname, '../../src/tools/complexity.ts')
+  };
+  const target = map[tool];
+  if (!target) throw new Error(`Unsupported tool ${tool}`);
+  return pathToFileURL(target).href; // ESM-safe
+}
+
 async function loadTool(name: ToolName): Promise<ToolHandler> {
-  const roots = [
-    new URL('../dist/tools/', import.meta.url),
-    new URL('../../src/tools/', import.meta.url)
-  ];
-
-  let lastError: unknown;
-
-  for (const root of roots) {
-    try {
-      switch (name) {
-        case 'quality.run_tests':
-          return (await import(new URL('run_tests.js', root).href)).runTests;
-        case 'quality.coverage_report':
-          return (await import(new URL('coverage_report.js', root).href)).coverageReport;
-        case 'quality.lint':
-          return (await import(new URL('lint.js', root).href)).lint;
-        case 'quality.complexity':
-          return (await import(new URL('complexity.js', root).href)).complexity;
-        default:
-          throw new Error(`Unknown tool ${name satisfies never}`);
-      }
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError ?? new Error('Unable to load tool');
+  const modulePath = resolveToolModule(name);
+  const mod = await import(modulePath);
+  return mod.runTests || mod.coverageReport || mod.lint || mod.complexity;
 }
 
 interface WorkerPayload {
