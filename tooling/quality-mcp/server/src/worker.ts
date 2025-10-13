@@ -1,11 +1,6 @@
-import { stdin, stdout, stderr, exit } from 'node:process';
-import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { stdin, stdout, stderr, exit, cwd } from 'node:process';
+import { resolve, dirname, join } from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 
 type ToolName =
   | 'quality.run_tests'
@@ -15,12 +10,14 @@ type ToolName =
 
 type ToolHandler = (input: unknown) => Promise<unknown>;
 
-function resolveToolModule(tool: string) {
+function resolveToolModule(tool: string): string {
+  // Resolve from current working directory (which should be workspace root when server starts)
+  const toolsDir = resolve(cwd(), 'tooling/quality-mcp/src/tools');
   const map: Record<string, string> = {
-    'quality.run_tests': resolve(__dirname, '../../src/tools/run_tests.ts'),
-    'quality.coverage_report': resolve(__dirname, '../../src/tools/coverage_report.ts'),
-    'quality.lint': resolve(__dirname, '../../src/tools/lint.ts'),
-    'quality.complexity': resolve(__dirname, '../../src/tools/complexity.ts')
+    'quality.run_tests': join(toolsDir, 'run_tests.ts'),
+    'quality.coverage_report': join(toolsDir, 'coverage_report.ts'),
+    'quality.lint': join(toolsDir, 'lint.ts'),
+    'quality.complexity': join(toolsDir, 'complexity.ts')
   };
   const target = map[tool];
   if (!target) throw new Error(`Unsupported tool ${tool}`);

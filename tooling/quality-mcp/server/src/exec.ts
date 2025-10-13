@@ -1,7 +1,6 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { existsSync } from 'node:fs';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { config } from './config.js';
@@ -10,13 +9,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 function resolveWorker(): { command: string; args: string[] } {
-  const distWorker = resolve(__dirname, 'worker.js');
-  if (existsSync(distWorker)) {
-    return { command: process.execPath, args: [distWorker] };
-  }
-  const srcWorker = resolve(__dirname, 'worker.ts');
-  // Use pnpm exec to ensure tsx is available
-  return { command: 'pnpm', args: ['exec', 'tsx', srcWorker] };
+  // Always use tsx because worker imports .ts tool files
+  // Use absolute path to worker
+  const workerPath = resolve(__dirname, 'worker.js');
+  // Calculate workspace root from dist/ (4 levels up: dist -> server -> quality-mcp -> tooling -> workspace)
+  const workspaceRoot = resolve(__dirname, '../../../..');
+  // Use node directly with tsx CLI module from workspace root
+  const tsxCli = resolve(workspaceRoot, 'node_modules/tsx/dist/cli.mjs');
+  return { 
+    command: process.execPath,
+    args: [tsxCli, workerPath] 
+  };
 }
 
 function buildEnv(): NodeJS.ProcessEnv {
@@ -59,9 +62,14 @@ export async function invokeTool(tool: string, input: unknown, options: ExecuteO
   const { command, args } = resolveWorker();
   const timeoutMs = options.timeoutMs ?? config.defaultTimeoutMs;
   const env = buildEnv();
+  
+  // Find workspace root (4 levels up from dist/)
+  const workspaceRoot = resolve(__dirname, '../../../..');
+  
   const child = spawn(command, args, {
     stdio: ['pipe', 'pipe', 'pipe'],
-    env
+    env,
+    cwd: workspaceRoot // Ensure worker runs from workspace root
   });
 
   const stdoutChunks: Buffer[] = [];
