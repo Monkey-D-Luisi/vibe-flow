@@ -81,6 +81,7 @@ async function handleInvocation(request: FastifyRequest<{ Body: ToolBody }>, rep
         event: 'error',
         data: { code: mapped.code, message: mapped.message, requestId }
       });
+      reply.sseContext.source.end();
     } else {
       reply.code(mapped.statusCode).send(errorResponse(requestId, mapped.code, mapped.message));
     }
@@ -92,6 +93,7 @@ async function handleInvocation(request: FastifyRequest<{ Body: ToolBody }>, rep
     const payload = errorResponse(requestId, 'RATE_LIMIT', 'Rate limit exceeded');
     if (stream) {
       sendSse(reply, { event: 'error', data: { code: 'RATE_LIMIT', message: 'Rate limit exceeded', requestId } });
+      reply.sseContext.source.end();
     } else {
       reply.code(429).send(payload);
     }
@@ -122,6 +124,7 @@ async function handleInvocation(request: FastifyRequest<{ Body: ToolBody }>, rep
     if (stream) {
       sendSse(reply, { event: 'log', data: { level: 'info', msg: 'Tool execution completed' } });
       sendSse(reply, { event: 'result', data: { result: limited, requestId } });
+      reply.sseContext.source.end();
       return;
     }
 
@@ -142,6 +145,7 @@ async function handleInvocation(request: FastifyRequest<{ Body: ToolBody }>, rep
         event: 'error',
         data: { code: mapped.code, message: mapped.message, requestId }
       });
+      reply.sseContext.source.end();
       return;
     }
 
