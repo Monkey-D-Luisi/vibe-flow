@@ -42,14 +42,18 @@ async function main() {
 
   // 2) Evidencia para dev→review
   const rgrLog = [
-    { step: 'red', at: new Date().toISOString() },
-    { step: 'green', at: new Date().toISOString() }
+    'RED: initial test fails',
+    'GREEN: implementation passes tests'
   ]
   const evidence = {
-    rgr_log: rgrLog,
-    coverage: { lines: coverage.total?.lines ?? coverage.lines },
-    lint: { errors: lint.errors ?? lint.summary?.errors ?? 0 },
-    complexity: { max: complexity.maxCyclomatic ?? complexity.metrics?.max }
+    red_green_refactor_log: rgrLog,
+    metrics: {
+      coverage: coverage.total?.lines ?? coverage.lines,
+      lint: {
+        errors: lint.errors ?? lint.summary?.errors ?? 0,
+        warnings: 0
+      }
+    }
   }
 
   console.log('📋 Evidence prepared for dev→review transition')
@@ -71,9 +75,9 @@ async function main() {
       task_id: id,
       diff: { files: ['tooling/smoke/e2e-minor-fasttrack.ts'], locAdded: 50, locDeleted: 0 },
       quality: {
-        coverage: evidence.coverage.lines,
+        coverage: evidence.metrics.coverage,
         avgCyclomatic: complexity.avgCyclomatic ?? complexity.metrics?.avg ?? 2.5,
-        lintErrors: evidence.lint.errors
+        lintErrors: evidence.metrics.lint.errors
       },
       metadata: {
         modulesChanged: false,
@@ -96,8 +100,7 @@ async function main() {
     await callTool('task.transition', {
       id,
       to: 'dev',
-      if_rev: taskAfterFastTrack.rev, // Usar la rev actualizada
-      evidence: { brief: 'fast-track demo' }
+      if_rev: taskAfterFastTrack.rev // Usar la rev actualizada
     })
     console.log('✅ po → dev transition completed')
   } catch (error) {
@@ -180,9 +183,9 @@ async function main() {
     })) || [],
     quality: {
       tests: { total: tests.total, passed: tests.passed, failed: tests.failed },
-      coverage: evidence.coverage.lines,
-      lint: evidence.lint.errors,
-      complexity: evidence.complexity.max
+      coverage: evidence.metrics.coverage,
+      lint: evidence.metrics.lint.errors,
+      complexity: complexity.maxCyclomatic ?? complexity.metrics?.max
     }
   }
 

@@ -2,7 +2,7 @@
   "total": 183,
   "passed": 183,
   "failed": 0,
-  "durationMs": 5587,
+  "durationMs": 5664,
   "failedTests": [],
   "meta": {
     "runner": "vitest",
