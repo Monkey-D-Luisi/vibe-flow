@@ -518,7 +518,7 @@ class TaskMCPServer {
   }
 }
 
-export { TaskMCPServer };
+export { TaskMCPServer, handleToolCall };
 export const __test__ = {
   toolInputSchemas,
   schemaValidator,
