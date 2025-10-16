@@ -10,6 +10,10 @@ $ProgressPreference = 'SilentlyContinue'
 function Wait-AnyKey([string]$message = "Pulsa cualquier tecla para continuar...") {
   Write-Host ""
   Write-Host $message -ForegroundColor Yellow
+  if ($env:E2E_AUTOCONFIRM -eq '1') {
+    Write-Host ""
+    return
+  }
   $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
   Write-Host ""
 }
@@ -40,6 +44,30 @@ function Write-Utf8NoBom([string]$path, [string]$content) {
   $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
   $sw = New-Object System.IO.StreamWriter($path, $false, $utf8NoBom)
   try { $sw.Write($content) } finally { $sw.Close() }
+}
+
+function Add-SourceToJsonObject($jsonObj, [string]$source) {
+  if ($null -eq $jsonObj) { return $null }
+  $isDictionary = $jsonObj -is [System.Collections.IDictionary] -or $jsonObj -is [pscustomobject]
+  if (-not $isDictionary) { return $jsonObj }
+  if ($jsonObj.PSObject.Properties.Name -contains 'source') {
+    $jsonObj.source = $source
+  } else {
+    $jsonObj | Add-Member -NotePropertyName source -NotePropertyValue $source
+  }
+  return $jsonObj
+}
+
+function Get-NestedValue($obj, [string]$path) {
+  if ($null -eq $obj) { return $null }
+  $current = $obj
+  foreach ($segment in ($path -split '\.')) {
+    if ($null -eq $current) { return $null }
+    $props = $current.PSObject.Properties
+    if (-not $props -or -not ($props.Name -contains $segment)) { return $null }
+    $current = $props[$segment].Value
+  }
+  return $current
 }
 
 function Invoke-QualityTool {
@@ -74,6 +102,13 @@ function Invoke-QualityTool {
     } else { $jsonOut = ($obj | ConvertTo-Json -Depth 20) }
   } catch { }
 
+  $jsonParsed = $null
+  try { $jsonParsed = $jsonOut | ConvertFrom-Json } catch { }
+  if ($null -ne $jsonParsed) {
+    $jsonWithSource = Add-SourceToJsonObject $jsonParsed 'server'
+    try { $jsonOut = ($jsonWithSource | ConvertTo-Json -Depth 20) } catch { }
+  }
+
   Write-Utf8NoBom -path $outFile -content $jsonOut
   $len = (Get-Item $outFile).Length
   Write-Host ("  -> {0} -> {1} ok ({2} bytes)" -f $tool, $outFile, $len) -ForegroundColor Green
@@ -81,6 +116,7 @@ function Invoke-QualityTool {
 
 function Ensure-QReportDefaults {
   # Si algún JSON está vacío o ilegible, lo rellenamos con defaults
+  $strict = $env:E2E_STRICT -eq '1'
   $changed = $false
 
   $tPath = '.qreport/tests.json'
@@ -88,37 +124,98 @@ function Ensure-QReportDefaults {
   $lPath = '.qreport/lint.json'
   $xPath = '.qreport/complexity.json'
 
-  function IsBad([string]$p) {
-    if (-not (Test-Path $p)) { return $true }
-    if ((Get-Item $p).Length -lt 10) { return $true }
-    try { $null = (Get-Content $p -Raw) | ConvertFrom-Json; return $false } catch { return $true }
+  function IsNumeric($value) {
+    if ($null -eq $value) { return $false }
+    return $value -is [double] -or $value -is [single] -or $value -is [decimal] -or $value -is [int] -or $value -is [long]
   }
 
-  if (IsBad $tPath) {
-    $testsObj = @{ passed = $true; summary = @{ tests = 20; failures = 0; time = 1.23 } }
-    Write-Utf8NoBom -path $tPath -content ($testsObj | ConvertTo-Json -Depth 5)
-    $changed = $true
+  function TryReadJson([string]$path) {
+    if (-not (Test-Path $path)) { return $null }
+    try { return (Get-Content $path -Raw) | ConvertFrom-Json } catch { return $null }
   }
 
-  if (IsBad $cPath) {
-    # 02-dev-to-review.ts busca total.lines | lines | totalLines -> dale los tres por si acaso
-    $covObj = @{ total = @{ lines = 250 }; lines = 250; totalLines = 250 }
-    Write-Utf8NoBom -path $cPath -content ($covObj | ConvertTo-Json -Depth 5)
-    $changed = $true
+  function WriteJson($path, $obj) {
+    Write-Utf8NoBom -path $path -content (($obj | ConvertTo-Json -Depth 20))
   }
 
-  if (IsBad $lPath) {
-    # Busca errors | summary.errors -> pon ambos
-    $lintObj = @{ errors = 0; summary = @{ errors = 0; warnings = 1 } }
-    Write-Utf8NoBom -path $lPath -content ($lintObj | ConvertTo-Json -Depth 5)
+  # tests.json
+  $testsData = TryReadJson $tPath
+  $testsNeedsFallback = $null -eq $testsData -or (-not ((IsNumeric($testsData.total)) -or (IsNumeric(Get-NestedValue $testsData 'summary.tests'))))
+  if (-not $testsNeedsFallback) {
+    $testsFailures = (IsNumeric($testsData.failed)) -or (IsNumeric(Get-NestedValue $testsData 'summary.failures'))
+    $testsPassed = (($testsData.passed -is [bool]) -or (IsNumeric($testsData.passed)))
+    if (-not ($testsFailures -or $testsPassed)) { $testsNeedsFallback = $true }
+  }
+  if ($testsNeedsFallback) {
+    if ($strict) { throw "No se generó .qreport/tests.json válido (E2E_STRICT=1)"; }
+    $testsFallback = @{
+      source = 'fallback'
+      total = 10
+      passed = 10
+      failed = 0
+      durationMs = 0
+      summary = @{ tests = 10; failures = 0; time = 0 }
+      meta = @{ runner = 'fallback'; cmd = 'n/a'; exitCode = 0 }
+    }
+    WriteJson $tPath $testsFallback
     $changed = $true
+  } else {
+    $testsData = Add-SourceToJsonObject $testsData 'server'
+    WriteJson $tPath $testsData
   }
 
-  if (IsBad $xPath) {
-    # Busca maxCyclomatic | metrics.max -> pon ambos y un avg razonable
-    $cmpObj = @{ maxCyclomatic = 5; avgCyclomatic = 2.4; metrics = @{ max = 5 } }
-    Write-Utf8NoBom -path $xPath -content ($cmpObj | ConvertTo-Json -Depth 5)
+  # coverage.json
+  $coverageData = TryReadJson $cPath
+  $coverageNeedsFallback = $null -eq $coverageData -or (-not ((IsNumeric(Get-NestedValue $coverageData 'total.lines')) -or (IsNumeric($coverageData.lines)) -or (IsNumeric($coverageData.totalLines))))
+  if ($coverageNeedsFallback) {
+    if ($strict) { throw "No se generó .qreport/coverage.json válido (E2E_STRICT=1)"; }
+    $coverageFallback = @{
+      source = 'fallback'
+      total = @{ lines = 0.8 }
+      lines = 0.8
+      totalLines = 0.8
+    }
+    WriteJson $cPath $coverageFallback
     $changed = $true
+  } else {
+    $coverageData = Add-SourceToJsonObject $coverageData 'server'
+    WriteJson $cPath $coverageData
+  }
+
+  # lint.json
+  $lintData = TryReadJson $lPath
+  $lintNeedsFallback = $null -eq $lintData -or (-not ((IsNumeric($lintData.errors)) -or (IsNumeric(Get-NestedValue $lintData 'summary.errors'))))
+  if ($lintNeedsFallback) {
+    if ($strict) { throw "No se generó .qreport/lint.json válido (E2E_STRICT=1)"; }
+    $lintFallback = @{
+      source = 'fallback'
+      errors = 0
+      warnings = 0
+      summary = @{ errors = 0; warnings = 0 }
+    }
+    WriteJson $lPath $lintFallback
+    $changed = $true
+  } else {
+    $lintData = Add-SourceToJsonObject $lintData 'server'
+    WriteJson $lPath $lintData
+  }
+
+  # complexity.json
+  $complexityData = TryReadJson $xPath
+  $complexityNeedsFallback = $null -eq $complexityData -or (-not ((IsNumeric($complexityData.maxCyclomatic)) -or (IsNumeric(Get-NestedValue $complexityData 'metrics.max'))))
+  if ($complexityNeedsFallback) {
+    if ($strict) { throw "No se generó .qreport/complexity.json válido (E2E_STRICT=1)"; }
+    $complexityFallback = @{
+      source = 'fallback'
+      maxCyclomatic = 5
+      avgCyclomatic = 2.4
+      metrics = @{ max = 5 }
+    }
+    WriteJson $xPath $complexityFallback
+    $changed = $true
+  } else {
+    $complexityData = Add-SourceToJsonObject $complexityData 'server'
+    WriteJson $xPath $complexityData
   }
 
   if ($changed) {
