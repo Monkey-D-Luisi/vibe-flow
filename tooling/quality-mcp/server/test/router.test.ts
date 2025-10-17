@@ -2,7 +2,6 @@ import Fastify from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ToolName } from '../src/toolNames.js';
 
-process.env.QUALITY_MCP_KEYS = 'test:run';
 process.env.QUALITY_RPS = '100';
 process.env.QUALITY_BURST = '100';
 
@@ -18,6 +17,42 @@ const mockResults: Record<ToolName, any> = {
 const mockInvokeTool = vi.fn<Parameters<(tool: ToolName) => Promise<unknown>>, Promise<unknown>>();
 const rateLimiterConsume = vi.fn(() => true);
 
+type ApiKeyDef = { key: string; scopes: string[]; hmacSecret?: string };
+
+async function configureApiKeys(definitions: ApiKeyDef[]): Promise<void> {
+  const { config } = await import('../src/config.ts');
+  config.apiKeys.clear();
+  for (const def of definitions) {
+    config.apiKeys.set(def.key, {
+      key: def.key,
+      scopes: new Set(def.scopes),
+      hmacSecret: def.hmacSecret
+    });
+  }
+}
+
+const parseSse = (payload: string) =>
+  payload
+    .trim()
+    .split('\n\n')
+    .map((block) => {
+      const lines = block.split('\n');
+      const eventLine = lines.find((line) => line.startsWith('event:'));
+      const dataLine = lines.find((line) => line.startsWith('data:'));
+      let parsedData: unknown;
+      if (dataLine) {
+        const raw = dataLine.slice('data:'.length);
+        try {
+          parsedData = JSON.parse(raw);
+        } catch {
+          parsedData = undefined;
+        }
+      }
+      return {
+        event: eventLine ? eventLine.slice('event:'.length).trim() : undefined,
+        data: parsedData
+      };
+    });
 vi.mock('../src/exec.js', () => ({
   invokeTool: (tool: ToolName) => mockInvokeTool(tool)
 }));
@@ -58,7 +93,8 @@ async function buildServer() {
   return app;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  await configureApiKeys([{ key: 'test', scopes: ['run', 'read'] }]);
   mockInvokeTool.mockImplementation(async (tool: ToolName) => clone(mockResults[tool]));
   rateLimiterConsume.mockReset();
   rateLimiterConsume.mockReturnValue(true);
@@ -168,6 +204,25 @@ describe('POST /mcp/tool', () => {
     }
   });
 
+  it('rejects API keys without run scope', async () => {
+    await configureApiKeys([{ key: 'readonly', scopes: ['read'] }]);
+    const app = await buildServer();
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/mcp/tool',
+        payload: { tool: 'quality.run_tests', input: {} },
+        headers: { Authorization: 'Bearer readonly' }
+      });
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.payload);
+      expect(body.ok).toBe(false);
+      expect(body.error.code).toBe('FORBIDDEN');
+    } finally {
+      await app.close();
+    }
+  });
+
   it('propagates rate limit failures as 429 RATE_LIMIT', async () => {
     rateLimiterConsume.mockReturnValueOnce(false);
     const app = await buildServer();
@@ -210,6 +265,37 @@ describe('POST /mcp/tool', () => {
     }
   });
 
+  it('honours client-provided requestId across sync and streaming responses', async () => {
+    const clientId = 'REQ-TEST-123';
+    const app = await buildServer();
+    try {
+      const syncResponse = await app.inject({
+        method: 'POST',
+        url: '/mcp/tool',
+        payload: { tool: 'quality.lint', input: {}, requestId: clientId },
+        headers: { Authorization: 'Bearer test' }
+      });
+      expect(syncResponse.statusCode).toBe(200);
+      expect(syncResponse.headers['x-request-id']).toBe(clientId);
+      const syncBody = JSON.parse(syncResponse.payload);
+      expect(syncBody.requestId).toBe(clientId);
+
+      const streamResponse = await app.inject({
+        method: 'POST',
+        url: '/mcp/tool/stream',
+        payload: { tool: 'quality.lint', input: {}, requestId: clientId },
+        headers: { Authorization: 'Bearer test' }
+      });
+      const events = parseSse(streamResponse.payload);
+      const startEvent = events.find((entry) => entry.event === 'log' && entry.data?.msg === 'Tool execution started');
+      const resultEvent = events.find((entry) => entry.event === 'result');
+      expect(startEvent?.data?.requestId).toBe(clientId);
+      expect(resultEvent?.data?.requestId).toBe(clientId);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('keeps streaming and non-streaming results consistent and propagates requestId', async () => {
     const expected = clone(mockResults['quality.coverage_report']);
     mockInvokeTool.mockImplementation(async () => clone(expected));
@@ -222,27 +308,7 @@ describe('POST /mcp/tool', () => {
         headers: { Authorization: 'Bearer test' }
       });
 
-      const events = streamResponse.payload
-        .trim()
-        .split('\n\n')
-        .map((block) => {
-          const lines = block.split('\n');
-          const eventLine = lines.find((line) => line.startsWith('event:'));
-          const dataLine = lines.find((line) => line.startsWith('data:'));
-          let parsedData: unknown;
-          if (dataLine) {
-            const raw = dataLine.slice('data:'.length);
-            try {
-              parsedData = JSON.parse(raw);
-            } catch {
-              parsedData = undefined;
-            }
-          }
-          return {
-            event: eventLine ? eventLine.slice('event:'.length).trim() : undefined,
-            data: parsedData
-          };
-        });
+      const events = parseSse(streamResponse.payload);
 
       const resultEvent = events.find((entry) => entry.event === 'result');
       expect(resultEvent?.data).toBeDefined();
@@ -280,27 +346,7 @@ describe('POST /mcp/tool', () => {
         headers: { Authorization: 'Bearer test' }
       });
 
-      const events = streamResponse.payload
-        .trim()
-        .split('\n\n')
-        .map((block) => {
-          const lines = block.split('\n');
-          const eventLine = lines.find((line) => line.startsWith('event:'));
-          const dataLine = lines.find((line) => line.startsWith('data:'));
-          let parsedData: unknown;
-          if (dataLine) {
-            const raw = dataLine.slice('data:'.length);
-            try {
-              parsedData = JSON.parse(raw);
-            } catch {
-              parsedData = undefined;
-            }
-          }
-          return {
-            event: eventLine ? eventLine.slice('event:'.length).trim() : undefined,
-            data: parsedData
-          };
-        });
+      const events = parseSse(streamResponse.payload);
 
       const startLog = events.find((entry) => entry.event === 'log' && entry.data?.msg === 'Tool execution started');
       const errorEvent = events.find((entry) => entry.event === 'error');
@@ -315,3 +361,4 @@ describe('POST /mcp/tool', () => {
     }
   });
 });
+
