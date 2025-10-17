@@ -581,7 +581,7 @@ Main fields:
 
 See [`docs/ep_01_t_01_task_record_v_1_0.md`](docs/ep_01_t_01_task_record_v_1_0.md) for complete documentation.
 
-## � GitHub Workflow Integration
+## 🔗 GitHub Workflow Integration
 
 ### State Mapping to GitHub Projects
 TaskRecord states map to GitHub Projects v2 Status field:
@@ -622,11 +622,12 @@ TaskRecord states map to GitHub Projects v2 Status field:
 - **Tests**: All tests passing
 - **RGR Logs**: Required for `dev → review` transitions
 
-The **Quality MCP** (see `tooling/quality-mcp/`) exposes four tools:
+The **Quality MCP** (see `tooling/quality-mcp/`) exposes four core quality tools:
 - `quality.run_tests`, wrapped by `pnpm q:tests`, persists `.qreport/tests.json` with runner metrics.
 - `quality.coverage_report`, invoked via `pnpm q:coverage`, produces `.qreport/coverage.json` by reading `coverage-summary.json` (falling back to `coverage-final.json` when Istanbul omits the summary) and normalising paths to the repo root.
 - `quality.lint`, invoked via `pnpm q:lint`, executes the ESLint pipeline (optionally Ruff) and persists `.qreport/lint.json` with totals, per-file diagnostics and per-rule summaries.
 - `quality.complexity`, invoked via `pnpm q:complexity`, calcula complejidad ciclomática por unidad con `typhonjs-escomplex` (fallback a `ts-morph`) y normaliza rutas en `.qreport/complexity.json`.
+- `quality.gate_enforce` is consumed by the orchestrator/CLI to combine the individual reports and enforce thresholds; it is **not** exposed via the HTTP MCP server.
 - `quality.gate_enforce`, invoked via `pnpm q:gate --source artifacts --scope minor`, combines the reports, applies per-scope thresholds (or overrides from `thresholds`) and writes `.qreport/gate.json` with the verdict (`passed`), aggregated metrics and violation codes (`TESTS_FAILED`, `COVERAGE_BELOW`, `LINT_ERRORS`, `COMPLEXITY_HIGH`, `RGR_MISSING`).
 
 > Nota: el workflow `quality-gate` aplica `--max-file-cyclomatic 50` para alinear el umbral con la base de código actual; ajústalo a un valor más estricto cuando se reduzca la complejidad acumulada.
@@ -662,7 +663,7 @@ All artifacts are uploaded by the CI workflows (`qreport-tests`, `qreport-covera
 
 #### Quality MCP HTTP Server
 - Start locally with `pnpm --filter @agents/quality-mcp-server dev` (defaults to port `8080`).
-- Configure API keys via `QUALITY_MCP_KEYS=abc123:run|read@shared-secret,def456:run`; each key can optionally include an HMAC secret (after `@`) and scope list (`read`, `run`).
+- Configure API keys via `QUALITY_MCP_KEYS=key[:scope1|scope2][@hmac],…` (e.g. `abc123:run|read@shared-secret,def456:run`). The HTTP server recognises only the four quality tools listed above; the gate enforcement tool remains CLI/orchestrator-only.
 - Rate limits, burst size, concurrency and default tool timeout are controlled with `QUALITY_RPS`, `QUALITY_BURST`, `QUALITY_MAX_CONCURRENCY`, and `QUALITY_TOOL_TIMEOUT_MS`.
 - Example synchronous call:
   ```bash
@@ -755,6 +756,8 @@ pnpm q:gate --source artifacts --scope major
 pnpm exec tsx tooling/smoke/e2e-minor-fasttrack.ts
 ```
 
+## Contributing
+
 ### Conventional Commits
 This project uses Conventional Commits:
 - `feat:` for new features
@@ -770,18 +773,12 @@ This project uses Conventional Commits:
 - `hotfix/*`: Emergency fixes
 
 ### PR Workflow
-1. Create feature branch from `main`
-2. Open draft PR with checklist
-3. Ensure CI passes and quality gates met
-4. Mark PR ready for review
-5. Address review feedback
-6. Merge when approved (auto-closes issues)
-
-1. Fork the project
-2. Create a feature branch (`git checkout -b feat/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feat/amazing-feature`)
-5. Open a Pull Request
+1. Create a feature branch from `main`.
+2. Open a draft PR with the checklist.
+3. Ensure CI passes and the quality gates succeed.
+4. Mark the PR ready for review.
+5. Address review feedback.
+6. Merge when approved (auto-closes issues).
 
 ## 📄 License
 
