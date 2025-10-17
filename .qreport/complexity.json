@@ -1,2140 +1,2157 @@
 {
-  "avgCyclomatic": 2.6208530805687205,
-  "maxCyclomatic": 12,
-  "files": [
-    {
-      "path": "services/task-mcp/src/repo/repository.ts",
-      "avg": 2.4285714285714284,
-      "max": 12,
-      "units": [
-        {
-          "name": "TaskRepository",
-          "kind": "class",
-          "cyclomatic": 12,
-          "startLine": 39,
-          "endLine": 93,
-          "loc": 74,
-          "params": 8
-        },
-        {
-          "name": "buildSearchQuery",
-          "kind": "function",
-          "cyclomatic": 8,
-          "startLine": 6,
-          "endLine": 38,
-          "loc": 35,
-          "params": 1
-        },
-        {
-          "name": "<anon method-3>",
-          "kind": "method",
-          "cyclomatic": 2,
-          "startLine": 70,
-          "endLine": 79,
-          "loc": 14,
-          "params": 0
-        },
-        {
-          "name": "get",
-          "kind": "method",
-          "cyclomatic": 2,
-          "startLine": 62,
-          "endLine": 68,
-          "loc": 8,
-          "params": 1
-        },
-        {
-          "name": "<anon method-1>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 17,
-          "endLine": 17,
-          "loc": 1,
-          "params": 0
-        },
-        {
-          "name": "<anon method-2>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 23,
-          "endLine": 23,
-          "loc": 1,
-          "params": 0
-        },
-        {
-          "name": "<anon method-4>",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 87,
-          "endLine": 87,
-          "loc": 2,
-          "params": 1
-        },
-        {
-          "name": "close",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 90,
-          "endLine": 92,
-          "loc": 1,
-          "params": 0
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 40,
-          "endLine": 43,
-          "loc": 2,
-          "params": 1
-        },
-        {
-          "name": "create",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 53,
-          "endLine": 61,
-          "loc": 13,
-          "params": 1
-        },
-        {
-          "name": "database",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 44,
-          "endLine": 46,
-          "loc": 1,
-          "params": 0
-        },
-        {
-          "name": "migrate",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 47,
-          "endLine": 52,
-          "loc": 3,
-          "params": 0
-        },
-        {
-          "name": "search",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 81,
-          "endLine": 89,
-          "loc": 19,
-          "params": 1
-        },
-        {
-          "name": "update",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 69,
-          "endLine": 80,
-          "loc": 3,
-          "params": 3
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/repo/row-mapper.ts",
-      "avg": 4,
-      "max": 11,
-      "units": [
-        {
-          "name": "serializeJsonFields",
-          "kind": "function",
-          "cyclomatic": 11,
-          "startLine": 68,
-          "endLine": 85,
-          "loc": 25,
-          "params": 1
-        },
-        {
-          "name": "recordToParams",
-          "kind": "function",
-          "cyclomatic": 5,
-          "startLine": 33,
-          "endLine": 47,
-          "loc": 3,
-          "params": 1
-        },
-        {
-          "name": "serializePrimitiveFields",
-          "kind": "function",
-          "cyclomatic": 5,
-          "startLine": 56,
-          "endLine": 67,
-          "loc": 9,
-          "params": 1
-        },
-        {
-          "name": "rowToRecord",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 1,
-          "endLine": 32,
-          "loc": 41,
-          "params": 1
-        },
-        {
-          "name": "serializeRecordFields",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 48,
-          "endLine": 55,
-          "loc": 5,
-          "params": 1
-        },
-        {
-          "name": "updatedRecordToParams",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 86,
-          "endLine": 97,
-          "loc": 12,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/orchestrator/router.ts",
-      "avg": 3.5,
-      "max": 11,
-      "units": [
-        {
-          "name": "nextAgent",
-          "kind": "function",
-          "cyclomatic": 11,
-          "startLine": 2,
-          "endLine": 28,
-          "loc": 22,
-          "params": 2
-        },
-        {
-          "name": "canTransitionTo",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 29,
-          "endLine": 42,
-          "loc": 14,
-          "params": 2
-        },
-        {
-          "name": "getAgentInputSchema",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 43,
-          "endLine": 53,
-          "loc": 8,
-          "params": 1
-        },
-        {
-          "name": "getAgentOutputSchema",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 54,
-          "endLine": 64,
-          "loc": 8,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/orchestrator/runner.ts",
-      "avg": 3.4615384615384617,
-      "max": 11,
-      "units": [
-        {
-          "name": "runOrchestratorStep",
-          "kind": "function",
-          "cyclomatic": 11,
-          "startLine": 257,
-          "endLine": 345,
-          "loc": 79,
-          "params": 3
-        },
-        {
-          "name": "buildTransitionEvidence",
-          "kind": "function",
-          "cyclomatic": 9,
-          "startLine": 429,
-          "endLine": 457,
-          "loc": 24,
-          "params": 3
-        },
-        {
-          "name": "determineNextState",
-          "kind": "function",
-          "cyclomatic": 9,
-          "startLine": 369,
-          "endLine": 388,
-          "loc": 18,
-          "params": 2
-        },
-        {
-          "name": "<anon method-4>",
-          "kind": "arrow",
-          "cyclomatic": 7,
-          "startLine": 44,
-          "endLine": 125,
-          "loc": 58,
-          "params": 2
-        },
-        {
-          "name": "handleFastTrackEvaluation",
-          "kind": "function",
-          "cyclomatic": 6,
-          "startLine": 129,
-          "endLine": 158,
-          "loc": 30,
-          "params": 5
-        },
-        {
-          "name": "prepareAgentInput",
-          "kind": "function",
-          "cyclomatic": 6,
-          "startLine": 389,
-          "endLine": 428,
-          "loc": 19,
-          "params": 3
-        },
-        {
-          "name": "handlePostDevGuard",
-          "kind": "function",
-          "cyclomatic": 5,
-          "startLine": 211,
-          "endLine": 255,
-          "loc": 44,
-          "params": 6
-        },
-        {
-          "name": "shouldFastTrack",
-          "kind": "function",
-          "cyclomatic": 5,
-          "startLine": 360,
-          "endLine": 368,
-          "loc": 9,
-          "params": 1
-        },
-        {
-          "name": "getPrNumber",
-          "kind": "function",
-          "cyclomatic": 4,
-          "startLine": 476,
-          "endLine": 482,
-          "loc": 5,
-          "params": 1
-        },
-        {
-          "name": "summarizeOutput",
-          "kind": "function",
-          "cyclomatic": 4,
-          "startLine": 467,
-          "endLine": 475,
-          "loc": 7,
-          "params": 1
-        },
-        {
-          "name": "handleQualityGate",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 159,
-          "endLine": 210,
-          "loc": 45,
-          "params": 5
-        },
-        {
-          "name": "wasFastTrack",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 458,
-          "endLine": 461,
-          "loc": 4,
-          "params": 1
-        },
-        {
-          "name": "canRunAgent",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 346,
-          "endLine": 359,
-          "loc": 12,
-          "params": 2
-        },
-        {
-          "name": "requiresQualityGate",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 38,
-          "endLine": 43,
-          "loc": 4,
-          "params": 2
-        },
-        {
-          "name": "summarizeInput",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 462,
-          "endLine": 466,
-          "loc": 3,
-          "params": 1
-        },
-        {
-          "name": "validateAgentOutput",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 548,
-          "endLine": 563,
-          "loc": 18,
-          "params": 2
-        },
-        {
-          "name": "<anon method-1>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 18,
-          "endLine": 21,
-          "loc": 5,
-          "params": 1
-        },
-        {
-          "name": "<anon method-2>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 22,
-          "endLine": 25,
-          "loc": 3,
-          "params": 1
-        },
-        {
-          "name": "<anon method-3>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 26,
-          "endLine": 29,
-          "loc": 3,
-          "params": 1
-        },
-        {
-          "name": "<anon method-5>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 128,
-          "endLine": 128,
-          "loc": 2,
-          "params": 2
-        },
-        {
-          "name": "<anon method-6>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 196,
-          "endLine": 196,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "<anon method-7>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 539,
-          "endLine": 539,
-          "loc": 2,
-          "params": 0
-        },
-        {
-          "name": "buildDefaultFastTrackContext",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 506,
-          "endLine": 528,
-          "loc": 17,
-          "params": 1
-        },
-        {
-          "name": "cloneFastTrackContext",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 483,
-          "endLine": 505,
-          "loc": 17,
-          "params": 2
-        },
-        {
-          "name": "getAgentOutputSchemaFile",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 564,
-          "endLine": 574,
-          "loc": 8,
-          "params": 1
-        },
-        {
-          "name": "setAgentRunnerOverride",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 529,
-          "endLine": 531,
-          "loc": 1,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/domain/TaskRecord.ts",
-      "avg": 3.411764705882353,
-      "max": 11,
-      "units": [
-        {
-          "name": "TaskRecordValidator",
-          "kind": "class",
-          "cyclomatic": 11,
-          "startLine": 159,
-          "endLine": 191,
-          "loc": 32,
-          "params": 6
-        },
-        {
-          "name": "validateCreation",
-          "kind": "method",
-          "cyclomatic": 8,
-          "startLine": 178,
-          "endLine": 190,
-          "loc": 11,
-          "params": 1
-        },
-        {
-          "name": "checkQualityGate",
-          "kind": "function",
-          "cyclomatic": 7,
-          "startLine": 148,
-          "endLine": 154,
-          "loc": 6,
-          "params": 1
-        },
-        {
-          "name": "<anon method-2>",
-          "kind": "arrow",
-          "cyclomatic": 5,
-          "startLine": 108,
-          "endLine": 119,
-          "loc": 15,
-          "params": 1
-        },
-        {
-          "name": "<anon method-3>",
-          "kind": "arrow",
-          "cyclomatic": 4,
-          "startLine": 120,
-          "endLine": 122,
-          "loc": 4,
-          "params": 1
-        },
-        {
-          "name": "<anon method-1>",
-          "kind": "arrow",
-          "cyclomatic": 3,
-          "startLine": 105,
-          "endLine": 107,
-          "loc": 4,
-          "params": 1
-        },
-        {
-          "name": "<anon method-5>",
-          "kind": "arrow",
-          "cyclomatic": 3,
-          "startLine": 126,
-          "endLine": 131,
-          "loc": 6,
-          "params": 1
-        },
-        {
-          "name": "<anon method-10>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 144,
-          "endLine": 146,
-          "loc": 4,
-          "params": 1
-        },
-        {
-          "name": "<anon method-4>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 123,
-          "endLine": 125,
-          "loc": 4,
-          "params": 1
-        },
-        {
-          "name": "<anon method-6>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 132,
-          "endLine": 134,
-          "loc": 4,
-          "params": 1
-        },
-        {
-          "name": "<anon method-7>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 135,
-          "endLine": 137,
-          "loc": 4,
-          "params": 1
-        },
-        {
-          "name": "<anon method-8>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 138,
-          "endLine": 140,
-          "loc": 4,
-          "params": 1
-        },
-        {
-          "name": "<anon method-9>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 141,
-          "endLine": 143,
-          "loc": 4,
-          "params": 1
-        },
-        {
-          "name": "validateTransition",
-          "kind": "method",
-          "cyclomatic": 2,
-          "startLine": 163,
-          "endLine": 177,
-          "loc": 16,
-          "params": 4
-        },
-        {
-          "name": "<anon method-11>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 156,
-          "endLine": 156,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "checkHighViolations",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 155,
-          "endLine": 157,
-          "loc": 3,
-          "params": 1
-        },
-        {
-          "name": "validateSchema",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 160,
-          "endLine": 162,
-          "loc": 2,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/domain/FastTrackGitHub.ts",
-      "avg": 3.3333333333333335,
-      "max": 10,
-      "units": [
-        {
-          "name": "FastTrackGitHub",
-          "kind": "class",
-          "cyclomatic": 10,
-          "startLine": 6,
-          "endLine": 50,
-          "loc": 48,
-          "params": 14
-        },
-        {
-          "name": "onFastTrackEvaluated",
-          "kind": "method",
-          "cyclomatic": 3,
-          "startLine": 12,
-          "endLine": 24,
-          "loc": 16,
-          "params": 3
-        },
-        {
-          "name": "onFastTrackRevoked",
-          "kind": "method",
-          "cyclomatic": 3,
-          "startLine": 25,
-          "endLine": 34,
-          "loc": 13,
-          "params": 3
-        },
-        {
-          "name": "getLabelsForEvaluation",
-          "kind": "method",
-          "cyclomatic": 2,
-          "startLine": 45,
-          "endLine": 49,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 7,
-          "endLine": 11,
-          "loc": 3,
-          "params": 3
-        },
-        {
-          "name": "createFastTrackPR",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 35,
-          "endLine": 44,
-          "loc": 10,
-          "params": 4
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/repo/state.ts",
-      "avg": 2.857142857142857,
-      "max": 10,
-      "units": [
-        {
-          "name": "LeaseRepository",
-          "kind": "class",
-          "cyclomatic": 10,
-          "startLine": 127,
-          "endLine": 186,
-          "loc": 56,
-          "params": 9
-        },
-        {
-          "name": "StateRepository",
-          "kind": "class",
-          "cyclomatic": 10,
-          "startLine": 2,
-          "endLine": 60,
-          "loc": 48,
-          "params": 7
-        },
-        {
-          "name": "EventRepository",
-          "kind": "class",
-          "cyclomatic": 8,
-          "startLine": 61,
-          "endLine": 117,
-          "loc": 57,
-          "params": 11
-        },
-        {
-          "name": "update",
-          "kind": "method",
-          "cyclomatic": 5,
-          "startLine": 36,
-          "endLine": 55,
-          "loc": 14,
-          "params": 3
-        },
-        {
-          "name": "acquire",
-          "kind": "method",
-          "cyclomatic": 4,
-          "startLine": 131,
-          "endLine": 158,
-          "loc": 22,
-          "params": 3
-        },
-        {
-          "name": "isLeaseValid",
-          "kind": "function",
-          "cyclomatic": 4,
-          "startLine": 119,
-          "endLine": 126,
-          "loc": 5,
-          "params": 2
-        },
-        {
-          "name": "search",
-          "kind": "method",
-          "cyclomatic": 3,
-          "startLine": 94,
-          "endLine": 116,
-          "loc": 17,
-          "params": 3
-        },
-        {
-          "name": "get",
-          "kind": "method",
-          "cyclomatic": 2,
-          "startLine": 21,
-          "endLine": 35,
-          "loc": 14,
-          "params": 1
-        },
-        {
-          "name": "get",
-          "kind": "method",
-          "cyclomatic": 2,
-          "startLine": 159,
-          "endLine": 170,
-          "loc": 11,
-          "params": 1
-        },
-        {
-          "name": "<anon method-1>",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 86,
-          "endLine": 92,
-          "loc": 7,
-          "params": 1
-        },
-        {
-          "name": "<anon method-2>",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 109,
-          "endLine": 115,
-          "loc": 7,
-          "params": 1
-        },
-        {
-          "name": "append",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 65,
-          "endLine": 80,
-          "loc": 14,
-          "params": 3
-        },
-        {
-          "name": "cleanupExpired",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 176,
-          "endLine": 181,
-          "loc": 7,
-          "params": 0
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 3,
-          "endLine": 5,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 62,
-          "endLine": 64,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 128,
-          "endLine": 130,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "create",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 6,
-          "endLine": 20,
-          "loc": 11,
-          "params": 1
-        },
-        {
-          "name": "delete",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 56,
-          "endLine": 59,
-          "loc": 3,
-          "params": 1
-        },
-        {
-          "name": "getByTaskId",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 81,
-          "endLine": 93,
-          "loc": 7,
-          "params": 2
-        },
-        {
-          "name": "isValid",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 182,
-          "endLine": 185,
-          "loc": 4,
-          "params": 2
-        },
-        {
-          "name": "release",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 171,
-          "endLine": 175,
-          "loc": 5,
-          "params": 2
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/mcp/tools/handlers/taskTransitionHandler.ts",
-      "avg": 2.6666666666666665,
-      "max": 10,
-      "units": [
-        {
-          "name": "handleTaskTransition",
-          "kind": "function",
-          "cyclomatic": 10,
-          "startLine": 84,
-          "endLine": 194,
-          "loc": 61,
-          "params": 1
-        },
-        {
-          "name": "<anon method-1>",
-          "kind": "arrow",
-          "cyclomatic": 5,
-          "startLine": 107,
-          "endLine": 126,
-          "loc": 11,
-          "params": 0
-        },
-        {
-          "name": "handleFastTrackEvidence",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 195,
-          "endLine": 212,
-          "loc": 14,
-          "params": 4
-        },
-        {
-          "name": "<anon method-3>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 130,
-          "endLine": 136,
-          "loc": 13,
-          "params": 0
-        },
-        {
-          "name": "<anon method-4>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 137,
-          "endLine": 143,
-          "loc": 13,
-          "params": 0
-        },
-        {
-          "name": "<anon method-5>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 144,
-          "endLine": 149,
-          "loc": 6,
-          "params": 0
-        },
-        {
-          "name": "<anon method-7>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 150,
-          "endLine": 155,
-          "loc": 3,
-          "params": 0
-        },
-        {
-          "name": "<anon method-8>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 156,
-          "endLine": 161,
-          "loc": 3,
-          "params": 0
-        },
-        {
-          "name": "<anon method-2>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 127,
-          "endLine": 129,
-          "loc": 1,
-          "params": 0
-        },
-        {
-          "name": "<anon method-6>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 147,
-          "endLine": 147,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 8,
-          "endLine": 12,
-          "loc": 3,
-          "params": 2
-        },
-        {
-          "name": "SemanticError",
-          "kind": "class",
-          "cyclomatic": 1,
-          "startLine": 7,
-          "endLine": 13,
-          "loc": 4,
-          "params": 2
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/orchestrator/mappers.ts",
-      "avg": 2.4,
-      "max": 7,
-      "units": [
-        {
-          "name": "mapAgentOutput",
-          "kind": "function",
-          "cyclomatic": 7,
-          "startLine": 1,
-          "endLine": 18,
-          "loc": 21,
-          "params": 2
-        },
-        {
-          "name": "extractPrNumber",
-          "kind": "function",
-          "cyclomatic": 5,
-          "startLine": 71,
-          "endLine": 88,
-          "loc": 19,
-          "params": 1
-        },
-        {
-          "name": "<anon method-1>",
-          "kind": "arrow",
-          "cyclomatic": 3,
-          "startLine": 43,
-          "endLine": 47,
-          "loc": 3,
-          "params": 1
-        },
-        {
-          "name": "<anon method-2>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 75,
-          "endLine": 75,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "mapReviewerOutput",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 41,
-          "endLine": 49,
-          "loc": 6,
-          "params": 1
-        },
-        {
-          "name": "mapArchitectOutput",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 22,
-          "endLine": 30,
-          "loc": 6,
-          "params": 1
-        },
-        {
-          "name": "mapDevOutput",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 31,
-          "endLine": 40,
-          "loc": 6,
-          "params": 1
-        },
-        {
-          "name": "mapPoOutput",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 19,
-          "endLine": 21,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "mapPrBotOutput",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 59,
-          "endLine": 70,
-          "loc": 8,
-          "params": 1
-        },
-        {
-          "name": "mapQaOutput",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 50,
-          "endLine": 58,
-          "loc": 5,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/mcp/tools.ts",
-      "avg": 1.6923076923076923,
-      "max": 7,
-      "units": [
-        {
-          "name": "TaskMCPServer",
-          "kind": "class",
-          "cyclomatic": 7,
-          "startLine": 437,
-          "endLine": 473,
-          "loc": 38,
-          "params": 1
-        },
-        {
-          "name": "<anon method-4>",
-          "kind": "method",
-          "cyclomatic": 4,
-          "startLine": 448,
-          "endLine": 466,
-          "loc": 21,
-          "params": 1
-        },
-        {
-          "name": "<anon method-1>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 404,
-          "endLine": 408,
-          "loc": 4,
-          "params": 2
-        },
-        {
-          "name": "<anon method-2>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 409,
-          "endLine": 409,
-          "loc": 2,
-          "params": 2
-        },
-        {
-          "name": "<anon method-3>",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 447,
-          "endLine": 447,
-          "loc": 2,
-          "params": 0
-        },
-        {
-          "name": "<anon method-5>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 483,
-          "endLine": 483,
-          "loc": 2,
-          "params": 2
-        },
-        {
-          "name": "<anon method-6>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 483,
-          "endLine": 483,
-          "loc": 2,
-          "params": 1
-        },
-        {
-          "name": "asError",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 420,
-          "endLine": 436,
-          "loc": 10,
-          "params": 3
-        },
-        {
-          "name": "asSuccess",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 410,
-          "endLine": 419,
-          "loc": 5,
-          "params": 1
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 9,
-          "endLine": 13,
-          "loc": 3,
-          "params": 2
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 438,
-          "endLine": 467,
-          "loc": 9,
-          "params": 0
-        },
-        {
-          "name": "SemanticError",
-          "kind": "class",
-          "cyclomatic": 1,
-          "startLine": 8,
-          "endLine": 14,
-          "loc": 4,
-          "params": 2
-        },
-        {
-          "name": "start",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 468,
-          "endLine": 472,
-          "loc": 4,
-          "params": 0
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/mcp/tools/handlers/stateHandlers.ts",
-      "avg": 3,
-      "max": 6,
-      "units": [
-        {
-          "name": "handleStatePatch",
-          "kind": "function",
-          "cyclomatic": 6,
-          "startLine": 86,
-          "endLine": 103,
-          "loc": 13,
-          "params": 1
-        },
-        {
-          "name": "handleStateAcquireLock",
-          "kind": "function",
-          "cyclomatic": 4,
-          "startLine": 104,
-          "endLine": 118,
-          "loc": 11,
-          "params": 1
-        },
-        {
-          "name": "handleStateSearch",
-          "kind": "function",
-          "cyclomatic": 4,
-          "startLine": 138,
-          "endLine": 150,
-          "loc": 11,
-          "params": 1
-        },
-        {
-          "name": "handleStateAppendEvent",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 127,
-          "endLine": 137,
-          "loc": 10,
-          "params": 1
-        },
-        {
-          "name": "handleStateGet",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 75,
-          "endLine": 85,
-          "loc": 9,
-          "params": 1
-        },
-        {
-          "name": "handleStateReleaseLock",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 119,
-          "endLine": 126,
-          "loc": 8,
-          "params": 1
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 5,
-          "endLine": 9,
-          "loc": 3,
-          "params": 2
-        },
-        {
-          "name": "SemanticError",
-          "kind": "class",
-          "cyclomatic": 1,
-          "startLine": 4,
-          "endLine": 10,
-          "loc": 4,
-          "params": 2
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/mcp/tools/handlers/fastTrackHandlers.ts",
-      "avg": 2.75,
-      "max": 6,
-      "units": [
-        {
-          "name": "handleFastTrackGuardPostDev",
-          "kind": "function",
-          "cyclomatic": 6,
-          "startLine": 45,
-          "endLine": 85,
-          "loc": 43,
-          "params": 1
-        },
-        {
-          "name": "handleFastTrackEvaluate",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 11,
-          "endLine": 44,
-          "loc": 34,
-          "params": 1
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 5,
-          "endLine": 9,
-          "loc": 3,
-          "params": 2
-        },
-        {
-          "name": "SemanticError",
-          "kind": "class",
-          "cyclomatic": 1,
-          "startLine": 4,
-          "endLine": 10,
-          "loc": 4,
-          "params": 2
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/domain/FastTrack.ts",
-      "avg": 2.5714285714285716,
-      "max": 6,
-      "units": [
-        {
-          "name": "guardPostDev",
-          "kind": "function",
-          "cyclomatic": 6,
-          "startLine": 112,
-          "endLine": 129,
-          "loc": 23,
-          "params": 2
-        },
-        {
-          "name": "calculateQualityBonuses",
-          "kind": "function",
-          "cyclomatic": 5,
-          "startLine": 69,
-          "endLine": 89,
-          "loc": 16,
-          "params": 2
-        },
-        {
-          "name": "calculateDiffBonus",
-          "kind": "function",
-          "cyclomatic": 4,
-          "startLine": 45,
-          "endLine": 60,
-          "loc": 13,
-          "params": 2
-        },
-        {
-          "name": "addEligibilityReason",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 102,
-          "endLine": 111,
-          "loc": 5,
-          "params": 3
-        },
-        {
-          "name": "calculateFileTypeBonus",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 61,
-          "endLine": 68,
-          "loc": 7,
-          "params": 2
-        },
-        {
-          "name": "calculateMetadataBonuses",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 90,
-          "endLine": 101,
-          "loc": 8,
-          "params": 2
-        },
-        {
-          "name": "<anon method-3>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 9,
-          "endLine": 13,
-          "loc": 2,
-          "params": 2
-        },
-        {
-          "name": "<anon method-4>",
-          "kind": "arrow",
-          "cyclomatic": 2,
-          "startLine": 62,
-          "endLine": 62,
-          "loc": 3,
-          "params": 1
-        },
-        {
-          "name": "calculateScopeBonus",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 38,
-          "endLine": 44,
-          "loc": 4,
-          "params": 2
-        },
-        {
-          "name": "evaluateFastTrack",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 4,
-          "endLine": 24,
-          "loc": 33,
-          "params": 1
-        },
-        {
-          "name": "<anon method-1>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 7,
-          "endLine": 7,
-          "loc": 2,
-          "params": 1
-        },
-        {
-          "name": "<anon method-2>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 8,
-          "endLine": 8,
-          "loc": 2,
-          "params": 1
-        },
-        {
-          "name": "<anon method-5>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 125,
-          "endLine": 125,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "calculateFastTrackScore",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 25,
-          "endLine": 37,
-          "loc": 24,
-          "params": 2
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/orchestrator/patch.ts",
-      "avg": 3.2,
-      "max": 5,
-      "units": [
-        {
-          "name": "mergeLinks",
-          "kind": "function",
-          "cyclomatic": 5,
-          "startLine": 24,
-          "endLine": 35,
-          "loc": 5,
-          "params": 2
-        },
-        {
-          "name": "mergeMetrics",
-          "kind": "function",
-          "cyclomatic": 4,
-          "startLine": 1,
-          "endLine": 11,
-          "loc": 4,
-          "params": 2
-        },
-        {
-          "name": "mergeArray",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 17,
-          "endLine": 23,
-          "loc": 5,
-          "params": 2
-        },
-        {
-          "name": "mergeQaReport",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 12,
-          "endLine": 16,
-          "loc": 3,
-          "params": 2
-        },
-        {
-          "name": "mergeTaskWithPatch",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 36,
-          "endLine": 49,
-          "loc": 15,
-          "params": 2
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/mcp/tools/handlers/qualityHandlers.ts",
-      "avg": 2.142857142857143,
-      "max": 5,
-      "units": [
-        {
-          "name": "enforceGates",
-          "kind": "function",
-          "cyclomatic": 5,
-          "startLine": 90,
-          "endLine": 108,
-          "loc": 19,
-          "params": 1
-        },
-        {
-          "name": "complexity",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 79,
-          "endLine": 89,
-          "loc": 8,
-          "params": 1
-        },
-        {
-          "name": "coverageReport",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 52,
-          "endLine": 66,
-          "loc": 11,
-          "params": 1
-        },
-        {
-          "name": "lint",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 67,
-          "endLine": 78,
-          "loc": 9,
-          "params": 1
-        },
-        {
-          "name": "runTests",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 40,
-          "endLine": 51,
-          "loc": 9,
-          "params": 1
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 4,
-          "endLine": 8,
-          "loc": 3,
-          "params": 2
-        },
-        {
-          "name": "SemanticError",
-          "kind": "class",
-          "cyclomatic": 1,
-          "startLine": 3,
-          "endLine": 9,
-          "loc": 4,
-          "params": 2
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/domain/fastTrackCommentBuilders.ts",
-      "avg": 1.8571428571428572,
-      "max": 5,
-      "units": [
-        {
-          "name": "buildEvaluationComment",
-          "kind": "function",
-          "cyclomatic": 5,
-          "startLine": 2,
-          "endLine": 20,
-          "loc": 16,
-          "params": 2
-        },
-        {
-          "name": "buildPullRequestBody",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 30,
-          "endLine": 47,
-          "loc": 9,
-          "params": 2
-        },
-        {
-          "name": "<anon method-1>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 11,
-          "endLine": 11,
-          "loc": 2,
-          "params": 1
-        },
-        {
-          "name": "<anon method-2>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 14,
-          "endLine": 14,
-          "loc": 2,
-          "params": 1
-        },
-        {
-          "name": "<anon method-3>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 35,
-          "endLine": 35,
-          "loc": 2,
-          "params": 1
-        },
-        {
-          "name": "<anon method-4>",
-          "kind": "arrow",
-          "cyclomatic": 1,
-          "startLine": 45,
-          "endLine": 45,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "buildRevocationComment",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 21,
-          "endLine": 29,
-          "loc": 3,
-          "params": 2
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/mcp/tools/handlers/taskHandlers.ts",
-      "avg": 2.2,
-      "max": 4,
-      "units": [
-        {
-          "name": "handleTaskUpdate",
-          "kind": "function",
-          "cyclomatic": 4,
-          "startLine": 57,
-          "endLine": 74,
-          "loc": 13,
-          "params": 1
-        },
-        {
-          "name": "handleTaskGet",
-          "kind": "function",
-          "cyclomatic": 3,
-          "startLine": 46,
-          "endLine": 56,
-          "loc": 9,
-          "params": 1
-        },
-        {
-          "name": "handleTaskSearch",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 75,
-          "endLine": 81,
-          "loc": 6,
-          "params": 1
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 6,
-          "endLine": 10,
-          "loc": 3,
-          "params": 2
-        },
-        {
-          "name": "SemanticError",
-          "kind": "class",
-          "cyclomatic": 1,
-          "startLine": 5,
-          "endLine": 11,
-          "loc": 4,
-          "params": 2
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/agents/architect.ts",
-      "avg": 2,
-      "max": 2,
-      "units": [
-        {
-          "name": "validateArchitectInput",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 44,
-          "endLine": 49,
-          "loc": 5,
-          "params": 1
-        },
-        {
-          "name": "validateDesignReady",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 50,
-          "endLine": 55,
-          "loc": 5,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/agents/dev.ts",
-      "avg": 2,
-      "max": 2,
-      "units": [
-        {
-          "name": "validateDevInput",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 70,
-          "endLine": 75,
-          "loc": 5,
-          "params": 1
-        },
-        {
-          "name": "validateDevWorkOutput",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 76,
-          "endLine": 81,
-          "loc": 5,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/agents/po.ts",
-      "avg": 2,
-      "max": 2,
-      "units": [
-        {
-          "name": "validatePoBrief",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 58,
-          "endLine": 63,
-          "loc": 5,
-          "params": 1
-        },
-        {
-          "name": "validatePoInput",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 52,
-          "endLine": 57,
-          "loc": 5,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/agents/prbot.ts",
-      "avg": 2,
-      "max": 2,
-      "units": [
-        {
-          "name": "validatePrBotInput",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 46,
-          "endLine": 51,
-          "loc": 5,
-          "params": 1
-        },
-        {
-          "name": "validatePrSummary",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 52,
-          "endLine": 57,
-          "loc": 5,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/agents/qa.ts",
-      "avg": 2,
-      "max": 2,
-      "units": [
-        {
-          "name": "validateQaInput",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 56,
-          "endLine": 61,
-          "loc": 5,
-          "params": 1
-        },
-        {
-          "name": "validateQaReport",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 62,
-          "endLine": 67,
-          "loc": 5,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/agents/reviewer.ts",
-      "avg": 2,
-      "max": 2,
-      "units": [
-        {
-          "name": "validateReviewerInput",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 59,
-          "endLine": 64,
-          "loc": 5,
-          "params": 1
-        },
-        {
-          "name": "validateReviewerReport",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 65,
-          "endLine": 70,
-          "loc": 5,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/utils/loadSchema.ts",
-      "avg": 2,
-      "max": 2,
-      "units": [
-        {
-          "name": "loadSchema",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 8,
-          "endLine": 18,
-          "loc": 12,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/repo/guards.ts",
-      "avg": 1.4285714285714286,
-      "max": 2,
-      "units": [
-        {
-          "name": "checkRev",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 19,
-          "endLine": 23,
-          "loc": 5,
-          "params": 3
-        },
-        {
-          "name": "ensureTaskExists",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 13,
-          "endLine": 18,
-          "loc": 5,
-          "params": 2
-        },
-        {
-          "name": "withOptimisticLock",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 24,
-          "endLine": 29,
-          "loc": 5,
-          "params": 4
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 2,
-          "endLine": 5,
-          "loc": 2,
-          "params": 1
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 8,
-          "endLine": 11,
-          "loc": 2,
-          "params": 2
-        },
-        {
-          "name": "OptimisticLockError",
-          "kind": "class",
-          "cyclomatic": 1,
-          "startLine": 7,
-          "endLine": 12,
-          "loc": 3,
-          "params": 2
-        },
-        {
-          "name": "TaskNotFoundError",
-          "kind": "class",
-          "cyclomatic": 1,
-          "startLine": 1,
-          "endLine": 6,
-          "loc": 3,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/mcp/tools/handlers/index.ts",
-      "avg": 1.3333333333333333,
-      "max": 2,
-      "units": [
-        {
-          "name": "handleToolCall",
-          "kind": "function",
-          "cyclomatic": 2,
-          "startLine": 29,
-          "endLine": 41,
-          "loc": 8,
-          "params": 2
-        },
-        {
-          "name": "<anon class-1>",
-          "kind": "class",
-          "cyclomatic": 1,
-          "startLine": 32,
-          "endLine": 37,
-          "loc": 3,
-          "params": 1
-        },
-        {
-          "name": "constructor",
-          "kind": "method",
-          "cyclomatic": 1,
-          "startLine": 33,
-          "endLine": 36,
-          "loc": 2,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/domain/fastTrackMessages.ts",
-      "avg": 1,
-      "max": 1,
-      "units": [
-        {
-          "name": "formatHardBlock",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 42,
-          "endLine": 44,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "formatReason",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 39,
-          "endLine": 41,
-          "loc": 1,
-          "params": 1
-        },
-        {
-          "name": "formatRevocationReason",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 45,
-          "endLine": 47,
-          "loc": 1,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/mcp/tools/handlers/taskCreateHandler.ts",
-      "avg": 1,
-      "max": 1,
-      "units": [
-        {
-          "name": "handleTaskCreate",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 3,
-          "endLine": 18,
-          "loc": 14,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/repo/statements.ts",
-      "avg": 1,
-      "max": 1,
-      "units": [
-        {
-          "name": "prepareCountTasks",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 96,
-          "endLine": 98,
-          "loc": 2,
-          "params": 2
-        },
-        {
-          "name": "prepareInsertTask",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 84,
-          "endLine": 86,
-          "loc": 2,
-          "params": 1
-        },
-        {
-          "name": "prepareSearchTasks",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 93,
-          "endLine": 95,
-          "loc": 2,
-          "params": 2
-        },
-        {
-          "name": "prepareSelectTaskById",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 87,
-          "endLine": 89,
-          "loc": 2,
-          "params": 1
-        },
-        {
-          "name": "prepareUpdateTask",
-          "kind": "function",
-          "cyclomatic": 1,
-          "startLine": 90,
-          "endLine": 92,
-          "loc": 2,
-          "params": 1
-        }
-      ]
-    },
-    {
-      "path": "services/task-mcp/src/index.ts",
-      "avg": 0,
-      "max": 0,
-      "units": []
-    },
-    {
-      "path": "services/task-mcp/src/mcp/tools/handlers/sharedRepos.ts",
-      "avg": 0,
-      "max": 0,
-      "units": []
-    },
-    {
-      "path": "services/task-mcp/src/repo/sqlite.ts",
-      "avg": 0,
-      "max": 0,
-      "units": []
-    }
-  ],
-  "meta": {
-    "engine": "escomplex",
-    "globs": [
-      "services/task-mcp/src/**/*.ts",
-      "packages/**/*.ts"
-    ],
-    "excluded": [
-      "**/*.test.*",
-      "**/__tests__/**",
-      "**/fixtures/**",
-      "**/*.d.ts"
-    ],
-    "failed": []
-  }
+    "avgCyclomatic":  2.6226415094339623,
+    "maxCyclomatic":  12,
+    "files":  [
+                  {
+                      "path":  "services/task-mcp/src/repo/repository.ts",
+                      "avg":  2.4285714285714284,
+                      "max":  12,
+                      "units":  [
+                                    {
+                                        "name":  "TaskRepository",
+                                        "kind":  "class",
+                                        "cyclomatic":  12,
+                                        "startLine":  39,
+                                        "endLine":  93,
+                                        "loc":  74,
+                                        "params":  8
+                                    },
+                                    {
+                                        "name":  "buildSearchQuery",
+                                        "kind":  "function",
+                                        "cyclomatic":  8,
+                                        "startLine":  6,
+                                        "endLine":  38,
+                                        "loc":  35,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-3\u003e",
+                                        "kind":  "method",
+                                        "cyclomatic":  2,
+                                        "startLine":  70,
+                                        "endLine":  79,
+                                        "loc":  14,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "get",
+                                        "kind":  "method",
+                                        "cyclomatic":  2,
+                                        "startLine":  62,
+                                        "endLine":  68,
+                                        "loc":  8,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-1\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  17,
+                                        "endLine":  17,
+                                        "loc":  1,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "\u003canon method-2\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  23,
+                                        "endLine":  23,
+                                        "loc":  1,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "\u003canon method-4\u003e",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  87,
+                                        "endLine":  87,
+                                        "loc":  2,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "close",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  90,
+                                        "endLine":  92,
+                                        "loc":  1,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  40,
+                                        "endLine":  43,
+                                        "loc":  2,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "create",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  53,
+                                        "endLine":  61,
+                                        "loc":  13,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "database",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  44,
+                                        "endLine":  46,
+                                        "loc":  1,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "migrate",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  47,
+                                        "endLine":  52,
+                                        "loc":  3,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "search",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  81,
+                                        "endLine":  89,
+                                        "loc":  19,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "update",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  69,
+                                        "endLine":  80,
+                                        "loc":  3,
+                                        "params":  3
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/repo/row-mapper.ts",
+                      "avg":  4,
+                      "max":  11,
+                      "units":  [
+                                    {
+                                        "name":  "serializeJsonFields",
+                                        "kind":  "function",
+                                        "cyclomatic":  11,
+                                        "startLine":  68,
+                                        "endLine":  85,
+                                        "loc":  25,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "recordToParams",
+                                        "kind":  "function",
+                                        "cyclomatic":  5,
+                                        "startLine":  33,
+                                        "endLine":  47,
+                                        "loc":  3,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "serializePrimitiveFields",
+                                        "kind":  "function",
+                                        "cyclomatic":  5,
+                                        "startLine":  56,
+                                        "endLine":  67,
+                                        "loc":  9,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "rowToRecord",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  1,
+                                        "endLine":  32,
+                                        "loc":  41,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "serializeRecordFields",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  48,
+                                        "endLine":  55,
+                                        "loc":  5,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "updatedRecordToParams",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  86,
+                                        "endLine":  97,
+                                        "loc":  12,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/orchestrator/router.ts",
+                      "avg":  3.5,
+                      "max":  11,
+                      "units":  [
+                                    {
+                                        "name":  "nextAgent",
+                                        "kind":  "function",
+                                        "cyclomatic":  11,
+                                        "startLine":  2,
+                                        "endLine":  28,
+                                        "loc":  22,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "canTransitionTo",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  29,
+                                        "endLine":  42,
+                                        "loc":  14,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "getAgentInputSchema",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  43,
+                                        "endLine":  53,
+                                        "loc":  8,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "getAgentOutputSchema",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  54,
+                                        "endLine":  64,
+                                        "loc":  8,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/orchestrator/runner.ts",
+                      "avg":  3.4615384615384617,
+                      "max":  11,
+                      "units":  [
+                                    {
+                                        "name":  "runOrchestratorStep",
+                                        "kind":  "function",
+                                        "cyclomatic":  11,
+                                        "startLine":  257,
+                                        "endLine":  345,
+                                        "loc":  79,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "buildTransitionEvidence",
+                                        "kind":  "function",
+                                        "cyclomatic":  9,
+                                        "startLine":  429,
+                                        "endLine":  457,
+                                        "loc":  24,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "determineNextState",
+                                        "kind":  "function",
+                                        "cyclomatic":  9,
+                                        "startLine":  369,
+                                        "endLine":  388,
+                                        "loc":  18,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "\u003canon method-4\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  7,
+                                        "startLine":  44,
+                                        "endLine":  125,
+                                        "loc":  58,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "handleFastTrackEvaluation",
+                                        "kind":  "function",
+                                        "cyclomatic":  6,
+                                        "startLine":  129,
+                                        "endLine":  158,
+                                        "loc":  30,
+                                        "params":  5
+                                    },
+                                    {
+                                        "name":  "prepareAgentInput",
+                                        "kind":  "function",
+                                        "cyclomatic":  6,
+                                        "startLine":  389,
+                                        "endLine":  428,
+                                        "loc":  19,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "handlePostDevGuard",
+                                        "kind":  "function",
+                                        "cyclomatic":  5,
+                                        "startLine":  211,
+                                        "endLine":  255,
+                                        "loc":  44,
+                                        "params":  6
+                                    },
+                                    {
+                                        "name":  "shouldFastTrack",
+                                        "kind":  "function",
+                                        "cyclomatic":  5,
+                                        "startLine":  360,
+                                        "endLine":  368,
+                                        "loc":  9,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "getPrNumber",
+                                        "kind":  "function",
+                                        "cyclomatic":  4,
+                                        "startLine":  476,
+                                        "endLine":  482,
+                                        "loc":  5,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "summarizeOutput",
+                                        "kind":  "function",
+                                        "cyclomatic":  4,
+                                        "startLine":  467,
+                                        "endLine":  475,
+                                        "loc":  7,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "handleQualityGate",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  159,
+                                        "endLine":  210,
+                                        "loc":  45,
+                                        "params":  5
+                                    },
+                                    {
+                                        "name":  "wasFastTrack",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  458,
+                                        "endLine":  461,
+                                        "loc":  4,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "canRunAgent",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  346,
+                                        "endLine":  359,
+                                        "loc":  12,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "requiresQualityGate",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  38,
+                                        "endLine":  43,
+                                        "loc":  4,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "summarizeInput",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  462,
+                                        "endLine":  466,
+                                        "loc":  3,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "validateAgentOutput",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  548,
+                                        "endLine":  563,
+                                        "loc":  18,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "\u003canon method-1\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  18,
+                                        "endLine":  21,
+                                        "loc":  5,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-2\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  22,
+                                        "endLine":  25,
+                                        "loc":  3,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-3\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  26,
+                                        "endLine":  29,
+                                        "loc":  3,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-5\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  128,
+                                        "endLine":  128,
+                                        "loc":  2,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "\u003canon method-6\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  196,
+                                        "endLine":  196,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-7\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  539,
+                                        "endLine":  539,
+                                        "loc":  2,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "buildDefaultFastTrackContext",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  506,
+                                        "endLine":  528,
+                                        "loc":  17,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "cloneFastTrackContext",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  483,
+                                        "endLine":  505,
+                                        "loc":  17,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "getAgentOutputSchemaFile",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  564,
+                                        "endLine":  574,
+                                        "loc":  8,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "setAgentRunnerOverride",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  529,
+                                        "endLine":  531,
+                                        "loc":  1,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/domain/TaskRecord.ts",
+                      "avg":  3.411764705882353,
+                      "max":  11,
+                      "units":  [
+                                    {
+                                        "name":  "TaskRecordValidator",
+                                        "kind":  "class",
+                                        "cyclomatic":  11,
+                                        "startLine":  159,
+                                        "endLine":  191,
+                                        "loc":  32,
+                                        "params":  6
+                                    },
+                                    {
+                                        "name":  "validateCreation",
+                                        "kind":  "method",
+                                        "cyclomatic":  8,
+                                        "startLine":  178,
+                                        "endLine":  190,
+                                        "loc":  11,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "checkQualityGate",
+                                        "kind":  "function",
+                                        "cyclomatic":  7,
+                                        "startLine":  148,
+                                        "endLine":  154,
+                                        "loc":  6,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-2\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  5,
+                                        "startLine":  108,
+                                        "endLine":  119,
+                                        "loc":  15,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-3\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  4,
+                                        "startLine":  120,
+                                        "endLine":  122,
+                                        "loc":  4,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-1\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  3,
+                                        "startLine":  105,
+                                        "endLine":  107,
+                                        "loc":  4,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-5\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  3,
+                                        "startLine":  126,
+                                        "endLine":  131,
+                                        "loc":  6,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-10\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  144,
+                                        "endLine":  146,
+                                        "loc":  4,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-4\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  123,
+                                        "endLine":  125,
+                                        "loc":  4,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-6\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  132,
+                                        "endLine":  134,
+                                        "loc":  4,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-7\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  135,
+                                        "endLine":  137,
+                                        "loc":  4,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-8\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  138,
+                                        "endLine":  140,
+                                        "loc":  4,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-9\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  141,
+                                        "endLine":  143,
+                                        "loc":  4,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "validateTransition",
+                                        "kind":  "method",
+                                        "cyclomatic":  2,
+                                        "startLine":  163,
+                                        "endLine":  177,
+                                        "loc":  16,
+                                        "params":  4
+                                    },
+                                    {
+                                        "name":  "\u003canon method-11\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  156,
+                                        "endLine":  156,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "checkHighViolations",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  155,
+                                        "endLine":  157,
+                                        "loc":  3,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "validateSchema",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  160,
+                                        "endLine":  162,
+                                        "loc":  2,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/domain/FastTrackGitHub.ts",
+                      "avg":  3.3333333333333335,
+                      "max":  10,
+                      "units":  [
+                                    {
+                                        "name":  "FastTrackGitHub",
+                                        "kind":  "class",
+                                        "cyclomatic":  10,
+                                        "startLine":  6,
+                                        "endLine":  50,
+                                        "loc":  48,
+                                        "params":  14
+                                    },
+                                    {
+                                        "name":  "onFastTrackEvaluated",
+                                        "kind":  "method",
+                                        "cyclomatic":  3,
+                                        "startLine":  12,
+                                        "endLine":  24,
+                                        "loc":  16,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "onFastTrackRevoked",
+                                        "kind":  "method",
+                                        "cyclomatic":  3,
+                                        "startLine":  25,
+                                        "endLine":  34,
+                                        "loc":  13,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "getLabelsForEvaluation",
+                                        "kind":  "method",
+                                        "cyclomatic":  2,
+                                        "startLine":  45,
+                                        "endLine":  49,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  7,
+                                        "endLine":  11,
+                                        "loc":  3,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "createFastTrackPR",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  35,
+                                        "endLine":  44,
+                                        "loc":  10,
+                                        "params":  4
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/repo/state.ts",
+                      "avg":  2.857142857142857,
+                      "max":  10,
+                      "units":  [
+                                    {
+                                        "name":  "LeaseRepository",
+                                        "kind":  "class",
+                                        "cyclomatic":  10,
+                                        "startLine":  127,
+                                        "endLine":  186,
+                                        "loc":  56,
+                                        "params":  9
+                                    },
+                                    {
+                                        "name":  "StateRepository",
+                                        "kind":  "class",
+                                        "cyclomatic":  10,
+                                        "startLine":  2,
+                                        "endLine":  60,
+                                        "loc":  48,
+                                        "params":  7
+                                    },
+                                    {
+                                        "name":  "EventRepository",
+                                        "kind":  "class",
+                                        "cyclomatic":  8,
+                                        "startLine":  61,
+                                        "endLine":  117,
+                                        "loc":  57,
+                                        "params":  11
+                                    },
+                                    {
+                                        "name":  "update",
+                                        "kind":  "method",
+                                        "cyclomatic":  5,
+                                        "startLine":  36,
+                                        "endLine":  55,
+                                        "loc":  14,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "acquire",
+                                        "kind":  "method",
+                                        "cyclomatic":  4,
+                                        "startLine":  131,
+                                        "endLine":  158,
+                                        "loc":  22,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "isLeaseValid",
+                                        "kind":  "function",
+                                        "cyclomatic":  4,
+                                        "startLine":  119,
+                                        "endLine":  126,
+                                        "loc":  5,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "search",
+                                        "kind":  "method",
+                                        "cyclomatic":  3,
+                                        "startLine":  94,
+                                        "endLine":  116,
+                                        "loc":  17,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "get",
+                                        "kind":  "method",
+                                        "cyclomatic":  2,
+                                        "startLine":  21,
+                                        "endLine":  35,
+                                        "loc":  14,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "get",
+                                        "kind":  "method",
+                                        "cyclomatic":  2,
+                                        "startLine":  159,
+                                        "endLine":  170,
+                                        "loc":  11,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-1\u003e",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  86,
+                                        "endLine":  92,
+                                        "loc":  7,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-2\u003e",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  109,
+                                        "endLine":  115,
+                                        "loc":  7,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "append",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  65,
+                                        "endLine":  80,
+                                        "loc":  14,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "cleanupExpired",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  176,
+                                        "endLine":  181,
+                                        "loc":  7,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  3,
+                                        "endLine":  5,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  62,
+                                        "endLine":  64,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  128,
+                                        "endLine":  130,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "create",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  6,
+                                        "endLine":  20,
+                                        "loc":  11,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "delete",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  56,
+                                        "endLine":  59,
+                                        "loc":  3,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "getByTaskId",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  81,
+                                        "endLine":  93,
+                                        "loc":  7,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "isValid",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  182,
+                                        "endLine":  185,
+                                        "loc":  4,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "release",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  171,
+                                        "endLine":  175,
+                                        "loc":  5,
+                                        "params":  2
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/mcp/tools/handlers/taskTransitionHandler.ts",
+                      "avg":  2.6666666666666665,
+                      "max":  10,
+                      "units":  [
+                                    {
+                                        "name":  "handleTaskTransition",
+                                        "kind":  "function",
+                                        "cyclomatic":  10,
+                                        "startLine":  84,
+                                        "endLine":  194,
+                                        "loc":  61,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-1\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  5,
+                                        "startLine":  107,
+                                        "endLine":  126,
+                                        "loc":  11,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "handleFastTrackEvidence",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  195,
+                                        "endLine":  212,
+                                        "loc":  14,
+                                        "params":  4
+                                    },
+                                    {
+                                        "name":  "\u003canon method-3\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  130,
+                                        "endLine":  136,
+                                        "loc":  13,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "\u003canon method-4\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  137,
+                                        "endLine":  143,
+                                        "loc":  13,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "\u003canon method-5\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  144,
+                                        "endLine":  149,
+                                        "loc":  6,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "\u003canon method-7\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  150,
+                                        "endLine":  155,
+                                        "loc":  3,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "\u003canon method-8\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  156,
+                                        "endLine":  161,
+                                        "loc":  3,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "\u003canon method-2\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  127,
+                                        "endLine":  129,
+                                        "loc":  1,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "\u003canon method-6\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  147,
+                                        "endLine":  147,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  8,
+                                        "endLine":  12,
+                                        "loc":  3,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "SemanticError",
+                                        "kind":  "class",
+                                        "cyclomatic":  1,
+                                        "startLine":  7,
+                                        "endLine":  13,
+                                        "loc":  4,
+                                        "params":  2
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/orchestrator/mappers.ts",
+                      "avg":  2.4,
+                      "max":  7,
+                      "units":  [
+                                    {
+                                        "name":  "mapAgentOutput",
+                                        "kind":  "function",
+                                        "cyclomatic":  7,
+                                        "startLine":  1,
+                                        "endLine":  18,
+                                        "loc":  21,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "extractPrNumber",
+                                        "kind":  "function",
+                                        "cyclomatic":  5,
+                                        "startLine":  71,
+                                        "endLine":  88,
+                                        "loc":  19,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-1\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  3,
+                                        "startLine":  43,
+                                        "endLine":  47,
+                                        "loc":  3,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-2\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  75,
+                                        "endLine":  75,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "mapReviewerOutput",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  41,
+                                        "endLine":  49,
+                                        "loc":  6,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "mapArchitectOutput",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  22,
+                                        "endLine":  30,
+                                        "loc":  6,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "mapDevOutput",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  31,
+                                        "endLine":  40,
+                                        "loc":  6,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "mapPoOutput",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  19,
+                                        "endLine":  21,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "mapPrBotOutput",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  59,
+                                        "endLine":  70,
+                                        "loc":  8,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "mapQaOutput",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  50,
+                                        "endLine":  58,
+                                        "loc":  5,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/mcp/tools.ts",
+                      "avg":  1.6923076923076923,
+                      "max":  7,
+                      "units":  [
+                                    {
+                                        "name":  "TaskMCPServer",
+                                        "kind":  "class",
+                                        "cyclomatic":  7,
+                                        "startLine":  437,
+                                        "endLine":  473,
+                                        "loc":  38,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-4\u003e",
+                                        "kind":  "method",
+                                        "cyclomatic":  4,
+                                        "startLine":  448,
+                                        "endLine":  466,
+                                        "loc":  21,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-1\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  404,
+                                        "endLine":  408,
+                                        "loc":  4,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "\u003canon method-2\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  409,
+                                        "endLine":  409,
+                                        "loc":  2,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "\u003canon method-3\u003e",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  447,
+                                        "endLine":  447,
+                                        "loc":  2,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "\u003canon method-5\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  483,
+                                        "endLine":  483,
+                                        "loc":  2,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "\u003canon method-6\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  483,
+                                        "endLine":  483,
+                                        "loc":  2,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "asError",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  420,
+                                        "endLine":  436,
+                                        "loc":  10,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "asSuccess",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  410,
+                                        "endLine":  419,
+                                        "loc":  5,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  9,
+                                        "endLine":  13,
+                                        "loc":  3,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  438,
+                                        "endLine":  467,
+                                        "loc":  9,
+                                        "params":  0
+                                    },
+                                    {
+                                        "name":  "SemanticError",
+                                        "kind":  "class",
+                                        "cyclomatic":  1,
+                                        "startLine":  8,
+                                        "endLine":  14,
+                                        "loc":  4,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "start",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  468,
+                                        "endLine":  472,
+                                        "loc":  4,
+                                        "params":  0
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/mcp/tools/handlers/stateHandlers.ts",
+                      "avg":  3,
+                      "max":  6,
+                      "units":  [
+                                    {
+                                        "name":  "handleStatePatch",
+                                        "kind":  "function",
+                                        "cyclomatic":  6,
+                                        "startLine":  86,
+                                        "endLine":  103,
+                                        "loc":  13,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "handleStateAcquireLock",
+                                        "kind":  "function",
+                                        "cyclomatic":  4,
+                                        "startLine":  104,
+                                        "endLine":  118,
+                                        "loc":  11,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "handleStateSearch",
+                                        "kind":  "function",
+                                        "cyclomatic":  4,
+                                        "startLine":  138,
+                                        "endLine":  150,
+                                        "loc":  11,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "handleStateAppendEvent",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  127,
+                                        "endLine":  137,
+                                        "loc":  10,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "handleStateGet",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  75,
+                                        "endLine":  85,
+                                        "loc":  9,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "handleStateReleaseLock",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  119,
+                                        "endLine":  126,
+                                        "loc":  8,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  5,
+                                        "endLine":  9,
+                                        "loc":  3,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "SemanticError",
+                                        "kind":  "class",
+                                        "cyclomatic":  1,
+                                        "startLine":  4,
+                                        "endLine":  10,
+                                        "loc":  4,
+                                        "params":  2
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/mcp/tools/handlers/fastTrackHandlers.ts",
+                      "avg":  2.75,
+                      "max":  6,
+                      "units":  [
+                                    {
+                                        "name":  "handleFastTrackGuardPostDev",
+                                        "kind":  "function",
+                                        "cyclomatic":  6,
+                                        "startLine":  45,
+                                        "endLine":  85,
+                                        "loc":  43,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "handleFastTrackEvaluate",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  11,
+                                        "endLine":  44,
+                                        "loc":  34,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  5,
+                                        "endLine":  9,
+                                        "loc":  3,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "SemanticError",
+                                        "kind":  "class",
+                                        "cyclomatic":  1,
+                                        "startLine":  4,
+                                        "endLine":  10,
+                                        "loc":  4,
+                                        "params":  2
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/domain/FastTrack.ts",
+                      "avg":  2.5714285714285716,
+                      "max":  6,
+                      "units":  [
+                                    {
+                                        "name":  "guardPostDev",
+                                        "kind":  "function",
+                                        "cyclomatic":  6,
+                                        "startLine":  112,
+                                        "endLine":  129,
+                                        "loc":  23,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "calculateQualityBonuses",
+                                        "kind":  "function",
+                                        "cyclomatic":  5,
+                                        "startLine":  69,
+                                        "endLine":  89,
+                                        "loc":  16,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "calculateDiffBonus",
+                                        "kind":  "function",
+                                        "cyclomatic":  4,
+                                        "startLine":  45,
+                                        "endLine":  60,
+                                        "loc":  13,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "addEligibilityReason",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  102,
+                                        "endLine":  111,
+                                        "loc":  5,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "calculateFileTypeBonus",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  61,
+                                        "endLine":  68,
+                                        "loc":  7,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "calculateMetadataBonuses",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  90,
+                                        "endLine":  101,
+                                        "loc":  8,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "\u003canon method-3\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  9,
+                                        "endLine":  13,
+                                        "loc":  2,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "\u003canon method-4\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  2,
+                                        "startLine":  62,
+                                        "endLine":  62,
+                                        "loc":  3,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "calculateScopeBonus",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  38,
+                                        "endLine":  44,
+                                        "loc":  4,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "evaluateFastTrack",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  4,
+                                        "endLine":  24,
+                                        "loc":  33,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-1\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  7,
+                                        "endLine":  7,
+                                        "loc":  2,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-2\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  8,
+                                        "endLine":  8,
+                                        "loc":  2,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-5\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  125,
+                                        "endLine":  125,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "calculateFastTrackScore",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  25,
+                                        "endLine":  37,
+                                        "loc":  24,
+                                        "params":  2
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/orchestrator/patch.ts",
+                      "avg":  3.2,
+                      "max":  5,
+                      "units":  [
+                                    {
+                                        "name":  "mergeLinks",
+                                        "kind":  "function",
+                                        "cyclomatic":  5,
+                                        "startLine":  24,
+                                        "endLine":  35,
+                                        "loc":  5,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "mergeMetrics",
+                                        "kind":  "function",
+                                        "cyclomatic":  4,
+                                        "startLine":  1,
+                                        "endLine":  11,
+                                        "loc":  4,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "mergeArray",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  17,
+                                        "endLine":  23,
+                                        "loc":  5,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "mergeQaReport",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  12,
+                                        "endLine":  16,
+                                        "loc":  3,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "mergeTaskWithPatch",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  36,
+                                        "endLine":  49,
+                                        "loc":  15,
+                                        "params":  2
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/mcp/tools/handlers/qualityHandlers.ts",
+                      "avg":  2.142857142857143,
+                      "max":  5,
+                      "units":  [
+                                    {
+                                        "name":  "enforceGates",
+                                        "kind":  "function",
+                                        "cyclomatic":  5,
+                                        "startLine":  90,
+                                        "endLine":  108,
+                                        "loc":  19,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "complexity",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  79,
+                                        "endLine":  89,
+                                        "loc":  8,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "coverageReport",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  52,
+                                        "endLine":  66,
+                                        "loc":  11,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "lint",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  67,
+                                        "endLine":  78,
+                                        "loc":  9,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "runTests",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  40,
+                                        "endLine":  51,
+                                        "loc":  9,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  4,
+                                        "endLine":  8,
+                                        "loc":  3,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "SemanticError",
+                                        "kind":  "class",
+                                        "cyclomatic":  1,
+                                        "startLine":  3,
+                                        "endLine":  9,
+                                        "loc":  4,
+                                        "params":  2
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/domain/fastTrackCommentBuilders.ts",
+                      "avg":  1.8571428571428572,
+                      "max":  5,
+                      "units":  [
+                                    {
+                                        "name":  "buildEvaluationComment",
+                                        "kind":  "function",
+                                        "cyclomatic":  5,
+                                        "startLine":  2,
+                                        "endLine":  20,
+                                        "loc":  16,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "buildPullRequestBody",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  30,
+                                        "endLine":  47,
+                                        "loc":  9,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "\u003canon method-1\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  11,
+                                        "endLine":  11,
+                                        "loc":  2,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-2\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  14,
+                                        "endLine":  14,
+                                        "loc":  2,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-3\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  35,
+                                        "endLine":  35,
+                                        "loc":  2,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "\u003canon method-4\u003e",
+                                        "kind":  "arrow",
+                                        "cyclomatic":  1,
+                                        "startLine":  45,
+                                        "endLine":  45,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "buildRevocationComment",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  21,
+                                        "endLine":  29,
+                                        "loc":  3,
+                                        "params":  2
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/mcp/tools/handlers/taskHandlers.ts",
+                      "avg":  2.2,
+                      "max":  4,
+                      "units":  [
+                                    {
+                                        "name":  "handleTaskUpdate",
+                                        "kind":  "function",
+                                        "cyclomatic":  4,
+                                        "startLine":  57,
+                                        "endLine":  74,
+                                        "loc":  13,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "handleTaskGet",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  46,
+                                        "endLine":  56,
+                                        "loc":  9,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "handleTaskSearch",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  75,
+                                        "endLine":  81,
+                                        "loc":  6,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  6,
+                                        "endLine":  10,
+                                        "loc":  3,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "SemanticError",
+                                        "kind":  "class",
+                                        "cyclomatic":  1,
+                                        "startLine":  5,
+                                        "endLine":  11,
+                                        "loc":  4,
+                                        "params":  2
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/mcp/tools/handlers/sharedRepos.ts",
+                      "avg":  3,
+                      "max":  3,
+                      "units":  [
+                                    {
+                                        "name":  "resolveDbPath",
+                                        "kind":  "function",
+                                        "cyclomatic":  3,
+                                        "startLine":  5,
+                                        "endLine":  11,
+                                        "loc":  8,
+                                        "params":  0
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/agents/architect.ts",
+                      "avg":  2,
+                      "max":  2,
+                      "units":  [
+                                    {
+                                        "name":  "validateArchitectInput",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  44,
+                                        "endLine":  49,
+                                        "loc":  5,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "validateDesignReady",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  50,
+                                        "endLine":  55,
+                                        "loc":  5,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/agents/dev.ts",
+                      "avg":  2,
+                      "max":  2,
+                      "units":  [
+                                    {
+                                        "name":  "validateDevInput",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  70,
+                                        "endLine":  75,
+                                        "loc":  5,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "validateDevWorkOutput",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  76,
+                                        "endLine":  81,
+                                        "loc":  5,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/agents/po.ts",
+                      "avg":  2,
+                      "max":  2,
+                      "units":  [
+                                    {
+                                        "name":  "validatePoBrief",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  58,
+                                        "endLine":  63,
+                                        "loc":  5,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "validatePoInput",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  52,
+                                        "endLine":  57,
+                                        "loc":  5,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/agents/prbot.ts",
+                      "avg":  2,
+                      "max":  2,
+                      "units":  [
+                                    {
+                                        "name":  "validatePrBotInput",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  46,
+                                        "endLine":  51,
+                                        "loc":  5,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "validatePrSummary",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  52,
+                                        "endLine":  57,
+                                        "loc":  5,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/agents/qa.ts",
+                      "avg":  2,
+                      "max":  2,
+                      "units":  [
+                                    {
+                                        "name":  "validateQaInput",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  56,
+                                        "endLine":  61,
+                                        "loc":  5,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "validateQaReport",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  62,
+                                        "endLine":  67,
+                                        "loc":  5,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/agents/reviewer.ts",
+                      "avg":  2,
+                      "max":  2,
+                      "units":  [
+                                    {
+                                        "name":  "validateReviewerInput",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  59,
+                                        "endLine":  64,
+                                        "loc":  5,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "validateReviewerReport",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  65,
+                                        "endLine":  70,
+                                        "loc":  5,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/utils/loadSchema.ts",
+                      "avg":  2,
+                      "max":  2,
+                      "units":  [
+                                    {
+                                        "name":  "loadSchema",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  8,
+                                        "endLine":  18,
+                                        "loc":  12,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/repo/guards.ts",
+                      "avg":  1.4285714285714286,
+                      "max":  2,
+                      "units":  [
+                                    {
+                                        "name":  "checkRev",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  19,
+                                        "endLine":  23,
+                                        "loc":  5,
+                                        "params":  3
+                                    },
+                                    {
+                                        "name":  "ensureTaskExists",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  13,
+                                        "endLine":  18,
+                                        "loc":  5,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "withOptimisticLock",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  24,
+                                        "endLine":  29,
+                                        "loc":  5,
+                                        "params":  4
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  2,
+                                        "endLine":  5,
+                                        "loc":  2,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  8,
+                                        "endLine":  11,
+                                        "loc":  2,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "OptimisticLockError",
+                                        "kind":  "class",
+                                        "cyclomatic":  1,
+                                        "startLine":  7,
+                                        "endLine":  12,
+                                        "loc":  3,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "TaskNotFoundError",
+                                        "kind":  "class",
+                                        "cyclomatic":  1,
+                                        "startLine":  1,
+                                        "endLine":  6,
+                                        "loc":  3,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/mcp/tools/handlers/index.ts",
+                      "avg":  1.3333333333333333,
+                      "max":  2,
+                      "units":  [
+                                    {
+                                        "name":  "handleToolCall",
+                                        "kind":  "function",
+                                        "cyclomatic":  2,
+                                        "startLine":  29,
+                                        "endLine":  41,
+                                        "loc":  8,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "\u003canon class-1\u003e",
+                                        "kind":  "class",
+                                        "cyclomatic":  1,
+                                        "startLine":  32,
+                                        "endLine":  37,
+                                        "loc":  3,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "constructor",
+                                        "kind":  "method",
+                                        "cyclomatic":  1,
+                                        "startLine":  33,
+                                        "endLine":  36,
+                                        "loc":  2,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/domain/fastTrackMessages.ts",
+                      "avg":  1,
+                      "max":  1,
+                      "units":  [
+                                    {
+                                        "name":  "formatHardBlock",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  42,
+                                        "endLine":  44,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "formatReason",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  39,
+                                        "endLine":  41,
+                                        "loc":  1,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "formatRevocationReason",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  45,
+                                        "endLine":  47,
+                                        "loc":  1,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/mcp/tools/handlers/taskCreateHandler.ts",
+                      "avg":  1,
+                      "max":  1,
+                      "units":  [
+                                    {
+                                        "name":  "handleTaskCreate",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  3,
+                                        "endLine":  18,
+                                        "loc":  14,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/repo/statements.ts",
+                      "avg":  1,
+                      "max":  1,
+                      "units":  [
+                                    {
+                                        "name":  "prepareCountTasks",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  96,
+                                        "endLine":  98,
+                                        "loc":  2,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "prepareInsertTask",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  84,
+                                        "endLine":  86,
+                                        "loc":  2,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "prepareSearchTasks",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  93,
+                                        "endLine":  95,
+                                        "loc":  2,
+                                        "params":  2
+                                    },
+                                    {
+                                        "name":  "prepareSelectTaskById",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  87,
+                                        "endLine":  89,
+                                        "loc":  2,
+                                        "params":  1
+                                    },
+                                    {
+                                        "name":  "prepareUpdateTask",
+                                        "kind":  "function",
+                                        "cyclomatic":  1,
+                                        "startLine":  90,
+                                        "endLine":  92,
+                                        "loc":  2,
+                                        "params":  1
+                                    }
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/index.ts",
+                      "avg":  0,
+                      "max":  0,
+                      "units":  [
+
+                                ]
+                  },
+                  {
+                      "path":  "services/task-mcp/src/repo/sqlite.ts",
+                      "avg":  0,
+                      "max":  0,
+                      "units":  [
+
+                                ]
+                  }
+              ],
+    "meta":  {
+                 "engine":  "escomplex",
+                 "globs":  [
+                               "services/task-mcp/src/**/*.ts",
+                               "packages/**/*.ts"
+                           ],
+                 "excluded":  [
+                                  "**/*.test.*",
+                                  "**/__tests__/**",
+                                  "**/fixtures/**",
+                                  "**/*.d.ts"
+                              ],
+                 "failed":  [
+
+                            ]
+             },
+    "source":  "server"
 }

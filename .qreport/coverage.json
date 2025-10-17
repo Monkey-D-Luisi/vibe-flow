@@ -1,156 +1,159 @@
 {
-  "total": {
-    "lines": 0.8346138293570562,
-    "statements": 0.8346138293570562,
-    "branches": 0.7611241217798594,
-    "functions": 0.7886178861788617
-  },
-  "files": [
-    {
-      "path": "services/task-mcp/src/agents/architect.ts",
-      "lines": 1,
-      "statements": 1,
-      "branches": 1,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/agents/dev.ts",
-      "lines": 1,
-      "statements": 1,
-      "branches": 1,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/agents/po.ts",
-      "lines": 1,
-      "statements": 1,
-      "branches": 1,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/agents/prbot.ts",
-      "lines": 1,
-      "statements": 1,
-      "branches": 1,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/agents/qa.ts",
-      "lines": 1,
-      "statements": 1,
-      "branches": 1,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/agents/reviewer.ts",
-      "lines": 1,
-      "statements": 1,
-      "branches": 1,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/domain/FastTrack.ts",
-      "lines": 0.8979591836734694,
-      "statements": 0.8979591836734694,
-      "branches": 0.7368421052631579,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/domain/FastTrackGitHub.ts",
-      "lines": 0.9642857142857143,
-      "statements": 0.9642857142857143,
-      "branches": 0.7096774193548387,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/domain/TaskRecord.ts",
-      "lines": 0.9572192513368984,
-      "statements": 0.9572192513368984,
-      "branches": 0.8679245283018868,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/index.ts",
-      "lines": 1,
-      "statements": 1,
-      "branches": 0,
-      "functions": 0
-    },
-    {
-      "path": "services/task-mcp/src/mcp/tools.ts",
-      "lines": 0.6781883194278904,
-      "statements": 0.6781883194278904,
-      "branches": 0.4897959183673469,
-      "functions": 0.3333333333333333
-    },
-    {
-      "path": "services/task-mcp/src/orchestrator/mappers.ts",
-      "lines": 0.6511627906976745,
-      "statements": 0.6511627906976745,
-      "branches": 0.6666666666666666,
-      "functions": 0.75
-    },
-    {
-      "path": "services/task-mcp/src/orchestrator/patch.ts",
-      "lines": 0.9555555555555556,
-      "statements": 0.9555555555555556,
-      "branches": 0.4583333333333333,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/orchestrator/router.ts",
-      "lines": 0.96875,
-      "statements": 0.96875,
-      "branches": 0.8666666666666667,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/orchestrator/runner.ts",
-      "lines": 0.8782051282051282,
-      "statements": 0.8782051282051282,
-      "branches": 0.7692307692307693,
-      "functions": 0.8095238095238095
-    },
-    {
-      "path": "services/task-mcp/src/repo/sqlite.ts",
-      "lines": 0.9302325581395349,
-      "statements": 0.9302325581395349,
-      "branches": 0.8648648648648649,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/repo/state.ts",
-      "lines": 0.9823529411764705,
-      "statements": 0.9823529411764705,
-      "branches": 0.9459459459459459,
-      "functions": 0.9444444444444444
-    },
-    {
-      "path": "services/task-mcp/src/types/json.d.ts",
-      "lines": 0,
-      "statements": 0,
-      "branches": 1,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/src/utils/loadSchema.ts",
-      "lines": 0.875,
-      "statements": 0.875,
-      "branches": 0.5,
-      "functions": 1
-    },
-    {
-      "path": "services/task-mcp/vitest.config.ts",
-      "lines": 0,
-      "statements": 0,
-      "branches": 0,
-      "functions": 0
-    }
-  ],
-  "meta": {
-    "source": "istanbul",
-    "summaryPath": "services/task-mcp/coverage/coverage-final.json",
-    "lcovPath": "services/task-mcp/coverage/lcov.info",
-    "excluded": []
-  }
+    "total":  {
+                  "lines":  0.8346138293570562,
+                  "statements":  0.8346138293570562,
+                  "branches":  0.7611241217798594,
+                  "functions":  0.7886178861788617
+              },
+    "files":  [
+                  {
+                      "path":  "services/task-mcp/src/agents/architect.ts",
+                      "lines":  1,
+                      "statements":  1,
+                      "branches":  1,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/agents/dev.ts",
+                      "lines":  1,
+                      "statements":  1,
+                      "branches":  1,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/agents/po.ts",
+                      "lines":  1,
+                      "statements":  1,
+                      "branches":  1,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/agents/prbot.ts",
+                      "lines":  1,
+                      "statements":  1,
+                      "branches":  1,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/agents/qa.ts",
+                      "lines":  1,
+                      "statements":  1,
+                      "branches":  1,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/agents/reviewer.ts",
+                      "lines":  1,
+                      "statements":  1,
+                      "branches":  1,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/domain/FastTrack.ts",
+                      "lines":  0.8979591836734694,
+                      "statements":  0.8979591836734694,
+                      "branches":  0.7368421052631579,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/domain/FastTrackGitHub.ts",
+                      "lines":  0.9642857142857143,
+                      "statements":  0.9642857142857143,
+                      "branches":  0.7096774193548387,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/domain/TaskRecord.ts",
+                      "lines":  0.9572192513368984,
+                      "statements":  0.9572192513368984,
+                      "branches":  0.8679245283018868,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/index.ts",
+                      "lines":  1,
+                      "statements":  1,
+                      "branches":  0,
+                      "functions":  0
+                  },
+                  {
+                      "path":  "services/task-mcp/src/mcp/tools.ts",
+                      "lines":  0.6781883194278904,
+                      "statements":  0.6781883194278904,
+                      "branches":  0.4897959183673469,
+                      "functions":  0.3333333333333333
+                  },
+                  {
+                      "path":  "services/task-mcp/src/orchestrator/mappers.ts",
+                      "lines":  0.6511627906976745,
+                      "statements":  0.6511627906976745,
+                      "branches":  0.6666666666666666,
+                      "functions":  0.75
+                  },
+                  {
+                      "path":  "services/task-mcp/src/orchestrator/patch.ts",
+                      "lines":  0.9555555555555556,
+                      "statements":  0.9555555555555556,
+                      "branches":  0.4583333333333333,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/orchestrator/router.ts",
+                      "lines":  0.96875,
+                      "statements":  0.96875,
+                      "branches":  0.8666666666666667,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/orchestrator/runner.ts",
+                      "lines":  0.8782051282051282,
+                      "statements":  0.8782051282051282,
+                      "branches":  0.7692307692307693,
+                      "functions":  0.8095238095238095
+                  },
+                  {
+                      "path":  "services/task-mcp/src/repo/sqlite.ts",
+                      "lines":  0.9302325581395349,
+                      "statements":  0.9302325581395349,
+                      "branches":  0.8648648648648649,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/repo/state.ts",
+                      "lines":  0.9823529411764705,
+                      "statements":  0.9823529411764705,
+                      "branches":  0.9459459459459459,
+                      "functions":  0.9444444444444444
+                  },
+                  {
+                      "path":  "services/task-mcp/src/types/json.d.ts",
+                      "lines":  0,
+                      "statements":  0,
+                      "branches":  1,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/src/utils/loadSchema.ts",
+                      "lines":  0.875,
+                      "statements":  0.875,
+                      "branches":  0.5,
+                      "functions":  1
+                  },
+                  {
+                      "path":  "services/task-mcp/vitest.config.ts",
+                      "lines":  0,
+                      "statements":  0,
+                      "branches":  0,
+                      "functions":  0
+                  }
+              ],
+    "meta":  {
+                 "source":  "istanbul",
+                 "summaryPath":  "services/task-mcp/coverage/coverage-final.json",
+                 "lcovPath":  "services/task-mcp/coverage/lcov.info",
+                 "excluded":  [
+
+                              ]
+             },
+    "source":  "server"
 }
