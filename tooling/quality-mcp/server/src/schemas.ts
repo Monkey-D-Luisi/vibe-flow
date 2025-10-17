@@ -1,6 +1,5 @@
 import type { FastifySchema } from 'fastify';
-
-const toolPattern = '^quality\\.(run_tests|coverage_report|lint|complexity)$';
+import { TOOL_NAMES } from './toolNames.js';
 
 export const invokeSchema: FastifySchema = {
   body: {
@@ -8,7 +7,7 @@ export const invokeSchema: FastifySchema = {
     additionalProperties: false,
     required: ['tool', 'input'],
     properties: {
-      tool: { type: 'string', pattern: toolPattern },
+      tool: { type: 'string', enum: TOOL_NAMES },
       input: { type: 'object' },
       requestId: { type: 'string' },
       stream: { type: 'boolean' },
@@ -24,7 +23,7 @@ export const responseSchema = {
   properties: {
     ok: { type: 'boolean' },
     requestId: { type: 'string' },
-    tool: { type: 'string', pattern: toolPattern },
+    tool: { type: 'string', enum: TOOL_NAMES },
     result: { type: 'object', additionalProperties: true },
     error: {
       type: 'object',

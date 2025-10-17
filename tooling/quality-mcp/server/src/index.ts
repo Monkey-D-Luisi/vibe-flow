@@ -16,17 +16,33 @@ const app = Fastify({
 
 app.setErrorHandler((error, request, reply) => {
   request.log.error(error);
-  if (!reply.sent) {
-    const requestId = (reply.getHeader('X-Request-Id') as string | undefined) ?? String(request.headers['x-request-id'] ?? '');
-    reply.code(500).send({
+  if (reply.sent) {
+    return;
+  }
+
+  const requestId = (reply.getHeader('X-Request-Id') as string | undefined) ?? String(request.headers['x-request-id'] ?? '');
+
+  if ((error as any)?.validation) {
+    reply.code(400).send({
       ok: false,
       error: {
-        code: 'INTERNAL_ERROR',
-        message: 'Internal server error'
+        code: 'VALIDATION_ERROR',
+        message: error.message ?? 'Request validation failed',
+        details: (error as any).validation
       },
       requestId
     });
+    return;
   }
+
+  reply.code(500).send({
+    ok: false,
+    error: {
+      code: 'INTERNAL_ERROR',
+      message: 'Internal server error'
+    },
+    requestId
+  });
 });
 
 async function main() {
