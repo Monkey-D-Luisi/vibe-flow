@@ -1,7 +1,6 @@
 import { createRequire } from 'node:module';
 import type { AnySchema, ValidateFunction } from 'ajv';
-
-type ToolName = 'quality.run_tests' | 'quality.coverage_report' | 'quality.lint' | 'quality.complexity';
+import type { ToolName } from './toolNames.js';
 
 const require = createRequire(import.meta.url);
 const Ajv = require('ajv').default as typeof import('ajv').default;
@@ -84,6 +83,7 @@ export function validateToolResult(tool: ToolName, result: unknown): void {
   if (!validate(result)) {
     const message = ajv.errorsText(validate.errors, { separator: '; ' });
     const error = new Error(`Runner output failed validation: ${message}`);
+    (error as any).details = validate.errors;
     (error as any).code = 'RUNNER_ERROR';
     throw error;
   }
