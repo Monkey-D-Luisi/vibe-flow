@@ -7,7 +7,7 @@ Param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-function Wait-AnyKey([string]$message = "Pulsa cualquier tecla para continuar...") {
+function Wait-AnyKey([string]$message = "Press any key to continue...") {
   Write-Host ""
   Write-Host $message -ForegroundColor Yellow
   if ($env:E2E_AUTOCONFIRM -eq '1') {
@@ -174,7 +174,7 @@ function Ensure-QReportDefaults {
     if (-not ($testsFailures -or $testsPassed)) { $testsNeedsFallback = $true }
   }
   if ($testsNeedsFallback) {
-    if ($strict) { throw "No se generó .qreport/tests.json válido (E2E_STRICT=1)"; }
+    if ($strict) { throw "Failed to generate valid .qreport/tests.json (E2E_STRICT=1)"; }
     $testsFallback = @{
       source = 'fallback'
       total = 10
@@ -195,7 +195,7 @@ function Ensure-QReportDefaults {
   $coverageData = TryReadJson $cPath
   $coverageNeedsFallback = $null -eq $coverageData -or (-not ((IsNumeric(Get-NestedValue $coverageData 'total.lines')) -or (IsNumeric($coverageData.lines)) -or (IsNumeric($coverageData.totalLines))))
   if ($coverageNeedsFallback) {
-    if ($strict) { throw "No se generó .qreport/coverage.json válido (E2E_STRICT=1)"; }
+    if ($strict) { throw "Failed to generate valid .qreport/coverage.json (E2E_STRICT=1)"; }
     $coverageFallback = @{
       source = 'fallback'
       total = @{ lines = 0.8 }
@@ -213,7 +213,7 @@ function Ensure-QReportDefaults {
   $lintData = TryReadJson $lPath
   $lintNeedsFallback = $null -eq $lintData -or (-not ((IsNumeric($lintData.errors)) -or (IsNumeric(Get-NestedValue $lintData 'summary.errors'))))
   if ($lintNeedsFallback) {
-    if ($strict) { throw "No se generó .qreport/lint.json válido (E2E_STRICT=1)"; }
+    if ($strict) { throw "Failed to generate valid .qreport/lint.json (E2E_STRICT=1)"; }
     $lintFallback = @{
       source = 'fallback'
       errors = 0
@@ -231,7 +231,7 @@ function Ensure-QReportDefaults {
   $complexityData = TryReadJson $xPath
   $complexityNeedsFallback = $null -eq $complexityData -or (-not ((IsNumeric($complexityData.maxCyclomatic)) -or (IsNumeric(Get-NestedValue $complexityData 'metrics.max'))))
   if ($complexityNeedsFallback) {
-    if ($strict) { throw "No se generó .qreport/complexity.json válido (E2E_STRICT=1)"; }
+    if ($strict) { throw "Failed to generate valid .qreport/complexity.json (E2E_STRICT=1)"; }
     $complexityFallback = @{
       source = 'fallback'
       maxCyclomatic = 5
@@ -246,7 +246,7 @@ function Ensure-QReportDefaults {
   }
 
   if ($changed) {
-    Write-Host "  -> Se rellenaron defaults en .qreport/* (porque el server te devolvió aire)." -ForegroundColor Yellow
+    Write-Host "  -> Populated .qreport/* with fallback defaults (server returned empty or invalid data)." -ForegroundColor Yellow
   }
 }
 
@@ -256,11 +256,11 @@ try {
   Write-Host $out1
 
   $json = Extract-Json $out1
-  if (-not $json) { throw "No pude extraer JSON del output de 01-create-task.ts" }
+  if (-not $json) { throw "Could not extract JSON from output of 01-create-task.ts" }
   $obj = $json | ConvertFrom-Json
 
   $TaskId = Get-FirstDefined $obj @('id','result.id','data.id','task.id','result.task.id')
-  if (-not $TaskId) { Write-Warning "No detecté el ID automáticamente."; $TaskId = Read-Host "Escribe el ID de la tarea manualmente" }
+  if (-not $TaskId) { Write-Warning "Could not detect task ID automatically."; $TaskId = Read-Host "Enter the task ID manually" }
 
   if (-not (Test-Path '.qreport')) { New-Item -ItemType Directory -Path .qreport -Force | Out-Null }
   "$TaskId" | Out-File .qreport/task.id -Encoding ascii
@@ -288,20 +288,20 @@ try {
   & pnpm tsx tooling/manual/03-advance-rest.ts $TaskId
   if ($LASTEXITCODE -ne 0) { throw "03-advance-rest.ts falló con código $LASTEXITCODE" }
 
-  Write-Host "`nTodo ok. Finalizado sin incendios." -ForegroundColor Green
+  Write-Host "`nAll done. Completed successfully." -ForegroundColor Green
 }
 catch [System.Net.WebException] {
   $resp = $_.Exception.Response
   if ($resp) {
     $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
     $body = $reader.ReadToEnd()
-    Write-Host "`nRespuesta del servidor:" -ForegroundColor Yellow
+    Write-Host "`nServer response:" -ForegroundColor Yellow
     Write-Host $body
   }
-  Write-Host "`nSe rompió algo: $($_.Exception.Message)" -ForegroundColor Red
+  Write-Host "`nSomething went wrong: $($_.Exception.Message)" -ForegroundColor Red
   exit 1
 }
 catch {
-  Write-Host "`nSe rompió algo: $($_.Exception.Message)" -ForegroundColor Red
+  Write-Host "`nSomething went wrong: $($_.Exception.Message)" -ForegroundColor Red
   exit 1
 }
