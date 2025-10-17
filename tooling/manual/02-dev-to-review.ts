@@ -57,6 +57,7 @@ let task = await ensureTask();
 
 const hasFastTrackEligibility = Array.isArray(task.tags) && task.tags.includes('fast-track:eligible');
 let fastTrackScore: number | undefined;
+let fastTrackEligible: boolean | undefined = hasFastTrackEligibility ? true : undefined;
 
 if (!hasFastTrackEligibility) {
   const fastTrackResponse = (await handleToolCall('fasttrack.evaluate', {
@@ -81,21 +82,27 @@ if (!hasFastTrackEligibility) {
     }
   })) as any;
   task = fastTrackResponse?.task ?? task;
-  fastTrackScore = fastTrackResponse?.result?.score;
+  fastTrackScore = pickNumber(fastTrackResponse?.result?.score) ?? fastTrackScore;
+  if (typeof fastTrackResponse?.result?.eligible === 'boolean') {
+    fastTrackEligible = fastTrackResponse.result.eligible;
+  }
 }
 
 if (task.status === 'po') {
-  task = (await handleToolCall('task.transition', {
+  const transitionInput: any = {
     id,
     to: 'dev',
-    if_rev: task.rev,
-    evidence: {
+    if_rev: task.rev
+  };
+  if (fastTrackEligible === true) {
+    transitionInput.evidence = {
       fast_track: {
         eligible: true,
         score: fastTrackScore ?? 100
       }
-    }
-  })) as any;
+    };
+  }
+  task = (await handleToolCall('task.transition', transitionInput)) as any;
 }
 
 const tests = await readJson('.qreport/tests.json').catch(() => null);

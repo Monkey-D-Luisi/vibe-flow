@@ -38,9 +38,15 @@ await transition('qa', {
   acceptance_criteria_met: true
 });
 
-const qaPassed = ensureNumber(testsReport?.passed, ensureNumber(testsReport?.total, 0));
+const reportedPassed = ensureNumber(testsReport?.passed, Number.NaN);
 const qaFailed = ensureNumber(testsReport?.failed, 0);
-const qaTotal = ensureNumber(testsReport?.total, qaPassed + qaFailed);
+const reportedTotal = ensureNumber(testsReport?.total, Number.NaN);
+
+const qaTotal = Number.isFinite(reportedTotal)
+  ? reportedTotal
+  : (Number.isFinite(reportedPassed) ? reportedPassed : 0) + qaFailed;
+const derivedPassed = Math.max(qaTotal - qaFailed, 0);
+const qaPassed = Number.isFinite(reportedPassed) ? reportedPassed : derivedPassed;
 
 const qaReport = {
   total: qaTotal,

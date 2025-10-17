@@ -21,6 +21,9 @@ app.setErrorHandler((error, request, reply) => {
   }
 
   const requestId = (reply.getHeader('X-Request-Id') as string | undefined) ?? String(request.headers['x-request-id'] ?? '');
+  if (requestId) {
+    reply.header('X-Request-Id', requestId);
+  }
 
   if ((error as any)?.validation) {
     reply.code(400).send({
