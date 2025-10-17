@@ -671,6 +671,8 @@ All artifacts are uploaded by the CI workflows (`qreport-tests`, `qreport-covera
        -d '{"tool":"quality.lint","input":{}}' \
        http://localhost:8080/mcp/tool | jq
   ```
+- The synchronous endpoint now returns the fully-populated report under `result` (same payload produced by the CLI/streaming endpoint) and validates the shape with Ajv before replying.
+- If the tool fails or emits an invalid payload the server responds with `422 RUNNER_ERROR`.
 - Streaming SSE:
   ```bash
   curl -N -H "Authorization: Bearer abc123" \

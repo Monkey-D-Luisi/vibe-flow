@@ -25,7 +25,7 @@ export const responseSchema = {
     ok: { type: 'boolean' },
     requestId: { type: 'string' },
     tool: { type: 'string', pattern: toolPattern },
-    result: { type: 'object' },
+    result: { type: 'object', additionalProperties: true },
     error: {
       type: 'object',
       additionalProperties: false,
