@@ -106,6 +106,24 @@ describe('POST /mcp/tool', () => {
     }
   });
 
+  it('rejects unknown tool names with 400 VALIDATION_ERROR', async () => {
+    const app = await buildServer();
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/mcp/tool',
+        payload: { tool: 'quality.unknown', input: {} } as any,
+        headers: { Authorization: 'Bearer test' }
+      });
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.payload);
+      expect(body.ok).toBe(false);
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+    } finally {
+      await app.close();
+    }
+  });
+
   it('returns schema-compliant payloads for all quality tools', async () => {
     const app = await buildServer();
     try {
@@ -246,6 +264,52 @@ describe('POST /mcp/tool', () => {
       expect(syncResponse.statusCode).toBe(200);
       const syncBody = JSON.parse(syncResponse.payload);
       expect(syncBody.result).toEqual(expected);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('emits error events with details and requestId when streaming validation fails', async () => {
+    mockInvokeTool.mockResolvedValueOnce({});
+    const app = await buildServer();
+    try {
+      const streamResponse = await app.inject({
+        method: 'POST',
+        url: '/mcp/tool/stream',
+        payload: { tool: 'quality.run_tests', input: {} },
+        headers: { Authorization: 'Bearer test' }
+      });
+
+      const events = streamResponse.payload
+        .trim()
+        .split('\n\n')
+        .map((block) => {
+          const lines = block.split('\n');
+          const eventLine = lines.find((line) => line.startsWith('event:'));
+          const dataLine = lines.find((line) => line.startsWith('data:'));
+          let parsedData: unknown;
+          if (dataLine) {
+            const raw = dataLine.slice('data:'.length);
+            try {
+              parsedData = JSON.parse(raw);
+            } catch {
+              parsedData = undefined;
+            }
+          }
+          return {
+            event: eventLine ? eventLine.slice('event:'.length).trim() : undefined,
+            data: parsedData
+          };
+        });
+
+      const startLog = events.find((entry) => entry.event === 'log' && entry.data?.msg === 'Tool execution started');
+      const errorEvent = events.find((entry) => entry.event === 'error');
+      expect(errorEvent?.data?.code).toBe('RUNNER_ERROR');
+      expect(Array.isArray(errorEvent?.data?.details)).toBe(true);
+      expect(errorEvent?.data?.details?.length).toBeGreaterThan(0);
+      const streamRequestId = errorEvent?.data?.requestId;
+      expect(typeof streamRequestId).toBe('string');
+      expect(startLog?.data?.requestId).toBe(streamRequestId);
     } finally {
       await app.close();
     }
