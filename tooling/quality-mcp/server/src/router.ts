@@ -8,6 +8,7 @@ import { rateLimiter } from './rateLimit.js';
 import { invokeTool } from './exec.js';
 import { sendSse } from './sse.js';
 import { invokeSchema, responseSchema } from './schemas.js';
+import { validateToolResult } from './resultValidators.js';
 import { inflightGauge, latencyHistogram, requestsTotal, toolFailures, registry } from './metrics.js';
 
 const limiter = pLimit(config.maxConcurrency > 0 ? config.maxConcurrency : 1);
@@ -60,7 +61,9 @@ function mapError(error: unknown): { code: string; message: string; statusCode: 
     case 'NOT_FOUND':
       return { code, message, statusCode: 404 };
     case 'RUNNER_ERROR':
+      return { code, message, statusCode: 422 };
     case 'PARSE_ERROR':
+      return { code, message, statusCode: 500 };
     default:
       return { code, message, statusCode: 500 };
   }
@@ -111,6 +114,7 @@ async function handleInvocation(request: FastifyRequest<{ Body: ToolBody }>, rep
         timeoutMs: request.body.timeoutMs
       })
     );
+    validateToolResult(request.body.tool as any, limited);
 
     const resultPayload = successResponse(requestId, request.body.tool, limited);
     const latency = currentTime() - start;
