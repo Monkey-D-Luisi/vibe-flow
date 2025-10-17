@@ -1,0 +1,20 @@
+{
+  "defaultBase": "main",
+  "project": { "id": "PVT_xxx", "statusField": "Status" },
+  "labels": {
+    "fastTrack": "fast-track",
+    "fastTrackEligible": "fast-track:eligible",
+    "fastTrackIncompatible": "fast-track:incompatible",
+    "fastTrackRevoked": "fast-track:revoked",
+    "qualityFailed": "quality_gate_failed",
+    "inReview": "in-review",
+    "readyForQa": "ready-for-qa",
+    "areaGithub": "area_github",
+    "agentPrBot": "agent_pr-bot",
+    "task": "task"
+  },
+  "assignees": ["monkey-d-luisi"],
+  "reviewers": ["team/devs"],
+  "gateCheckName": "quality-gate"
+}
+

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ulid } from 'ulid';
 
 vi.mock('../../../tooling/quality-mcp/src/tools/gate_enforce.js', () => ({
@@ -12,7 +12,7 @@ import { type TaskRecord } from '../src/domain/TaskRecord.js';
 
 const { runAgent, runOrchestratorStep, __test__: runnerInternals } = runnerModule;
 
-const { repo, stateRepo, fastTrackGitHub } = runnerInternals;
+const { repo, stateRepo, fastTrackGitHub, githubService, prBotAgent } = runnerInternals;
 const gateEnforceMock = vi.mocked(gateEnforce);
 
 const makeGateMetrics = () => ({
@@ -22,6 +22,10 @@ const makeGateMetrics = () => ({
   complexity: { avgCyclomatic: 3.2, maxCyclomatic: 7.1 }
 });
 
+let prbotSpy: ReturnType<typeof vi.spyOn>;
+let addLabelsServiceSpy: ReturnType<typeof vi.spyOn>;
+let commentServiceSpy: ReturnType<typeof vi.spyOn>;
+
 beforeEach(() => {
   gateEnforceMock.mockReset();
   gateEnforceMock.mockResolvedValue({
@@ -29,9 +33,26 @@ beforeEach(() => {
     metrics: makeGateMetrics(),
     violations: []
   });
+
+  prbotSpy = vi.spyOn(prBotAgent, 'run').mockResolvedValue({
+    branch: 'feature/mock-branch',
+    pr_url: 'https://example.com/pull/1',
+    checklist: ['mock checklist']
+  });
+  addLabelsServiceSpy = vi.spyOn(githubService, 'addLabels').mockResolvedValue({ applied: [] });
+  commentServiceSpy = vi.spyOn(githubService, 'comment').mockResolvedValue({ id: 1, url: 'comment' });
+});
+
+afterEach(() => {
+  prbotSpy.mockRestore();
+  addLabelsServiceSpy.mockRestore();
+  commentServiceSpy.mockRestore();
 });
 
 const createTask = (overrides: Partial<TaskRecord> & { id?: string } = {}) => {
+  const links = overrides.links ? { ...overrides.links } : {};
+  links.github = { owner: 'acme', repo: 'project', ...(overrides.links?.github ?? {}) };
+
   const task = repo.create({
     id: overrides.id ?? `TR-${ulid()}`,
     title: overrides.title ?? 'Test Task',
@@ -41,7 +62,7 @@ const createTask = (overrides: Partial<TaskRecord> & { id?: string } = {}) => {
     tags: overrides.tags ?? [],
     metrics: overrides.metrics,
     qa_report: overrides.qa_report,
-    links: overrides.links ?? {},
+    links,
     description: overrides.description
   });
   return task;

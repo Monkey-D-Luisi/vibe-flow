@@ -112,7 +112,6 @@ function mapPrBotOutput(output: PrBotOutput): Partial<TaskRecord> {
     branch: output.branch,
     links: {
       git: {
-        repo: '',
         branch: output.branch,
         prNumber: extractPrNumber(output.pr_url)
       }

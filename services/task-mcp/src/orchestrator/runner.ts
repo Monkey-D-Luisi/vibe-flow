@@ -2,12 +2,16 @@ import Ajv from 'ajv';
 import { AgentType } from './router';
 import { TaskRepository } from '../repo/repository.js';
 import { StateRepository, EventRepository, LeaseRepository } from '../repo/state';
+import { GithubRequestRepository } from '../repo/githubRequests.js';
 import { TaskRecord, TaskRecordValidator, type TransitionEvidence } from '../domain/TaskRecord';
 import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/FastTrack';
 import { FastTrackGitHub } from '../domain/FastTrackGitHub';
 import { mapAgentOutput } from './mappers.js';
 import { mergeTaskWithPatch } from './patch.js';
 import { gateEnforce } from '../../../../tooling/quality-mcp/src/tools/gate_enforce.js';
+import { createGithubService } from '../github/service.js';
+import { loadGithubPrBotConfig } from '../github/config.js';
+import { PrBotAgent } from '../agents/prbot.js';
 
 const ajv = new Ajv({ allErrors: true, strict: false });
 
@@ -17,28 +21,18 @@ const stateRepo = new StateRepository(repo.database);
 const eventRepo = new EventRepository(repo.database);
 const leaseRepo = new LeaseRepository(repo.database);
 
-// Mock GitHub functions for fast-track automation
-const mockGitHub = {
-  openPR: async (args: any) => {
-    console.log('Mock GitHub: Opening PR', args);
-    return { number: Math.floor(Math.random() * 1000) + 1, ...args };
-  },
-  addLabels: async (args: any) => {
-    console.log('Mock GitHub: Adding labels', args);
-    return { added: true };
-  },
-  comment: async (args: any) => {
-    console.log('Mock GitHub: Adding comment', args);
-    return { commented: true };
-  }
-};
+const githubRequests = new GithubRequestRepository(repo.database);
+const githubConfig = loadGithubPrBotConfig();
+const githubService = createGithubService({ requests: githubRequests, config: githubConfig });
+const prBotAgent = new PrBotAgent(githubService, githubConfig);
 
 // Initialize FastTrack GitHub automation
-const fastTrackGitHub = new FastTrackGitHub(
-  mockGitHub.openPR,
-  mockGitHub.addLabels,
-  mockGitHub.comment
-);
+const fastTrackGitHub = new FastTrackGitHub(githubService, {
+  fastTrack: githubConfig.labels.fastTrack,
+  eligible: githubConfig.labels.fastTrackEligible,
+  incompatible: githubConfig.labels.fastTrackIncompatible,
+  revoked: githubConfig.labels.fastTrackRevoked
+});
 
 const QUALITY_GATE_TRANSITIONS = new Set<string>([
   'dev->review',
@@ -373,7 +367,7 @@ export async function runOrchestratorStep(
     await handleFastTrackEvaluation(taskId, task, state, agentType, fastTrackContext);
 
     // Run the agent
-    const output = await runAgent(agentType, input);
+    const output = agentType === 'prbot' ? await prBotAgent.run(task) : await runAgent(agentType, input);
 
     // Validate output
     const validatedOutput = validateAgentOutput(agentType, output);
@@ -381,6 +375,18 @@ export async function runOrchestratorStep(
     const nextState = determineNextState(state.current, task);
     const agentPatch = mapAgentOutput(agentType, validatedOutput);
     const patch: Partial<TaskRecord> = { ...agentPatch };
+    if (agentType === 'prbot') {
+      const repoLink = task.links?.github;
+      if (repoLink?.repo) {
+        patch.links = {
+          ...(patch.links ?? {}),
+          git: {
+            ...(patch.links?.git ?? {}),
+            repo: repoLink.repo
+          }
+        };
+      }
+    }
     if (nextState && task.status !== nextState) {
       patch.status = nextState as TaskRecord['status'];
     }
@@ -657,6 +663,8 @@ export const __test__ = {
   stateRepo,
   eventRepo,
   leaseRepo,
+  githubService,
+  prBotAgent,
   fastTrackGitHub,
   setAgentRunner: setAgentRunnerOverride,
   resetAgentRunner: () => setAgentRunnerOverride(),

@@ -1,85 +1,78 @@
 import { FastTrackResult, PostDevGuardResult } from './FastTrack.js';
 import { TaskRecord } from './TaskRecord.js';
-import { buildEvaluationComment, buildRevocationComment, buildPullRequestBody } from './fastTrackCommentBuilders.js';
+import { buildEvaluationComment, buildRevocationComment } from './fastTrackCommentBuilders.js';
+import { GithubService } from '../github/service.js';
 
-type PullRequestParams = {
-  title: string;
-  head: string;
-  base: string;
-  body: string;
-  draft: boolean;
-  labels: string[];
+export type FastTrackLabels = {
+  fastTrack: string;
+  eligible: string;
+  incompatible: string;
+  revoked: string;
 };
 
-type LabelParams = {
-  number: number;
-  labels: string[];
-  type?: 'issue' | 'pr';
-};
-
-type CommentParams = {
-  number: number;
-  body: string;
-  type?: 'issue' | 'pr';
-};
-
-type OpenPullRequestFn = (args: PullRequestParams) => Promise<{ number: number }>;
-type AddLabelsFn = (args: LabelParams) => Promise<void>;
-type CommentFn = (args: CommentParams) => Promise<void>;
-
-const LABEL_FAST_TRACK = 'fast-track';
-const LABEL_ELIGIBLE = 'fast-track:eligible';
-const LABEL_BLOCKED = 'fast-track:blocked';
-const LABEL_REVOKED = 'fast-track:revoked';
+function resolveRepo(task: TaskRecord): { owner: string; repo: string } | null {
+  const githubLink = task.links?.github;
+  if (!githubLink?.owner || !githubLink?.repo) {
+    return null;
+  }
+  return { owner: githubLink.owner, repo: githubLink.repo };
+}
 
 export class FastTrackGitHub {
-  constructor(
-    private readonly openPR: OpenPullRequestFn,
-    private readonly addLabels: AddLabelsFn,
-    private readonly comment: CommentFn
-  ) {}
+  constructor(private readonly github: GithubService, private readonly labels: FastTrackLabels) {}
 
   async onFastTrackEvaluated(task: TaskRecord, result: FastTrackResult, prNumber?: number): Promise<void> {
     if (!prNumber) return;
+    const repo = resolveRepo(task);
+    if (!repo) return;
 
-    const labels = this.getLabelsForEvaluation(result);
-    if (labels.length > 0) {
-      await this.addLabels({ number: prNumber, labels, type: 'pr' });
+    const requestBase = `fasttrack:${task.id}:evaluated:${prNumber}`;
+    const labelSet = this.getLabelsForEvaluation(result);
+    if (labelSet.length > 0) {
+      await this.github.addLabels({
+        owner: repo.owner,
+        repo: repo.repo,
+        issueNumber: prNumber,
+        labels: labelSet,
+        requestId: `${requestBase}:labels`
+      });
     }
 
-    await this.comment({
-      number: prNumber,
+    await this.github.comment({
+      owner: repo.owner,
+      repo: repo.repo,
+      issueNumber: prNumber,
       body: buildEvaluationComment(task, result),
-      type: 'pr'
+      requestId: `${requestBase}:comment`
     });
   }
 
   async onFastTrackRevoked(task: TaskRecord, guardResult: PostDevGuardResult, prNumber?: number): Promise<void> {
     if (!prNumber || !guardResult.revoke) return;
+    const repo = resolveRepo(task);
+    if (!repo) return;
 
-    await this.addLabels({ number: prNumber, labels: [LABEL_FAST_TRACK, LABEL_REVOKED], type: 'pr' });
-
-    await this.comment({
-      number: prNumber,
-      body: buildRevocationComment(task, guardResult),
-      type: 'pr'
+    const requestBase = `fasttrack:${task.id}:revoked:${prNumber}`;
+    await this.github.addLabels({
+      owner: repo.owner,
+      repo: repo.repo,
+      issueNumber: prNumber,
+      labels: [this.labels.fastTrack, this.labels.revoked],
+      requestId: `${requestBase}:labels`
     });
-  }
 
-  async createFastTrackPR(task: TaskRecord, result: FastTrackResult, branchName: string, base = 'main'): Promise<{ number: number }> {
-    return this.openPR({
-      title: `${task.title} [FAST-TRACK]`,
-      head: branchName,
-      base,
-      body: buildPullRequestBody(task, result),
-      draft: result.eligible,
-      labels: this.getLabelsForEvaluation(result)
+    await this.github.comment({
+      owner: repo.owner,
+      repo: repo.repo,
+      issueNumber: prNumber,
+      body: buildRevocationComment(task, guardResult),
+      requestId: `${requestBase}:comment`
     });
   }
 
   private getLabelsForEvaluation(result: FastTrackResult): string[] {
     return result.eligible
-      ? [LABEL_FAST_TRACK, LABEL_ELIGIBLE]
-      : [LABEL_FAST_TRACK, LABEL_BLOCKED];
+      ? [this.labels.fastTrack, this.labels.eligible]
+      : [this.labels.fastTrack, this.labels.incompatible];
   }
 }

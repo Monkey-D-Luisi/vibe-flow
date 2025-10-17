@@ -14,6 +14,7 @@ const transitionValidator = toolValidators['task.transition'];
 
 const resetRepositories = () => {
   repo.database.exec(`
+    DELETE FROM github_requests;
     DELETE FROM event_log;
     DELETE FROM leases;
     DELETE FROM orchestrator_state;

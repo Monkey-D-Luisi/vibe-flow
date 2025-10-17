@@ -1,130 +1,176 @@
-import { describe, it, expect } from 'vitest';
-import { validatePrBotInput, validatePrSummary, PR_BOT_SYSTEM_PROMPT } from '../src/agents/prbot.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PrBotAgent, validatePrSummary } from '../src/agents/prbot.js';
+import type { GithubService } from '../src/github/service.js';
+import type { GithubPrBotConfig } from '../src/github/config.js';
+import type { TaskRecord } from '../src/domain/TaskRecord.js';
 
-describe('PR Bot Agent', () => {
-  describe('validatePrBotInput', () => {
-    it('should validate valid PR bot input', () => {
-      const validInput = {
-        total: 25,
-        passed: 23,
-        failed: 2,
-        evidence: [
-          'Unit tests: 20/20 passed',
-          'Contract tests: 3/5 failed - API timeout'
-        ]
-      };
+const config: GithubPrBotConfig = {
+  defaultBase: 'main',
+  project: { id: 'PVT_test', statusField: 'Status' },
+  labels: {
+    fastTrack: 'fast-track',
+    fastTrackEligible: 'fast-track:eligible',
+    fastTrackIncompatible: 'fast-track:incompatible',
+    fastTrackRevoked: 'fast-track:revoked',
+    qualityFailed: 'quality_gate_failed',
+    inReview: 'in-review',
+    readyForQa: 'ready-for-qa',
+    areaGithub: 'area_github',
+    agentPrBot: 'agent_pr-bot',
+    task: 'task'
+  },
+  assignees: ['monkey-d-luisi'],
+  reviewers: ['team/devs'],
+  gateCheckName: 'quality-gate'
+};
 
-      expect(() => validatePrBotInput(validInput)).not.toThrow();
-      const result = validatePrBotInput(validInput);
-      expect(result.total).toBe(25);
-      expect(result.passed).toBe(23);
-      expect(result.failed).toBe(2);
-    });
+const baseTask: TaskRecord = {
+  id: 'TR-TEST12345678901234567890',
+  title: 'Implement login flow',
+  description: 'Implement the login flow with MFA support',
+  acceptance_criteria: ['Users can login with email/password', 'Users receive MFA challenge'],
+  scope: 'minor',
+  status: 'pr',
+  rev: 1,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  tags: ['fast-track', 'fast-track:eligible'],
+  metrics: {
+    coverage: 0.82,
+    lint: { errors: 0, warnings: 1 }
+  },
+  qa_report: { total: 12, passed: 12, failed: 0 },
+  red_green_refactor_log: ['red: failing test', 'green: implementation', 'refactor: cleanup'],
+  links: {
+    github: { owner: 'acme', repo: 'project', issueNumber: 7 }
+  }
+};
 
-    it('should validate input with all tests passed', () => {
-      const validInput = {
-        total: 10,
-        passed: 10,
-        failed: 0,
-        evidence: ['All tests passed successfully']
-      };
+function cloneTask(overrides: Partial<TaskRecord> = {}): TaskRecord {
+  return {
+    ...baseTask,
+    ...overrides,
+    acceptance_criteria: overrides.acceptance_criteria ?? [...baseTask.acceptance_criteria],
+    tags: overrides.tags ?? [...(baseTask.tags ?? [])],
+    metrics: overrides.metrics ? { ...overrides.metrics } : { ...(baseTask.metrics ?? {}) },
+    qa_report: overrides.qa_report ? { ...overrides.qa_report } : baseTask.qa_report ? { ...baseTask.qa_report } : undefined,
+    red_green_refactor_log: overrides.red_green_refactor_log
+      ? [...overrides.red_green_refactor_log]
+      : [...(baseTask.red_green_refactor_log ?? [])],
+    links: {
+      ...(baseTask.links ?? {}),
+      ...(overrides.links ?? {}),
+      github: overrides.links?.github ? { ...(baseTask.links?.github ?? {}), ...overrides.links.github } : baseTask.links?.github
+    }
+  };
+}
 
-      expect(() => validatePrBotInput(validInput)).not.toThrow();
-    });
+describe('PrBotAgent', () => {
+  let createBranchSpy: ReturnType<typeof vi.fn>;
+  let openPrSpy: ReturnType<typeof vi.fn>;
+  let addLabelsSpy: ReturnType<typeof vi.fn>;
+  let removeLabelSpy: ReturnType<typeof vi.fn>;
+  let requestReviewersSpy: ReturnType<typeof vi.fn>;
+  let setProjectStatusSpy: ReturnType<typeof vi.fn>;
+  let markReadySpy: ReturnType<typeof vi.fn>;
+  let commentSpy: ReturnType<typeof vi.fn>;
+  let agent: PrBotAgent;
 
-    it('should reject input missing required fields', () => {
-      const invalidInput = {
-        total: 10,
-        passed: 8,
-        failed: 2
-        // missing evidence
-      };
+  beforeEach(() => {
+    createBranchSpy = vi.fn(async () => ({ url: 'branch-url', commit: 'sha', created: true }));
+    openPrSpy = vi.fn(async () => ({ number: 123, url: 'https://github.com/acme/project/pull/123', draft: true }));
+    addLabelsSpy = vi.fn(async () => ({ applied: [] }));
+    removeLabelSpy = vi.fn(async () => ({ removed: true }));
+    requestReviewersSpy = vi.fn(async () => ({ requested: [] }));
+    setProjectStatusSpy = vi.fn(async () => ({ ok: true }));
+    markReadySpy = vi.fn(async () => ({ draft: false, updated: true }));
+    commentSpy = vi.fn(async () => ({ id: 99, url: 'https://example.com/comment' }));
 
-      expect(() => validatePrBotInput(invalidInput)).toThrow('PR bot input validation failed');
-    });
+    const github = {
+      createBranch: createBranchSpy,
+      openPullRequest: openPrSpy,
+      addLabels: addLabelsSpy,
+      removeLabel: removeLabelSpy,
+      requestReviewers: requestReviewersSpy,
+      setProjectStatus: setProjectStatusSpy,
+      markReadyForReview: markReadySpy,
+      comment: commentSpy
+    } as unknown as GithubService;
 
-    it('should reject negative test counts', () => {
-      const invalidInput = {
-        total: 10,
-        passed: -1, // should be >= 0
-        failed: 2,
-        evidence: ['Test evidence']
-      };
-
-      expect(() => validatePrBotInput(invalidInput)).toThrow('PR bot input validation failed');
-    });
+    agent = new PrBotAgent(github, config);
   });
 
-  describe('validatePrSummary', () => {
-    it('should validate valid PR summary output', () => {
-      const validOutput = {
-        branch: 'feature/user-login',
-        pr_url: 'https://github.com/org/repo/pull/123',
-        checklist: [
-          '- ACs fulfilled',
-          '- RGR log: red->green->refactor',
-          '- Coverage >= 80%',
-          '- Lint 0 errors'
-        ]
-      };
+  it('creates branch, opens PR, and synchronizes labels/project/reviewers', async () => {
+    const task = cloneTask();
 
-      expect(() => validatePrSummary(validOutput)).not.toThrow();
-      const result = validatePrSummary(validOutput);
-      expect(result.branch).toBe('feature/user-login');
-      expect(result.pr_url).toBe('https://github.com/org/repo/pull/123');
-    });
+    const summary = await agent.run(task);
 
-    it('should reject output missing required fields', () => {
-      const invalidOutput = {
-        branch: 'feature/test'
-        // missing pr_url, checklist
-      };
+    expect(summary.branch).toMatch(/^feature\/tr-test/);
+    expect(summary.pr_url).toBe('https://github.com/acme/project/pull/123');
+    expect(summary.checklist.length).toBeGreaterThan(0);
+    expect(() => validatePrSummary(summary)).not.toThrow();
 
-      expect(() => validatePrSummary(invalidOutput)).toThrow('PR summary validation failed');
-    });
+    expect(createBranchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ owner: 'acme', repo: 'project', base: 'main', name: summary.branch })
+    );
 
-    it('should reject invalid branch format', () => {
-      const invalidOutput = {
-        branch: 'invalid-branch-name', // should match feature/[a-z0-9._-]+
-        pr_url: 'https://github.com/org/repo/pull/123',
-        checklist: ['- Test']
-      };
+    expect(openPrSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner: 'acme',
+        repo: 'project',
+        head: summary.branch,
+        base: 'main',
+        draft: true,
+        assignees: ['monkey-d-luisi'],
+        labels: expect.arrayContaining(['fast-track', 'fast-track:eligible', 'area_github'])
+      })
+    );
 
-      expect(() => validatePrSummary(invalidOutput)).toThrow('PR summary validation failed');
-    });
+    expect(addLabelsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner: 'acme',
+        repo: 'project',
+        issueNumber: 123,
+        labels: expect.arrayContaining(['fast-track', 'fast-track:eligible', 'in-review'])
+      })
+    );
 
-    it('should reject invalid PR URL format', () => {
-      const invalidOutput = {
-        branch: 'feature/test',
-        pr_url: 123, // should be string, not number
-        checklist: ['- Test']
-      };
+    const removedLabels = removeLabelSpy.mock.calls.map((call) => call[0].label);
+    expect(removedLabels).toEqual(
+      expect.arrayContaining(['fast-track:incompatible', 'fast-track:revoked', 'quality_gate_failed', 'ready-for-qa'])
+    );
 
-      expect(() => validatePrSummary(invalidOutput)).toThrow('PR summary validation failed');
-    });
+    expect(requestReviewersSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner: 'acme',
+        repo: 'project',
+        pullNumber: 123,
+        reviewers: [],
+        teamReviewers: ['devs']
+      })
+    );
+
+    expect(setProjectStatusSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner: 'acme',
+        repo: 'project',
+        issueNumber: 123,
+        project: expect.objectContaining({ value: 'In Review' })
+      })
+    );
+
+    expect(markReadySpy).toHaveBeenCalledWith(
+      expect.objectContaining({ owner: 'acme', repo: 'project', pullNumber: 123 })
+    );
+
+    expect(commentSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ owner: 'acme', repo: 'project', issueNumber: 123 })
+    );
   });
 
-  describe('PR_BOT_SYSTEM_PROMPT', () => {
-    it('should contain required instructions', () => {
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('You are PR-BOT');
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('MANDATORY OUTPUT');
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('pr_summary.schema.json');
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('feature/[task-id] branch');
-    });
-
-    it('should include commit gating conditions', () => {
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('Commit only if tests pass (coverage >= 0.8 major / >= 0.7 minor, lint.errors = 0)');
-    });
-
-    it('should include checklist requirements', () => {
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('ACs, RGR log, coverage, lint, ADR, QA report');
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('Automatically link the related issue');
-    });
-
-    it('should include example output', () => {
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('Example output:');
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('"branch": "feature/user-login"');
-      expect(PR_BOT_SYSTEM_PROMPT).toContain('"pr_url": "https://github.com/org/repo/pull/123"');
-    });
+  it('skips ready-for-review when quality gate failed', async () => {
+    const task = cloneTask({ tags: ['quality_gate_failed'], status: 'review' });
+    await agent.run(task);
+    expect(markReadySpy).not.toHaveBeenCalled();
   });
 });
