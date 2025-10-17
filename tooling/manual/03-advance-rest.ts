@@ -29,7 +29,7 @@ const transition = async (to: string, evidence: Record<string, unknown> = {}) =>
     if_rev: nextRev(),
     evidence
   })) as any;
-  console.log(`${to} ok`);
+  console.log(`${to} ✓`);
 };
 
 await transition('po_check', { violations: [] });

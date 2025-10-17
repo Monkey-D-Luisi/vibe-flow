@@ -13,9 +13,10 @@
       "warnings": 72
     },
     "complexity": {
-      "avgCyclomatic": 2.6208530805687205,
+      "avgCyclomatic": 2.6226415094339623,
       "maxCyclomatic": 12
     }
   },
-  "violations": []
+  "violations": [],
+  "source": "server"
 }
