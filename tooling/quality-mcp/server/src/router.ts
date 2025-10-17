@@ -77,8 +77,7 @@ function mapError(error: unknown): { code: string; message: string; statusCode: 
 
 async function handleInvocation(request: FastifyRequest<{ Body: ToolBody }>, reply: FastifyReply, stream = false) {
   const start = currentTime();
-  const requestId = request.body.requestId || ulid();
-  reply.header('X-Request-Id', requestId);
+  const requestId = (request as any).reqId as string;
   let auth;
   try {
     auth = requireAuth(request, 'run');
@@ -180,14 +179,19 @@ export async function registerRoutes(app: FastifyInstance) {
           return;
         }
         cb(new Error('Invalid origin'), false);
-      }
+      },
+      exposedHeaders: ['X-Request-Id']
     });
   }
 
   await app.register(fastifySSEPlugin as any);
 
   app.addHook('preHandler', async (request, reply) => {
-    reply.header('X-Request-Id', request.headers['x-request-id'] ?? ulid());
+    const headerId = request.headers['x-request-id'] as string | undefined;
+    const bodyId = (request as any).body?.requestId as string | undefined;
+    const reqId = headerId ?? bodyId ?? ulid();
+    reply.header('X-Request-Id', reqId);
+    (request as any).reqId = reqId;
   });
 
   app.post<{ Body: ToolBody }>(
