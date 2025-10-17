@@ -1,19 +1,14 @@
 import { stdin, stdout, stderr, exit, cwd } from 'node:process';
 import { resolve, dirname, join } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
-
-type ToolName =
-  | 'quality.run_tests'
-  | 'quality.coverage_report'
-  | 'quality.lint'
-  | 'quality.complexity';
+import type { ToolName } from './toolNames.js';
 
 type ToolHandler = (input: unknown) => Promise<unknown>;
 
-function resolveToolModule(tool: string): string {
+function resolveToolModule(tool: ToolName): string {
   // Resolve from current working directory (which should be workspace root when server starts)
   const toolsDir = resolve(cwd(), 'tooling/quality-mcp/src/tools');
-  const map: Record<string, string> = {
+  const map: Record<ToolName, string> = {
     'quality.run_tests': join(toolsDir, 'run_tests.ts'),
     'quality.coverage_report': join(toolsDir, 'coverage_report.ts'),
     'quality.lint': join(toolsDir, 'lint.ts'),

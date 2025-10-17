@@ -7,14 +7,15 @@ import { requireAuth } from './auth.js';
 import { rateLimiter } from './rateLimit.js';
 import { invokeTool } from './exec.js';
 import { sendSse } from './sse.js';
-import { invokeSchema, responseSchema } from './schemas.js';
+import { invokeSchema, responseSchema, errorSchema } from './schemas.js';
 import { validateToolResult } from './resultValidators.js';
 import { inflightGauge, latencyHistogram, requestsTotal, toolFailures, registry } from './metrics.js';
+import type { ToolName } from './toolNames.js';
 
 const limiter = pLimit(config.maxConcurrency > 0 ? config.maxConcurrency : 1);
 
 interface ToolBody {
-  tool: string;
+  tool: ToolName;
   input: unknown;
   requestId?: string;
   timeoutMs?: number;
@@ -24,10 +25,14 @@ function currentTime(): number {
   return Date.now();
 }
 
-function errorResponse(requestId: string, code: string, message: string) {
+function errorResponse(requestId: string, code: string, message: string, details?: unknown) {
+  const errorPayload: Record<string, unknown> = { code, message };
+  if (details !== undefined) {
+    errorPayload.details = details;
+  }
   return {
     ok: false,
-    error: { code, message },
+    error: errorPayload,
     requestId
   };
 }
@@ -114,7 +119,7 @@ async function handleInvocation(request: FastifyRequest<{ Body: ToolBody }>, rep
         timeoutMs: request.body.timeoutMs
       })
     );
-    validateToolResult(request.body.tool as any, limited);
+    validateToolResult(request.body.tool, limited);
 
     const resultPayload = successResponse(requestId, request.body.tool, limited);
     const latency = currentTime() - start;
@@ -126,7 +131,7 @@ async function handleInvocation(request: FastifyRequest<{ Body: ToolBody }>, rep
     );
 
     if (stream) {
-      sendSse(reply, { event: 'log', data: { level: 'info', msg: 'Tool execution completed' } });
+      sendSse(reply, { event: 'log', data: { level: 'info', msg: 'Tool execution completed', requestId } });
       sendSse(reply, { event: 'result', data: { result: limited, requestId } });
       reply.sseContext.source.end();
       return;
@@ -135,6 +140,7 @@ async function handleInvocation(request: FastifyRequest<{ Body: ToolBody }>, rep
     reply.code(200).send(resultPayload);
   } catch (error) {
     const mapped = mapError(error);
+    const details = (error as any)?.details;
     toolFailures.inc({ tool: request.body.tool, code: mapped.code });
     requestsTotal.inc({ tool: request.body.tool, status: mapped.code.toLowerCase() });
     const latency = currentTime() - start;
@@ -145,15 +151,19 @@ async function handleInvocation(request: FastifyRequest<{ Body: ToolBody }>, rep
     );
 
     if (stream) {
+      const errorData: Record<string, unknown> = { code: mapped.code, message: mapped.message, requestId };
+      if (details !== undefined) {
+        errorData.details = details;
+      }
       sendSse(reply, {
         event: 'error',
-        data: { code: mapped.code, message: mapped.message, requestId }
+        data: errorData
       });
       reply.sseContext.source.end();
       return;
     }
 
-    reply.code(mapped.statusCode).send(errorResponse(requestId, mapped.code, mapped.message));
+    reply.code(mapped.statusCode).send(errorResponse(requestId, mapped.code, mapped.message, details));
   } finally {
     inflightGauge.dec();
   }
@@ -181,7 +191,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
   app.post<{ Body: ToolBody }>(
     '/mcp/tool',
-    { schema: { ...invokeSchema, response: { 200: responseSchema } } },
+    { schema: { ...invokeSchema, response: { 200: responseSchema, '4xx': errorSchema, '5xx': errorSchema } } },
     async (request, reply) => {
     await handleInvocation(request, reply, false);
     }
