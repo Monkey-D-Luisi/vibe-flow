@@ -57,8 +57,9 @@ function mapError(error: unknown): { code: string; message: string; statusCode: 
     case 'UNAUTHORIZED':
       return { code, message, statusCode: 401 };
     case 'FORBIDDEN':
-    case 'RATE_LIMIT':
       return { code, message, statusCode: 403 };
+    case 'RATE_LIMIT':
+      return { code, message, statusCode: 429 };
     case 'VALIDATION_ERROR':
       return { code, message, statusCode: 400 };
     case 'TIMEOUT':

@@ -671,6 +671,24 @@ All artifacts are uploaded by the CI workflows (`qreport-tests`, `qreport-covera
        -d '{"tool":"quality.lint","input":{}}' \
        http://localhost:8080/mcp/tool | jq
   ```
+- Example `result` payloads per tool:
+  ```bash
+  curl -s -H "Authorization: Bearer abc123" -H "Content-Type: application/json" \
+       -d '{"tool":"quality.run_tests","input":{}}' \
+       http://localhost:8080/mcp/tool | jq
+
+  curl -s -H "Authorization: Bearer abc123" -H "Content-Type: application/json" \
+       -d '{"tool":"quality.coverage_report","input":{}}' \
+       http://localhost:8080/mcp/tool | jq
+
+  curl -s -H "Authorization: Bearer abc123" -H "Content-Type: application/json" \
+       -d '{"tool":"quality.lint","input":{}}' \
+       http://localhost:8080/mcp/tool | jq
+
+  curl -s -H "Authorization: Bearer abc123" -H "Content-Type: application/json" \
+       -d '{"tool":"quality.complexity","input":{}}' \
+       http://localhost:8080/mcp/tool | jq
+  ```
 - The synchronous endpoint now returns the fully-populated report under `result` (same payload produced by the CLI/streaming endpoint) and validates the shape with Ajv before replying.
 - If the tool fails or emits an invalid payload the server responds with `422 RUNNER_ERROR`.
 - Streaming SSE:
@@ -681,6 +699,7 @@ All artifacts are uploaded by the CI workflows (`qreport-tests`, `qreport-covera
        http://localhost:8080/mcp/tool/stream
   ```
 - Observability endpoints: `/healthz` for liveness, `/metrics` (Prometheus format) for counters/histograms.
+- The manual harness accepts `E2E_STRICT=1` to require every `.qreport/*.json` to carry `source: "server"` (no fallbacks); run it alongside the HTTP server to verify the full quality workflow end to end.
 
 If the Project Sync workflow targets a **private** user project, provide a classic PAT with the `project` (and `repo`) scopes and store it as the `PROJECT_SYNC_TOKEN` repository secret; the default `GITHUB_TOKEN` already exists automatically and works for organisation-owned boards.
 For the full specification and acceptance criteria see [`docs/ep_02_t_02_quality.md`](docs/ep_02_t_02_quality.md).
