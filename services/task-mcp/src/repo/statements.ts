@@ -54,6 +54,16 @@ export const MIGRATION_SQL = `
   CREATE INDEX IF NOT EXISTS idx_event_task ON event_log(task_id);
   CREATE INDEX IF NOT EXISTS idx_event_created ON event_log(created_at);
 
+  -- GitHub tool idempotency
+  CREATE TABLE IF NOT EXISTS github_requests (
+    request_id TEXT PRIMARY KEY,
+    tool TEXT NOT NULL,
+    payload_hash TEXT NOT NULL,
+    response_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_github_requests_tool ON github_requests(tool);
+
   -- Leases for exclusion
   CREATE TABLE IF NOT EXISTS leases (
     task_id TEXT PRIMARY KEY REFERENCES task_records(id) ON DELETE CASCADE,

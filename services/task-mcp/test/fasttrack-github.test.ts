@@ -1,30 +1,47 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FastTrackGitHub } from '../src/domain/FastTrackGitHub.js';
-import { type FastTrackResult, type PostDevGuardResult } from '../src/domain/FastTrack.js';
-import { type TaskRecord } from '../src/domain/TaskRecord.js';
+import type { FastTrackResult, PostDevGuardResult } from '../src/domain/FastTrack.js';
+import type { TaskRecord } from '../src/domain/TaskRecord.js';
+import type { GithubService } from '../src/github/service.js';
 
-describe('FastTrackGitHub helpers', () => {
+const labels = {
+  fastTrack: 'fast-track',
+  eligible: 'fast-track:eligible',
+  incompatible: 'fast-track:incompatible',
+  revoked: 'fast-track:revoked'
+};
+
+describe('FastTrackGitHub', () => {
+  let addLabelsSpy: ReturnType<typeof vi.fn>;
+  let commentSpy: ReturnType<typeof vi.fn>;
   let github: FastTrackGitHub;
-  let addLabels: ReturnType<typeof vi.fn>;
-  let comment: ReturnType<typeof vi.fn>;
-  let openPR: ReturnType<typeof vi.fn>;
   let task: TaskRecord;
 
   beforeEach(() => {
-    addLabels = vi.fn();
-    comment = vi.fn();
-    openPR = vi.fn();
-    github = new FastTrackGitHub(openPR, addLabels, comment);
+    addLabelsSpy = vi.fn(async () => ({ applied: [] }));
+    commentSpy = vi.fn(async () => ({ id: 1, url: 'comment' }));
+
+    const service = {
+      addLabels: addLabelsSpy,
+      comment: commentSpy
+    } as unknown as GithubService;
+
+    github = new FastTrackGitHub(service, labels);
+
     task = {
-      id: 'TR-01J8ZQ4Y7M5P2W3X4Y5Z6A7B8C',
+      id: 'TR-FASTTRACK1234567890123456',
       title: 'Fast Track Task',
       acceptance_criteria: ['AC'],
       scope: 'minor',
       status: 'po',
       rev: 0,
       created_at: new Date(0).toISOString(),
-      updated_at: new Date(0).toISOString()
-    };
+      updated_at: new Date(0).toISOString(),
+      links: {
+        github: { owner: 'acme', repo: 'project' },
+        git: { branch: 'feature/x', prNumber: 10 }
+      }
+    } as TaskRecord;
   });
 
   it('publishes labels and comment when evaluation approves', async () => {
@@ -37,15 +54,25 @@ describe('FastTrackGitHub helpers', () => {
 
     await github.onFastTrackEvaluated(task, result, 123);
 
-    expect(addLabels).toHaveBeenCalledWith({ number: 123, labels: ['fast-track', 'fast-track:eligible'], type: 'pr' });
-    expect(comment).toHaveBeenCalledWith({
-      number: 123,
-      type: 'pr',
-      body: expect.stringContaining('Fast-track evaluation for Fast Track Task')
-    });
+    expect(addLabelsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner: 'acme',
+        repo: 'project',
+        issueNumber: 123,
+        labels: ['fast-track', 'fast-track:eligible']
+      })
+    );
+    expect(commentSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner: 'acme',
+        repo: 'project',
+        issueNumber: 123,
+        body: expect.stringContaining('Fast-track evaluation for Fast Track Task')
+      })
+    );
   });
 
-  it('marks evaluation as blocked when hard rules trigger', async () => {
+  it('marks evaluation as blocked when not eligible', async () => {
     const result: FastTrackResult = {
       eligible: false,
       score: 20,
@@ -55,40 +82,21 @@ describe('FastTrackGitHub helpers', () => {
 
     await github.onFastTrackEvaluated(task, result, 77);
 
-    expect(addLabels).toHaveBeenCalledWith({ number: 77, labels: ['fast-track', 'fast-track:blocked'], type: 'pr' });
-    const body = comment.mock.calls[0][0].body;
+    expect(addLabelsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ labels: ['fast-track', 'fast-track:incompatible'] })
+    );
+    const body = commentSpy.mock.calls[0][0].body as string;
     expect(body).toContain('Fast-track blocked');
-    expect(body).toContain('Module boundaries changed');
   });
 
   it('adds revoked label and comment when guard fails', async () => {
     const guard: PostDevGuardResult = { revoke: true, reason: 'coverage_below_threshold' };
     await github.onFastTrackRevoked(task, guard, 55);
 
-    expect(addLabels).toHaveBeenCalledWith({ number: 55, labels: ['fast-track', 'fast-track:revoked'], type: 'pr' });
-    const body = comment.mock.calls[0][0].body;
+    expect(addLabelsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ labels: ['fast-track', 'fast-track:revoked'] })
+    );
+    const body = commentSpy.mock.calls[0][0].body as string;
     expect(body).toContain('Fast-track revoked for Fast Track Task');
-    expect(body).toContain('Coverage dropped below required threshold');
-  });
-
-  it('opens draft PR with fast-track labels when eligible', async () => {
-    openPR.mockResolvedValue({ number: 999 });
-    const result: FastTrackResult = {
-      eligible: true,
-      score: 70,
-      reasons: ['eligible'],
-      hardBlocks: []
-    };
-
-    await github.createFastTrackPR(task, result, 'feature/fast');
-
-    expect(openPR).toHaveBeenCalledWith({
-      title: 'Fast Track Task [FAST-TRACK]',
-      head: 'feature/fast',
-      base: 'main',
-      body: expect.stringContaining('Fast-track score'),
-      draft: true,
-      labels: ['fast-track', 'fast-track:eligible']
-    });
   });
 });

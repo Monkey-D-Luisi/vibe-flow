@@ -29,7 +29,8 @@ type ToolName =
   | 'gh.openPR'
   | 'gh.comment'
   | 'gh.setProjectStatus'
-  | 'gh.addLabels';
+  | 'gh.addLabels'
+  | 'gh.readyForReview';
 
 class SemanticError extends Error {
   constructor(public readonly code: number, message: string) {
@@ -357,52 +358,96 @@ const toolInputSchemas: Record<ToolName, any> = {
   'gh.createBranch': {
     type: 'object',
     additionalProperties: false,
-    required: ['name'],
+    required: ['owner', 'repo', 'base', 'name', 'requestId'],
     properties: {
+      owner: { type: 'string', minLength: 1 },
+      repo: { type: 'string', minLength: 1 },
+      base: { type: 'string', minLength: 1 },
       name: { type: 'string', minLength: 3 },
-      base: { type: 'string', minLength: 2 }
+      protect: { type: 'boolean' },
+      requestId: { type: 'string', minLength: 8 },
+      taskId: { type: 'string', minLength: 3 }
     }
   },
   'gh.openPR': {
     type: 'object',
     additionalProperties: false,
-    required: ['title', 'head'],
+    required: ['owner', 'repo', 'title', 'head', 'base', 'body', 'draft', 'requestId'],
     properties: {
+      owner: { type: 'string', minLength: 1 },
+      repo: { type: 'string', minLength: 1 },
       title: { type: 'string', minLength: 5 },
       head: { type: 'string', minLength: 2 },
-      base: { type: 'string', minLength: 2 },
-      body: { type: 'string' },
+      base: { type: 'string', minLength: 1 },
+      body: { type: 'string', minLength: 1 },
       draft: { type: 'boolean' },
-      labels: { type: 'array', items: { type: 'string' } }
+      labels: { type: 'array', items: { type: 'string' } },
+      assignees: { type: 'array', items: { type: 'string' } },
+      linkTaskId: { type: 'string', minLength: 3 },
+      requestId: { type: 'string', minLength: 8 },
+      taskId: { type: 'string', minLength: 3 }
     }
   },
   'gh.comment': {
     type: 'object',
     additionalProperties: false,
-    required: ['number', 'body'],
+    required: ['owner', 'repo', 'issueNumber', 'body', 'requestId'],
     properties: {
-      number: { type: 'integer', minimum: 1 },
+      owner: { type: 'string', minLength: 1 },
+      repo: { type: 'string', minLength: 1 },
+      issueNumber: { type: 'integer', minimum: 1 },
       body: { type: 'string', minLength: 1 },
-      type: { type: 'string', enum: ['issue', 'pr'] }
+      type: { type: 'string', enum: ['issue', 'pr'] },
+      requestId: { type: 'string', minLength: 8 },
+      taskId: { type: 'string', minLength: 3 }
     }
   },
   'gh.setProjectStatus': {
     type: 'object',
     additionalProperties: false,
-    required: ['itemId', 'status'],
+    required: ['owner', 'repo', 'issueNumber', 'project', 'requestId'],
     properties: {
-      itemId: { type: 'string', minLength: 5 },
-      status: { type: 'string', enum: ['To Do', 'In Progress', 'In Review', 'Done'] }
+      owner: { type: 'string', minLength: 1 },
+      repo: { type: 'string', minLength: 1 },
+      issueNumber: { type: 'integer', minimum: 1 },
+      project: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'field', 'value'],
+        properties: {
+          id: { type: 'string', minLength: 5 },
+          field: { type: 'string', minLength: 1 },
+          value: { type: 'string', minLength: 1 }
+        }
+      },
+      requestId: { type: 'string', minLength: 8 },
+      taskId: { type: 'string', minLength: 3 }
     }
   },
   'gh.addLabels': {
     type: 'object',
     additionalProperties: false,
-    required: ['number', 'labels'],
+    required: ['owner', 'repo', 'issueNumber', 'labels', 'requestId'],
     properties: {
-      number: { type: 'integer', minimum: 1 },
+      owner: { type: 'string', minLength: 1 },
+      repo: { type: 'string', minLength: 1 },
+      issueNumber: { type: 'integer', minimum: 1 },
       labels: { type: 'array', items: { type: 'string' }, minItems: 1 },
-      type: { type: 'string', enum: ['issue', 'pr'] }
+      type: { type: 'string', enum: ['issue', 'pr'] },
+      requestId: { type: 'string', minLength: 8 },
+      taskId: { type: 'string', minLength: 3 }
+    }
+  },
+  'gh.readyForReview': {
+    type: 'object',
+    additionalProperties: false,
+    required: ['owner', 'repo', 'pullNumber', 'requestId'],
+    properties: {
+      owner: { type: 'string', minLength: 1 },
+      repo: { type: 'string', minLength: 1 },
+      pullNumber: { type: 'integer', minimum: 1 },
+      requestId: { type: 'string', minLength: 8 },
+      taskId: { type: 'string', minLength: 3 }
     }
   }
 };
@@ -410,27 +455,28 @@ const toolInputSchemas: Record<ToolName, any> = {
 const toolDescriptions: Record<ToolName, string> = {
   'task.create': 'Crear TaskRecord en estado inicial',
   'task.get': 'Obtener TaskRecord por id',
-  'task.update': 'Actualizar TaskRecord con control de versión',
+  'task.update': 'Actualizar TaskRecord con control de version',
   'task.search': 'Buscar TaskRecords por texto/estado/etiquetas',
-  'task.transition': 'Aplicar transición de estado con validaciones de negocio',
+  'task.transition': 'Aplicar transicion de estado con validaciones de negocio',
   'state.get': 'Obtener el estado del orquestador para una tarea',
   'state.patch': 'Actualizar campos del estado del orquestador',
-  'state.acquire_lock': 'Adquirir un lease de ejecución para una tarea',
+  'state.acquire_lock': 'Adquirir un lease de ejecucion para una tarea',
   'state.release_lock': 'Liberar un lease previamente adquirido',
   'state.append_event': 'Registrar un evento en el journal del orquestador',
   'state.search': 'Consultar eventos del orquestador',
   'fasttrack.evaluate': 'Evaluar elegibilidad fast-track con reglas duras y puntaje',
-  'fasttrack.guard_post_dev': 'Reevaluar fast-track después de DEV (guard post-dev)',
+  'fasttrack.guard_post_dev': 'Reevaluar fast-track despues de DEV (guard post-dev)',
   'quality.run_tests': 'Ejecutar suite de pruebas automatizadas',
   'quality.coverage_report': 'Generar reporte de cobertura',
-  'quality.lint': 'Ejecutar análisis estático (lint)',
-  'quality.complexity': 'Calcular métricas de complejidad',
+  'quality.lint': 'Ejecutar analisis estatico (lint)',
+  'quality.complexity': 'Calcular metricas de complejidad',
   'quality.enforce_gates': 'Aplicar quality gates (coverage, lint, tests)',
   'gh.createBranch': 'Crear una rama local/remota',
   'gh.openPR': 'Abrir un Pull Request',
   'gh.comment': 'Publicar un comentario en Issue/PR',
   'gh.setProjectStatus': 'Actualizar estado en GitHub Projects',
-  'gh.addLabels': 'Añadir etiquetas a un Issue/PR'
+  'gh.addLabels': 'Anadir etiquetas a un Issue/PR',
+  'gh.readyForReview': 'Marcar un Pull Request como listo para revision'
 };
 
 const tools = Object.entries(toolInputSchemas).map(([name, schema]) => ({
@@ -529,3 +575,5 @@ export const __test__ = {
   leaseRepo,
   toolHandlers: new Proxy({}, { get: (_, prop) => (input: any) => handleToolCall(prop as string, input) })
 };
+
+

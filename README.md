@@ -51,6 +51,12 @@ The system implements a complete agent orchestration framework with:
 - **Quality Gates**: Automated validation at each handoff
 - **State Machine**: Full workflow from requirements to deployment
 
+### GitHub Integration (EP03)
+- Octokit-based MCP tools (`gh.createBranch`, `gh.openPR`, `gh.comment`, `gh.addLabels`, `gh.setProjectStatus`, `gh.readyForReview`) with persistent idempotency via SQLite.
+- PR-Bot agent automates branch creation, draft PRs, label/project synchronization, quality summaries, and Ready-for-Review promotion once the gate passes.
+- Fast-track automation now reuses the GitHub connector for evaluation/revocation comments and label updates.
+- Workflow `.github/workflows/pr-bot.yml` executes `services/task-mcp/scripts/pr-bot-sync.mjs` on PR events and `quality-gate` completion to keep labels, comments, and Project v2 status aligned even when orchestration is not running.
+
 ### Monorepo Structure
 ```
 agents-mcps/
