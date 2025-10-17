@@ -19,8 +19,35 @@ function Wait-AnyKey([string]$message = "Pulsa cualquier tecla para continuar...
 }
 
 function Extract-Json([string]$text) {
-  $m = [regex]::Match($text, '(?s)\{.*\}')
-  if ($m.Success) { return $m.Value } else { return $null }
+  if ([string]::IsNullOrWhiteSpace($text)) { return $null }
+  $depth = 0
+  $start = -1
+  $inString = $false
+  for ($i = 0; $i -lt $text.Length; $i++) {
+    $char = $text[$i]
+    if ($inString) {
+      if ($char -eq '"' -and ($i -eq 0 -or $text[$i - 1] -ne '\')) {
+        $inString = $false
+      }
+      continue
+    }
+    switch ($char) {
+      '"' { $inString = $true }
+      '{' {
+        if ($depth -eq 0) { $start = $i }
+        $depth++
+      }
+      '}' {
+        if ($depth -gt 0) {
+          $depth--
+          if ($depth -eq 0 -and $start -ge 0) {
+            return $text.Substring($start, $i - $start + 1)
+          }
+        }
+      }
+    }
+  }
+  return $null
 }
 
 function Get-FirstDefined($obj, [string[]]$paths) {
