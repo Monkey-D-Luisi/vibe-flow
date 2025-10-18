@@ -1,5 +1,6 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
+import { createHash } from 'node:crypto';
 import { TaskRecord } from '../domain/TaskRecord.js';
 import { loadSchema } from '../utils/loadSchema.js';
 import type {
@@ -19,6 +20,7 @@ const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
 addFormats(ajv);
 
 const prSummaryValidator = ajv.compile(loadSchema('pr_summary.schema.json'));
+const MAX_BRANCH_SLUG_LENGTH = 48;
 
 export interface PrSummary {
   branch: string;
@@ -33,7 +35,7 @@ function ensurePrSummary(summary: unknown): PrSummary {
   return summary as PrSummary;
 }
 
-function slugify(value: string, maxLength = 48): string {
+function slugify(value: string, maxLength = MAX_BRANCH_SLUG_LENGTH): string {
   return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -80,9 +82,7 @@ export class PrBotAgent {
     await this.github.createBranch(this.buildBranchParams(task, repo.owner, repo.repo, branchName, baseBranch));
 
     const desiredLabels = this.computeDesiredLabels(task);
-    const prResult = await this.github.openPullRequest(
-      this.buildOpenPrParams(task, repo.owner, repo.repo, branchName, baseBranch, desiredLabels)
-    );
+    const prResult = await this.github.openPullRequest(this.buildOpenPrParams(task, repo.owner, repo.repo, branchName, baseBranch, desiredLabels));
 
     if (desiredLabels.size > 0) {
       await this.github.addLabels(this.buildAddLabelsParams(task, repo.owner, repo.repo, prResult.number, desiredLabels));
@@ -173,7 +173,7 @@ export class PrBotAgent {
       base,
       body,
       draft: true,
-      labels: Array.from(desiredLabels),
+      labels: this.sortLabels(desiredLabels),
       assignees: unique(this.config.assignees ?? []),
       linkTaskId: task.id,
       requestId: this.requestId(task.id, `open-pr:${head}`)
@@ -187,12 +187,14 @@ export class PrBotAgent {
     issueNumber: number,
     labels: Set<string>
   ): AddLabelsParams {
+    const sortedLabels = this.sortLabels(labels);
+    const fingerprint = this.fingerprintLabels(sortedLabels);
     return {
       owner,
       repo,
       issueNumber,
-      labels: Array.from(labels),
-      requestId: this.requestId(task.id, `labels:${issueNumber}`)
+      labels: sortedLabels,
+      requestId: this.requestId(task.id, `labels:${issueNumber}:${fingerprint}`)
     };
   }
 
@@ -413,6 +415,15 @@ export class PrBotAgent {
     return labels;
   }
 
+  private sortLabels(labels: Iterable<string>): string[] {
+    return Array.from(labels).sort();
+  }
+
+  private fingerprintLabels(labels: string[]): string {
+    const normalized = JSON.stringify(labels);
+    return createHash('sha256').update(normalized).digest('hex');
+  }
+
   private computeRemovableLabels(desired: Set<string>): string[] {
     const cfg = this.config.labels ?? ({} as GithubPrBotConfig['labels']);
     const managed = unique([
@@ -456,3 +467,5 @@ export class PrBotAgent {
 }
 
 export { ensurePrSummary as validatePrSummary };
+
+

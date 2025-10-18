@@ -113,8 +113,31 @@ interface SingleSelectFieldCache {
   options: Record<string, string>;
 }
 
-function isRequestError(error: unknown): error is { status: number } {
-  return Boolean(error && typeof error === 'object' && 'status' in error);
+interface RequestErrorLike {
+  status: number;
+  message?: string;
+}
+
+function isRequestError(error: unknown): error is RequestErrorLike {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    typeof (error as RequestErrorLike).status === 'number'
+  );
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && typeof error.message === 'string') {
+    return error.message;
+  }
+  if (isRequestError(error) && typeof error.message === 'string') {
+    return error.message;
+  }
+  if (typeof error === 'string' && error.trim().length > 0) {
+    return error;
+  }
+  return 'Unknown error';
 }
 
 function unique(values: string[] = []): string[] {
@@ -324,7 +347,7 @@ export class GithubService {
         restrictions: null
       });
     } catch (error) {
-      console.warn(`Failed to apply branch protection on ${branch}: ${(error as Error).message}`);
+      console.warn(`Failed to apply branch protection on ${branch}: ${getErrorMessage(error)}`);
     }
   }
 

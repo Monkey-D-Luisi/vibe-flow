@@ -1,7 +1,7 @@
 import Ajv from 'ajv';
 import { AgentType } from './router';
 import { TaskRepository } from '../repo/repository.js';
-import { StateRepository, EventRepository, LeaseRepository } from '../repo/state';
+import { StateRepository, EventRepository, LeaseRepository, type OrchestratorState } from '../repo/state';
 import { GithubRequestRepository } from '../repo/githubRequests.js';
 import { TaskRecord, TaskRecordValidator, type TransitionEvidence } from '../domain/TaskRecord';
 import { evaluateFastTrack, guardPostDev, FastTrackContext } from '../domain/FastTrack';
@@ -331,24 +331,8 @@ export async function runOrchestratorStep(
   const lease = leaseRepo.acquire(taskId, agentName, 300); // 5 minute lease
 
   try {
-    // Get current state
-    let state = stateRepo.get(taskId);
-    if (!state) {
-      // Initialize state if it doesn't exist
-      state = stateRepo.create(taskId);
-    }
-
-    // Get task record for context
-    const task = repo.get(taskId);
-    if (!task) {
-      throw new Error(`Task ${taskId} not found`);
-    }
-
-    // Determine which agent to run based on current state
-    const agentType = agentName as AgentType;
-    if (!canRunAgent(state.current, agentType)) {
-      throw new Error(`Agent ${agentType} cannot run in state ${state.current}`);
-    }
+    const { state, task } = ensureTaskContext(taskId);
+    const agentType = ensureAgentIsAllowed(state, agentName);
 
     const { fastTrackContext, reviewerViolations } = options;
 
@@ -375,21 +359,8 @@ export async function runOrchestratorStep(
     const nextState = determineNextState(state.current, task);
     const agentPatch = mapAgentOutput(agentType, validatedOutput);
     const patch: Partial<TaskRecord> = { ...agentPatch };
-    if (agentType === 'prbot') {
-      const repoLink = task.links?.github;
-      if (repoLink?.repo) {
-        patch.links = {
-          ...(patch.links ?? {}),
-          git: {
-            ...(patch.links?.git ?? {}),
-            repo: repoLink.repo
-          }
-        };
-      }
-    }
-    if (nextState && task.status !== nextState) {
-      patch.status = nextState as TaskRecord['status'];
-    }
+    applyPrBotPatch(agentType, task, patch);
+    patch.status = (nextState ?? task.status) as TaskRecord['status'];
 
     const candidateTask = mergeTaskWithPatch(task, patch);
     const nextStateStatus = nextState as TaskRecord['status'];
@@ -402,32 +373,13 @@ export async function runOrchestratorStep(
       nextState as TaskRecord['status'],
       validatedOutput
     );
-    const validation = TaskRecordValidator.validateTransition(
-      task.status,
-      nextState as TaskRecord['status'],
-      candidateTask,
-      transitionEvidence
-    );
-
-    if (!validation.valid) {
-      throw new Error(`Transition guard failed: ${validation.reason ?? 'Unknown reason'}`);
-    }
+    assertTransitionIsAllowed(task.status, nextState as TaskRecord['status'], candidateTask, transitionEvidence);
 
     const updatedTask = repo.update(task.id, task.rev, patch);
     Object.assign(task, updatedTask);
 
     // Update orchestrator state
-    const stateUpdate: any = {
-      current: nextState,
-      previous: state.current,
-      last_agent: agentType
-    };
-
-    // Handle special state transitions
-    if (agentType === 'reviewer' && nextState === 'dev') {
-      stateUpdate.rounds_review = (state.rounds_review || 0) + 1;
-    }
-
+    const stateUpdate = buildStateUpdate(state, agentType, nextState);
     const updatedState = stateRepo.update(taskId, state.rev, stateUpdate);
 
     // Handle post-dev guard and potential revocation
@@ -456,6 +408,75 @@ export async function runOrchestratorStep(
     // Always release the lease
     leaseRepo.release(taskId, lease.lease_id);
   }
+}
+
+function ensureTaskContext(taskId: string): { state: OrchestratorState; task: TaskRecord } {
+  let state = stateRepo.get(taskId);
+  if (!state) {
+    state = stateRepo.create(taskId);
+  }
+
+  const task = repo.get(taskId);
+  if (!task) {
+    throw new Error(`Task ${taskId} not found`);
+  }
+
+  return { state, task };
+}
+
+function ensureAgentIsAllowed(state: OrchestratorState, agentName: string): AgentType {
+  const agentType = agentName as AgentType;
+  if (!canRunAgent(state.current, agentType)) {
+    throw new Error(`Agent ${agentType} cannot run in state ${state.current}`);
+  }
+  return agentType;
+}
+
+function applyPrBotPatch(agentType: AgentType, task: TaskRecord, patch: Partial<TaskRecord>): void {
+  if (agentType !== 'prbot') {
+    return;
+  }
+
+  const repoLink = task.links?.github;
+  if (repoLink?.repo) {
+    patch.links = {
+      ...(patch.links ?? {}),
+      git: {
+        ...(patch.links?.git ?? {}),
+        repo: repoLink.repo
+      }
+    };
+  }
+}
+
+function assertTransitionIsAllowed(
+  currentStatus: TaskRecord['status'],
+  nextStatus: TaskRecord['status'],
+  candidateTask: TaskRecord,
+  evidence: TransitionEvidence
+): void {
+  const validation = TaskRecordValidator.validateTransition(currentStatus, nextStatus, candidateTask, evidence);
+  if (!validation.valid) {
+    throw new Error(`Transition guard failed: ${validation.reason ?? 'Unknown reason'}`);
+  }
+}
+
+function buildStateUpdate(
+  state: OrchestratorState,
+  agentType: AgentType,
+  nextState: TaskRecord['status'] | null
+): Partial<OrchestratorState> {
+  const update: Partial<OrchestratorState> = {
+    current: nextState ?? state.current,
+    previous: state.current,
+    last_agent: agentType
+  };
+
+  if (agentType === 'reviewer' && nextState === 'dev') {
+    update.rounds_review = (state.rounds_review || 0) + 1;
+  }
+
+  return update;
 }
 
 function canRunAgent(currentState: string, agentType: AgentType): boolean {
