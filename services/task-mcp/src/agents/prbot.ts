@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import { fingerprint } from '../utils/normalize.js';
+import { fingerprint, normalizeForFingerprint } from '../utils/normalize.js';
 import { TaskRecord } from '../domain/TaskRecord.js';
 import { loadSchema } from '../utils/loadSchema.js';
 import type {
@@ -169,6 +169,8 @@ export class PrBotAgent {
     desiredLabels: Set<string>
   ): OpenPullRequestParams {
     const body = this.buildPrBody(task);
+    const labels = this.sortLabels(desiredLabels);
+    const assignees = unique(this.config.assignees ?? []);
     return {
       owner,
       repo,
@@ -177,10 +179,10 @@ export class PrBotAgent {
       base,
       body,
       draft: true,
-      labels: this.sortLabels(desiredLabels),
-      assignees: unique(this.config.assignees ?? []),
+      labels,
+      assignees,
       linkTaskId: task.id,
-      requestId: this.requestId(task.id, `open-pr:${head}`)
+      requestId: this.requestId(task.id, 'open-pr', { head, base, labels, assignees })
     };
   }
 
@@ -192,13 +194,12 @@ export class PrBotAgent {
     labels: Set<string>
   ): AddLabelsParams {
     const sortedLabels = this.sortLabels(labels);
-    const labelFingerprint = fingerprint(sortedLabels);
     return {
       owner,
       repo,
       issueNumber,
       labels: sortedLabels,
-      requestId: this.requestId(task.id, `labels:${issueNumber}:${labelFingerprint}`)
+      requestId: this.requestId(task.id, `labels:${issueNumber}`, sortedLabels)
     };
   }
 
@@ -225,11 +226,6 @@ export class PrBotAgent {
     issueNumber: number,
     value: string
   ): SetProjectStatusParams {
-    const projectFingerprint = fingerprint({
-      id: this.config.project!.id,
-      field: this.config.project!.statusField,
-      value
-    });
     return {
       owner,
       repo,
@@ -239,7 +235,11 @@ export class PrBotAgent {
         field: this.config.project!.statusField,
         value
       },
-      requestId: this.requestId(task.id, `project-status:${projectFingerprint}`)
+      requestId: this.requestId(task.id, `project-status:${issueNumber}`, {
+        id: this.config.project!.id,
+        field: this.config.project!.statusField,
+        value
+      })
     };
   }
 
@@ -265,14 +265,16 @@ export class PrBotAgent {
     reviewers: string[],
     teamReviewers: string[]
   ): RequestReviewersParams {
-    const reviewersFingerprint = fingerprint({ reviewers, teamReviewers });
     return {
       owner,
       repo,
       pullNumber,
       reviewers,
       teamReviewers,
-      requestId: this.requestId(task.id, `reviewers:${pullNumber}:${reviewersFingerprint}`)
+      requestId: this.requestId(task.id, `reviewers:${pullNumber}`, {
+        reviewers,
+        teamReviewers
+      })
     };
   }
 
@@ -283,13 +285,12 @@ export class PrBotAgent {
     issueNumber: number
   ): CommentParams {
     const body = this.buildQualityComment(task);
-    const commentFingerprint = fingerprint(body);
     return {
       owner,
       repo,
       issueNumber,
       body,
-      requestId: this.requestId(task.id, `quality-comment:${issueNumber}:${commentFingerprint}`)
+      requestId: this.requestId(task.id, `quality-comment:${issueNumber}`, body)
     } satisfies CommentParams;
   }
 
@@ -468,9 +469,13 @@ export class PrBotAgent {
     return (task.tags ?? []).includes('quality_gate_failed');
   }
 
-  private requestId(taskId: string, action: string): string {
+  private requestId(taskId: string, action: string, payload?: unknown): string {
     const normalized = action.replace(/[^a-zA-Z0-9:_-]/g, '-');
-    return `prbot:${taskId}:${normalized}`;
+    if (payload === undefined) {
+      return `prbot:${taskId}:${normalized}`;
+    }
+    const hash = fingerprint(normalizeForFingerprint(payload));
+    return `prbot:${taskId}:${normalized}:${hash}`;
   }
 }
 
