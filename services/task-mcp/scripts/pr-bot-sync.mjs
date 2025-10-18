@@ -151,7 +151,7 @@ async function main() {
 
   const summary = await agent.run(task, {
     approvalsCount,
-    qaChecksPassed: qaReportOk || qaChecksPassed
+    qaReportPassed: qaReportOk,\n    qaChecksPassed
   });
   console.log(JSON.stringify(summary, null, 2));
 }
