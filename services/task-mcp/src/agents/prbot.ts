@@ -156,7 +156,7 @@ export class PrBotAgent {
       base,
       name,
       protect: false,
-      requestId: this.requestId(task.id, `branch:${name}`)
+      requestId: this.requestId(task.id, `branch:${base}:${name}`)
     };
   }
 
