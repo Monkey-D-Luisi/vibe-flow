@@ -233,7 +233,7 @@ export class GithubService {
         if (isRequestError(error) && error.status === 404) {
           return { removed: false };
         }
-        throw error;
+        throw new Error(`Failed to remove label ${label}: ${getErrorMessage(error)}`);
       }
     });
   }
@@ -300,8 +300,8 @@ export class GithubService {
 
   async requestReviewers(params: RequestReviewersParams): Promise<ReviewersResult> {
     const { owner, repo, pullNumber } = params;
-    const reviewers = unique(params.reviewers ?? []);
-    const teamReviewers = unique(params.teamReviewers ?? []);
+    const reviewers = unique(params.reviewers ?? []).sort();
+    const teamReviewers = unique(params.teamReviewers ?? []).sort();
     if (reviewers.length === 0 && teamReviewers.length === 0) {
       return { requested: [] };
     }
@@ -326,7 +326,7 @@ export class GithubService {
       if (isRequestError(error) && error.status === 404) {
         return null;
       }
-      throw error;
+      throw new Error(`Failed to read ref heads/${branch}: ${getErrorMessage(error)}`);
     }
   }
 

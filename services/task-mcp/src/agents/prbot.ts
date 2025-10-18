@@ -20,6 +20,7 @@ const ajv = new Ajv({ allErrors: true, strict: false, validateFormats: true });
 addFormats(ajv);
 
 const prSummaryValidator = ajv.compile(loadSchema('pr_summary.schema.json'));
+// Limit slug to keep head refs short while leaving room for task IDs / ULIDs appended later.
 const MAX_BRANCH_SLUG_LENGTH = 48;
 
 export interface PrSummary {
@@ -64,11 +65,37 @@ function splitReviewers(entries: string[] = []): { reviewers: string[]; teamRevi
       reviewers.push(entry.trim());
     }
   }
-  return { reviewers, teamReviewers };
+  return {
+    reviewers: unique(reviewers).sort(),
+    teamReviewers: unique(teamReviewers).sort()
+  };
 }
 
 function unique<T>(items: T[]): T[] {
   return Array.from(new Set(items.filter((item) => item !== undefined && item !== null)));
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Object.prototype.toString.call(value) === '[object Object]';
+}
+
+function normalizeForFingerprint(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeForFingerprint(item));
+  }
+  if (isPlainObject(value)) {
+    const sortedEntries = Object.keys(value)
+      .sort()
+      .map((key) => [key, normalizeForFingerprint(value[key])]);
+    return Object.fromEntries(sortedEntries);
+  }
+  return value;
+}
+
+function fingerprint(value: unknown): string {
+  const normalized = normalizeForFingerprint(value);
+  const serialized = typeof normalized === 'string' ? normalized : JSON.stringify(normalized);
+  return createHash('sha256').update(serialized).digest('hex');
 }
 
 export class PrBotAgent {
@@ -188,13 +215,13 @@ export class PrBotAgent {
     labels: Set<string>
   ): AddLabelsParams {
     const sortedLabels = this.sortLabels(labels);
-    const fingerprint = this.fingerprintLabels(sortedLabels);
+    const labelFingerprint = fingerprint(sortedLabels);
     return {
       owner,
       repo,
       issueNumber,
       labels: sortedLabels,
-      requestId: this.requestId(task.id, `labels:${issueNumber}:${fingerprint}`)
+      requestId: this.requestId(task.id, `labels:${issueNumber}:${labelFingerprint}`)
     };
   }
 
@@ -221,6 +248,11 @@ export class PrBotAgent {
     issueNumber: number,
     value: string
   ): SetProjectStatusParams {
+    const projectFingerprint = fingerprint({
+      id: this.config.project!.id,
+      field: this.config.project!.statusField,
+      value
+    });
     return {
       owner,
       repo,
@@ -230,7 +262,7 @@ export class PrBotAgent {
         field: this.config.project!.statusField,
         value
       },
-      requestId: this.requestId(task.id, `project-status:${value}`)
+      requestId: this.requestId(task.id, `project-status:${projectFingerprint}`)
     };
   }
 
@@ -256,13 +288,14 @@ export class PrBotAgent {
     reviewers: string[],
     teamReviewers: string[]
   ): RequestReviewersParams {
+    const reviewersFingerprint = fingerprint({ reviewers, teamReviewers });
     return {
       owner,
       repo,
       pullNumber,
       reviewers,
       teamReviewers,
-      requestId: this.requestId(task.id, `reviewers:${pullNumber}`)
+      requestId: this.requestId(task.id, `reviewers:${pullNumber}:${reviewersFingerprint}`)
     };
   }
 
@@ -272,12 +305,14 @@ export class PrBotAgent {
     repo: string,
     issueNumber: number
   ): CommentParams {
+    const body = this.buildQualityComment(task);
+    const commentFingerprint = fingerprint(body);
     return {
       owner,
       repo,
       issueNumber,
-      body: this.buildQualityComment(task),
-      requestId: this.requestId(task.id, `quality-comment:${issueNumber}`)
+      body,
+      requestId: this.requestId(task.id, `quality-comment:${issueNumber}:${commentFingerprint}`)
     } satisfies CommentParams;
   }
 
@@ -419,10 +454,6 @@ export class PrBotAgent {
     return Array.from(labels).sort();
   }
 
-  private fingerprintLabels(labels: string[]): string {
-    const normalized = JSON.stringify(labels);
-    return createHash('sha256').update(normalized).digest('hex');
-  }
 
   private computeRemovableLabels(desired: Set<string>): string[] {
     const cfg = this.config.labels ?? ({} as GithubPrBotConfig['labels']);
