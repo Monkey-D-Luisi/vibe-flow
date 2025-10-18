@@ -304,26 +304,33 @@ export class PrBotAgent {
     lines.push(`**Task ID:** ${task.id}`);
     lines.push(`**Scope:** ${task.scope}`);
 
-    if (task.description) {
-      lines.push('', '### Contexto', task.description);
+    lines.push('', '### Contexto', task.description ?? '');
+
+    const checklistItems = this.computeChecklistItems(task);
+    lines.push('', '### Checklist');
+    for (const item of checklistItems) {
+      lines.push(`- [${item.checked ? 'x' : ' '}] ${item.label}`);
     }
 
-    lines.push('', '### ACs');
-    for (const ac of task.acceptance_criteria ?? []) {
-      lines.push(`- [ ] ${ac}`);
+    if ((task.acceptance_criteria?.length ?? 0) > 0) {
+      lines.push('', '### ACs');
+      for (const ac of task.acceptance_criteria ?? []) {
+        lines.push(`- ${ac}`);
+      }
     }
 
     const coverageValue = formatPercentage(task.metrics?.coverage);
-    const lintErrors = task.metrics?.lint?.errors ?? 'N/A';
+    const lintErrorsValue =
+      typeof task.metrics?.lint?.errors === 'number' ? task.metrics.lint.errors : 'N/A';
     const qaSummary = task.qa_report
       ? `${task.qa_report.passed}/${task.qa_report.total} tests passed`
       : 'No QA report available';
 
     lines.push(
       '',
-      '### Calidad',
+      '### Calidad (resumen)',
       `- coverage: ${coverageValue}`,
-      `- lint errors: ${lintErrors}`,
+      `- lint errors: ${lintErrorsValue}`,
       `- RGR entries: ${task.red_green_refactor_log?.length ?? 0}`,
       `- QA: ${qaSummary}`
     );
@@ -337,25 +344,109 @@ export class PrBotAgent {
   }
 
   private buildChecklist(task: TaskRecord): string[] {
-    const checklist: string[] = [];
+    return this.computeChecklistItems(task).map((item) => `[${item.checked ? 'x' : ' '}] ${item.label}`);
+  }
+
+  private computeChecklistItems(task: TaskRecord): Array<{ checked: boolean; label: string }> {
+    const items: Array<{ checked: boolean; label: string }> = [];
+
     const acCount = task.acceptance_criteria?.length ?? 0;
-    checklist.push(`${acCount > 0 ? '[x]' : '[ ]'} ACs registrados (${acCount})`);
+    const acApproved = task.acceptance_criteria_met === true || ['qa', 'pr', 'done'].includes(task.status);
+    items.push({
+      checked: acCount > 0 && acApproved,
+      label: `ACs registrados (${acCount})`
+    });
+
+    const adrReferences = this.resolveAdrReferences(task);
+    const adrLabel =
+      adrReferences.length > 0 ? this.abbreviateList(adrReferences, 5) : 'N/A';
+    items.push({
+      checked: adrReferences.length > 0,
+      label: `ADR referenciados (${adrLabel})`
+    });
 
     const rgrCount = task.red_green_refactor_log?.length ?? 0;
-    checklist.push(`${rgrCount >= 2 ? '[x]' : '[ ]'} RGR log (${rgrCount} entradas)`);
+    items.push({
+      checked: rgrCount >= 2,
+      label: `RGR log (entradas: ${rgrCount})`
+    });
 
     const coverageTarget = task.scope === 'major' ? 0.8 : 0.7;
-    const coverage = task.metrics?.coverage ?? 0;
-    checklist.push(`${coverage >= coverageTarget ? '[x]' : '[ ]'} Coverage >= ${coverageTarget * 100}% (${formatPercentage(coverage)})`);
+    const coverage = task.metrics?.coverage;
+    const coverageOk = typeof coverage === 'number' && coverage >= coverageTarget;
+    items.push({
+      checked: coverageOk,
+      label: `Coverage >= ${Math.round(coverageTarget * 100)}% (actual: ${formatPercentage(coverage)})`
+    });
 
-    const lintErrors = task.metrics?.lint?.errors ?? 0;
-    checklist.push(`${lintErrors === 0 ? '[x]' : '[ ]'} Lint 0 errores (actual: ${lintErrors})`);
+    const lintErrors = task.metrics?.lint?.errors;
+    const lintOk = typeof lintErrors === 'number' ? lintErrors === 0 : false;
+    const lintDisplay = typeof lintErrors === 'number' ? lintErrors : 'N/A';
+    items.push({
+      checked: lintOk,
+      label: `Lint 0 errores (actual: ${lintDisplay})`
+    });
 
     const qaReport = task.qa_report;
-    const qaPassed = qaReport ? qaReport.failed === 0 : false;
-    checklist.push(`${qaPassed ? '[x]' : '[ ]'} QA sin fallos (${qaReport ? `${qaReport.passed}/${qaReport.total}` : 'sin datos'})`);
+    const qaTotal = qaReport?.total ?? 0;
+    const qaPassed = qaReport?.passed ?? 0;
+    const qaFailures = qaReport?.failed ?? 0;
+    const qaOk = qaReport !== undefined && qaTotal > 0 && qaFailures === 0;
+    const qaDisplay = qaReport ? `${qaPassed}/${qaTotal}` : 'sin datos';
+    items.push({
+      checked: qaOk,
+      label: `QA sin fallos (${qaDisplay})`
+    });
 
-    return checklist;
+    return items;
+  }
+
+  private resolveAdrReferences(task: TaskRecord): string[] {
+    const results: string[] = [];
+    const seen = new Set<string>();
+    const pushUnique = (value: string | undefined) => {
+      if (!value) return;
+      const normalized = value.trim();
+      if (!normalized) return;
+      const upper = normalized.toUpperCase();
+      if (seen.has(upper)) return;
+      seen.add(upper);
+      results.push(upper);
+    };
+
+    for (const adr of task.links?.adr ?? []) {
+      pushUnique(adr);
+    }
+
+    const pattern = /\bADR-\d+\b/gi;
+    const sources: string[] = [];
+    if (typeof task.description === 'string') {
+      sources.push(task.description);
+    }
+    for (const ac of task.acceptance_criteria ?? []) {
+      sources.push(ac);
+    }
+
+    for (const source of sources) {
+      const matches = source.match(pattern);
+      if (!matches) continue;
+      for (const match of matches) {
+        pushUnique(match);
+      }
+    }
+
+    return results;
+  }
+
+  private abbreviateList(values: string[], maxVisible: number): string {
+    if (values.length === 0) {
+      return 'N/A';
+    }
+    if (values.length <= maxVisible) {
+      return values.join(', ');
+    }
+    const visible = values.slice(0, maxVisible).join(', ');
+    return `${visible}, ...`;
   }
 
   private buildQualityComment(task: TaskRecord): string {

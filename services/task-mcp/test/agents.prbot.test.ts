@@ -43,7 +43,8 @@ const baseTask: TaskRecord = {
   qa_report: { total: 12, passed: 12, failed: 0 },
   red_green_refactor_log: ["red: failing test", "green: implementation", "refactor: cleanup"],
   links: {
-    github: { owner: "acme", repo: "project", issueNumber: 7 }
+    github: { owner: "acme", repo: "project", issueNumber: 7 },
+    adr: ["ADR-001", "ADR-004"]
   }
 };
 
@@ -62,13 +63,21 @@ function cloneTask(overrides: Partial<TaskRecord> = {}): TaskRecord {
     red_green_refactor_log: overrides.red_green_refactor_log
       ? [...overrides.red_green_refactor_log]
       : [...(baseTask.red_green_refactor_log ?? [])],
-    links: {
-      ...(baseTask.links ?? {}),
-      ...(overrides.links ?? {}),
-      github: overrides.links?.github
-        ? { ...(baseTask.links?.github ?? {}), ...overrides.links.github }
-        : baseTask.links?.github
-    }
+    links: (() => {
+      const merged = {
+        ...(baseTask.links ?? {}),
+        ...(overrides.links ?? {})
+      };
+      const baseGithub = baseTask.links?.github ?? {};
+      const overrideGithub = overrides.links?.github ?? {};
+      if (baseTask.links?.github || overrides.links?.github) {
+        merged.github = { ...baseGithub, ...overrideGithub };
+      }
+      if (Array.isArray(merged.adr)) {
+        merged.adr = [...merged.adr];
+      }
+      return merged;
+    })()
   };
 }
 
@@ -126,7 +135,14 @@ describe("PrBotAgent", () => {
 
     expect(summary.branch).toMatch(/^feature\/tr-test/);
     expect(summary.pr_url).toBe("https://github.com/acme/project/pull/123");
-    expect(summary.checklist.length).toBeGreaterThan(0);
+    expect(summary.checklist).toEqual([
+      "[x] ACs registrados (2)",
+      "[x] ADR referenciados (ADR-001, ADR-004)",
+      "[x] RGR log (entradas: 3)",
+      "[x] Coverage >= 70% (actual: 82%)",
+      "[x] Lint 0 errores (actual: 0)",
+      "[x] QA sin fallos (12/12)"
+    ]);
     expect(() => validatePrSummary(summary)).not.toThrow();
 
     expect(spies.createBranch).toHaveBeenCalledWith(
@@ -170,6 +186,15 @@ describe("PrBotAgent", () => {
     const commentCall = spies.comment.mock.calls[0][0];
     const commentFingerprint = fingerprint(commentCall.body);
     expect(commentCall.requestId).toBe(`prbot:${task.id}:quality-comment:123:${commentFingerprint}`);
+
+    const prCall = spies.openPullRequest.mock.calls[0][0];
+    expect(prCall.body).toContain("### Checklist");
+    expect(prCall.body).toContain("- [x] ACs registrados (2)");
+    expect(prCall.body).toContain("- [x] ADR referenciados (ADR-001, ADR-004)");
+    expect(prCall.body).toContain("### ACs");
+    expect(prCall.body).toContain("- Users can login with email/password");
+    expect(prCall.body).toContain("### Calidad (resumen)");
+    expect(prCall.body).toContain("Closes #7");
   });
 
   it("no marca ready-for-review si el gate falla", async () => {
@@ -216,5 +241,20 @@ describe("PrBotAgent", () => {
     const inProgressId = spiesB.setProjectStatus.mock.calls[0][0].requestId;
 
     expect(inProgressId).not.toBe(inReviewId);
+  });
+
+  it("detecta ADRs en el texto cuando no existen links explícitos", async () => {
+    const { agent, spies } = buildAgent();
+    const task = cloneTask({
+      links: { github: { owner: "acme", repo: "project", issueNumber: 7 }, adr: [] },
+      description: "Cambios alineados con ADR-010 definidos por arquitectura"
+    });
+
+    const summary = await agent.run(task);
+
+    expect(summary.checklist).toContain("[x] ADR referenciados (ADR-010)");
+
+    const prCall = spies.openPullRequest.mock.calls[0][0];
+    expect(prCall.body).toContain("- [x] ADR referenciados (ADR-010)");
   });
 });

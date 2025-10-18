@@ -122,10 +122,15 @@ const schema = {
       "properties": {
         "github": {"type": "object", "properties": {"owner": {"type": "string"}, "repo": {"type": "string"}, "issueNumber": {"type": "integer"}}, "additionalProperties": false},
         "git": {"type": "object", "properties": {"repo": {"type": "string"}, "branch": {"type": "string"}, "prNumber": {"type": "integer"}}, "additionalProperties": false},
-        "adr_url": {"type": "string", "format": "uri"}
+        "adr_url": {"type": "string", "format": "uri"},
+        "adr": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
       },
       "additionalProperties": false
     },
+    "acceptance_criteria_met": {"type": "boolean"},
     "tags": {"type": "array", "items": {"type": "string"}},
     "rev": {"type": "integer", "minimum": 0},
     "created_at": {"type": "string", "format": "date-time"},
@@ -161,6 +166,7 @@ export interface TaskRecord {
   review_notes?: string[];
   non_functional?: string[];
   done_if?: string[];
+  acceptance_criteria_met?: boolean;
   qa_report?: {
     total: number;
     passed: number;
@@ -189,6 +195,7 @@ export interface TaskRecord {
       prNumber: number;
     };
     adr_url?: string;
+    adr?: string[];
   };
   tags?: string[];
   rev: number;
