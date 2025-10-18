@@ -15,6 +15,14 @@
   },
   "assignees": ["monkey-d-luisi"],
   "reviewers": ["team/devs"],
-  "gateCheckName": "quality-gate"
+  "gateCheckName": "quality-gate",
+  "ready": {
+    "requireQaPass": true,
+    "requireReviewApproval": true,
+    "minApprovals": 1
+  },
+  "checks": {
+    "qaWorkflowNames": ["green-tests", "quality-gate"]
+  }
 }
 

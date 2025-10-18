@@ -5,6 +5,65 @@ import { rowToRecord } from '../src/repo/row-mapper.js';
 import { createGithubService } from '../src/github/service.js';
 import { loadGithubPrBotConfig } from '../src/github/config.js';
 import { PrBotAgent } from '../src/agents/prbot.js';
+import { createOctokit } from '../src/github/octokit.js';
+
+async function countApprovals(octokit, owner, repoName, prNumber) {
+  const reviews = await octokit.paginate(octokit.rest.pulls.listReviews, {
+    owner,
+    repo: repoName,
+    pull_number: prNumber,
+    per_page: 100
+  });
+
+  const latestStateByUser = new Map();
+  for (const review of reviews) {
+    const login = review.user?.login;
+    if (!login) continue;
+    const state = (review.state ?? '').toUpperCase();
+    latestStateByUser.set(login, state);
+  }
+
+  let approvals = 0;
+  for (const state of latestStateByUser.values()) {
+    if (state === 'APPROVED') {
+      approvals += 1;
+    }
+  }
+  return approvals;
+}
+
+async function checksGreen(octokit, owner, repoName, sha, requiredNames = []) {
+  if (!requiredNames.length) {
+    return false;
+  }
+
+  const { data } = await octokit.rest.checks.listForRef({
+    owner,
+    repo: repoName,
+    ref: sha,
+    per_page: 100
+  });
+
+  const successful = new Set();
+  for (const run of data.check_runs ?? []) {
+    if (!run?.name) continue;
+    if (!requiredNames.includes(run.name)) continue;
+    if (run.status === 'completed' && run.conclusion === 'success') {
+      successful.add(run.name);
+    }
+  }
+
+  return requiredNames.every((name) => successful.has(name));
+}
+
+function qaReportPassed(task) {
+  const report = task.qa_report;
+  if (!report) return false;
+  if (typeof report.total !== 'number' || typeof report.failed !== 'number') {
+    return false;
+  }
+  return report.total > 0 && report.failed === 0;
+}
 
 function extractEventInfo(event) {
   if (!event) {
@@ -70,10 +129,30 @@ async function main() {
   };
 
   const config = loadGithubPrBotConfig();
+  const octokit = createOctokit();
+  const pull = await octokit.rest.pulls.get({ owner, repo: repoName, pull_number: prNumber });
+
+  let approvalsCount = 0;
+  if (config.ready?.requireReviewApproval) {
+    approvalsCount = await countApprovals(octokit, owner, repoName, prNumber);
+  }
+
+  let qaChecksPassed = false;
+  const qaReportOk = qaReportPassed(task);
+  if (config.ready?.requireQaPass && !qaReportOk) {
+    const qaNames = config.checks?.qaWorkflowNames ?? [];
+    if (qaNames.length > 0) {
+      qaChecksPassed = await checksGreen(octokit, owner, repoName, pull.data.head.sha, qaNames);
+    }
+  }
+
   const githubService = createGithubService({ requests: githubRequestRepo, config });
   const agent = new PrBotAgent(githubService, config);
 
-  const summary = await agent.run(task);
+  const summary = await agent.run(task, {
+    approvalsCount,
+    qaChecksPassed: qaReportOk || qaChecksPassed
+  });
   console.log(JSON.stringify(summary, null, 2));
 }
 
