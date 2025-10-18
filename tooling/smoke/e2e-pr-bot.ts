@@ -80,7 +80,8 @@ async function main() {
   const agent = new PrBotAgent(fakeService as unknown as GithubService, config)
 
   const task = createSampleTask()
-  const summary = await agent.run(task)
+  const approvals = config.ready?.minApprovals ?? 0
+  const summary = await agent.run(task, { approvalsCount: approvals })
 
   console.log('\n?  PR Bot summary:')
   console.log(JSON.stringify(summary, null, 2))

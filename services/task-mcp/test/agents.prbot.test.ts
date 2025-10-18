@@ -22,7 +22,15 @@ const baseConfig: GithubPrBotConfig = {
   },
   assignees: ["monkey-d-luisi"],
   reviewers: ["team/devs"],
-  gateCheckName: "quality-gate"
+  gateCheckName: "quality-gate",
+  ready: {
+    requireQaPass: true,
+    requireReviewApproval: true,
+    minApprovals: 1
+  },
+  checks: {
+    qaWorkflowNames: ["green-tests", "quality-gate"]
+  }
 };
 
 const baseTask: TaskRecord = {
@@ -88,7 +96,9 @@ function buildAgent(override: Partial<GithubPrBotConfig> = {}) {
     project: override.project ? { ...baseConfig.project, ...override.project } : baseConfig.project,
     labels: override.labels ? { ...baseConfig.labels, ...override.labels } : baseConfig.labels,
     assignees: override.assignees ?? [...(baseConfig.assignees ?? [])],
-    reviewers: override.reviewers ?? [...(baseConfig.reviewers ?? [])]
+    reviewers: override.reviewers ?? [...(baseConfig.reviewers ?? [])],
+    ready: override.ready ? { ...baseConfig.ready, ...override.ready } : baseConfig.ready,
+    checks: override.checks ? { ...baseConfig.checks, ...override.checks } : baseConfig.checks
   };
 
   const createBranch = vi.fn(async () => ({ url: "branch-url", commit: "sha", created: true }));
@@ -199,33 +209,54 @@ describe("PrBotAgent", () => {
 
   it("no marca ready-for-review si el gate falla", async () => {
     const { agent, spies } = buildAgent();
-    await agent.run(cloneTask({ tags: ["quality_gate_failed"], status: "review" }));
+    await agent.run(cloneTask({ tags: ["quality_gate_failed"], status: "review" }), { approvalsCount: 1 });
     expect(spies.markReadyForReview).not.toHaveBeenCalled();
+  });
+
+  it("no marca ready-for-review si faltan aprobaciones", async () => {
+    const { agent, spies } = buildAgent();
+    await agent.run(cloneTask(), { approvalsCount: 0 });
+    expect(spies.markReadyForReview).not.toHaveBeenCalled();
+  });
+
+  it("no marca ready-for-review si el reporte de QA tiene fallos", async () => {
+    const { agent, spies } = buildAgent();
+    const task = cloneTask({ qa_report: { total: 5, passed: 4, failed: 1 } });
+    await agent.run(task, { approvalsCount: 1 });
+    expect(spies.markReadyForReview).not.toHaveBeenCalled();
+  });
+
+  it("marca ready-for-review cuando los checks de QA suplen el reporte", async () => {
+    const { agent, spies } = buildAgent();
+    const task = cloneTask();
+    delete (task as any).qa_report;
+    await agent.run(task, { approvalsCount: 1, qaChecksPassed: true });
+    expect(spies.markReadyForReview).toHaveBeenCalled();
   });
 
   it("mantiene el requestId de etiquetas cuando solo cambia el orden", async () => {
     const { agent: agentA, spies: spiesA } = buildAgent();
-    await agentA.run(cloneTask());
+    await agentA.run(cloneTask(), { approvalsCount: 1 });
     const initialId = spiesA.addLabels.mock.calls[0][0].requestId;
 
     const { agent: agentB, spies: spiesB } = buildAgent();
-    await agentB.run(cloneTask({ tags: ["fast-track:eligible", "fast-track"] }));
+    await agentB.run(cloneTask({ tags: ["fast-track:eligible", "fast-track"] }), { approvalsCount: 1 });
     const sameOrderId = spiesB.addLabels.mock.calls[0][0].requestId;
     expect(sameOrderId).toBe(initialId);
 
     const { agent: agentC, spies: spiesC } = buildAgent();
-    await agentC.run(cloneTask({ tags: ["fast-track", "fast-track:eligible", "quality_gate_failed"] }));
+    await agentC.run(cloneTask({ tags: ["fast-track", "fast-track:eligible", "quality_gate_failed"] }), { approvalsCount: 1 });
     const differentId = spiesC.addLabels.mock.calls[0][0].requestId;
     expect(differentId).not.toBe(initialId);
   });
 
   it("genera el mismo requestId de reviewers aunque cambie el orden", async () => {
     const { agent: agentA, spies: spiesA } = buildAgent({ reviewers: ["alice", "team/devs"] });
-    await agentA.run(cloneTask());
+    await agentA.run(cloneTask(), { approvalsCount: 1 });
     const firstId = spiesA.requestReviewers.mock.calls[0][0].requestId;
 
     const { agent: agentB, spies: spiesB } = buildAgent({ reviewers: ["team/devs", "alice"] });
-    await agentB.run(cloneTask());
+    await agentB.run(cloneTask(), { approvalsCount: 1 });
     const secondId = spiesB.requestReviewers.mock.calls[0][0].requestId;
 
     expect(secondId).toBe(firstId);
@@ -233,11 +264,11 @@ describe("PrBotAgent", () => {
 
   it("cambia el requestId del project cuando el estado es distinto", async () => {
     const { agent: agentA, spies: spiesA } = buildAgent();
-    await agentA.run(cloneTask({ status: "pr" }));
+    await agentA.run(cloneTask({ status: "pr" }), { approvalsCount: 1 });
     const inReviewId = spiesA.setProjectStatus.mock.calls[0][0].requestId;
 
     const { agent: agentB, spies: spiesB } = buildAgent();
-    await agentB.run(cloneTask({ status: "dev" }));
+    await agentB.run(cloneTask({ status: "dev" }), { approvalsCount: 1 });
     const inProgressId = spiesB.setProjectStatus.mock.calls[0][0].requestId;
 
     expect(inProgressId).not.toBe(inReviewId);
@@ -250,7 +281,7 @@ describe("PrBotAgent", () => {
       description: "Cambios alineados con ADR-010 definidos por arquitectura"
     });
 
-    const summary = await agent.run(task);
+    const summary = await agent.run(task, { approvalsCount: 1 });
 
     expect(summary.checklist).toContain("[x] ADR referenciados (ADR-010)");
 

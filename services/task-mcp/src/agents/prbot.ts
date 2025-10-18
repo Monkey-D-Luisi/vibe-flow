@@ -29,6 +29,11 @@ export interface PrSummary {
   checklist: string[];
 }
 
+export interface PrBotRunContext {
+  approvalsCount?: number;
+  qaChecksPassed?: boolean;
+}
+
 function ensurePrSummary(summary: unknown): PrSummary {
   if (!prSummaryValidator(summary)) {
     throw new Error(`PR summary validation failed: ${JSON.stringify(prSummaryValidator.errors)}`);
@@ -78,7 +83,7 @@ function unique<T>(items: T[]): T[] {
 export class PrBotAgent {
   constructor(private readonly github: GithubService, private readonly config: GithubPrBotConfig) {}
 
-  async run(task: TaskRecord): Promise<PrSummary> {
+  async run(task: TaskRecord, context: PrBotRunContext = {}): Promise<PrSummary> {
     const repo = this.resolveRepository(task);
     const branchName = this.buildBranchName(task);
     const baseBranch = this.config.defaultBase ?? 'main';
@@ -117,7 +122,7 @@ export class PrBotAgent {
       }
     }
 
-    if (task.status === 'pr' && !this.hasQualityGateFailure(task)) {
+    if (this.shouldPromoteToReady(task, context)) {
       await this.github.markReadyForReview(this.buildReadyForReviewParams(task, repo.owner, repo.repo, prResult.number));
     }
 
@@ -389,16 +394,44 @@ export class PrBotAgent {
 
     const qaReport = task.qa_report;
     const qaTotal = qaReport?.total ?? 0;
-    const qaPassed = qaReport?.passed ?? 0;
-    const qaFailures = qaReport?.failed ?? 0;
-    const qaOk = qaReport !== undefined && qaTotal > 0 && qaFailures === 0;
-    const qaDisplay = qaReport ? `${qaPassed}/${qaTotal}` : 'sin datos';
+    const qaPassedFromReport = this.qaReportPassed(task);
+    const qaDisplay = qaReport ? `${qaReport.passed ?? 0}/${qaTotal}` : 'sin datos';
     items.push({
-      checked: qaOk,
+      checked: qaPassedFromReport,
       label: `QA sin fallos (${qaDisplay})`
     });
 
     return items;
+  }
+
+  private getReadySettings(): { requireQaPass: boolean; requireReviewApproval: boolean; minApprovals: number } {
+    const ready = this.config.ready ?? {};
+    const requireQaPass = ready.requireQaPass === true;
+    const requireReviewApproval = ready.requireReviewApproval === true;
+    const minApprovals = Math.max(0, ready.minApprovals ?? (requireReviewApproval ? 1 : 0));
+    return { requireQaPass, requireReviewApproval, minApprovals };
+  }
+
+  private qaReportPassed(task: TaskRecord): boolean {
+    const qaReport = task.qa_report;
+    if (!qaReport) {
+      return false;
+    }
+    if (typeof qaReport.failed !== 'number' || typeof qaReport.total !== 'number') {
+      return false;
+    }
+    return qaReport.total > 0 && qaReport.failed === 0;
+  }
+
+  private shouldPromoteToReady(task: TaskRecord, context: PrBotRunContext): boolean {
+    if (task.status !== 'pr' || this.hasQualityGateFailure(task)) {
+      return false;
+    }
+    const settings = this.getReadySettings();
+    const qaOk = settings.requireQaPass ? this.qaReportPassed(task) || context.qaChecksPassed === true : true;
+    const approvalsCount = context.approvalsCount ?? 0;
+    const approvalsOk = settings.requireReviewApproval ? approvalsCount >= settings.minApprovals : true;
+    return qaOk && approvalsOk;
   }
 
   private resolveAdrReferences(task: TaskRecord): string[] {

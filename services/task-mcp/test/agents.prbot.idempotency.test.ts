@@ -127,7 +127,8 @@ describe("PrBotAgent idempotency with request repository", () => {
     const agent = new PrBotAgent(service, config);
 
     const task = makeTask();
-    await agent.run(task);
+    const approvals = config.ready?.minApprovals ?? 0;
+    await agent.run(task, { approvalsCount: Math.max(approvals, 0) });
 
     expect(counters).toMatchObject({
       createBranch: 1,
@@ -141,7 +142,7 @@ describe("PrBotAgent idempotency with request repository", () => {
     });
     const removeLabelCalls = counters.removeLabel;
 
-    await agent.run({ ...task, updated_at: new Date().toISOString() });
+    await agent.run({ ...task, updated_at: new Date().toISOString() }, { approvalsCount: Math.max(approvals, 0) });
 
     expect(counters.createBranch).toBe(1);
     expect(counters.openPullRequest).toBe(1);
