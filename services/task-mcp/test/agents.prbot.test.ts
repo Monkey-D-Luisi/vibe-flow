@@ -159,6 +159,14 @@ describe("PrBotAgent", () => {
       `prbot:${task.id}:project-status:${statusCall.issueNumber}:${statusFingerprint}`
     );
 
+    const removeLabelCalls = spies.removeLabel.mock.calls.map((call) => call[0]);
+    for (const removeCall of removeLabelCalls) {
+      const removeFingerprint = fingerprint(removeCall.label);
+      expect(removeCall.requestId).toBe(
+        `prbot:${task.id}:remove-label:${removeCall.issueNumber}:${removeFingerprint}`
+      );
+    }
+
     const commentCall = spies.comment.mock.calls[0][0];
     const commentFingerprint = fingerprint(commentCall.body);
     expect(commentCall.requestId).toBe(`prbot:${task.id}:quality-comment:123:${commentFingerprint}`);
