@@ -215,7 +215,7 @@ export class PrBotAgent {
       repo,
       issueNumber,
       label,
-      requestId: this.requestId(task.id, `remove-label:${label}`)
+      requestId: this.requestId(task.id, `remove-label:${issueNumber}`, label)
     };
   }
 
