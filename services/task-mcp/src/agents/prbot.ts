@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import { createHash } from 'node:crypto';
+import { fingerprint } from '../utils/normalize.js';
 import { TaskRecord } from '../domain/TaskRecord.js';
 import { loadSchema } from '../utils/loadSchema.js';
 import type {
@@ -73,29 +73,6 @@ function splitReviewers(entries: string[] = []): { reviewers: string[]; teamRevi
 
 function unique<T>(items: T[]): T[] {
   return Array.from(new Set(items.filter((item) => item !== undefined && item !== null)));
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return Object.prototype.toString.call(value) === '[object Object]';
-}
-
-function normalizeForFingerprint(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => normalizeForFingerprint(item));
-  }
-  if (isPlainObject(value)) {
-    const sortedEntries = Object.keys(value)
-      .sort()
-      .map((key) => [key, normalizeForFingerprint(value[key])]);
-    return Object.fromEntries(sortedEntries);
-  }
-  return value;
-}
-
-function fingerprint(value: unknown): string {
-  const normalized = normalizeForFingerprint(value);
-  const serialized = typeof normalized === 'string' ? normalized : JSON.stringify(normalized);
-  return createHash('sha256').update(serialized).digest('hex');
 }
 
 export class PrBotAgent {
@@ -466,7 +443,7 @@ export class PrBotAgent {
       cfg.inReview,
       cfg.readyForQa
     ]);
-    return managed.filter((label) => label && !desired.has(label));
+    return managed.filter((label) => label && !desired.has(label)).sort();
   }
 
   private resolveProjectStatus(status: TaskRecord['status']): string | null {

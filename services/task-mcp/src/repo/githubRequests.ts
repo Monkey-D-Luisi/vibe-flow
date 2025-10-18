@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
+import { normalizeForFingerprint } from '../utils/normalize.js';
 
 export interface GithubRequestRecord {
   requestId: string;
@@ -9,25 +10,8 @@ export interface GithubRequestRecord {
   createdAt: string;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Object.prototype.toString.call(value) === '[object Object]';
-}
-
-function normalizeForHash(payload: unknown): unknown {
-  if (Array.isArray(payload)) {
-    return payload.map((item) => normalizeForHash(item));
-  }
-  if (isRecord(payload)) {
-    const sortedEntries = Object.keys(payload)
-      .sort()
-      .map((key) => [key, normalizeForHash(payload[key])]);
-    return Object.fromEntries(sortedEntries);
-  }
-  return payload;
-}
-
 function computeHash(payload: unknown): string {
-  const normalized = JSON.stringify(normalizeForHash(payload ?? {}));
+  const normalized = JSON.stringify(normalizeForFingerprint(payload ?? {}));
   return createHash('sha256').update(normalized).digest('hex');
 }
 
