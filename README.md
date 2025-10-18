@@ -62,6 +62,7 @@ The system implements a complete agent orchestration framework with:
   - Project v2 status values (`To Do`, `In Progress`, `In Review`, `Done`) must exist in the configured field; adjust the config if your project board uses different names.
   - `defaultBase` defaults to `main`; override the config per environment if release branches are used.
   - `pr-bot.yml` listens to PR webhooks and the `quality-gate` workflow and simply replays `pr-bot-sync.mjs`. Keep the workflow filters in sync with the repo to avoid processing unrelated PRs.
+  - Automations that bypass Husky hooks (for example, CI jobs that only push commits) must export `SKIP_TESTS=1`; branch protection still blocks merges without the `green-tests` and `quality-gate` checks in green.
   - Schema migrations automatically create the `github_requests` table and index (`MIGRATION_SQL`); for persistent databases run the migration once and verify logs.
 
 ### Monorepo Structure
