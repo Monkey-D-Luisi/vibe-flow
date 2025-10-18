@@ -1,5 +1,8 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# No pre-commit checks configured yet
-exit 0
+echo "[pre-commit] Running tests (set SKIP_TESTS=1 to bypass under CI control)..."
+pnpm precommit:check || {
+  echo "[pre-commit] Tests failed. Commit aborted."
+  exit 1
+}
