@@ -56,6 +56,13 @@ The system implements a complete agent orchestration framework with:
 - PR-Bot agent automates branch creation, draft PRs, label/project synchronization, quality summaries, and Ready-for-Review promotion once the gate passes.
 - Fast-track automation now reuses the GitHub connector for evaluation/revocation comments and label updates.
 - Workflow `.github/workflows/pr-bot.yml` executes `services/task-mcp/scripts/pr-bot-sync.mjs` on PR events and `quality-gate` completion to keep labels, comments, and Project v2 status aligned even when orchestration is not running.
+- **Setup checklist**
+  - Configure either a GitHub App (`GH_APP_ID`, `GH_APP_INSTALLATION_ID`, `GH_APP_PRIVATE_KEY`) or a PAT stored as `PR_TOKEN`. The token/App must grant `repo`, `pull_requests`, `issues`, and Projects v2 scopes.
+  - Ensure repository labels referenced in `services/task-mcp/config/github.pr-bot.json` exist (matching casing). Missing labels are created by GitHub with defaults; production repos should pre-create them to avoid colour drift.
+  - Project v2 status values (`To Do`, `In Progress`, `In Review`, `Done`) must exist in the configured field; adjust the config if your project board uses different names.
+  - `defaultBase` defaults to `main`; override the config per environment if release branches are used.
+  - `pr-bot.yml` listens to PR webhooks and the `quality-gate` workflow and simply replays `pr-bot-sync.mjs`. Keep the workflow filters in sync with the repo to avoid processing unrelated PRs.
+  - Schema migrations automatically create the `github_requests` table and index (`MIGRATION_SQL`); for persistent databases run the migration once and verify logs.
 
 ### Monorepo Structure
 ```

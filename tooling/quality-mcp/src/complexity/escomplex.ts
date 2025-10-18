@@ -47,19 +47,6 @@ function createMethodUnit(
   };
 }
 
-function createClassUnit(cls: any): ComplexityUnit {
-  const name = typeof cls?.name === 'string' && cls.name.trim().length > 0 ? cls.name : '<anonymous class>';
-  return {
-    name,
-    kind: 'class',
-    cyclomatic: toNumber(cls?.aggregate?.cyclomatic),
-    startLine: toInteger(cls?.lineStart, 1),
-    endLine: toInteger(cls?.lineEnd, toInteger(cls?.lineStart, 1)),
-    loc: toNumber(cls?.aggregate?.sloc?.logical),
-    params: toNumber(cls?.aggregate?.paramCount)
-  };
-}
-
 export async function analyzeWithEscomplex(path: string): Promise<FileComplexity> {
   const source = await readFileSafe(path);
 
@@ -89,7 +76,6 @@ export async function analyzeWithEscomplex(path: string): Promise<FileComplexity
 
   if (Array.isArray(report?.classes)) {
     for (const cls of report.classes) {
-      units.push(createClassUnit(cls));
       if (Array.isArray(cls?.methods)) {
         for (const method of cls.methods) {
           units.push(createMethodUnit(method, deriveMethodKind(String(method?.name ?? ''), true), '<class method>'));

@@ -20,10 +20,13 @@ Conectar el orquestador y los agentes con GitHub para que **todo el ciclo de vid
 - Workflow (`.github/workflows/pr-bot.yml`): ejecuta `pr-bot-sync.mjs` para eventos `pull_request` y `workflow_run:quality-gate` con credenciales de App o PAT.
 - Pruebas: unitarias para `GithubService`, handlers MCP y `PrBotAgent`; se actualizan smokes (fast-track/runner) y se aÃ±aden contratos de idempotencia.
 - DocumentaciÃ³n: README y este EP detallan el flujo final.
-
----
-
-## Alcance
+- Checklist de despliegue:
+  - **Credenciales**: usar GitHub App (recomendado) o PAT (`PR_TOKEN`). Las apps requieren permisos `Contents`, `Pull requests`, `Issues`, `Projects (read/write)` y `Checks`.
+  - **Labels**: comprobar que el repositorio tiene creadas las etiquetas descritas en `services/task-mcp/config/github.pr-bot.json` (casing exacto) para evitar creación automática con colores aleatorios.
+  - **Project v2**: los estados configurados deben coincidir (`To Do`, `In Progress`, `In Review`, `Done`). Ajustar el JSON si el tablero usa otros nombres.
+  - **Base branch**: `defaultBase` se inicializa a `main`; si existen release branches, se puede parametrizar por entorno/tarea.
+  - **Workflow**: `pr-bot.yml` escucha eventos de PR y el `quality-gate`; revisar filtros de repos/etiquetas si se comparte la app entre varios repos.
+  - **Migración**: `MIGRATION_SQL` crea la tabla/index `github_requests`. Ejecutar la migración en bases persistidas antes de habilitar el servicio.\n---\n\n## Alcance
 **Incluye**
 - Conector GitHub (MCP server) con tools JSONâ€‘RPC y schemas validados.
 - PRâ€‘Bot como agente que consume el conector y las decisiones del orquestador.
@@ -326,4 +329,5 @@ Archivo `services/task-mcp/config/github.pr-bot.json`:
 
 Closes #<issue>
 ```
+
 

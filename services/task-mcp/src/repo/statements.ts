@@ -31,6 +31,7 @@ export const MIGRATION_SQL = `
   );
   CREATE INDEX IF NOT EXISTS idx_task_status ON task_records(status);
   CREATE INDEX IF NOT EXISTS idx_task_scope ON task_records(scope);
+  CREATE INDEX IF NOT EXISTS idx_task_pr_number ON task_records((json_extract(links_json, '$.git.prNumber')));
 
   -- Orchestrator state per Task
   CREATE TABLE IF NOT EXISTS orchestrator_state (
