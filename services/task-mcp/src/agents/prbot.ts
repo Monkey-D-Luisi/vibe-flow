@@ -32,6 +32,7 @@ export interface PrSummary {
 export interface PrBotRunContext {
   approvalsCount?: number;
   qaChecksPassed?: boolean;
+  qaReportPassed?: boolean;
 }
 
 function ensurePrSummary(summary: unknown): PrSummary {
@@ -209,11 +210,13 @@ function shouldPromoteToReady(
   config: GithubPrBotConfig,
   hasQualityGateFailure: boolean
 ): boolean {
-  if (task.status !== 'pr' || hasQualityGateFailure) {
+  const allowedStatuses = new Set<TaskRecord['status']>(['pr', 'done']);
+  if (!allowedStatuses.has(task.status) || hasQualityGateFailure) {
     return false;
   }
   const settings = getReadySettings(config);
-  const qaOk = settings.requireQaPass ? qaReportPassed(task) || context.qaChecksPassed === true : true;
+  const reportPassed = context.qaReportPassed ?? qaReportPassed(task);
+  const qaOk = settings.requireQaPass ? (reportPassed || context.qaChecksPassed === true) : true;
   const approvalsCount = context.approvalsCount ?? 0;
   const approvalsOk = settings.requireReviewApproval ? approvalsCount >= settings.minApprovals : true;
   return qaOk && approvalsOk;

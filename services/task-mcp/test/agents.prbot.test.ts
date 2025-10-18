@@ -234,6 +234,12 @@ describe("PrBotAgent", () => {
     expect(spies.markReadyForReview).toHaveBeenCalled();
   });
 
+  it("promueve aunque el estado persistido sea done", async () => {
+    const { agent, spies } = buildAgent();
+    await agent.run(cloneTask({ status: "done" }), { approvalsCount: 1 });
+    expect(spies.markReadyForReview).toHaveBeenCalled();
+  });
+
   it("mantiene el requestId de etiquetas cuando solo cambia el orden", async () => {
     const { agent: agentA, spies: spiesA } = buildAgent();
     await agentA.run(cloneTask(), { approvalsCount: 1 });
