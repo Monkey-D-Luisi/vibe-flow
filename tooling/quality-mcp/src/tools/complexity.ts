@@ -115,19 +115,38 @@ export async function complexity(input: ComplexityInput): Promise<ComplexityOutp
   const failed: string[] = [];
   let firstParseError: string | null = null;
 
+  const fallbackAnalyzer =
+    engine === 'escomplex'
+      ? analyzeWithTsMorph
+      : null;
+
   for (const filePath of files) {
     checkTimeout(deadline, filePath);
     let analysis: EngineFileComplexity;
     try {
       analysis = await analyzer(filePath);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const relativePath = normalizeRelativePath(repoRoot, filePath);
-      failed.push(relativePath);
-      if (!firstParseError) {
-        firstParseError = `PARSE_ERROR: Failed to analyze ${relativePath} - ${message}`;
+      if (fallbackAnalyzer) {
+        try {
+          analysis = await fallbackAnalyzer(filePath);
+        } catch (fallbackError) {
+          const message = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          const relativePath = normalizeRelativePath(repoRoot, filePath);
+          failed.push(relativePath);
+          if (!firstParseError) {
+            firstParseError = `PARSE_ERROR: Failed to analyze ${relativePath} - ${message}`;
+          }
+          continue;
+        }
+      } else {
+        const message = error instanceof Error ? error.message : String(error);
+        const relativePath = normalizeRelativePath(repoRoot, filePath);
+        failed.push(relativePath);
+        if (!firstParseError) {
+          firstParseError = `PARSE_ERROR: Failed to analyze ${relativePath} - ${message}`;
+        }
+        continue;
       }
-      continue;
     }
 
     const units = [...analysis.units].sort((a, b) => {
