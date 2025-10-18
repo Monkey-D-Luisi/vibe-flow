@@ -155,7 +155,9 @@ describe("PrBotAgent", () => {
 
     const statusCall = spies.setProjectStatus.mock.calls[0][0];
     const statusFingerprint = fingerprint(statusCall.project);
-    expect(statusCall.requestId).toBe(`prbot:${task.id}:project-status:${statusFingerprint}`);
+    expect(statusCall.requestId).toBe(
+      `prbot:${task.id}:project-status:${statusCall.issueNumber}:${statusFingerprint}`
+    );
 
     const commentCall = spies.comment.mock.calls[0][0];
     const commentFingerprint = fingerprint(commentCall.body);
