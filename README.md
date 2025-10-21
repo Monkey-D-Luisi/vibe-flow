@@ -13,6 +13,15 @@ Implementation of a complete **agent-orchestrated task management system** with:
 
 The system enables end-to-end automated task execution from requirements to deployment, with strict quality controls and seamless agent handoffs.
 
+## 📚 Documentation
+
+- **[Getting Started Guide](docs/GETTING_STARTED.md)** - Complete setup and first steps
+- **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute to the project
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[TaskRecord v1.0.0 Spec](docs/task_record_v_1_0.md)** - Core data model specification
+- **[Architecture Decision Records](docs/ADR-TR-001.md)** - Key architectural decisions
+- **[E2E Smoke Test Report](docs/e2e-smoke-test-report.md)** - Latest test results
+
 ## Required CI Checks
 
 To keep `main` protected, configure branch protection rules so that the following GitHub Actions jobs are required before merge:
@@ -797,12 +806,16 @@ This project uses Conventional Commits:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+Copyright (c) 2024 Monkey-D-Luisi
+
 ## 📞 Support
 
 For support or questions:
-- Open an issue on GitHub
-- Check the documentation in [`docs/`](docs/)
-- Review the E2E smoke test report: [`docs/e2e-smoke-test-report.md`](docs/e2e-smoke-test-report.md)
-- Review the tests for usage examples
+- **[Open an issue](https://github.com/Monkey-D-Luisi/agents-mcps/issues)** on GitHub
+- **[Getting Started Guide](docs/GETTING_STARTED.md)** - Setup and usage instructions
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common problems and solutions
+- **[Documentation](docs/)** - Complete technical documentation
+- **[E2E Smoke Test Report](docs/e2e-smoke-test-report.md)** - Latest test results
+- **Review the tests** - Tests provide excellent usage examples
 
 
