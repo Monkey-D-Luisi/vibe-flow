@@ -47,18 +47,27 @@ The lint job now fails on any ESLint error, and the quality gate workflow downlo
 
 ## 🔒 Security Audit
 
-A security audit script is available in the root of the project to check for vulnerabilities in dependencies:
+A comprehensive project audit script is available in the root of the project to check for security vulnerabilities and analyze project structure:
 
 ```bash
 node audit.mjs
 ```
 
-This script performs:
-- **pnpm audit**: Scans all dependencies for known security vulnerabilities
+This enhanced script performs:
+- **Project structure analysis**: Detects configuration files, testing frameworks, CI/CD setup, and development tools
+- **Security vulnerability scanning**: Runs `pnpm audit` to detect known vulnerabilities in dependencies
 - **Outdated packages check**: Lists packages with available updates
-- **Report generation**: Creates `audit-report.json` with detailed findings
+- **Dependency listing**: Shows all direct dependencies
+- **Report generation**: Creates both `audit-report.json` (detailed JSON) and `AUDIT_REPORT.md` (human-readable summary)
 
-The audit report includes severity levels (critical, high, moderate, low) and recommendations for each vulnerability. Run this script regularly to maintain project security.
+The audit report includes:
+- Complete project structure and configuration analysis
+- Security vulnerabilities with severity levels (critical, high, moderate, low)
+- Detailed recommendations for each vulnerability
+- Actionable improvement suggestions
+- Testing infrastructure assessment
+
+Run this script regularly to maintain project security and monitor project health. See `AUDIT_REPORT.md` for the latest comprehensive audit results.
 
 ## 🏗️ Architecture
 
