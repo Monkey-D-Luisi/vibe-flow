@@ -15,12 +15,26 @@ The system enables end-to-end automated task execution from requirements to depl
 
 ## 📚 Documentation
 
-- **[Getting Started Guide](docs/GETTING_STARTED.md)** - Complete setup and first steps
-- **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute to the project
-- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
-- **[TaskRecord v1.0.0 Spec](docs/task_record_v_1_0.md)** - Core data model specification
-- **[Architecture Decision Records](docs/ADR-TR-001.md)** - Key architectural decisions
-- **[E2E Smoke Test Report](docs/e2e-smoke-test-report.md)** - Latest test results
+Complete documentation is available in the [`docs/`](docs/) directory.
+
+**Quick Links**:
+- **[📖 Documentation Index](docs/INDEX.md)** - Complete documentation catalog
+- **[🚀 Getting Started Guide](docs/GETTING_STARTED.md)** - Setup and first steps
+- **[📐 Architecture Overview](docs/ARCHITECTURE.md)** - System design and principles
+- **[🤝 Contributing Guidelines](CONTRIBUTING.md)** - How to contribute
+- **[🔧 Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+
+**Key Specifications**:
+- **[TaskRecord v1.0.0](docs/task_record_v_1_0.md)** - Core data model
+- **[Agent Contracts](docs/ep_01_t_03_prompts_por_agente_y_contratos_de_salida_especificacion.md)** - Agent I/O specifications
+- **[State Machine](docs/grafo_de_estados_y_handoffs_ep_01_t_02_especificacion_tecnica.md)** - Workflow states
+- **[Quality Gates](docs/ep_02_t_06_quality.md)** - Quality enforcement
+- **[GitHub Integration](docs/ep_03_git_hub_integration_pr_bot_especificacion_tecnica_y_plan_de_entrega.md)** - GitHub automation
+
+**Service Documentation**:
+- **[Task MCP Service](services/task-mcp/README.md)** - Core MCP service
+- **[Quality MCP](tooling/quality-mcp/README.md)** - Quality tooling
+- **[JSON Schemas](packages/schemas/README.md)** - Contract schemas
 
 ## Required CI Checks
 
