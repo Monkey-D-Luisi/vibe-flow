@@ -11,11 +11,49 @@
  * - CI/CD setup
  */
 
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
 const AUDIT_REPORT_PATH = "./audit-report.json";
+
+/**
+ * Cross-platform command runner using spawnSync without shell.
+ * @param {string} command - The command to run (e.g., "pnpm")
+ * @param {string[]} args - Command arguments
+ * @param {string} description - Human-readable description for logging
+ * @returns {{ exitCode: number, stdout: string, stderr: string }}
+ */
+function run(command, args, description) {
+  console.log(`Running: ${description}`);
+  console.log(`Command: ${command} ${args.join(" ")}`);
+  console.log("-".repeat(60));
+  
+  const result = spawnSync(command, args, {
+    encoding: "utf8",
+    shell: false,
+    maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+  });
+  
+  return {
+    exitCode: result.status ?? -1,
+    stdout: result.stdout || "",
+    stderr: result.stderr || "",
+  };
+}
+
+/**
+ * Safe JSON parse helper that handles arrays and objects.
+ * @param {string} text - JSON text to parse
+ * @returns {any|null} Parsed JSON or null if invalid
+ */
+function safeParseJSON(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
 
 // Utility functions for project structure analysis
 const has = (p) => fs.existsSync(path.join(process.cwd(), p));
@@ -207,29 +245,162 @@ console.log("Starting Comprehensive Project Audit");
 console.log("=".repeat(60));
 console.log("");
 
-// Function to execute command and capture output
-function executeCommand(command, description) {
-  console.log(`Running: ${description}`);
-  console.log(`Command: ${command}`);
-  console.log("-".repeat(60));
+/**
+ * Handler for pnpm version check
+ */
+function checkPnpmVersion() {
+  const result = run("pnpm", ["--version"], "Check pnpm version");
   
-  try {
-    const output = execSync(command, {
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
-      maxBuffer: 10 * 1024 * 1024 // 10MB buffer
-    });
-    console.log(output);
-    return { success: true, output, error: null };
-  } catch (error) {
-    console.error(`Error executing command: ${error.message}`);
-    if (error.stdout) {
-      console.log(error.stdout.toString());
+  if (result.exitCode === 0) {
+    console.log(result.stdout);
+    return { success: true, output: result.stdout, error: null };
+  } else {
+    console.error(`Error: Command failed with exit code ${result.exitCode}`);
+    if (result.stderr) {
+      console.error(result.stderr);
     }
-    if (error.stderr) {
-      console.error(error.stderr.toString());
+    return { 
+      success: false, 
+      output: result.stdout, 
+      error: `Command failed with exit code ${result.exitCode}: ${result.stderr}` 
+    };
+  }
+}
+
+/**
+ * Handler for pnpm audit
+ */
+function checkPnpmAudit() {
+  const result = run("pnpm", ["audit", "--json"], "Security audit of dependencies");
+  
+  // Exit code 0: No vulnerabilities
+  if (result.exitCode === 0) {
+    console.log(result.stdout);
+    console.log("\n✓ No vulnerabilities found");
+    return { success: true, output: result.stdout, error: null };
+  }
+  
+  // Exit code 1: Vulnerabilities detected (not a command failure)
+  if (result.exitCode === 1) {
+    console.log(result.stdout);
+    
+    const auditData = safeParseJSON(result.stdout);
+    if (auditData && auditData.metadata && auditData.metadata.vulnerabilities) {
+      const vulns = auditData.metadata.vulnerabilities;
+      const total = Object.values(vulns).reduce((a, b) => a + b, 0);
+      
+      console.log("\n⚠️  Vulnerabilities detected:");
+      console.log(`- Total advisories: ${total}`);
+      console.log(`  - Critical: ${vulns.critical || 0}`);
+      console.log(`  - High: ${vulns.high || 0}`);
+      console.log(`  - Moderate: ${vulns.moderate || 0}`);
+      console.log(`  - Low: ${vulns.low || 0}`);
+      
+      return { 
+        success: false, 
+        output: result.stdout, 
+        error: `Found ${total} vulnerabilities (critical: ${vulns.critical || 0}, high: ${vulns.high || 0}, moderate: ${vulns.moderate || 0}, low: ${vulns.low || 0})` 
+      };
+    } else {
+      // JSON parse failed but exit code is 1
+      console.log("\n⚠️  Vulnerabilities detected (unable to parse details)");
+      return { 
+        success: false, 
+        output: result.stdout, 
+        error: "Vulnerabilities detected but could not parse JSON output" 
+      };
     }
-    return { success: false, output: error.stdout?.toString(), error: error.message };
+  }
+  
+  // Other exit codes: Real command failure
+  console.error(`Error: Command failed with exit code ${result.exitCode}`);
+  if (result.stderr) {
+    console.error(result.stderr);
+  }
+  return { 
+    success: false, 
+    output: result.stdout, 
+    error: `Command failed with exit code ${result.exitCode}: ${result.stderr}` 
+  };
+}
+
+/**
+ * Handler for pnpm outdated
+ */
+function checkPnpmOutdated() {
+  const result = run("pnpm", ["outdated", "--json"], "Check for outdated packages");
+  
+  // Exit code 0: All packages up to date
+  if (result.exitCode === 0) {
+    console.log(result.stdout || "All packages are up to date");
+    return { success: true, output: result.stdout, error: null };
+  }
+  
+  // Exit code 1: Outdated packages detected (not a command failure)
+  if (result.exitCode === 1) {
+    console.log(result.stdout);
+    
+    const outdatedData = safeParseJSON(result.stdout);
+    let count = 0;
+    
+    if (outdatedData) {
+      // Handle array format
+      if (Array.isArray(outdatedData)) {
+        count = outdatedData.length;
+      }
+      // Handle object format (keyed by package name)
+      else if (typeof outdatedData === 'object') {
+        count = Object.keys(outdatedData).length;
+      }
+      
+      console.log(`\n⚠️  Found ${count} outdated package(s)`);
+      return { 
+        success: false, 
+        output: result.stdout, 
+        error: `Found ${count} outdated package(s)` 
+      };
+    } else {
+      // JSON parse failed but exit code is 1
+      console.log("\n⚠️  Outdated packages detected (unable to parse details)");
+      return { 
+        success: false, 
+        output: result.stdout, 
+        error: "Outdated packages detected but could not parse JSON output" 
+      };
+    }
+  }
+  
+  // Other exit codes: Real command failure
+  console.error(`Error: Command failed with exit code ${result.exitCode}`);
+  if (result.stderr) {
+    console.error(result.stderr);
+  }
+  return { 
+    success: false, 
+    output: result.stdout, 
+    error: `Command failed with exit code ${result.exitCode}: ${result.stderr}` 
+  };
+}
+
+/**
+ * Handler for pnpm list
+ */
+function checkPnpmList() {
+  const result = run("pnpm", ["list", "--depth=0"], "List direct dependencies");
+  
+  if (result.exitCode === 0) {
+    console.log(result.stdout);
+    return { success: true, output: result.stdout, error: null };
+  } else {
+    console.error(`Error: Command failed with exit code ${result.exitCode}`);
+    if (result.stderr) {
+      console.error(result.stderr);
+    }
+    return { 
+      success: false, 
+      output: result.stdout, 
+      error: `Command failed with exit code ${result.exitCode}: ${result.stderr}` 
+    };
   }
 }
 
@@ -248,45 +419,28 @@ console.log("Running Security Checks");
 console.log("=".repeat(60));
 
 console.log("\n1. Checking pnpm version...\n");
-const pnpmVersionResult = executeCommand("pnpm --version", "Check pnpm version");
+const pnpmVersionResult = checkPnpmVersion();
 auditResults.securityChecks.push({
   name: "pnpm version",
   ...pnpmVersionResult
 });
 
 console.log("\n2. Running pnpm audit...\n");
-const auditResult = executeCommand("pnpm audit --json || true", "Security audit of dependencies");
+const auditResult = checkPnpmAudit();
 auditResults.securityChecks.push({
   name: "pnpm audit",
   ...auditResult
 });
 
-// Try to parse audit results
-if (auditResult.output) {
-  try {
-    const auditData = JSON.parse(auditResult.output);
-    console.log("\nAudit Summary:");
-    console.log(`- Total advisories: ${auditData.metadata?.vulnerabilities ? Object.values(auditData.metadata.vulnerabilities).reduce((a, b) => a + b, 0) : "N/A"}`);
-    if (auditData.metadata?.vulnerabilities) {
-      console.log(`  - Critical: ${auditData.metadata.vulnerabilities.critical || 0}`);
-      console.log(`  - High: ${auditData.metadata.vulnerabilities.high || 0}`);
-      console.log(`  - Moderate: ${auditData.metadata.vulnerabilities.moderate || 0}`);
-      console.log(`  - Low: ${auditData.metadata.vulnerabilities.low || 0}`);
-    }
-  } catch (e) {
-    console.log("Could not parse audit JSON output");
-  }
-}
-
 console.log("\n3. Checking outdated packages...\n");
-const outdatedResult = executeCommand("pnpm outdated || true", "Check for outdated packages");
+const outdatedResult = checkPnpmOutdated();
 auditResults.securityChecks.push({
   name: "outdated packages",
   ...outdatedResult
 });
 
 console.log("\n4. Listing installed packages...\n");
-const listResult = executeCommand("pnpm list --depth=0", "List direct dependencies");
+const listResult = checkPnpmList();
 auditResults.securityChecks.push({
   name: "package list",
   ...listResult
@@ -309,9 +463,9 @@ console.log("Comprehensive Project Audit Complete");
 console.log("=".repeat(60));
 
 // Exit with appropriate code
-const hasErrors = auditResults.securityChecks.some(check => !check.success);
+const hasErrors = auditResults.securityChecks.some(check => check.success === false);
 if (hasErrors) {
-  console.log("\n⚠️  Some checks encountered errors. Please review the output above.");
+  console.log("\n⚠️  Some checks encountered errors or found issues. Please review the output above.");
   process.exit(1);
 } else {
   console.log("\n✓ All checks completed successfully");
