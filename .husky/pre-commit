@@ -24,3 +24,20 @@ else
     exit 1
   }
 fi
+
+if git diff --cached --name-only | grep -Eq '^docs/epics/.+/10-spec\.md$'; then
+  if [ "${SKIP_DESIGN_READY:-0}" = "1" ]; then
+    echo "[pre-commit] Skipping design_ready generation (SKIP_DESIGN_READY=1)."
+  else
+    echo "[pre-commit] design_ready spec changes detected. Running generator..."
+    pnpm design:gen || {
+      echo "[pre-commit] design:gen failed. Commit aborted."
+      exit 1
+    }
+    pnpm design:lint || {
+      echo "[pre-commit] design:lint failed. Commit aborted."
+      exit 1
+    }
+    echo "[pre-commit] design_ready artifacts updated. Restage generated files if needed."
+  fi
+fi

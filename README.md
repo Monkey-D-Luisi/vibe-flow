@@ -865,4 +865,5 @@ For support or questions:
 - Validate repository invariants with `pnpm design:lint` and run focused tests via `pnpm design:test`.
 - Add `design-ready-lint` from `.github/workflows/design-ready-lint.yml` to branch protections together with existing quality gates.
 - The workflow mirrors the local pipeline (`design:gen` + `design:lint`) and must stay green before merging.
+- Generated JSON includes a `schema_version` field so downstream tooling can detect breaking changes.
 

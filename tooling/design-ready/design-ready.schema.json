@@ -8,6 +8,7 @@
     "id",
     "title",
     "version",
+    "schema_version",
     "updated_at",
     "owners",
     "modules",
@@ -30,6 +31,11 @@
       "type": "integer",
       "minimum": 1,
       "description": "Schema document version."
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Version of the JSON schema that produced this artifact."
     },
     "updated_at": {
       "$ref": "#/$defs/ISODate"

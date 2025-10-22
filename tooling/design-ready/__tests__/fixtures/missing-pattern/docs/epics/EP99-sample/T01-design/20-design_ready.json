@@ -3,27 +3,41 @@
   "title": "Sample design ready",
   "version": 1,
   "updated_at": "2025-10-20",
-  "owners": ["team-architecture"],
+  "owners": [
+    "team-architecture"
+  ],
   "modules": [
     {
       "key": "orchestrator",
       "summary": "Coordinates generation and validation of design ready artifacts.",
       "owned_by": "team-architecture",
-      "dependencies": ["pattern-registry"],
-      "public_surface": ["generateDocument", "validateDocument"]
+      "dependencies": [
+        "pattern-registry"
+      ],
+      "public_surface": [
+        "generateDocument",
+        "validateDocument"
+      ]
     },
     {
       "key": "design-ready-api",
       "summary": "HTTP interface for requesting design ready exports.",
       "owned_by": "team-architecture",
-      "dependencies": ["orchestrator"],
-      "public_surface": ["POST /design-ready", "GET /design-ready/:task"]
+      "dependencies": [
+        "orchestrator"
+      ],
+      "public_surface": [
+        "POST /design-ready",
+        "GET /design-ready/:task"
+      ]
     },
     {
       "key": "pattern-registry",
       "summary": "Provides pattern catalog metadata used during generation.",
       "owned_by": "team-architecture",
-      "public_surface": ["fetchPatterns"]
+      "public_surface": [
+        "fetchPatterns"
+      ]
     }
   ],
   "contracts": [
@@ -33,28 +47,49 @@
       "module": "design-ready-api",
       "request": {
         "type": "object",
-        "required": ["taskId"],
+        "required": [
+          "taskId"
+        ],
         "additionalProperties": false,
         "properties": {
-          "taskId": {"type": "string", "pattern": "^EP\\d{2}-T\\d{2}$"},
-          "force": {"type": "boolean"}
+          "taskId": {
+            "type": "string",
+            "pattern": "^EP\\d{2}-T\\d{2}$"
+          },
+          "force": {
+            "type": "boolean"
+          }
         }
       },
       "response": {
         "type": "object",
-        "required": ["document"],
+        "required": [
+          "document"
+        ],
         "additionalProperties": false,
         "properties": {
-          "document": {"type": "object"},
+          "document": {
+            "type": "object"
+          },
           "warnings": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
       "errors": [
-        {"code": "NOT_FOUND", "when": "Task not registered", "http": 404},
-        {"code": "VALIDATION_ERROR", "when": "Schema validation failed", "http": 422}
+        {
+          "code": "NOT_FOUND",
+          "when": "Task not registered",
+          "http": 404
+        },
+        {
+          "code": "VALIDATION_ERROR",
+          "when": "Schema validation failed",
+          "http": 422
+        }
       ]
     },
     {
@@ -63,21 +98,31 @@
       "module": "orchestrator",
       "request": {
         "type": "object",
-        "required": ["document"],
+        "required": [
+          "document"
+        ],
         "additionalProperties": false,
         "properties": {
-          "document": {"type": "object"}
+          "document": {
+            "type": "object"
+          }
         }
       },
       "response": {
         "type": "object",
-        "required": ["valid"],
+        "required": [
+          "valid"
+        ],
         "additionalProperties": false,
         "properties": {
-          "valid": {"type": "boolean"},
+          "valid": {
+            "type": "boolean"
+          },
           "issues": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {
+              "type": "string"
+            }
           }
         }
       }
@@ -88,19 +133,34 @@
       "module": "pattern-registry",
       "event": {
         "type": "object",
-        "required": ["taskId", "checksum"],
+        "required": [
+          "taskId",
+          "checksum"
+        ],
         "additionalProperties": false,
         "properties": {
-          "taskId": {"type": "string"},
-          "checksum": {"type": "string"},
-          "updatedAt": {"type": "string"}
+          "taskId": {
+            "type": "string"
+          },
+          "checksum": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
         }
       }
     }
   ],
   "patterns": [
-    {"id": "P-0001", "rationale": "Circuit breaker around external catalog calls"},
-    {"id": "P-9999", "rationale": "Outbox ensures event publication"}
+    {
+      "id": "P-0001",
+      "rationale": "Circuit breaker around external catalog calls"
+    },
+    {
+      "id": "P-9999",
+      "rationale": "Outbox ensures event publication"
+    }
   ],
   "risks": [
     "Schema drift could invalidate generated types."
@@ -110,21 +170,38 @@
     "acceptance": [
       {
         "id": "AC-001",
-        "relates_to": {"contract": "design.ready.export.v1"},
+        "relates_to": {
+          "contract": "design.ready.export.v1"
+        },
         "description": "Consumers receive a document matching the schema",
-        "success_criteria": ["200 response", "Document validates against schema"]
+        "success_criteria": [
+          "200 response",
+          "Document validates against schema"
+        ]
       },
       {
         "id": "AC-002",
-        "relates_to": {"module": "pattern-registry"},
+        "relates_to": {
+          "module": "pattern-registry"
+        },
         "description": "Registry publishes update events",
-        "success_criteria": ["Event emitted", "Checksum provided"]
+        "success_criteria": [
+          "Event emitted",
+          "Checksum provided"
+        ]
       }
     ],
-    "coverage_targets": {"contracts_pct": 90}
+    "coverage_targets": {
+      "contracts_pct": 90
+    }
   },
   "links": {
-    "adrs": ["ADR-0001"],
-    "tasks": ["EP99-T01"]
-  }
+    "adrs": [
+      "ADR-0001"
+    ],
+    "tasks": [
+      "EP99-T01"
+    ]
+  },
+  "schema_version": 1
 }

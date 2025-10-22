@@ -299,5 +299,6 @@
       "EP04-T03"
     ]
   },
-  "version": 1
+  "version": 1,
+  "schema_version": 1
 }
