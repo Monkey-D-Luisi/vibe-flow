@@ -126,12 +126,12 @@ const defaultAgentRunner: AgentRunner = async (agent, input) => {
         branch: 'feature/user-auth',
         pr_url: 'https://github.com/org/repo/pull/123',
         checklist: [
-          '[x] ACs cumplidos',
+          '[x] ACs met',
           '[x] RGR log: red>green>refactor',
-          '[x] Cobertura >= 80%',
-          '[x] Lint 0 errores',
-          '[x] ADR-001 registrado',
-          '[x] QA: 23/25 tests pasaron'
+          '[x] Coverage >= 80%',
+          '[x] Lint 0 errors',
+          '[x] ADR-001 registered',
+          '[x] QA: 23/25 tests passed'
         ]
       };
 

@@ -1,10 +1,10 @@
-### Contexto
+### Context
 Closes #{ISSUE_NUMBER}
 
-### Checklist de entrega
-- [ ] ACs cumplidos y marcados
-- [ ] RGR log incluido (red -> green -> refactor)
-- [ ] Cobertura >= 80% (major) / >= 70% (minor)
-- [ ] Lint sin errores
-- [ ] Enlace ADR (si aplica)
+### Delivery Checklist
+- [ ] ACs met and marked
+- [ ] RGR log included (red -> green -> refactor)
+- [ ] Coverage >= 80% (major) / >= 70% (minor)
+- [ ] Lint without errors
+- [ ] ADR link (if applicable)
 

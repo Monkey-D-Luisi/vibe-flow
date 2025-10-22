@@ -710,8 +710,8 @@ Sample `gate.json` output:
     "complexity": { "avgCyclomatic": 5.8, "maxCyclomatic": 14 }
   },
   "violations": [
-    { "code": "TESTS_FAILED", "message": "1 test fallido" },
-    { "code": "COVERAGE_BELOW", "message": "Cobertura 0.76 < 0.80 (major)" },
+    { "code": "TESTS_FAILED", "message": "1 test failed" },
+    { "code": "COVERAGE_BELOW", "message": "Coverage 0.76 < 0.80 (major)" },
     { "code": "COMPLEXITY_HIGH", "message": "avg 5.8 > 5.0" }
   ]
 }
