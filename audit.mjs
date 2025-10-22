@@ -358,7 +358,7 @@ function checkPnpmOutdated() {
         count = outdatedData.length;
       }
       // Handle object format (keyed by package name)
-      else if (typeof outdatedData === 'object') {
+      else if (outdatedData !== null && typeof outdatedData === 'object') {
         count = Object.keys(outdatedData).length;
       }
       
