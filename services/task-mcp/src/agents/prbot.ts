@@ -149,20 +149,20 @@ function computeChecklistItems(task: TaskRecord): ChecklistItem[] {
   const acApproved = task.acceptance_criteria_met === true || ['qa', 'pr', 'done'].includes(task.status);
   items.push({
     checked: acCount > 0 && acApproved,
-    label: `ACs registrados (${acCount})`
+    label: `ACs registered (${acCount})`
   });
 
   const adrReferences = resolveAdrReferences(task);
   const adrLabel = adrReferences.length > 0 ? abbreviateList(adrReferences, 5) : 'N/A';
   items.push({
     checked: adrReferences.length > 0,
-    label: `ADR referenciados (${adrLabel})`
+    label: `ADR referenced (${adrLabel})`
   });
 
   const rgrCount = task.red_green_refactor_log?.length ?? 0;
   items.push({
     checked: rgrCount >= 2,
-    label: `RGR log (entradas: ${rgrCount})`
+    label: `RGR log (entries: ${rgrCount})`
   });
 
   const coverageTarget = task.scope === 'major' ? 0.8 : 0.7;
@@ -178,15 +178,15 @@ function computeChecklistItems(task: TaskRecord): ChecklistItem[] {
   const lintDisplay = typeof lintErrors === 'number' ? lintErrors : 'N/A';
   items.push({
     checked: lintOk,
-    label: `Lint 0 errores (actual: ${lintDisplay})`
+    label: `Lint 0 errors (actual: ${lintDisplay})`
   });
 
   const qaReport = task.qa_report;
   const qaTotal = qaReport?.total ?? 0;
-  const qaDisplay = qaReport ? `${qaReport.passed ?? 0}/${qaTotal}` : 'sin datos';
+  const qaDisplay = qaReport ? `${qaReport.passed ?? 0}/${qaTotal}` : 'no data';
   items.push({
     checked: qaReportPassed(task),
-    label: `QA sin fallos (${qaDisplay})`
+    label: `QA without failures (${qaDisplay})`
   });
 
   return items;
