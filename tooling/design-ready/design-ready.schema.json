@@ -1,0 +1,377 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agents-mcps.local/tooling/design-ready.schema.json",
+  "title": "Design Ready Document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "version",
+    "updated_at",
+    "owners",
+    "modules",
+    "contracts",
+    "patterns",
+    "test_plan"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^EP\\d{2}-T\\d{2}$",
+      "description": "Epic/task identifier (e.g. EP04-T03)."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "description": "Human-readable summary for the design."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema document version."
+    },
+    "updated_at": {
+      "$ref": "#/$defs/ISODate"
+    },
+    "owners": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[@a-zA-Z0-9][@a-zA-Z0-9-_/]{1,63}$",
+        "description": "GitHub handle or team slug."
+      },
+      "uniqueItems": true
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ModuleSpec"
+      }
+    },
+    "contracts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ContractSpec"
+      }
+    },
+    "patterns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/PatternRef"
+      },
+      "uniqueItems": false
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 5
+      }
+    },
+    "test_plan": {
+      "$ref": "#/$defs/TestPlan"
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "adrs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ADR-\\d{4}$"
+          },
+          "uniqueItems": true
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^EP\\d{2}-T\\d{2}$"
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ISODate": {
+      "type": "string",
+      "description": "ISO-8601 date (YYYY-MM-DD) or UTC timestamp.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}(?:T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z)?$"
+    },
+    "ModuleSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "summary",
+        "owned_by",
+        "public_surface"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-_]*$"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 10
+        },
+        "owned_by": {
+          "type": "string",
+        "pattern": "^[@a-zA-Z0-9][@a-zA-Z0-9-_/]{1,63}$"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-_]*$"
+          },
+          "uniqueItems": true
+        },
+        "public_surface": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Exported functions or endpoints."
+        }
+      }
+    },
+    "JSONSchemaRef": {
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ErrorCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "when"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 2
+        },
+        "when": {
+          "type": "string",
+          "minLength": 5
+        },
+        "http": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        }
+      }
+    },
+    "ExampleRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "file"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "file": {
+          "type": "string",
+          "minLength": 3
+        }
+      }
+    },
+    "ContractSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "module"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]*$"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "http",
+            "rpc",
+            "event"
+          ]
+        },
+        "module": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-_]*$"
+        },
+        "request": {
+          "$ref": "#/$defs/JSONSchemaRef"
+        },
+        "response": {
+          "$ref": "#/$defs/JSONSchemaRef"
+        },
+        "event": {
+          "$ref": "#/$defs/JSONSchemaRef"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ErrorCase"
+          }
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExampleRef"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "event"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "event"
+            ],
+            "not": {
+              "required": [
+                "request",
+                "response"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "request",
+              "response"
+            ]
+          }
+        }
+      ]
+    },
+    "PatternRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "rationale"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^P-\\d{4}$"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    },
+    "AcceptanceCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "relates_to",
+        "description",
+        "success_criteria"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^AC-\\d{3}$"
+        },
+        "relates_to": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "module": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-_]*$"
+            },
+            "contract": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.-]*$"
+            }
+          },
+          "minProperties": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10
+        },
+        "success_criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        }
+      }
+    },
+    "TestPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy",
+        "acceptance"
+      ],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "component",
+            "contract",
+            "e2e",
+            "mixed"
+          ]
+        },
+        "acceptance": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/AcceptanceCase"
+          }
+        },
+        "coverage_targets": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contracts_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        }
+      }
+    }
+  }
+}
