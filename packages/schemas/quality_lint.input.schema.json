@@ -6,7 +6,7 @@
   "properties": {
     "cwd": {
       "type": "string",
-      "description": "Directorio de trabajo"
+      "description": "Working directory"
     },
     "tool": {
       "type": "string",
@@ -15,7 +15,7 @@
     },
     "cmd": {
       "type": "string",
-      "description": "Comando de linter a ejecutar; debe producir JSON",
+      "description": "Linter command to execute; must produce JSON",
       "default": "pnpm -C services/task-mcp lint -f json"
     },
     "paths": {
@@ -23,7 +23,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Rutas o globs a analizar"
+      "description": "Paths or globs to analyze"
     },
     "timeoutMs": {
       "type": "integer",
