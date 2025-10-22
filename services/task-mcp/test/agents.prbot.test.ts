@@ -146,12 +146,12 @@ describe("PrBotAgent", () => {
     expect(summary.branch).toMatch(/^feature\/tr-test/);
     expect(summary.pr_url).toBe("https://github.com/acme/project/pull/123");
     expect(summary.checklist).toEqual([
-      "[x] ACs registrados (2)",
-      "[x] ADR referenciados (ADR-001, ADR-004)",
-      "[x] RGR log (entradas: 3)",
+      "[x] ACs registered (2)",
+      "[x] ADR referenced (ADR-001, ADR-004)",
+      "[x] RGR log (entries: 3)",
       "[x] Coverage >= 70% (actual: 82%)",
-      "[x] Lint 0 errores (actual: 0)",
-      "[x] QA sin fallos (12/12)"
+      "[x] Lint 0 errors (actual: 0)",
+      "[x] QA without failures (12/12)"
     ]);
     expect(() => validatePrSummary(summary)).not.toThrow();
 
@@ -199,8 +199,8 @@ describe("PrBotAgent", () => {
 
     const prCall = spies.openPullRequest.mock.calls[0][0];
     expect(prCall.body).toContain("### Checklist");
-    expect(prCall.body).toContain("- [x] ACs registrados (2)");
-    expect(prCall.body).toContain("- [x] ADR referenciados (ADR-001, ADR-004)");
+    expect(prCall.body).toContain("- [x] ACs registered (2)");
+    expect(prCall.body).toContain("- [x] ADR referenced (ADR-001, ADR-004)");
     expect(prCall.body).toContain("### ACs");
     expect(prCall.body).toContain("- Users can login with email/password");
     expect(prCall.body).toContain("### Calidad (resumen)");
@@ -289,9 +289,9 @@ describe("PrBotAgent", () => {
 
     const summary = await agent.run(task, { approvalsCount: 1 });
 
-    expect(summary.checklist).toContain("[x] ADR referenciados (ADR-010)");
+    expect(summary.checklist).toContain("[x] ADR referenced (ADR-010)");
 
     const prCall = spies.openPullRequest.mock.calls[0][0];
-    expect(prCall.body).toContain("- [x] ADR referenciados (ADR-010)");
+    expect(prCall.body).toContain("- [x] ADR referenced (ADR-010)");
   });
 });
