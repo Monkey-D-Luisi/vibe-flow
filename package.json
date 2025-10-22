@@ -6,12 +6,18 @@
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
+    "@types/node": "^22.5.4",
     "cross-env": "^7.0.3",
     "husky": "^9.1.7",
-    "tsx": "^4.16.0"
+    "tsx": "^4.16.0",
+    "yaml": "^2.6.0"
   },
   "scripts": {
     "prepare": "husky",
+    "adr:new": "node tooling/adr/adr-new.cjs",
+    "adr:lint": "tsx tooling/adr/adr-lint.ts",
+    "adr:lint:changed": "pnpm adr:lint -- --changed",
+    "adr:test": "pnpm --filter @agents/adr-tooling test",
     "test:quick": "pnpm -r -w test -- --passWithNoTests --bail=1",
     "test:ci": "pnpm -r -w test -- --passWithNoTests --runInBand",
     "precommit:check": "node scripts/should-run-tests.js || pnpm test:quick",

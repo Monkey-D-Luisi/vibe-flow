@@ -7,6 +7,7 @@ Thank you for your interest in contributing to this project! This guide will hel
 - [Getting Started](#getting-started)
 - [Development Workflow](#development-workflow)
 - [Coding Standards](#coding-standards)
+- [Architecture Decision Records](#architecture-decision-records)
 - [Testing Guidelines](#testing-guidelines)
 - [Commit Message Convention](#commit-message-convention)
 - [Pull Request Process](#pull-request-process)
@@ -92,6 +93,17 @@ This project follows **Hexagonal Architecture**:
 - **Agents**: Contract-driven with strict input/output schemas
 
 Keep domain logic free from infrastructure concerns.
+
+## Architecture Decision Records
+
+Document significant architectural decisions to preserve an auditable history and shared context.
+
+- Read the quick guide in `docs/adr/README.md` before drafting a record.
+- Create a new ADR with `pnpm adr:new`; the command proposes the next ID (`ADR-XXXX`), generates the slug, and pre-fills `id`, `title`, and `date`.
+- Populate the required sections (`Context`, `Decision`, `Considered Alternatives`, `Consequences`) and update metadata (`owners`, `area`, `links`, cross references).
+- Run `pnpm adr:lint` before opening a PR (or `pnpm adr:lint:changed` to validate only modified files).
+- Ensure the `adr-lint` CI check passes before merging.
+- Reference ADR IDs (for example `ADR-0007`) in your PR description so the PR Bot links them automatically.
 
 ## Testing Guidelines
 

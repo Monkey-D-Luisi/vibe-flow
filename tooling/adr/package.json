@@ -1,0 +1,8 @@
+{
+  "name": "@agents/adr-tooling",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "tsx --test __tests__/adr-lint.spec.ts"
+  }
+}
