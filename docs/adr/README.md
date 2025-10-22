@@ -10,7 +10,7 @@ Architecture Decision Records capture significant architectural choices together
 
 ## Naming conventions
 - **File path**: `docs/adr/ADR-<ID>-<slug>.md`.
-- **ID**: incremental sequence with four-digit zero padding (`ADR-0001`, `ADR-0002`, …).
+- **ID**: incremental sequence with four-digit zero padding (`ADR-0001`, `ADR-0002`, ...).
 - **Slug**: short kebab-case summary of the decision (`capture-api-errors`).
 - **Title**: concise imperative sentence that summarises the decision.
 
@@ -45,6 +45,19 @@ The linter checks:
 - Allowed statuses and transition rules.
 - Required headings in the Markdown body.
 - Cross references (`supersedes`, `superseded_by`) that exist and point to each other.
+
+## Editor support
+- Use the VS Code snippet `adrfront` to insert the recommended front matter and headings (see `.vscode/adr.code-snippets`).
+- Refresh the ADR index with `pnpm adr:index`; the command rewrites the section below.
+
+## ADR index
+<!-- adr-index:start -->
+
+| ID | Title | Status | Date |
+| --- | --- | --- | --- |
+| [ADR-0001](ADR-0001-lint-pipeline.md) | Enable lint pipeline for ADRs | accepted | 2025-01-15 |
+
+<!-- adr-index:end -->
 
 ## Referencing ADRs in PRs
 Mention the ADR ID (`ADR-000X`) in the PR description so the PR Bot surfaces it in the automated checklist. Link directly to the relevant ADRs when a change implements or updates a decision.

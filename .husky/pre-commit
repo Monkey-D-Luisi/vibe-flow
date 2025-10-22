@@ -6,3 +6,12 @@ pnpm precommit:check || {
   echo "[pre-commit] Tests failed. Commit aborted."
   exit 1
 }
+
+if [ "${SKIP_ADR:-0}" = "1" ]; then
+  echo "[pre-commit] Skipping ADR lint (SKIP_ADR=1)."
+else
+  pnpm adr:lint:changed || {
+    echo "[pre-commit] ADR lint failed. Commit aborted."
+    exit 1
+  }
+fi

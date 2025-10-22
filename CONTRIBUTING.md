@@ -104,6 +104,7 @@ Document significant architectural decisions to preserve an auditable history an
 - Run `pnpm adr:lint` before opening a PR (or `pnpm adr:lint:changed` to validate only modified files).
 - Ensure the `adr-lint` CI check passes before merging.
 - Reference ADR IDs (for example `ADR-0007`) in your PR description so the PR Bot links them automatically.
+- Local commits run `pnpm adr:lint:changed` through Husky; set `SKIP_ADR=1` if you need to bypass it under automation control.
 
 ## Testing Guidelines
 

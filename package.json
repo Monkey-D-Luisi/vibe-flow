@@ -17,6 +17,7 @@
     "adr:new": "node tooling/adr/adr-new.cjs",
     "adr:lint": "tsx tooling/adr/adr-lint.ts",
     "adr:lint:changed": "pnpm adr:lint -- --changed",
+    "adr:index": "tsx tooling/adr/adr-index.ts",
     "adr:test": "pnpm --filter @agents/adr-tooling test",
     "test:quick": "pnpm -r -w test -- --passWithNoTests --bail=1",
     "test:ci": "pnpm -r -w test -- --passWithNoTests --runInBand",
