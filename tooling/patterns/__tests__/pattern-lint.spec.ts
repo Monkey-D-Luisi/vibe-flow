@@ -63,3 +63,23 @@ test('deprecated patterns require replacement references', async () => {
     );
   });
 });
+
+test('reports missing ADR references', async () => {
+  await withFixture('missing-adr', async () => {
+    const summary = await lintRepository();
+    assert(
+      summary.issues.some((issue) => issue.message.includes('Referenced ADR ADR-9999 not found')),
+      'Expected missing ADR reference error',
+    );
+  });
+});
+
+test('flags empty trade-off entries', async () => {
+  await withFixture('empty-tradeoffs', async () => {
+    const summary = await lintRepository();
+    assert(
+      summary.issues.some((issue) => issue.message.includes('Trade-offs entry "Cost" must describe the impact')),
+      'Expected empty trade-off error',
+    );
+  });
+});
