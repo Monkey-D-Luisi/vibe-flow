@@ -35,6 +35,15 @@ function run(command, args, description) {
     maxBuffer: 10 * 1024 * 1024, // 10MB buffer
   });
   
+  // Handle ENOENT (command not found) and other spawn errors
+  if (result.error) {
+    return {
+      exitCode: -1,
+      stdout: "",
+      stderr: result.error.message || String(result.error),
+    };
+  }
+  
   return {
     exitCode: result.status ?? -1,
     stdout: result.stdout || "",
