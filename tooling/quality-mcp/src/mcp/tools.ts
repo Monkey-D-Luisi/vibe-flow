@@ -34,11 +34,11 @@ const toolInputSchemas: Record<ToolName, any> = {
 };
 
 const toolDescriptions: Record<ToolName, string> = {
-  'quality.run_tests': 'Ejecutar suite de pruebas automatizadas y devolver métricas',
-  'quality.coverage_report': 'Generar reporte de cobertura (total y por archivo) a partir de Istanbul',
-  'quality.lint': 'Ejecutar linter del repositorio y devolver reporte normalizado (errores y avisos)',
-  'quality.complexity': 'Calcular complejidad ciclomática por archivo y unidad (funciones, métodos, clases)',
-  'quality.gate_enforce': 'Evaluar el quality gate combinando resultados de tests, cobertura, lint y complejidad'
+  'quality.run_tests': 'Execute automated test suite and return metrics',
+  'quality.coverage_report': 'Generate coverage report (total and per file) from Istanbul',
+  'quality.lint': 'Execute repository linter and return normalized report (errors and warnings)',
+  'quality.complexity': 'Calculate cyclomatic complexity per file and unit (functions, methods, classes)',
+  'quality.gate_enforce': 'Evaluate quality gate combining test, coverage, lint and complexity results'
 };
 
 const toolValidators = Object.fromEntries(

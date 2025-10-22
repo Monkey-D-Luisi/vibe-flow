@@ -58,12 +58,12 @@ async function main() {
 
   console.log('📋 Evidence prepared for dev→review transition')
 
-  // 3) Crear tarea usando MCP tools del Task MCP
+  // 3) Create task using MCP tools from Task MCP
   console.log('🎯 Creating task...')
   const createRes: any = await callTool('task.create', {
     title: 'E2E smoke minor fast-track',
     scope: 'minor',
-    acceptance_criteria: ['Debe pasar quality gate minor', 'Debe crear PR']
+    acceptance_criteria: ['Must pass minor quality gate', 'Must create PR']
   })
   const id = createRes.id
   console.log(`✅ Task created with ID: ${id}`)
@@ -89,18 +89,18 @@ async function main() {
     console.log(`ℹ️  Fast-track evaluation failed (expected): ${(error as Error).message}`)
   }
 
-  // Obtener tarea actualizada después de fast-track
+  // Get updated task after fast-track
   const taskAfterFastTrack = await callTool('task.get', { id })
 
-  // 5) Transiciones de estado
+  // 5) State transitions
   console.log('🔄 Starting state transitions...')
 
-  // po→dev (ahora debería ser válido con fast-track tags)
+  // po→dev (should now be valid with fast-track tags)
   try {
     await callTool('task.transition', {
       id,
       to: 'dev',
-      if_rev: taskAfterFastTrack.rev // Usar la rev actualizada
+      if_rev: taskAfterFastTrack.rev // Use the updated rev
     })
     console.log('✅ po → dev transition completed')
   } catch (error) {

@@ -1,11 +1,11 @@
-Quality gate activo
+Quality gate active
 
-RGR log requerido para dev -> review
+RGR log required for dev -> review
 
-Cobertura minima segun scope (80% major, 70% minor)
+Minimum coverage by scope (80% major, 70% minor)
 
-Lint 0 errores
+Lint 0 errors
 
-QA report sin fallos antes de "Ready for review"
+QA report without failures before "Ready for review"
 
-Auto-cierre de issue con Closes #15
+Auto-close issue with Closes #15

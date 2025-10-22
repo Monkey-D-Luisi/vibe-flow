@@ -213,20 +213,20 @@ describe("PrBotAgent", () => {
     expect(spies.markReadyForReview).not.toHaveBeenCalled();
   });
 
-  it("no marca ready-for-review si faltan aprobaciones", async () => {
+  it("does not mark ready-for-review if approvals are missing", async () => {
     const { agent, spies } = buildAgent();
     await agent.run(cloneTask(), { approvalsCount: 0 });
     expect(spies.markReadyForReview).not.toHaveBeenCalled();
   });
 
-  it("no marca ready-for-review si el reporte de QA tiene fallos", async () => {
+  it("does not mark ready-for-review if QA report has failures", async () => {
     const { agent, spies } = buildAgent();
     const task = cloneTask({ qa_report: { total: 5, passed: 4, failed: 1 } });
     await agent.run(task, { approvalsCount: 1 });
     expect(spies.markReadyForReview).not.toHaveBeenCalled();
   });
 
-  it("marca ready-for-review cuando los checks de QA suplen el reporte", async () => {
+  it("marks ready-for-review when QA checks replace the report", async () => {
     const { agent, spies } = buildAgent();
     const task = cloneTask();
     delete (task as any).qa_report;
@@ -234,13 +234,13 @@ describe("PrBotAgent", () => {
     expect(spies.markReadyForReview).toHaveBeenCalled();
   });
 
-  it("promueve aunque el estado persistido sea done", async () => {
+  it("promotes even when persisted state is done", async () => {
     const { agent, spies } = buildAgent();
     await agent.run(cloneTask({ status: "done" }), { approvalsCount: 1 });
     expect(spies.markReadyForReview).toHaveBeenCalled();
   });
 
-  it("mantiene el requestId de etiquetas cuando solo cambia el orden", async () => {
+  it("maintains label requestId when only order changes", async () => {
     const { agent: agentA, spies: spiesA } = buildAgent();
     await agentA.run(cloneTask(), { approvalsCount: 1 });
     const initialId = spiesA.addLabels.mock.calls[0][0].requestId;
