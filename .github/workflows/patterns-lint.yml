@@ -1,0 +1,45 @@
+name: patterns-lint
+
+on:
+  push:
+    paths:
+      - 'docs/patterns/**'
+      - 'tooling/patterns/**'
+      - '.github/workflows/patterns-lint.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  pull_request:
+    paths:
+      - 'docs/patterns/**'
+      - 'tooling/patterns/**'
+      - '.github/workflows/patterns-lint.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+
+jobs:
+  lint:
+    name: patterns-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run pattern lint
+        run: pnpm patterns:lint
+
+      - name: Run pattern tests
+        run: pnpm patterns:test

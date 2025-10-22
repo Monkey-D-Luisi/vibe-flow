@@ -8,6 +8,7 @@ Thank you for your interest in contributing to this project! This guide will hel
 - [Development Workflow](#development-workflow)
 - [Coding Standards](#coding-standards)
 - [Architecture Decision Records](#architecture-decision-records)
+- [Architecture Pattern Catalog](#architecture-pattern-catalog)
 - [Testing Guidelines](#testing-guidelines)
 - [Commit Message Convention](#commit-message-convention)
 - [Pull Request Process](#pull-request-process)
@@ -105,6 +106,22 @@ Document significant architectural decisions to preserve an auditable history an
 - Ensure the `adr-lint` CI check passes before merging.
 - Reference ADR IDs (for example `ADR-0007`) in your PR description so the PR Bot links them automatically.
 - Local commits run `pnpm adr:lint:changed` through Husky; set `SKIP_ADR=1` if you need to bypass it under automation control.
+
+
+## Architecture Pattern Catalog
+
+Develop a consistent catalog of architectural patterns for reuse across teams.
+
+- Review the guidelines in `docs/patterns/README.md` before drafting a card.
+- Scaffold a new pattern with `pnpm patterns:new` to auto-assign the next ID, slug, and dates.
+- Complete every required heading from the template and keep Trade-offs bullets aligned with the canonical list.
+- Link to governing ADRs via `adr_refs` and cite related patterns in **References** using relative links.
+- Run `pnpm patterns:lint` (or `pnpm patterns:lint:changed`) and `pnpm patterns:test` before submitting a PR.
+- Regenerate the catalog table with `pnpm patterns:index` so `docs/patterns/README.md` stays in sync.
+- Ensure the `patterns-lint` workflow passes before merging.
+- Local commits run `pnpm patterns:lint:changed`; set `SKIP_PATTERNS=1` when an automated job needs to bypass it.
+
+The review checklist expects clear "When to use" / "When not to use" guidance, an explicit trade-off analysis, and at least one ADR reference.
 
 ## Testing Guidelines
 
@@ -295,3 +312,5 @@ Contributors will be recognized in:
 - Project documentation
 
 Thank you for contributing! 🎉
+
+

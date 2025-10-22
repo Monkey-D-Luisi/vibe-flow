@@ -93,6 +93,8 @@ importers:
 
   tooling/adr: {}
 
+  tooling/patterns: {}
+
   tooling/quality-mcp:
     dependencies:
       '@modelcontextprotocol/sdk':

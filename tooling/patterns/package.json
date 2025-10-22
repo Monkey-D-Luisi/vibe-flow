@@ -1,0 +1,8 @@
+{
+  "name": "@agents/pattern-tooling",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "tsx --test __tests__/pattern-lint.spec.ts"
+  }
+}

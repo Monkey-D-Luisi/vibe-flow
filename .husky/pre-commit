@@ -15,3 +15,12 @@ else
     exit 1
   }
 fi
+
+if [ "${SKIP_PATTERNS:-0}" = "1" ]; then
+  echo "[pre-commit] Skipping pattern lint (SKIP_PATTERNS=1)."
+else
+  pnpm patterns:lint:changed || {
+    echo "[pre-commit] Pattern lint failed. Commit aborted."
+    exit 1
+  }
+fi
