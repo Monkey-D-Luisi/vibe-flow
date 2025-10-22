@@ -47,9 +47,9 @@ function checkMinCounts(doc: DesignReadyDocument, issues: DomainIssue[]): void {
   const events = doc.contracts.filter((contract) => contract.kind === 'event');
   if (events.length === 0) {
     issues.push({
-      message: 'At least one contract must describe an event publisher.',
+      message: 'Include at least one event contract so publish/subscribe flows are covered.',
       path: 'contracts',
-      hint: 'Add an event contract with kind="event".',
+      hint: 'Add a contract with kind="event" (for example, design.ready.completed.v1).',
     });
   }
 }

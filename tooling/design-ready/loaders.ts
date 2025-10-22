@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import type { DesignReadyDocument, PatternRef } from './types.js';
 import { parseFrontMatter } from './front-matter.js';
+import { SCHEMA_VERSION } from './version.js';
 
 function getRepoRoot(): string {
   return path.resolve(process.cwd());
@@ -124,7 +125,7 @@ async function pathExists(target: string): Promise<boolean> {
 }
 
 function normalizeDocument(
-  partial: Omit<DesignReadyDocument, 'version'> & Partial<Pick<DesignReadyDocument, 'version'>>,
+  partial: Omit<DesignReadyDocument, 'version' | 'schema_version'> & Partial<Pick<DesignReadyDocument, 'version'>>,
   patternCatalog: Set<string>,
 ): DesignReadyDocument {
   const version = partial.version ?? 1;
@@ -134,6 +135,7 @@ function normalizeDocument(
   const doc: DesignReadyDocument = {
     ...partial,
     version,
+    schema_version: SCHEMA_VERSION,
     patterns,
   };
 

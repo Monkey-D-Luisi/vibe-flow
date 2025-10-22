@@ -1,0 +1,174 @@
+{
+  "id": "EP00-T01",
+  "title": "Snapshot test doc",
+  "updated_at": "2025-01-01",
+  "owners": [
+    "tester"
+  ],
+  "modules": [
+    {
+      "key": "broadcaster",
+      "summary": "Publishes completion events to subscribers.",
+      "owned_by": "tester",
+      "public_surface": [
+        "emit"
+      ]
+    },
+    {
+      "key": "orchestrator",
+      "summary": "Coordinates generation logic.",
+      "owned_by": "tester",
+      "dependencies": [
+        "validator"
+      ],
+      "public_surface": [
+        "run",
+        "inspect"
+      ]
+    },
+    {
+      "key": "validator",
+      "summary": "Applies schema and domain checks.",
+      "owned_by": "tester",
+      "public_surface": [
+        "validate"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "snapshot.completed.v1",
+      "kind": "event",
+      "module": "broadcaster",
+      "event": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "taskId",
+          "status"
+        ],
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "failed"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "snapshot.generate.v1",
+      "kind": "http",
+      "module": "orchestrator",
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "taskId"
+        ],
+        "properties": {
+          "taskId": {
+            "type": "string"
+          }
+        }
+      },
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "document"
+        ],
+        "properties": {
+          "document": {
+            "type": "object"
+          }
+        }
+      },
+      "errors": [
+        {
+          "code": "NOT_FOUND",
+          "when": "Unknown task id",
+          "http": 404
+        }
+      ]
+    },
+    {
+      "id": "snapshot.validate.v1",
+      "kind": "rpc",
+      "module": "validator",
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "document"
+        ],
+        "properties": {
+          "document": {
+            "type": "object"
+          }
+        }
+      },
+      "response": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "valid"
+        ],
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  ],
+  "patterns": [
+    {
+      "id": "P-0001",
+      "rationale": "Use breaker on catalog reads."
+    },
+    {
+      "id": "P-0002",
+      "rationale": "Use outbox for events."
+    }
+  ],
+  "test_plan": {
+    "strategy": "contract",
+    "acceptance": [
+      {
+        "id": "AC-100",
+        "relates_to": {
+          "contract": "snapshot.generate.v1"
+        },
+        "description": "Returns document payload.",
+        "success_criteria": [
+          "200 response",
+          "Document is present"
+        ]
+      },
+      {
+        "id": "AC-101",
+        "relates_to": {
+          "contract": "snapshot.completed.v1"
+        },
+        "description": "Publishes completion events.",
+        "success_criteria": [
+          "Event emitted",
+          "Status field set"
+        ]
+      }
+    ]
+  },
+  "links": {
+    "adrs": [
+      "ADR-0001"
+    ]
+  },
+  "version": 1,
+  "schema_version": 1
+}

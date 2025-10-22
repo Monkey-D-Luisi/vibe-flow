@@ -17,8 +17,12 @@ function getRepoRoot(): string {
   return path.resolve(process.cwd());
 }
 
-async function main(): Promise<void> {
-  await generateTypes();
+const SHOULD_SKIP_TYPES = process.env.DESIGN_READY_SKIP_TYPES === '1';
+
+export async function runGeneration(): Promise<boolean> {
+  if (!SHOULD_SKIP_TYPES) {
+    await generateTypes();
+  }
 
   const validator = await createValidator();
   const patternIds = await loadPatternIds();
@@ -27,7 +31,7 @@ async function main(): Promise<void> {
 
   if (sources.length === 0) {
     console.warn('[design-ready] No spec files found under docs/epics/**/10-spec.md');
-    return;
+    return true;
   }
 
   let hadError = false;
@@ -42,9 +46,7 @@ async function main(): Promise<void> {
     hadError ||= issues;
   }
 
-  if (hadError) {
-    process.exitCode = 1;
-  }
+  return !hadError;
 }
 
 interface ProcessContext {
@@ -67,7 +69,9 @@ async function processSource(
     console.error(`[design-ready] Schema validation failed for ${relSourcePath}`);
     if (ctx.validator.errors) {
       for (const error of ctx.validator.errors) {
-        console.error(`  • ${error.instancePath || '/'} ${error.message ?? ''}`.trim());
+        const location = error.instancePath || '/';
+        const message = error.message ?? '';
+        console.error(`  - ${location} ${message}`.trim());
       }
     }
     return true;
@@ -82,7 +86,7 @@ async function processSource(
   if (domainIssues.length > 0) {
     console.error(`[design-ready] Domain validation failed for ${relSourcePath}`);
     for (const issue of domainIssues) {
-      console.error(`  • ${issue.path}: ${issue.message}`);
+      console.error(`  - ${issue.path}: ${issue.message}`);
       if (issue.hint) {
         console.error(`    hint: ${issue.hint}`);
       }
@@ -120,9 +124,13 @@ function sortDocument(document: DesignReadyDocument): DesignReadyDocument {
 }
 
 if (process.argv[1] === __filename) {
-  await main().catch((error) => {
+  await runGeneration().catch((error) => {
     console.error('[design-ready] Failed to generate design ready artifacts.');
     console.error(error);
     process.exitCode = 1;
+  }).then((success) => {
+    if (success === false) {
+      process.exitCode = 1;
+    }
   });
 }

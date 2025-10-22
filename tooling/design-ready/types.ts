@@ -31,6 +31,10 @@ export interface DesignReadyDocument {
    * Schema document version.
    */
   version: number;
+  /**
+   * Version of the JSON schema that produced this artifact.
+   */
+  schema_version: number;
   updated_at: ISODate;
   /**
    * @minItems 1
