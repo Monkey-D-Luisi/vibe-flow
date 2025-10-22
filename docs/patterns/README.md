@@ -31,6 +31,12 @@ Cards must include:
 - `pnpm patterns:test` - unit tests for the linter.
 - `pnpm patterns:index` - rebuild the table below grouped by category.
 
+## Editor support
+- Use the VS Code snippet `patternfront` to expand the recommended front matter and headings (see `.vscode/patterns.code-snippets`).
+
+## CI integration
+- Add the `patterns-lint` GitHub check as required on protected branches, or rely on the Husky pre-commit hook (SKIP_PATTERNS=1) if you prefer local enforcement.
+
 ## Catalog index
 <!-- patterns-index:start -->
 

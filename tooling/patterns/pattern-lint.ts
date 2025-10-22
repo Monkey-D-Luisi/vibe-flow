@@ -407,9 +407,14 @@ function validateTradeOffs(doc: PatternDocument): LintIssue[] {
   }
 
   for (const key of TRADE_OFF_KEYS) {
-    const pattern = new RegExp(`^-\\s+${key}:`, 'im');
-    if (!pattern.test(tradeOffSection)) {
+    const pattern = new RegExp(`^-\\s+${key}:[ \\t]*([^\\r\\n]*)$`, 'im');
+    const match = tradeOffSection.match(pattern);
+    if (!match) {
       issues.push(createIssue(doc.path, `Trade-offs section must include "${key}:".`));
+      continue;
+    }
+    if (!match[1]?.trim()) {
+      issues.push(createIssue(doc.path, `Trade-offs entry "${key}" must describe the impact.`));
     }
   }
 
