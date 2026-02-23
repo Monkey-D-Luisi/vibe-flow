@@ -1,0 +1,28 @@
+{
+  "id": "quality-gate",
+  "name": "Quality Gate",
+  "description": "Quality gate engine: test runner, coverage, lint, complexity analysis, and gate enforcement",
+  "version": "0.1.0",
+  "entryPoint": "index.ts",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "coverageMinor": {
+        "type": "number",
+        "description": "Minimum coverage percentage for minor scope",
+        "default": 0.70
+      },
+      "coverageMajor": {
+        "type": "number",
+        "description": "Minimum coverage percentage for major scope",
+        "default": 0.80
+      },
+      "maxAvgCyclomatic": {
+        "type": "number",
+        "description": "Maximum average cyclomatic complexity",
+        "default": 5.0
+      }
+    },
+    "additionalProperties": false
+  }
+}

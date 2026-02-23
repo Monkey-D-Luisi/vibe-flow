@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CoverageReportOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["total", "files"],
+  "properties": {
+    "total": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lines", "statements", "branches", "functions"],
+      "properties": {
+        "lines": { "type": "number", "minimum": 0, "maximum": 1 },
+        "statements": { "type": "number", "minimum": 0, "maximum": 1 },
+        "branches": { "type": "number", "minimum": 0, "maximum": 1 },
+        "functions": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "lines"],
+        "properties": {
+          "path": { "type": "string" },
+          "lines": { "type": "number", "minimum": 0, "maximum": 1 },
+          "statements": { "type": "number", "minimum": 0, "maximum": 1 },
+          "branches": { "type": "number", "minimum": 0, "maximum": 1 },
+          "functions": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "summaryPath", "lcovPath", "excluded"],
+      "properties": {
+        "source": { "type": "string", "enum": ["istanbul"] },
+        "summaryPath": { "type": "string" },
+        "lcovPath": { "type": "string" },
+        "excluded": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://openclaw.dev/schemas/config.json",
+  "plugins": ["./extensions/product-team"],
+  "agents": {
+    "list": [
+      {
+        "id": "pm",
+        "name": "Product Manager",
+        "description": "Requirements gathering, acceptance criteria, scope assessment",
+        "skills": ["./skills/requirements-grooming"],
+        "tools": {
+          "allow": ["task.create", "task.get", "task.search", "task.update", "task.transition"]
+        }
+      },
+      {
+        "id": "architect",
+        "name": "Software Architect",
+        "description": "System design, ADRs, contracts, patterns",
+        "skills": ["./skills/architecture-design"],
+        "tools": {
+          "allow": ["task.get", "task.update", "task.transition", "workflow.state.get"]
+        }
+      },
+      {
+        "id": "dev",
+        "name": "Developer",
+        "description": "TDD implementation with quality metrics",
+        "skills": ["./skills/tdd-implementation"],
+        "tools": {
+          "allow": ["task.get", "task.update", "task.transition", "quality.*", "workflow.*"]
+        }
+      },
+      {
+        "id": "qa",
+        "name": "QA Engineer",
+        "description": "Test execution and quality reporting",
+        "skills": ["./skills/qa-testing"],
+        "tools": {
+          "allow": ["task.get", "task.update", "task.transition", "quality.*"]
+        }
+      },
+      {
+        "id": "reviewer",
+        "name": "Code Reviewer",
+        "description": "SOLID/Clean Code review with severity classification",
+        "skills": ["./skills/code-review"],
+        "tools": {
+          "allow": ["task.get", "task.update", "task.transition"]
+        }
+      },
+      {
+        "id": "infra",
+        "name": "Infrastructure Engineer",
+        "description": "CI/CD, deployment, GitHub automation",
+        "skills": ["./skills/github-automation"],
+        "tools": {
+          "allow": ["vcs.*", "task.get", "task.transition"]
+        }
+      }
+    ]
+  }
+}

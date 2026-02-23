@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunTestsOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["total", "passed", "failed", "durationMs", "meta"],
+  "properties": {
+    "total": { "type": "integer", "minimum": 0 },
+    "passed": { "type": "integer", "minimum": 0 },
+    "failed": { "type": "integer", "minimum": 0 },
+    "durationMs": { "type": "integer", "minimum": 0 },
+    "failedTests": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runner", "cmd", "cwd", "exitCode"],
+      "properties": {
+        "runner": { "type": "string" },
+        "cmd": { "type": "string" },
+        "cwd": { "type": "string" },
+        "exitCode": { "type": "integer" }
+      }
+    }
+  }
+}

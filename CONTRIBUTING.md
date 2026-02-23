@@ -1,4 +1,4 @@
-# Contributing to OpenClaw Extensions -- Product Team
+# Contributing to OpenClaw Extensions
 
 ## Getting Started
 
@@ -6,7 +6,6 @@
 
 - Node.js 22+
 - pnpm
-- [OpenClaw](https://openclaw.ai) (for integration testing)
 
 ### Installation
 
@@ -29,15 +28,14 @@ pnpm typecheck
 ### Branch Strategy
 
 - `main` -- Production branch, protected with CI
-- `feature/<description>` -- Feature branches
-- `bugfix/<description>` -- Bug fix branches
-- `hotfix/<description>` -- Emergency fixes
+- `feat/<description>` -- Feature branches
+- `fix/<description>` -- Bug fix branches
 
 ### Task-Driven Development
 
 1. Read the task specification in `docs/tasks/NNNN-*.md`
 2. Create a feature branch from `main`
-3. Implement using TDD (Red-Green-Refactor)
+3. Implement with tests
 4. Update the walkthrough in `docs/walkthroughs/NNNN-*.md`
 5. Pass quality gates
 6. Commit and create a PR
@@ -59,18 +57,15 @@ Before merging, ensure:
 - Strict mode enabled
 - No `any` types -- use proper typing
 - ESM modules (`"type": "module"`)
-- TypeBox for schema definitions in tool registrations
+- Use `.js` extension in import paths
 - Vitest for all tests
 
 ### Architecture
 
-The plugin follows **Hexagonal Architecture**:
-
-- **Domain** (`src/domain/`): Pure business logic, zero dependencies
-- **Persistence** (`src/persistence/`): SQLite repositories, WAL mode
-- **Orchestrator** (`src/orchestrator/`): State machine and agent routing
-- **Tools** (`src/tools/`): OpenClaw tool registrations (thin adapter layer)
-- **GitHub** (`src/github/`): Octokit-based automation with idempotency
+Extensions follow the OpenClaw plugin pattern:
+- `package.json` with `@openclaw/<name>` naming
+- `openclaw.plugin.json` with plugin metadata
+- `index.ts` default-exporting `{ id, name, description, register(api) }`
 
 ### Naming
 
@@ -78,7 +73,6 @@ The plugin follows **Hexagonal Architecture**:
 - Classes/Interfaces: `PascalCase`
 - Functions/Variables: `camelCase`
 - Constants: `UPPER_SNAKE_CASE`
-- JSON Schema files: `kebab-case.schema.json`
 
 ## Commit Message Convention
 
@@ -100,7 +94,8 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ### Scopes
 
-- `product-team` -- Plugin code
+- `quality-gate` -- Quality gate extension
+- `schemas` -- JSON Schemas
 - `skills` -- Skill definitions
 - `docs` -- Documentation
 - `ci` -- CI/CD workflows
@@ -108,10 +103,10 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 ### Examples
 
 ```
-feat(product-team): add task.create tool registration
-fix(product-team): correct optimistic locking in state repository
-docs: update roadmap with Phase 2 details
-test(product-team): add integration tests for quality gate
+feat(quality-gate): add ruff parser support
+fix(quality-gate): correct coverage ratio clamping
+docs: update README with CLI usage
+test(quality-gate): add integration tests for gate policy
 ```
 
 ## Pull Request Process
@@ -120,36 +115,35 @@ test(product-team): add integration tests for quality gate
 2. Implement changes with tests
 3. Ensure CI passes (`pnpm test && pnpm lint && pnpm typecheck`)
 4. Open a PR with the template filled out
-5. Link to the task specification (`docs/tasks/NNNN-*.md`)
-6. Address review feedback
-7. Merge when approved
+5. Address review feedback
+6. Merge when approved
 
 ## Project Structure
 
 ```
-extensions/product-team/       # OpenClaw plugin
+extensions/quality-gate/       # Quality gate extension
   src/
-    domain/                    # TaskRecord, FastTrack
-    persistence/               # SQLite repositories
-    orchestrator/              # State machine
-    quality/                   # Quality gates
-    github/                    # GitHub automation
-    tools/                     # Tool registrations
-    schemas/                   # JSON Schemas
+    complexity/                # Cyclomatic complexity analysis
+    exec/                      # Process execution
+    fs/                        # File system utilities
+    gate/                      # Gate policy and evaluation
+    parsers/                   # Output parsers
+    tools/                     # Tool implementations
+    utils/                     # Schema loading
+  cli/                         # CLI entry point
   test/                        # Vitest tests
 
 skills/                        # OpenClaw skills
-  requirements-grooming/
-  architecture-design/
-  tdd-implementation/
-  code-review/
-  qa-testing/
-  github-automation/
+  adr/                         # ADR management
+  patterns/                    # Architecture patterns
+
+packages/
+  schemas/                     # Shared JSON Schemas
 
 docs/
-  roadmap.md                   # Phased execution plan
-  backlog/                     # Epic specs
-  tasks/                       # Task specs
+  tasks/                       # Task specifications
   walkthroughs/                # Implementation journals
+  backlog/                     # Epic/backlog specs
   adr/                         # Architecture decisions
+  patterns/                    # Pattern catalog
 ```

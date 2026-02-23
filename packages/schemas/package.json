@@ -1,0 +1,6 @@
+{
+  "name": "@openclaw/schemas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "JSON Schemas for OpenClaw quality gate tools"
+}

@@ -1,24 +1,91 @@
-# Copilot instructions for commit messages
+# Copilot Instructions -- OpenClaw Extensions
 
-Always generate commit messages using the Conventional Commits specification.
+## Project Context
 
-Format:
-- Header: `type(scope?): subject`
-- Body (optional): prose with motivation and context
-- Footer (optional): references and breaking changes
+This is an OpenClaw extensions monorepo containing quality gate tooling, skills,
+and shared schemas. Tech stack: TypeScript ESM, Node 22+, pnpm workspaces, Vitest.
 
-Rules:
-- `type` must be one of: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
-- `scope` is optional, lower-case, and should match the affected area (e.g., schemas, task-mcp, docs)
-- `subject` is imperative, lower-case, no trailing period, concise (<=72 chars)
-- If change is breaking, include `BREAKING CHANGE:` in the footer
+## Conventional Commits
 
-Examples:
-- `feat(task-mcp): add MCP server bootstrap`
-- `fix(schemas): correct taskrecord enum values`
-- `docs: add task record v1.0 walkthrough`
+All commit messages MUST follow [Conventional Commits](https://www.conventionalcommits.org/).
 
-When multiple files are changed across areas, choose the most relevant scope or omit it.
+Format: `type(scope): subject`
 
-If the change only affects documentation under `docs/`, prefer `docs:`.
-If the change only updates tooling or ci, use `build:` or `ci:` accordingly.
+### Types
+
+- `feat` -- New feature
+- `fix` -- Bug fix
+- `docs` -- Documentation only
+- `style` -- Formatting, whitespace (no logic change)
+- `refactor` -- Code restructuring (no behavior change)
+- `perf` -- Performance improvement
+- `test` -- Adding or updating tests
+- `build` -- Build system or dependencies
+- `ci` -- CI/CD configuration
+- `chore` -- Maintenance, configs
+- `revert` -- Reverting a previous commit
+
+### Scopes
+
+- `quality-gate` -- Quality gate extension in `extensions/quality-gate/`
+- `product-team` -- Product team plugin in `extensions/product-team/`
+- `schemas` -- JSON Schemas in `packages/schemas/`
+- `skills` -- Skill definitions in `skills/`
+- `docs` -- Documentation in `docs/`
+- `ci` -- CI/CD workflows in `.github/`
+
+### Rules
+
+- Subject: imperative mood, lowercase, no trailing period, max 72 chars.
+- Header total: max 120 chars.
+- Body (optional): motivation and context in prose.
+- Footer (optional): `BREAKING CHANGE:` or issue references.
+- When multiple areas change, use the most relevant scope or omit it.
+
+### Examples
+
+```
+feat(quality-gate): add ruff parser support
+fix(quality-gate): correct coverage ratio clamping
+docs: update README with CLI usage
+test(quality-gate): add integration tests for gate policy
+ci: add coverage threshold check to PR workflow
+```
+
+## Commands
+
+| Command | Rule file |
+|---------|-----------|
+| `next task` | `.agent/rules/autonomous-workflow.md` |
+| `code review` | `.agent/rules/code-review-workflow.md` |
+| `fast track: <X>` | `.agent/rules/fast-track-workflow.md` |
+| `pr` | `.agent/rules/pr-workflow.md` |
+
+## Quality Gates
+
+| Gate | Threshold |
+|------|-----------|
+| Test coverage (major) | >= 80% |
+| Test coverage (minor) | >= 70% |
+| Lint errors | 0 |
+| TypeScript errors | 0 |
+| Avg cyclomatic complexity | <= 5.0 |
+
+## Architecture Principles
+
+- **Extension pattern**: `register(api)` entry point, `openclaw.plugin.json` manifest.
+- **ESM** with `.js` extensions in import paths.
+- **No `any`** -- use `unknown` + type guards.
+- Files under 500 LOC.
+
+## Code Style
+
+- TypeScript 5+ strict mode
+- 2-space indent, single quotes, trailing commas
+- Async/await over raw promises
+- No bare catch blocks -- always log with context
+
+## Governance
+
+The single source of truth is `.agent.md`. See `.agent/rules/` for detailed
+standards and workflows.
