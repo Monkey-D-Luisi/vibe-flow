@@ -1,6 +1,0 @@
-# Arquitectura
-packages/schemas/*   @Monkey-D-Luisi
-# Task MCP
-services/task-mcp/** @Monkey-D-Luisi
-# Workflows
-.github/**           @Monkey-D-Luisi
