@@ -16,8 +16,8 @@
 3. If no task is available, report to user and wait
 
 ### Step 2: Create Task Documentation
-1. Create task file: `docs/tasks/NNNN-<task-title>.md` using `.agent/templates/task-template.md`
-2. Create walkthrough file: `docs/walkthroughs/NNNN-<task-title>.md` using `.agent/templates/walkthrough-template.md`
+1. Create task file: `docs/tasks/NNNN-<task-title>.md` using `.agent/templates/task-spec.md`
+2. Create walkthrough file: `docs/walkthroughs/NNNN-<task-title>.md` using `.agent/templates/walkthrough.md`
 
 ### Step 3: Update Task Status
 Change the task status in the backlog file: `PENDING` -> `IN_PROGRESS`

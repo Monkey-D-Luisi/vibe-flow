@@ -6,6 +6,7 @@
 
 import { readFileSafe } from '../fs/read.js';
 import { resolve } from 'node:path';
+import { assertPathContained } from '../exec/spawn.js';
 import {
   parseCoverageSummary,
   parseLcov,
@@ -75,6 +76,10 @@ export async function coverageReportTool(input: CoverageInput): Promise<Coverage
   const format = input.format || 'auto';
   const summaryPath = resolve(cwd, input.summaryPath || DEFAULT_SUMMARY);
   const lcovPath = resolve(cwd, input.lcovPath || DEFAULT_LCOV);
+
+  // Prevent path traversal outside the working directory
+  assertPathContained(summaryPath, cwd);
+  assertPathContained(lcovPath, cwd);
 
   // Try summary format first (or if explicitly requested)
   if (format === 'summary' || format === 'auto') {

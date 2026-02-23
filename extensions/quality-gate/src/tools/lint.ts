@@ -4,7 +4,7 @@
  * Runs linters and reports violations.
  */
 
-import { safeSpawn } from '../exec/spawn.js';
+import { safeSpawn, assertSafeCommand } from '../exec/spawn.js';
 import { parseEslintOutput, summarizeEslint } from '../parsers/eslint.js';
 import { parseRuffOutput, summarizeRuff } from '../parsers/ruff.js';
 import type { NormalizedLintFileReport } from '../parsers/types.js';
@@ -57,6 +57,7 @@ export async function lintTool(input: LintInput): Promise<LintOutput> {
   const cwd = input.cwd || process.cwd();
   const timeoutMs = input.timeoutMs || 120000;
 
+  assertSafeCommand(command);
   const { cmd, args } = parseCommand(command);
 
   const result = await safeSpawn(cmd, args, {
