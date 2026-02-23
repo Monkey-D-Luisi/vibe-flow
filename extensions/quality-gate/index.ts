@@ -3,6 +3,8 @@
  *
  * Provides quality gate tools: test runner, coverage report, lint,
  * cyclomatic complexity analysis, and gate enforcement.
+ *
+ * Compatible with OpenClawPluginApi from 'openclaw/plugin-sdk'.
  */
 
 import { getAllToolDefs } from './src/tools/index.js';
@@ -13,14 +15,7 @@ export default {
   description:
     'Quality gate engine: test runner, coverage, lint, complexity analysis, and gate enforcement',
 
-  register(api: {
-    registerTool: (tool: {
-      name: string;
-      description: string;
-      parameters: Record<string, unknown>;
-      execute: (id: string, params: Record<string, unknown>) => Promise<unknown>;
-    }) => void;
-  }) {
+  register(api: { registerTool: (tool: unknown, opts?: Record<string, unknown>) => void }) {
     const tools = getAllToolDefs();
     for (const tool of tools) {
       api.registerTool(tool);

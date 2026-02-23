@@ -1,12 +1,7 @@
 ---
 name: ADR Management
 description: Create, lint, and index Architecture Decision Records
-metadata:
-  openclaw:
-    emoji: "📋"
-    requires:
-      - node
-      - pnpm
+metadata: { "openclaw": { "requires": { "bins": ["node", "pnpm"] } } }
 ---
 
 # ADR Management Skill

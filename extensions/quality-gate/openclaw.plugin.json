@@ -1,9 +1,5 @@
 {
   "id": "quality-gate",
-  "name": "Quality Gate",
-  "description": "Quality gate engine: test runner, coverage, lint, complexity analysis, and gate enforcement",
-  "version": "0.1.0",
-  "entryPoint": "index.ts",
   "configSchema": {
     "type": "object",
     "properties": {
