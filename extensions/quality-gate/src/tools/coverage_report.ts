@@ -36,18 +36,23 @@ export interface CoverageOutput {
 
 /**
  * Try to load coverage-summary.json.
+ * Returns null only if the file is missing; re-throws parse errors.
  */
 async function loadSummary(path: string): Promise<CoverageSummaryReport | null> {
   try {
     const raw = await readFileSafe(path);
     return parseCoverageSummary(raw);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('NOT_FOUND')) {
+      return null;
+    }
+    throw error;
   }
 }
 
 /**
  * Try to load lcov.info.
+ * Returns null only if the file is missing; re-throws parse errors.
  */
 async function loadLcov(path: string): Promise<CoverageOutput | null> {
   try {
@@ -63,8 +68,11 @@ async function loadLcov(path: string): Promise<CoverageOutput | null> {
       functionPct: summary.functionsPct,
       fileCount: records.length,
     };
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('NOT_FOUND')) {
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -72,7 +80,7 @@ async function loadLcov(path: string): Promise<CoverageOutput | null> {
  * Execute coverage report tool.
  */
 export async function coverageReportTool(input: CoverageInput): Promise<CoverageOutput> {
-  const cwd = input.cwd || process.cwd();
+  const cwd = resolve(input.cwd || process.cwd());
   const format = input.format || 'auto';
   const summaryPath = resolve(cwd, input.summaryPath || DEFAULT_SUMMARY);
   const lcovPath = resolve(cwd, input.lcovPath || DEFAULT_LCOV);

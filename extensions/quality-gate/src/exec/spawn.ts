@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { resolve, normalize } from 'node:path';
+import { resolve, relative, isAbsolute } from 'node:path';
 
 export interface SpawnOptions {
   cwd?: string;
@@ -8,26 +8,34 @@ export interface SpawnOptions {
 }
 
 /** Shell metacharacters that enable command injection. */
-const SHELL_META = /[;&|`$(){}!<>]/;
+const SHELL_META = /[;&|`$(){}!<>"'\\~\n\r]/;
 
 /**
- * Validate that a command string does not contain shell metacharacters.
+ * Validate that a command string and its arguments do not contain shell metacharacters.
  * Prevents command injection when `shell: true` is used on Windows.
  */
-export function assertSafeCommand(cmd: string): void {
-  if (SHELL_META.test(cmd)) {
-    throw new Error(`UNSAFE_COMMAND: command contains shell metacharacters: ${cmd}`);
+export function assertSafeCommand(cmd: string, args: string[] = []): void {
+  const validate = (input: string, label: string): void => {
+    if (SHELL_META.test(input)) {
+      throw new Error(`UNSAFE_COMMAND: ${label} contains shell metacharacters: ${input}`);
+    }
+  };
+  validate(cmd, 'command');
+  for (const arg of args) {
+    validate(arg, 'argument');
   }
 }
 
 /**
  * Validate that a path is contained within the given root directory.
  * Prevents path traversal attacks via `..` sequences or absolute paths.
+ * Uses path.relative to avoid sibling-prefix bypass (e.g. /root/dir2 vs /root/dir).
  */
 export function assertPathContained(inputPath: string, root: string): void {
-  const resolved = resolve(root, inputPath);
-  const normalizedRoot = normalize(root);
-  if (!resolved.startsWith(normalizedRoot)) {
+  const rootAbs = resolve(root);
+  const candidateAbs = resolve(rootAbs, inputPath);
+  const rel = relative(rootAbs, candidateAbs);
+  if (rel.startsWith('..') || isAbsolute(rel)) {
     throw new Error(`PATH_TRAVERSAL: path escapes root directory: ${inputPath}`);
   }
 }

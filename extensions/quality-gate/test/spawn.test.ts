@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { safeSpawn } from '../src/exec/spawn.js';
+import { safeSpawn, assertSafeCommand, assertPathContained } from '../src/exec/spawn.js';
 
 const isWindows = process.platform === 'win32';
 
@@ -116,5 +116,68 @@ describe('safeSpawn', () => {
     });
 
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('assertSafeCommand', () => {
+  it('allows safe commands', () => {
+    expect(() => assertSafeCommand('node')).not.toThrow();
+    expect(() => assertSafeCommand('npx', ['vitest', 'run'])).not.toThrow();
+    expect(() => assertSafeCommand('pnpm', ['test'])).not.toThrow();
+  });
+
+  it('rejects shell metacharacters in command', () => {
+    expect(() => assertSafeCommand('cmd; rm -rf /')).toThrow('UNSAFE_COMMAND');
+    expect(() => assertSafeCommand('cmd & whoami')).toThrow('UNSAFE_COMMAND');
+    expect(() => assertSafeCommand('cmd | cat')).toThrow('UNSAFE_COMMAND');
+    expect(() => assertSafeCommand('$(whoami)')).toThrow('UNSAFE_COMMAND');
+    expect(() => assertSafeCommand('cmd `id`')).toThrow('UNSAFE_COMMAND');
+  });
+
+  it('rejects quotes and backslashes', () => {
+    expect(() => assertSafeCommand('cmd"injection')).toThrow('UNSAFE_COMMAND');
+    expect(() => assertSafeCommand("cmd'injection")).toThrow('UNSAFE_COMMAND');
+    expect(() => assertSafeCommand('cmd\\injection')).toThrow('UNSAFE_COMMAND');
+  });
+
+  it('rejects newlines and carriage returns', () => {
+    expect(() => assertSafeCommand('cmd\nwhoami')).toThrow('UNSAFE_COMMAND');
+    expect(() => assertSafeCommand('cmd\rwhoami')).toThrow('UNSAFE_COMMAND');
+  });
+
+  it('rejects metacharacters in arguments', () => {
+    expect(() => assertSafeCommand('node', ['-e', 'process.exit(0); rm -rf /'])).toThrow('UNSAFE_COMMAND');
+    expect(() => assertSafeCommand('node', ['--flag', '$(whoami)'])).toThrow('UNSAFE_COMMAND');
+  });
+
+  it('allows safe arguments', () => {
+    expect(() => assertSafeCommand('node', ['-e', 'console.log'])).not.toThrow();
+    expect(() => assertSafeCommand('vitest', ['run', '--reporter=json'])).not.toThrow();
+  });
+});
+
+describe('assertPathContained', () => {
+  it('allows paths within root', () => {
+    expect(() => assertPathContained('src/index.ts', '/app')).not.toThrow();
+    expect(() => assertPathContained('coverage/lcov.info', '/project')).not.toThrow();
+    expect(() => assertPathContained('.', '/app')).not.toThrow();
+  });
+
+  it('rejects .. traversal', () => {
+    expect(() => assertPathContained('../etc/passwd', '/app')).toThrow('PATH_TRAVERSAL');
+    expect(() => assertPathContained('src/../../etc/passwd', '/app')).toThrow('PATH_TRAVERSAL');
+  });
+
+  it('rejects sibling prefix bypass', () => {
+    // /app/data-secret should NOT be contained in /app/data
+    expect(() => assertPathContained('/app/data-secret/file', '/app/data')).toThrow('PATH_TRAVERSAL');
+  });
+
+  it('handles absolute paths within root', () => {
+    expect(() => assertPathContained('/app/src/file.ts', '/app')).not.toThrow();
+  });
+
+  it('rejects absolute paths outside root', () => {
+    expect(() => assertPathContained('/etc/passwd', '/app')).toThrow('PATH_TRAVERSAL');
   });
 });
