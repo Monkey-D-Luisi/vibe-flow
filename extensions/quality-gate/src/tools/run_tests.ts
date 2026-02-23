@@ -4,7 +4,7 @@
  * Runs test suite and reports results.
  */
 
-import { safeSpawn } from '../exec/spawn.js';
+import { safeSpawn, assertSafeCommand } from '../exec/spawn.js';
 import { parseVitestOutput, type VitestSummary } from '../parsers/vitest.js';
 
 const DEFAULT_COMMAND = 'pnpm vitest run --reporter=json';
@@ -47,6 +47,7 @@ export async function runTestsTool(input: RunTestsInput): Promise<RunTestsOutput
   const timeoutMs = input.timeoutMs || 300000;
   const reporter = input.reporter || 'vitest';
 
+  assertSafeCommand(command);
   const { cmd, args } = parseCommand(command);
 
   const result = await safeSpawn(cmd, args, {

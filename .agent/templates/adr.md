@@ -43,3 +43,5 @@ unambiguously.>
 ### Neutral
 
 - <Side effect that is neither clearly positive nor negative>
+
+## References

@@ -6,6 +6,7 @@
 
 import { resolveGlobPatterns } from '../fs/glob.js';
 import { readFileSafe } from '../fs/read.js';
+import { assertPathContained } from '../exec/spawn.js';
 import type { ComplexitySummary, FunctionComplexity, FileComplexity } from '../complexity/types.js';
 import { DEFAULT_THRESHOLDS } from '../complexity/types.js';
 
@@ -139,15 +140,23 @@ export async function complexityTool(input: ComplexityInput): Promise<Complexity
   const maxCyclomatic = input.maxCyclomatic || DEFAULT_THRESHOLDS.maxFunctionCyclomatic;
   const topN = input.topN || 10;
 
+  // Reject glob patterns containing path traversal
+  for (const pattern of globs) {
+    if (pattern.includes('..')) {
+      throw new Error(`PATH_TRAVERSAL: glob pattern must not contain "..": ${pattern}`);
+    }
+  }
+
   const files = await resolveGlobPatterns(globs, { cwd, exclude });
 
   const fileResults: FileComplexity[] = [];
   for (const file of files) {
     try {
+      assertPathContained(file, cwd);
       const result = await analyzeFile(file);
       fileResults.push(result);
     } catch {
-      // Skip files that can't be analyzed
+      // Skip files that can't be analyzed or fail path validation
     }
   }
 
