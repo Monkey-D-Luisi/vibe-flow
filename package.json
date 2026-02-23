@@ -1,48 +1,19 @@
 {
-  "name": "agents-mcps-starter",
+  "name": "openclaw-extensions",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*", "services/*", "tooling/*"],
+  "description": "OpenClaw extensions: product-team plugin and skills for AI agent workflow",
+  "scripts": {
+    "prepare": "husky",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm -r build"
+  },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
-    "@types/node": "^22.5.4",
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
-    "cross-env": "^7.0.3",
     "husky": "^9.1.7",
-    "json-schema-to-typescript": "^11.0.2",
-    "tsx": "^4.16.0",
-    "yaml": "^2.6.0"
-  },
-  "scripts": {
-    "prepare": "husky",
-    "adr:new": "node tooling/adr/adr-new.cjs",
-    "adr:lint": "tsx tooling/adr/adr-lint.ts",
-    "adr:lint:changed": "pnpm adr:lint -- --changed",
-    "adr:index": "tsx tooling/adr/adr-index.ts",
-    "adr:test": "pnpm --filter @agents/adr-tooling test",
-    "patterns:new": "node tooling/patterns/pattern-new.cjs",
-    "patterns:lint": "tsx tooling/patterns/pattern-lint.ts",
-    "patterns:lint:changed": "pnpm patterns:lint -- --changed",
-    "patterns:test": "tsx --test tooling/patterns/__tests__/pattern-lint.spec.ts",
-    "patterns:index": "tsx tooling/patterns/pattern-index.ts",
-    "tasks:lint": "tsx tooling/tasks/lint.ts",
-    "design:gen": "tsx tooling/design-ready/gen.ts",
-    "design:lint": "tsx tooling/design-ready/lint.ts",
-    "design:test": "tsx --test tooling/design-ready/__tests__/run.ts",
-    "test:quick": "pnpm -r -w test -- --passWithNoTests --bail=1",
-    "test:ci": "pnpm -r -w test -- --passWithNoTests --runInBand",
-    "precommit:check": "node scripts/should-run-tests.js || true && pnpm adr:lint && pnpm patterns:lint && pnpm tasks:lint && pnpm design:lint",
-    "prepush:check": "node scripts/should-run-tests.js || pnpm test:ci",
-    "q:tests": "tsx tooling/quality-mcp/cli/qcli.ts run --tests",
-    "q:coverage": "tsx tooling/quality-mcp/cli/qcli.ts run --coverage",
-    "q:lint": "tsx tooling/quality-mcp/cli/qcli.ts run --lint",
-    "q:complexity": "tsx tooling/quality-mcp/cli/qcli.ts run --complexity",
-    "q:gate": "tsx tooling/quality-mcp/cli/qcli.ts run --gate",
-    "start:server": "cross-env PORT=8080 node tooling/quality-mcp/server/dist/index.js"
-  },
-  "pnpm": {
-    "trustedDependencies": ["core-js"]
+    "tsx": "^4.16.0"
   }
 }

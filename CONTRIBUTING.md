@@ -1,316 +1,155 @@
-# Contributing to Agents & MCPs
-
-Thank you for your interest in contributing to this project! This guide will help you get started.
-
-## Table of Contents
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Workflow](#development-workflow)
-- [Coding Standards](#coding-standards)
-- [Architecture Decision Records](#architecture-decision-records)
-- [Architecture Pattern Catalog](#architecture-pattern-catalog)
-- [Testing Guidelines](#testing-guidelines)
-- [Commit Message Convention](#commit-message-convention)
-- [Pull Request Process](#pull-request-process)
-
-## Code of Conduct
-
-We are committed to providing a welcoming and inclusive environment. Please be respectful and professional in all interactions.
+# Contributing to OpenClaw Extensions -- Product Team
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 20 or higher
-- pnpm (install with `npm install -g pnpm`)
-- SQLite (included with the project)
-- Git
+
+- Node.js 22+
+- pnpm
+- [OpenClaw](https://openclaw.ai) (for integration testing)
 
 ### Installation
 
-1. Clone the repository:
 ```bash
 git clone https://github.com/Monkey-D-Luisi/agents-mcps.git
 cd agents-mcps
-```
-
-2. Install dependencies:
-```bash
 pnpm install
 ```
 
-3. Approve build scripts (first time only):
-```bash
-pnpm approve-builds
-```
+### Verify Setup
 
-4. Run tests to verify setup:
 ```bash
-pnpm test:quick
+pnpm test
+pnpm lint
+pnpm typecheck
 ```
 
 ## Development Workflow
 
 ### Branch Strategy
 
-- `main`: Production branch, protected with CI requirements
-- `feature/<epic>-<task>-<description>`: Feature branches (e.g., `feature/ep01-t02-state-machine`)
-- `bugfix/issue-<number>`: Bug fix branches
-- `hotfix/<description>`: Emergency fixes
+- `main` -- Production branch, protected with CI
+- `feature/<description>` -- Feature branches
+- `bugfix/<description>` -- Bug fix branches
+- `hotfix/<description>` -- Emergency fixes
 
-### Creating a Feature Branch
+### Task-Driven Development
 
-```bash
-git checkout main
-git pull origin main
-git checkout -b feature/ep01-t02-your-feature
-```
+1. Read the task specification in `docs/tasks/NNNN-*.md`
+2. Create a feature branch from `main`
+3. Implement using TDD (Red-Green-Refactor)
+4. Update the walkthrough in `docs/walkthroughs/NNNN-*.md`
+5. Pass quality gates
+6. Commit and create a PR
+
+### Quality Gates
+
+Before merging, ensure:
+
+- **Coverage**: >= 80% (major scope) / >= 70% (minor scope)
+- **Lint**: Zero errors
+- **Complexity**: Average cyclomatic <= 5.0
+- **Tests**: All passing
+- **Types**: No TypeScript errors
 
 ## Coding Standards
 
 ### TypeScript
 
-- Use TypeScript for all new code
-- Enable strict mode in `tsconfig.json`
-- Avoid `any` types - use proper typing
-- Use interfaces for data structures
-- Document complex functions with JSDoc comments
+- Strict mode enabled
+- No `any` types -- use proper typing
+- ESM modules (`"type": "module"`)
+- TypeBox for schema definitions in tool registrations
+- Vitest for all tests
 
-### Code Style
+### Architecture
 
-- Use ESLint for linting: `pnpm --filter <package> run lint`
-- Fix linting issues: `pnpm --filter <package> run lint:fix`
-- Maximum line length: 120 characters
-- Use 2 spaces for indentation
-- Use single quotes for strings
-- Add trailing commas in multi-line objects/arrays
+The plugin follows **Hexagonal Architecture**:
 
-### Architecture Principles
+- **Domain** (`src/domain/`): Pure business logic, zero dependencies
+- **Persistence** (`src/persistence/`): SQLite repositories, WAL mode
+- **Orchestrator** (`src/orchestrator/`): State machine and agent routing
+- **Tools** (`src/tools/`): OpenClaw tool registrations (thin adapter layer)
+- **GitHub** (`src/github/`): Octokit-based automation with idempotency
 
-This project follows **Hexagonal Architecture**:
+### Naming
 
-- **Domain**: Pure business logic (no dependencies on external systems)
-- **Persistence**: Repository pattern for data access
-- **Exposure**: MCP tools and JSON-RPC interfaces
-- **Agents**: Contract-driven with strict input/output schemas
-
-Keep domain logic free from infrastructure concerns.
-
-## Architecture Decision Records
-
-Document significant architectural decisions to preserve an auditable history and shared context.
-
-- Read the quick guide in `docs/adr/README.md` before drafting a record.
-- Create a new ADR with `pnpm adr:new`; the command proposes the next ID (`ADR-XXXX`), generates the slug, and pre-fills `id`, `title`, and `date`.
-- Populate the required sections (`Context`, `Decision`, `Considered Alternatives`, `Consequences`) and update metadata (`owners`, `area`, `links`, cross references).
-- Run `pnpm adr:lint` before opening a PR (or `pnpm adr:lint:changed` to validate only modified files).
-- Ensure the `adr-lint` CI check passes before merging.
-- Reference ADR IDs (for example `ADR-0007`) in your PR description so the PR Bot links them automatically.
-- Local commits run `pnpm adr:lint:changed` through Husky; set `SKIP_ADR=1` if you need to bypass it under automation control.
-
-
-## Architecture Pattern Catalog
-
-Develop a consistent catalog of architectural patterns for reuse across teams.
-
-- Review the guidelines in `docs/patterns/README.md` before drafting a card.
-- Scaffold a new pattern with `pnpm patterns:new` to auto-assign the next ID, slug, and dates.
-- Complete every required heading from the template and keep Trade-offs bullets aligned with the canonical list.
-- Link to governing ADRs via `adr_refs` and cite related patterns in **References** using relative links.
-- Run `pnpm patterns:lint` (or `pnpm patterns:lint:changed`) and `pnpm patterns:test` before submitting a PR.
-- Regenerate the catalog table with `pnpm patterns:index` so `docs/patterns/README.md` stays in sync.
-- Ensure the `patterns-lint` workflow passes before merging.
-- Local commits run `pnpm patterns:lint:changed`; set `SKIP_PATTERNS=1` when an automated job needs to bypass it.
-
-The review checklist expects clear "When to use" / "When not to use" guidance, an explicit trade-off analysis, and at least one ADR reference.
-
-## Testing Guidelines
-
-### Test Coverage Requirements
-
-- **Major scope changes**: ≥80% coverage
-- **Minor scope changes**: ≥70% coverage
-- All public APIs must have tests
-- Critical business logic requires unit tests
-
-### Running Tests
-
-```bash
-# Run all tests
-pnpm test:ci
-
-# Run tests for a specific package
-pnpm --filter @agents/task-mcp test
-
-# Run tests in watch mode
-pnpm --filter @agents/task-mcp test -- --watch
-
-# Run tests with coverage
-pnpm --filter @agents/task-mcp test -- --coverage
-```
-
-### Test-Driven Development (TDD)
-
-We strongly encourage TDD:
-
-1. **Red**: Write a failing test
-2. **Green**: Write minimal code to make it pass
-3. **Refactor**: Improve code while keeping tests green
-
-Log your TDD progress in `red_green_refactor_log` for task transitions.
-
-### Test Structure
-
-- Unit tests: `test/**/*.spec.ts`
-- Integration tests: `test/integration/**/*.spec.ts`
-- Contract tests: Validate agent input/output schemas
-- E2E tests: `tooling/smoke/`
+- Files: `kebab-case.ts`
+- Classes/Interfaces: `PascalCase`
+- Functions/Variables: `camelCase`
+- Constants: `UPPER_SNAKE_CASE`
+- JSON Schema files: `kebab-case.schema.json`
 
 ## Commit Message Convention
 
 We use [Conventional Commits](https://www.conventionalcommits.org/):
 
-### Format
 ```
 <type>(<scope>): <subject>
-
-[optional body]
-
-[optional footer]
 ```
 
 ### Types
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, no logic change)
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `test`: Test additions or modifications
-- `build`: Build system changes
-- `ci`: CI configuration changes
-- `chore`: Other changes (dependencies, configs)
+
+- `feat` -- New feature
+- `fix` -- Bug fix
+- `docs` -- Documentation
+- `test` -- Tests
+- `refactor` -- Code restructuring
+- `ci` -- CI configuration
+- `chore` -- Dependencies, configs
 
 ### Scopes
-- `task-mcp`: Task MCP service
-- `quality-mcp`: Quality MCP service
-- `schemas`: JSON schemas
-- `docs`: Documentation
-- `ci`: CI/CD workflows
+
+- `product-team` -- Plugin code
+- `skills` -- Skill definitions
+- `docs` -- Documentation
+- `ci` -- CI/CD workflows
 
 ### Examples
-```bash
-feat(task-mcp): add fast-track evaluation
-fix(quality-mcp): correct coverage calculation
-docs: update README with installation steps
-test(task-mcp): add unit tests for state transitions
-```
 
-### Breaking Changes
-If a change is breaking, add `BREAKING CHANGE:` in the footer:
 ```
-feat(task-mcp): redesign state machine
-
-BREAKING CHANGE: State names have changed from snake_case to camelCase
+feat(product-team): add task.create tool registration
+fix(product-team): correct optimistic locking in state repository
+docs: update roadmap with Phase 2 details
+test(product-team): add integration tests for quality gate
 ```
 
 ## Pull Request Process
 
-### 1. Create a Pull Request
-
-1. Push your branch to GitHub
-2. Open a Pull Request against `main`
-3. Use the PR template (automatically populated)
-4. Set the PR to **Draft** initially
-
-### 2. PR Checklist
-
-Ensure your PR includes:
-
-- [ ] Clear description of changes
-- [ ] Link to related issue(s) using `Closes #<issue-number>`
-- [ ] All acceptance criteria met
-- [ ] Tests added/updated with ≥70% coverage (minor) or ≥80% (major)
-- [ ] Linting passes with zero errors
-- [ ] Red-Green-Refactor log (for code changes)
-- [ ] Documentation updated (if applicable)
-- [ ] No breaking changes (or clearly documented)
-
-### 3. CI Checks
-
-All PRs must pass:
-
-- **test-lint**: All tests pass and linting succeeds
-- **quality-gate**: Coverage, complexity, and quality thresholds met
-
-### 4. Review Process
-
-1. Wait for CI checks to pass
-2. Request review from team members
-3. Address review comments
-4. Maximum 2 review rounds (after that, task needs replanning)
-
-### 5. Merge
-
-Once approved and all checks pass:
-
-1. Mark PR as **Ready for Review** (if still in draft)
-2. Ensure all conversations are resolved
-3. Squash and merge (maintainers will handle this)
-
-## Quality Gates
-
-Before merging, your PR must pass:
-
-### Coverage
-- Major scope: ≥80%
-- Minor scope: ≥70%
-
-### Linting
-- Zero errors required
-- Warnings should be minimized
-
-### Complexity
-- Average cyclomatic complexity ≤5.0
-- Maximum file cyclomatic ≤50 (will be reduced over time)
-
-### Tests
-- All tests passing
-- No skipped tests without justification
+1. Create a feature branch from `main`
+2. Implement changes with tests
+3. Ensure CI passes (`pnpm test && pnpm lint && pnpm typecheck`)
+4. Open a PR with the template filled out
+5. Link to the task specification (`docs/tasks/NNNN-*.md`)
+6. Address review feedback
+7. Merge when approved
 
 ## Project Structure
 
 ```
-agents-mcps/
-├── packages/
-│   └── schemas/              # JSON Schemas
-├── services/
-│   └── task-mcp/             # Main MCP service
-│       ├── src/
-│       │   ├── domain/       # Business logic
-│       │   ├── repo/         # Persistence
-│       │   ├── mcp/          # MCP tools
-│       │   ├── agents/       # Agent implementations
-│       │   └── orchestrator/ # Orchestration
-│       └── test/             # Tests
-├── tooling/
-│   └── quality-mcp/          # Quality tooling
-└── docs/                     # Documentation
+extensions/product-team/       # OpenClaw plugin
+  src/
+    domain/                    # TaskRecord, FastTrack
+    persistence/               # SQLite repositories
+    orchestrator/              # State machine
+    quality/                   # Quality gates
+    github/                    # GitHub automation
+    tools/                     # Tool registrations
+    schemas/                   # JSON Schemas
+  test/                        # Vitest tests
+
+skills/                        # OpenClaw skills
+  requirements-grooming/
+  architecture-design/
+  tdd-implementation/
+  code-review/
+  qa-testing/
+  github-automation/
+
+docs/
+  roadmap.md                   # Phased execution plan
+  backlog/                     # Epic specs
+  tasks/                       # Task specs
+  walkthroughs/                # Implementation journals
+  adr/                         # Architecture decisions
 ```
-
-## Need Help?
-
-- Check existing [documentation](docs/)
-- Review [E2E smoke test report](docs/e2e-smoke-test-report.md)
-- Look at existing tests for examples
-- Open an issue for questions or discussions
-
-## Recognition
-
-Contributors will be recognized in:
-- Git commit history
-- Release notes
-- Project documentation
-
-Thank you for contributing! 🎉
-
-

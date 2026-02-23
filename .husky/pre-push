@@ -1,8 +1,1 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-echo "[pre-push] Running tests (set SKIP_TESTS=1 to bypass under CI control)..."
-pnpm prepush:check || {
-  echo "[pre-push] Tests failed. Push aborted."
-  exit 1
-}
+pnpm test
