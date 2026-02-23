@@ -13,10 +13,11 @@
     "build": "tsc"
   },
   "dependencies": {
-    "better-sqlite3": "^11.10.0",
+    "@sinclair/typebox": "^0.34.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
-    "@sinclair/typebox": "^0.34.0",
+    "better-sqlite3": "^11.10.0",
+    "openclaw": "2026.2.22-2",
     "ulid": "^2.3.0"
   },
   "devDependencies": {
@@ -26,6 +27,8 @@
     "vitest": "^3.0.0"
   },
   "openclaw": {
-    "extensions": ["./src/index.ts"]
+    "extensions": [
+      "./src/index.ts"
+    ]
   }
 }
