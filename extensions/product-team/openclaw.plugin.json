@@ -2,7 +2,15 @@
   "id": "product-team",
   "name": "Product Team Engine",
   "version": "0.1.0",
-  "description": "Task engine + workflow tools for a multi-agent product team",
+  "description": "Task engine and workflow tools for a multi-agent product development team",
+  "skills": [
+    "../../skills/requirements-grooming",
+    "../../skills/architecture-design",
+    "../../skills/tdd-implementation",
+    "../../skills/code-review",
+    "../../skills/qa-testing",
+    "../../skills/github-automation"
+  ],
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -14,6 +22,7 @@
       },
       "github": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
           "owner": { "type": "string" },
           "repo": { "type": "string" },

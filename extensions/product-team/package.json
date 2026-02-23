@@ -8,7 +8,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "echo 'lint placeholder'",
+    "lint": "echo 'no lint rules yet'",
     "typecheck": "tsc --noEmit",
     "build": "tsc"
   },
