@@ -5,9 +5,9 @@
       "Bash(head:*)",
       "Bash(tail:*)",
       "Bash(find:*)",
-      "Bash(cd /c/Users/luiss/source/repos/agents-mcps && pnpm test 2>&1)",
-      "Bash(cd /c/Users/luiss/source/repos/agents-mcps && pnpm lint 2>&1)",
-      "Bash(cd /c/Users/luiss/source/repos/agents-mcps && pnpm typecheck 2>&1)",
+      "Bash(cd /c/Users/luiss/source/repos/vibe-flow && pnpm test 2>&1)",
+      "Bash(cd /c/Users/luiss/source/repos/vibe-flow && pnpm lint 2>&1)",
+      "Bash(cd /c/Users/luiss/source/repos/vibe-flow && pnpm typecheck 2>&1)",
       "Bash(powershell:*)"
     ]
   }

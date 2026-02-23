@@ -10,8 +10,8 @@
 ### Installation
 
 ```bash
-git clone https://github.com/Monkey-D-Luisi/agents-mcps.git
-cd agents-mcps
+git clone https://github.com/Monkey-D-Luisi/vibe-flow.git
+cd vibe-flow
 pnpm install
 ```
 

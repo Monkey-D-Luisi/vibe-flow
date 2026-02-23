@@ -20,8 +20,8 @@ This monorepo contains reusable components for OpenClaw:
 ## Quick Start
 
 ```bash
-git clone https://github.com/Monkey-D-Luisi/agents-mcps.git
-cd agents-mcps
+git clone https://github.com/Monkey-D-Luisi/vibe-flow.git
+cd vibe-flow
 pnpm install
 pnpm test
 ```
@@ -38,7 +38,7 @@ pnpm build         # Build all packages
 ## Project Structure
 
 ```
-agents-mcps/
+vibe-flow/
   .agent.md                    # Agent governance (single source of truth)
   .agent/rules/                # Workflow and standards definitions
   .agent/templates/            # Task, walkthrough, ADR, PR review templates
