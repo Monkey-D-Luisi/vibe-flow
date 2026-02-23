@@ -83,6 +83,20 @@ the box, eliminating the need for custom MCP server infrastructure.
 - Agents operate in isolated contexts
 - No cross-agent file leakage
 
+## Future Considerations
+
+> These items come from the deep-research report. Not blocking for EP01 but
+> should be addressed before production.
+
+- **Separate `hooks.token`**: OpenClaw webhooks should use a dedicated token,
+  not the gateway token. Configure `hooks.allowedAgentIds` to restrict which
+  agents can be triggered by external events.
+- **`optional: true` for side-effect tools**: mark tools that mutate external
+  state (GitHub, exec) as `optional` in `registerTool()` to require explicit
+  opt-in per session.
+- **Pairing for remote access**: if the gateway is exposed beyond loopback,
+  configure device pairing and trusted proxies.
+
 ## Out of Scope
 
 - Tool implementation (EP02+)

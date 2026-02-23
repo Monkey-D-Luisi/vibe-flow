@@ -41,26 +41,38 @@ the lease can mutate the task.
 - Port TaskRecord interface from old MCP server
 - Define fields: id, title, status, scope, assignee, tags, metadata,
   created_at, updated_at
+- Include `rev` field (integer, starts at 0) for **optimistic locking** --
+  every write increments `rev` and rejects stale updates (WHERE rev = ?)
 - Use ULID for IDs
 - TypeBox schemas for validation
 
 **Acceptance Criteria:**
-- TaskRecord type is defined with all fields
+- TaskRecord type is defined with all fields including `rev`
 - Schema validates correctly with sample data
+- Concurrent updates with stale `rev` are rejected with a conflict error
 
 ### 2.3 SQLite persistence
 
 - Set up better-sqlite3 connection with WAL mode
 - Create migration system (version-tracked SQL files)
-- Implement task_records table
-- Implement event_log table
-- Implement leases table
+- Implement `task_records` table (with `rev` column for optimistic locking)
+- Implement `orchestrator_state` table: `task_id` (PK/FK), `current` (status),
+  `previous`, `last_agent`, `rounds_review`, `rev`, `updated_at` -- tracks
+  workflow state separately from domain data, with its own optimistic lock
+- Implement `event_log` table
+- Implement `leases` table
 - CRUD operations: create, getById, search, update
+
+> **Design note (from deep-research report):** Keeping `orchestrator_state`
+> separate from `task_records` avoids coupling domain data with workflow
+> metadata. The `rounds_review` counter is needed to enforce review-round
+> limits, and `last_agent` enables routing decisions.
 
 **Acceptance Criteria:**
 - Database created on first run
 - All CRUD operations work with in-memory SQLite in tests
 - WAL mode enabled
+- `orchestrator_state` row created atomically with each new TaskRecord
 
 ### 2.4 State machine and transitions
 
@@ -104,6 +116,18 @@ Register the following tools with the OpenClaw plugin API:
 - All five tools registered successfully
 - Each tool validates input with TypeBox schemas
 - Each tool returns structured JSON responses
+
+## Future Considerations
+
+> These items come from the deep-research report but are not required for EP02.
+> Document here to avoid losing them.
+
+- **Artifacts table**: `artifacts(id, task_id, kind, uri, meta, created_at)`
+  for tracking produced outputs (ADR, design docs, UX assets, QA runs).
+  Consider adding in EP03 when role outputs need persistent references.
+- **Designer agent role**: the research report includes a `designer` agent
+  (UX/flows, assets). Not in current `openclaw.json`. Evaluate when the team
+  grows beyond code-centric workflows.
 
 ## Out of Scope
 
