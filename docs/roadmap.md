@@ -15,7 +15,7 @@ structured JSON contracts, and is governed by tool-policy allow-lists.
 
 | Phase | Epic | Description                     | Dependencies | Target       | Status  |
 |-------|------|---------------------------------|--------------|--------------|---------|
-| 1     | EP01 | OpenClaw Foundation             | None         | March 2026   | PENDING |
+| 1     | EP01 | OpenClaw Foundation             | None         | March 2026   | DONE    |
 | 1     | EP02 | Task Engine                     | None         | March 2026   | PENDING |
 | 2     | EP03 | Role Execution                  | EP02         | April 2026   | PENDING |
 | 3     | EP04 | GitHub Integration              | EP02         | May-Jun 2026 | PENDING |

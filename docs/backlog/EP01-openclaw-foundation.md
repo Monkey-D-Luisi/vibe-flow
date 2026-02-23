@@ -3,7 +3,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | Epic        | EP01                                             |
-| Status      | PENDING                                          |
+| Status      | DONE                                             |
 | Priority    | P0                                               |
 | Phase       | 1 -- Foundation                                  |
 | Target      | March 2026                                       |

@@ -2,6 +2,19 @@
   "plugins": {
     "load": {
       "paths": ["./extensions/product-team"]
+    },
+    "entries": {
+      "product-team": {
+        "enabled": true,
+        "config": {
+          "dbPath": "./data/product-team.db",
+          "github": {
+            "owner": "",
+            "repo": "",
+            "defaultBase": "main"
+          }
+        }
+      }
     }
   },
   "skills": {
@@ -11,55 +24,99 @@
   },
   "agents": {
     "defaults": {
-      "model": "claude-sonnet-4-20250514"
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "sandbox": {
+        "mode": "non-main",
+        "scope": "agent",
+        "workspaceAccess": "rw"
+      }
     },
     "list": [
       {
         "id": "pm",
         "name": "Product Manager",
-        "skills": ["requirements-grooming"],
+        "default": true,
+        "workspace": "~/.openclaw/workspaces/product-team/pm",
         "tools": {
-          "allow": ["task.create", "task.get", "task.search", "task.update", "task.transition"]
+          "allow": [
+            "task_create",
+            "task_get",
+            "task_search",
+            "task_update",
+            "task_transition"
+          ]
         }
       },
       {
         "id": "architect",
         "name": "Software Architect",
-        "skills": ["architecture-design"],
+        "workspace": "~/.openclaw/workspaces/product-team/architect",
         "tools": {
-          "allow": ["task.get", "task.update", "task.transition", "workflow.state.get"]
+          "allow": [
+            "task_get",
+            "task_update",
+            "task_transition",
+            "workflow_state_get"
+          ]
         }
       },
       {
         "id": "dev",
         "name": "Developer",
-        "skills": ["tdd-implementation"],
+        "workspace": "~/.openclaw/workspaces/product-team/dev",
         "tools": {
-          "allow": ["task.get", "task.update", "task.transition", "quality.*", "workflow.*"]
+          "allow": [
+            "task_get",
+            "task_update",
+            "task_transition",
+            "quality_coverage",
+            "quality_lint",
+            "quality_complexity",
+            "workflow_step_run",
+            "workflow_state_get"
+          ]
         }
       },
       {
         "id": "qa",
         "name": "QA Engineer",
-        "skills": ["qa-testing"],
+        "workspace": "~/.openclaw/workspaces/product-team/qa",
         "tools": {
-          "allow": ["task.get", "task.update", "task.transition", "quality.*"]
+          "allow": [
+            "task_get",
+            "task_update",
+            "task_transition",
+            "quality_coverage",
+            "quality_lint",
+            "quality_complexity"
+          ]
         }
       },
       {
         "id": "reviewer",
         "name": "Code Reviewer",
-        "skills": ["code-review"],
+        "workspace": "~/.openclaw/workspaces/product-team/reviewer",
         "tools": {
-          "allow": ["task.get", "task.update", "task.transition"]
+          "allow": [
+            "task_get",
+            "task_update",
+            "task_transition"
+          ]
         }
       },
       {
         "id": "infra",
         "name": "Infrastructure Engineer",
-        "skills": ["github-automation"],
+        "workspace": "~/.openclaw/workspaces/product-team/infra",
         "tools": {
-          "allow": ["vcs.*", "task.get", "task.transition"]
+          "allow": [
+            "vcs_branch_create",
+            "vcs_pr_create",
+            "vcs_pr_update",
+            "vcs_label_sync",
+            "task_get",
+            "task_transition"
+          ]
         }
       }
     ]

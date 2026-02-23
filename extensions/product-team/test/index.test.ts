@@ -6,8 +6,10 @@ function createMockApi(): OpenClawPluginApi {
   return {
     id: 'product-team',
     name: 'Product Team Engine',
-    config: {},
+    source: 'config',
+    config: {} as OpenClawPluginApi['config'],
     pluginConfig: { dbPath: ':memory:' },
+    runtime: {} as OpenClawPluginApi['runtime'],
     logger: {
       info: vi.fn(),
       warn: vi.fn(),
@@ -15,8 +17,17 @@ function createMockApi(): OpenClawPluginApi {
       debug: vi.fn(),
     },
     registerTool: vi.fn(),
-    on: vi.fn(),
+    registerHook: vi.fn(),
+    registerHttpHandler: vi.fn(),
+    registerHttpRoute: vi.fn(),
+    registerChannel: vi.fn(),
+    registerGatewayMethod: vi.fn(),
+    registerCli: vi.fn(),
     registerService: vi.fn(),
+    registerProvider: vi.fn(),
+    registerCommand: vi.fn(),
+    resolvePath: vi.fn((p: string) => p),
+    on: vi.fn(),
   };
 }
 
