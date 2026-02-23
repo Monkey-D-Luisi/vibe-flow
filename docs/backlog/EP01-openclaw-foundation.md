@@ -28,11 +28,15 @@ the box, eliminating the need for custom MCP server infrastructure.
 - Install OpenClaw gateway
 - Create `openclaw.json` at repo root
 - Configure plugin path (`./extensions/product-team`)
+- Replace local `OpenClawPluginApi` subset in `extensions/product-team/src/index.ts`
+  with the real interface from `openclaw/plugin-sdk` (includes `registerHook`,
+  `registerHttpHandler`, `registerChannel`, and `OpenClawConfig` type for `config`)
 - Verify gateway boots without errors
 
 **Acceptance Criteria:**
 - `openclaw start` launches successfully
 - Plugin is loaded and reports ready
+- Plugin uses the real `OpenClawPluginApi` from `openclaw/plugin-sdk`, no local subset
 
 ### 1.2 Agent definitions
 
@@ -46,17 +50,28 @@ the box, eliminating the need for custom MCP server infrastructure.
 
 ### 1.3 Tool policies per role
 
-- Configure `tools.allow` for each agent
-- PM: task.create, task.get, task.search, task.update, task.transition
-- Architect: task.get, task.update, task.transition, workflow.state.get
-- Dev: task.get, task.update, task.transition, quality.*, workflow.*
-- QA: task.get, task.update, task.transition, quality.*
-- Reviewer: task.get, task.update, task.transition
-- Infra: vcs.*, task.get, task.transition
+> **Caveat:** The current `openclaw.json` uses `agents.list` with `tools.allow`
+> per role, but OpenClaw's real schema uses `agents.list` for gateway instances
+> (bots/channels), not for role definitions with tool policies. OpenClaw currently
+> ignores these unknown sections. Before implementing this task, research how
+> OpenClaw actually supports tool policies for plugins and adapt the config
+> accordingly. The intent (restrict each role to its tool surface) is correct;
+> the schema syntax needs to be aligned with the real API.
+
+- Research OpenClaw's actual mechanism for tool policies on custom plugin tools
+- Adapt `openclaw.json` to use the correct schema
+- Configure tool allow-lists for each agent:
+  - PM: task.create, task.get, task.search, task.update, task.transition
+  - Architect: task.get, task.update, task.transition, workflow.state.get
+  - Dev: task.get, task.update, task.transition, quality.*, workflow.*
+  - QA: task.get, task.update, task.transition, quality.*
+  - Reviewer: task.get, task.update, task.transition
+  - Infra: vcs.*, task.get, task.transition
 
 **Acceptance Criteria:**
 - Each agent can only invoke its allowed tools
 - Attempting to call a disallowed tool returns a policy error
+- `openclaw.json` uses OpenClaw's real schema for agent/tool configuration
 
 ### 1.4 Sandbox configuration
 

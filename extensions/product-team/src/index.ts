@@ -11,7 +11,7 @@
 /**
  * Subset of OpenClawPluginApi.
  * The full API is provided by the openclaw runtime at register() time.
- * @see https://github.com/nicepkg/openclaw (src/plugins/types.ts)
+ * @see https://github.com/openclaw/openclaw (src/plugins/types.ts)
  */
 export interface OpenClawPluginApi {
   readonly id: string;
