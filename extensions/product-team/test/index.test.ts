@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { register } from '../src/index.js';
-import type { PluginAPI } from '../src/index.js';
+import type { OpenClawPluginApi } from '../src/index.js';
 
-function createMockApi(): PluginAPI {
+function createMockApi(): OpenClawPluginApi {
   return {
     id: 'product-team',
+    name: 'Product Team Engine',
     config: {},
     pluginConfig: { dbPath: ':memory:' },
     logger: {
