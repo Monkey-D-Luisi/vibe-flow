@@ -6,12 +6,12 @@
       "coverageMinor": {
         "type": "number",
         "description": "Minimum coverage percentage for minor scope",
-        "default": 0.70
+        "default": 70
       },
       "coverageMajor": {
         "type": "number",
         "description": "Minimum coverage percentage for major scope",
-        "default": 0.80
+        "default": 80
       },
       "maxAvgCyclomatic": {
         "type": "number",

@@ -18,7 +18,6 @@ const DECISION_KINDS = new Set([
   'WhileStatement',
   'DoStatement',
   'CatchClause',
-  'BinaryExpression', // && and || contribute
 ]);
 
 const LOGICAL_OPERATORS = new Set(['&&', '||', '??']);

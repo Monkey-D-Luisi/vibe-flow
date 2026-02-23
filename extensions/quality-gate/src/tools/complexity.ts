@@ -6,6 +6,7 @@
 
 import { resolveGlobPatterns } from '../fs/glob.js';
 import { readFileSafe } from '../fs/read.js';
+import { resolve } from 'node:path';
 import { assertPathContained } from '../exec/spawn.js';
 import type { ComplexitySummary, FunctionComplexity, FileComplexity } from '../complexity/types.js';
 import { DEFAULT_THRESHOLDS } from '../complexity/types.js';
@@ -134,7 +135,7 @@ async function analyzeFile(filePath: string): Promise<FileComplexity> {
  * Execute complexity analysis tool.
  */
 export async function complexityTool(input: ComplexityInput): Promise<ComplexityOutput> {
-  const cwd = input.cwd || process.cwd();
+  const cwd = resolve(input.cwd || process.cwd());
   const globs = input.globs || DEFAULT_GLOBS;
   const exclude = input.exclude || DEFAULT_EXCLUDE;
   const maxCyclomatic = input.maxCyclomatic || DEFAULT_THRESHOLDS.maxFunctionCyclomatic;
@@ -155,8 +156,8 @@ export async function complexityTool(input: ComplexityInput): Promise<Complexity
       assertPathContained(file, cwd);
       const result = await analyzeFile(file);
       fileResults.push(result);
-    } catch {
-      // Skip files that can't be analyzed or fail path validation
+    } catch (_error) {
+      // Skip files that fail path validation or can't be read
     }
   }
 

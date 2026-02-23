@@ -117,14 +117,21 @@ function parseComplexityArgs(args: string[]): ComplexityInput {
   return options;
 }
 
+const VALID_SCOPES = ['major', 'minor', 'patch', 'default'] as const;
+
 function parseGateArgs(args: string[]): GateEnforceInput {
   const input: GateEnforceInput = {};
   for (let i = 2; i < args.length; i += 1) {
     const flag = args[i];
     switch (flag) {
-      case '--scope':
-        input.scope = ensureValue(args, ++i, '--scope');
+      case '--scope': {
+        const value = ensureValue(args, ++i, '--scope');
+        if (!(VALID_SCOPES as readonly string[]).includes(value)) {
+          throw new Error(`Invalid scope "${value}". Valid scopes: ${VALID_SCOPES.join(', ')}`);
+        }
+        input.scope = value;
         break;
+      }
       default:
         throw new Error(`Unknown option ${flag}`);
     }
@@ -138,7 +145,7 @@ function usage(): never {
   qcli run --coverage [--summary <path>] [--lcov <path>] [--cwd <path>] [--format <summary|lcov|auto>]
   qcli run --lint [--engine <eslint|ruff>] [--command <cmd>] [--cwd <path>] [--timeout <ms>]
   qcli run --complexity [--glob <pattern>]... [--exclude <glob>] [--cwd <path>] [--max-cyclomatic <num>] [--top-n <num>]
-  qcli run --gate [--scope <minor|major|default>]`);
+  qcli run --gate [--scope <major|minor|patch|default>]`);
   process.exit(1);
 }
 

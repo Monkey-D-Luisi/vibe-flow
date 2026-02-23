@@ -30,8 +30,8 @@ export function parseCoverageSummary(jsonString: string): CoverageSummaryReport 
   let raw: Record<string, FileCoverageSummary>;
   try {
     raw = JSON.parse(jsonString) as Record<string, FileCoverageSummary>;
-  } catch {
-    throw new Error('PARSE_ERROR: Failed to parse coverage-summary.json');
+  } catch (error) {
+    throw new Error('PARSE_ERROR: Failed to parse coverage-summary.json', { cause: error });
   }
 
   const total = raw['total'];

@@ -6,34 +6,34 @@
 - Date: 2026-02-23
 
 ## Summary
-Code review of PR #115 identified critical security vulnerabilities (command injection on Windows, path traversal) and quality issues (duplicate templates, ESLint config, tsconfig inconsistency). All MUST_FIX and key SHOULD_FIX items were resolved.
+Code review of PR #115/#159 identified critical security vulnerabilities (command injection on Windows, path traversal) and quality issues. Two rounds of fixes were applied:
+
+**Round 1 (cr-0115):** Initial security guards and template cleanup.
+**Round 2 (Phase B/C from Copilot + Gemini review):** Hardened security helpers, fixed bare catch blocks, aligned config units, added security tests.
 
 ## Decisions & Trade-offs
-- **Command validation approach:** Added `assertSafeCommand()` that rejects shell metacharacters rather than escaping them. Rejection is safer than attempting to sanitize.
-- **Path traversal protection:** Added `assertPathContained()` using `resolve()` + prefix check. Applied to complexity globs, coverage paths, and all resolved file paths.
-- **Template consolidation:** Kept the more detailed templates (`adr.md`, `pr-review.md`, `task-spec.md`, `walkthrough.md`) and removed the simpler duplicates (`*-template.md`).
+- **Command validation approach:** `assertSafeCommand()` rejects shell metacharacters (including quotes, backslashes, newlines) and validates both command and arguments.
+- **Path traversal protection:** `assertPathContained()` now uses `path.relative` instead of `startsWith` to prevent sibling-prefix bypass (e.g. `/root/dir2` vs `/root/dir`).
+- **Error handling:** Bare catch blocks replaced — `loadSummary`/`loadLcov` now only swallow NOT_FOUND, re-throwing parse errors. Istanbul parser preserves error cause.
+- **Config units:** `openclaw.plugin.json` defaults aligned to 70/80 (percentages), matching `DEFAULT_POLICIES` in `types.ts`.
+- **CLI validation:** `--scope` now validated against `['major','minor','patch','default']`.
 
-## Files Changed
-- `extensions/quality-gate/src/exec/spawn.ts` -- Added `assertSafeCommand()` and `assertPathContained()` security validators
-- `extensions/quality-gate/src/tools/lint.ts` -- Added command injection guard
-- `extensions/quality-gate/src/tools/run_tests.ts` -- Added command injection guard
-- `extensions/quality-gate/src/tools/complexity.ts` -- Added path traversal guards for globs and resolved files
-- `extensions/quality-gate/src/tools/coverage_report.ts` -- Added path traversal guards for summary and lcov paths
-- `extensions/quality-gate/.eslintrc.cjs` -- Removed `test/` from ignorePatterns
-- `extensions/product-team/tsconfig.json` -- Changed module/moduleResolution to NodeNext
-- `.agent/templates/adr-template.md` -- Removed (duplicate)
-- `.agent/templates/pr-review-template.md` -- Removed (duplicate)
-- `.agent/templates/task-template.md` -- Removed (duplicate)
-- `.agent/templates/walkthrough-template.md` -- Removed (duplicate)
-- `.agent/templates/adr.md` -- Added References section
-- `.agent/rules/autonomous-workflow.md` -- Updated template references
+## Files Changed (Round 2)
+- `extensions/quality-gate/src/exec/spawn.ts` -- Hardened SHELL_META regex, assertSafeCommand validates args, assertPathContained uses path.relative
+- `extensions/quality-gate/src/tools/coverage_report.ts` -- Fixed bare catches (ENOENT-only), cwd resolved to absolute
+- `extensions/quality-gate/src/tools/complexity.ts` -- Fixed bare catch, cwd resolved to absolute
+- `extensions/quality-gate/src/gate/sources.ts` -- Fixed bare catch
+- `extensions/quality-gate/src/parsers/istanbul.ts` -- Preserved error cause in catch
+- `extensions/quality-gate/openclaw.plugin.json` -- Coverage defaults 0.70/0.80 → 70/80
+- `extensions/quality-gate/cli/qcli.ts` -- Added --scope enum validation, updated usage
+- `extensions/quality-gate/src/complexity/tsmorph.ts` -- Removed redundant BinaryExpression from DECISION_KINDS
+- `extensions/quality-gate/test/spawn.test.ts` -- Added 12 tests for assertSafeCommand and assertPathContained
 
 ## Tests
-- All 115 tests pass (`pnpm test`)
+- All 125 tests pass (123 passed + 2 skipped) (`pnpm test`)
 - Lint clean (`pnpm lint`)
 - Typecheck clean (`pnpm typecheck`)
 
 ## Follow-ups / Backlog
-- [ ] Add unit tests for `assertSafeCommand()` and `assertPathContained()`
 - [ ] Consider using AST-based complexity analysis in future iteration
 - [ ] Add ESLint config to product-team extension
