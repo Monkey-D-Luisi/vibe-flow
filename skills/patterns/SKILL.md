@@ -1,12 +1,7 @@
 ---
 name: Architecture Patterns
 description: Create, lint, and index Architecture Pattern entries
-metadata:
-  openclaw:
-    emoji: "🏗️"
-    requires:
-      - node
-      - pnpm
+metadata: { "openclaw": { "requires": { "bins": ["node", "pnpm"] } } }
 ---
 
 # Architecture Patterns Skill
