@@ -28,12 +28,22 @@ tracked through the event log for auditability.
 - Port GithubService from old MCP server codebase
 - Adapt to OpenClaw plugin API patterns
 - Replace direct Octokit usage with abstracted VCS interface
-- Add idempotency tracking (request IDs in event log)
+- Create dedicated `ext_requests` table for **idempotency tracking**:
+  - Fields: `request_id` (PK), `task_id` (FK), `tool`, `payload_hash`, `response` (JSON), `created_at`
+  - Before executing any GitHub API call, hash the payload and check for an
+    existing record — if found, return cached response (no-op)
+  - Pattern ported from old `GithubRequestRepository.ensure()` which used
+    payload hashing to prevent duplicate branches/PRs/comments
+
+> **Design note (from deep-research report):** Using the event log alone for
+> idempotency is insufficient — a dedicated table with `payload_hash` allows
+> O(1) lookup and guarantees that re-runs of the same operation are true no-ops.
 
 **Acceptance Criteria:**
 - GithubService works within plugin context
-- All operations are idempotent
-- Request IDs logged for every GitHub API call
+- All operations are idempotent via `ext_requests` hash check
+- Request IDs and `task_id` logged for every GitHub API call
+- Duplicate calls return cached response without hitting GitHub API
 
 ### 4.2 VCS tools registration
 

@@ -53,17 +53,26 @@ Define TypeBox schemas for each role output:
 - Invalid outputs halt the pipeline with a validation error
 - Successful outputs stored in task metadata
 
-### 3.3 Quality gate integration
+### 3.3 Quality gate integration and transition guards
 
 - Hook quality checks into state transitions
-- Before `in_progress -> in_review`: coverage >= threshold, lint clean
-- Before `in_review -> qa`: reviewer approval
+- Define **field-level guards** per transition (ported from old TaskRecord rules):
+  - `design -> in_progress`: requires `adr_id` (non-empty) and `contracts` (non-empty array)
+  - `in_progress -> in_review`: coverage >= threshold, lint clean, `red_green_refactor_log` has >= 2 entries
+  - `in_review -> qa`: no `high`-severity violations in review, `rounds_review` < max (configurable, default 3)
+  - `qa -> done`: `failed == 0` in QA report
 - Configurable thresholds per scope (major vs minor)
+
+> **Design note (from deep-research report):** The old codebase enforced these
+> guards in `TaskRecord.ts` transition validators. Keeping them as explicit
+> per-transition rules prevents "operational hallucinations" where agents skip
+> required evidence. The `rounds_review` counter lives in `orchestrator_state`.
 
 **Acceptance Criteria:**
 - Transitions blocked when gates fail
-- Gate failures produce actionable error messages
+- Gate failures produce actionable error messages listing missing fields/thresholds
 - Thresholds configurable in plugin config
+- Field-level guards documented in a transition matrix
 
 ### 3.4 FastTrack system
 
