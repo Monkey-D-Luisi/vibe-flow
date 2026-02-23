@@ -2,7 +2,7 @@
   "name": "openclaw-extensions",
   "private": true,
   "type": "module",
-  "description": "OpenClaw extensions: product-team plugin and skills for AI agent workflow",
+  "description": "OpenClaw extensions: quality gate engine, skills, and shared schemas",
   "scripts": {
     "prepare": "husky",
     "test": "pnpm -r test",

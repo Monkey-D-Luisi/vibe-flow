@@ -1,69 +1,29 @@
-# OpenClaw Extensions -- Product Team
+# OpenClaw Extensions
 
-Extensions, plugins, and skills for [OpenClaw](https://openclaw.ai) that implement a **product-team workflow** of AI agents. The plugin system orchestrates specialized agents (PM, Architect, Dev, QA, Reviewer, Infra) through a contract-driven state machine with quality gates.
+Extensions, skills, and quality tooling for [OpenClaw](https://openclaw.ai) -- a self-hosted personal AI assistant gateway.
 
 ## Overview
 
-This monorepo contains:
+This monorepo contains reusable components for OpenClaw:
 
-- **`extensions/product-team/`** -- OpenClaw plugin implementing the Task Engine: TaskRecord lifecycle, state machine, quality gates, GitHub automation, and agent orchestration.
-- **`skills/`** -- OpenClaw skills for each product-team role (requirements grooming, architecture design, TDD implementation, code review, QA testing, GitHub automation).
-- **`openclaw.json`** -- Multi-agent configuration with tool policies and skill assignments per role.
-
-## Architecture
-
-```
-User / Stakeholder
-    |
-    v
-OpenClaw Gateway (sessions, routing, tools, sandbox)
-    |
-    +-- PM Agent       --> task.create, task.transition
-    +-- Architect Agent --> task.get, workflow.state.*
-    +-- Dev Agent       --> quality.*, workflow.*, task.transition
-    +-- QA Agent        --> quality.*, task.transition
-    +-- Reviewer Agent  --> task.get, task.transition
-    +-- Infra Agent     --> vcs.*, task.transition
-    |
-    v
-Plugin: product-team
-    |
-    +-- Task Engine (SQLite + event log + leases)
-    +-- Quality Gates (coverage, lint, complexity, TDD)
-    +-- GitHub Automation (branch, PR, labels, project)
-```
-
-### State Machine
-
-```
-PO --> Architect --> Dev --> Review --> PO Check --> QA --> PR --> Done
-         |
-         v
-       Dev (fast-track for minor scope)
-```
+- **`extensions/quality-gate/`** -- Quality gate engine: parsers (ESLint, Istanbul, Vitest, Ruff), cyclomatic complexity analysis, gate policy evaluation, and CLI tool.
+- **`extensions/product-team/`** -- Product-team workflow plugin (foundation).
+- **`skills/`** -- OpenClaw skill definitions for ADR management, architecture patterns, and more.
+- **`packages/schemas/`** -- Shared JSON Schemas for quality tool I/O.
 
 ## Prerequisites
 
-- [OpenClaw](https://openclaw.ai) installed and Gateway running
+- [OpenClaw](https://openclaw.ai) installed
 - Node.js 22+
 - pnpm
 
 ## Quick Start
 
 ```bash
-# Clone the repository
 git clone https://github.com/Monkey-D-Luisi/agents-mcps.git
 cd agents-mcps
-
-# Install dependencies
 pnpm install
-
-# Run tests
 pnpm test
-
-# Lint and type-check
-pnpm lint
-pnpm typecheck
 ```
 
 ## Development
@@ -82,39 +42,34 @@ agents-mcps/
   .agent.md                    # Agent governance (single source of truth)
   .agent/rules/                # Workflow and standards definitions
   .agent/templates/            # Task, walkthrough, ADR, PR review templates
-  .claude/commands/            # Claude Code slash commands
   CLAUDE.md                    # Claude Code instructions
   AGENTS.md                    # Generic agent instructions
-  openclaw.json                # OpenClaw multi-agent configuration
+  openclaw.json                # OpenClaw configuration
   extensions/
-    product-team/              # OpenClaw plugin
+    quality-gate/              # Quality gate engine
       src/
-        domain/                # TaskRecord, FastTrack (pure logic)
-        persistence/           # SQLite repositories
-        orchestrator/          # State machine, router, runner
-        quality/               # Quality gate evaluation
-        github/                # GitHub automation (Octokit)
-        tools/                 # OpenClaw tool registrations
-        schemas/               # JSON Schemas
+        complexity/            # Cyclomatic complexity analysis
+        exec/                  # Process execution
+        fs/                    # File system utilities
+        gate/                  # Gate policy and evaluation
+        parsers/               # Output parsers (ESLint, Istanbul, Vitest, Ruff)
+        tools/                 # Tool implementations
+        utils/                 # Schema loading
+      cli/                     # CLI entry point (qcli)
       test/                    # Vitest tests
+    product-team/              # Product-team workflow plugin
   skills/
-    requirements-grooming/     # PM skill
-    architecture-design/       # Architect skill
-    tdd-implementation/        # Dev skill
-    code-review/               # Reviewer skill
-    qa-testing/                # QA skill
-    github-automation/         # Infra skill
+    adr/                       # ADR management skill
+    patterns/                  # Architecture patterns skill
+  packages/
+    schemas/                   # Shared JSON Schemas
   docs/
-    roadmap.md                 # 6-month phased plan
+    roadmap.md                 # Development roadmap
     backlog/                   # Epic specifications
     tasks/                     # Task specifications
     walkthroughs/              # Implementation journals
     adr/                       # Architecture Decision Records
 ```
-
-## Roadmap
-
-See [docs/roadmap.md](docs/roadmap.md) for the full 6-month plan.
 
 ## Contributing
 

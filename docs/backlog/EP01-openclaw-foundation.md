@@ -1,0 +1,80 @@
+# EP01 -- OpenClaw Foundation
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| Epic        | EP01                                             |
+| Status      | PENDING                                          |
+| Priority    | P0                                               |
+| Phase       | 1 -- Foundation                                  |
+| Target      | March 2026                                       |
+| Depends on  | None                                             |
+| Blocks      | (all other epics depend on the gateway running)  |
+
+## Goal
+
+Gateway operational with authentication, multi-agent routing by role, and tool
+policies that restrict each agent to its authorized surface area.
+
+## Context
+
+The product-team system requires a runtime that boots agents, routes messages,
+enforces tool allow-lists, and manages channels. OpenClaw provides this out of
+the box, eliminating the need for custom MCP server infrastructure.
+
+## Tasks
+
+### 1.1 Gateway setup and configuration
+
+- Install OpenClaw gateway
+- Create `openclaw.json` at repo root
+- Configure plugin path (`./extensions/product-team`)
+- Verify gateway boots without errors
+
+**Acceptance Criteria:**
+- `openclaw start` launches successfully
+- Plugin is loaded and reports ready
+
+### 1.2 Agent definitions
+
+- Define all six agents: pm, architect, dev, qa, reviewer, infra
+- Each agent has id, name, description, skills path
+- Skills directories exist with SKILL.md files
+
+**Acceptance Criteria:**
+- All six agents listed in `openclaw.json`
+- Each agent's skill directory contains a valid SKILL.md
+
+### 1.3 Tool policies per role
+
+- Configure `tools.allow` for each agent
+- PM: task.create, task.get, task.search, task.update, task.transition
+- Architect: task.get, task.update, task.transition, workflow.state.get
+- Dev: task.get, task.update, task.transition, quality.*, workflow.*
+- QA: task.get, task.update, task.transition, quality.*
+- Reviewer: task.get, task.update, task.transition
+- Infra: vcs.*, task.get, task.transition
+
+**Acceptance Criteria:**
+- Each agent can only invoke its allowed tools
+- Attempting to call a disallowed tool returns a policy error
+
+### 1.4 Sandbox configuration
+
+- Configure environment isolation
+- Set working directory per agent
+- Configure temp file policies
+
+**Acceptance Criteria:**
+- Agents operate in isolated contexts
+- No cross-agent file leakage
+
+## Out of Scope
+
+- Tool implementation (EP02+)
+- Workflow logic (EP03)
+- CI/CD hooks (EP04)
+
+## References
+
+- [Roadmap](../roadmap.md)
+- [ADR-001](../adr/ADR-001-migrate-from-mcp-to-openclaw.md)

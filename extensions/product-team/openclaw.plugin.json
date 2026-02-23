@@ -1,0 +1,25 @@
+{
+  "id": "product-team",
+  "name": "Product Team Engine",
+  "version": "0.1.0",
+  "description": "Task engine + workflow tools for a multi-agent product team",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "dbPath": {
+        "type": "string",
+        "description": "Path to SQLite database file",
+        "default": "./data/product-team.db"
+      },
+      "github": {
+        "type": "object",
+        "properties": {
+          "owner": { "type": "string" },
+          "repo": { "type": "string" },
+          "defaultBase": { "type": "string", "default": "main" }
+        }
+      }
+    }
+  }
+}

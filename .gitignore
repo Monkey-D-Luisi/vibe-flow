@@ -9,12 +9,7 @@ node_modules/
 /out/
 coverage/
 extensions/**/dist/
-
-# SQLite data
-data/
-*.db
-*.db-wal
-*.db-shm
+extensions/**/coverage/
 
 # TypeScript
 *.tsbuildinfo
@@ -55,6 +50,9 @@ Thumbs.db
 
 # Git
 .gitmessage.txt
+
+# Quality reports
+.qreport/
 
 # Misc
 *.swp

@@ -1,10 +1,15 @@
-### Context
-Closes #{ISSUE_NUMBER}
+## Summary
+<!-- Brief description of changes -->
 
-### Delivery Checklist
-- [ ] ACs met and marked
-- [ ] RGR log included (red -> green -> refactor)
-- [ ] Coverage >= 80% (major) / >= 70% (minor)
-- [ ] Lint without errors
-- [ ] ADR link (if applicable)
+## Related Task
+<!-- Link to docs/tasks/NNNN-*.md if applicable -->
 
+## Changes
+<!-- List of key changes -->
+
+## Checklist
+- [ ] Tests pass (`pnpm test`)
+- [ ] Lint clean (`pnpm lint`)
+- [ ] Types check (`pnpm typecheck`)
+- [ ] Walkthrough updated (for non-trivial changes)
+- [ ] No secrets committed

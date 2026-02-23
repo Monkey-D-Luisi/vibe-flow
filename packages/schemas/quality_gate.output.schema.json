@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QualityGateOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["passed", "metrics", "violations"],
+  "properties": {
+    "passed": { "type": "boolean" },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tests", "coverage", "lint", "complexity"],
+      "properties": {
+        "tests": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["total", "failed"],
+          "properties": {
+            "total": { "type": "integer" },
+            "failed": { "type": "integer" }
+          }
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["lines"],
+          "properties": { "lines": { "type": "number" } }
+        },
+        "lint": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["errors", "warnings"],
+          "properties": {
+            "errors": { "type": "integer" },
+            "warnings": { "type": "integer" }
+          }
+        },
+        "complexity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["avgCyclomatic", "maxCyclomatic"],
+          "properties": {
+            "avgCyclomatic": { "type": "number" },
+            "maxCyclomatic": { "type": "number" }
+          }
+        }
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string", "enum": ["TESTS_FAILED", "COVERAGE_BELOW", "LINT_ERRORS", "COMPLEXITY_HIGH", "RGR_MISSING"] },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}
