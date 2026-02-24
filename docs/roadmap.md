@@ -1,6 +1,6 @@
 # Roadmap -- OpenClaw Product Team Extensions
 
-> Last updated: 2026-02-23
+> Last updated: 2026-02-24
 
 ## Vision
 
@@ -16,7 +16,7 @@ structured JSON contracts, and is governed by tool-policy allow-lists.
 | Phase | Epic | Description                     | Dependencies | Target       | Status  |
 |-------|------|---------------------------------|--------------|--------------|---------|
 | 1     | EP01 | OpenClaw Foundation             | None         | March 2026   | DONE    |
-| 1     | EP02 | Task Engine                     | None         | March 2026   | PENDING |
+| 1     | EP02 | Task Engine                     | None         | March 2026   | DONE    |
 | 2     | EP03 | Role Execution                  | EP02         | April 2026   | PENDING |
 | 3     | EP04 | GitHub Integration              | EP02         | May-Jun 2026 | PENDING |
 | 4     | EP05 | Quality & Observability         | EP02, EP03   | July 2026    | PENDING |
