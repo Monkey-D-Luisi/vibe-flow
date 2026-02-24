@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0004-coverage-debt.md`
 - Epic: Pre-EP04 prerequisite
 - Branch: `fix/0004-coverage-debt`
-- PR: TBD
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/164
 
 ---
 
