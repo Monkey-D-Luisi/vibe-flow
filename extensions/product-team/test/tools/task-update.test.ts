@@ -10,6 +10,7 @@ import { createValidator } from '../../src/schemas/validator.js';
 import type { ToolDeps } from '../../src/tools/index.js';
 import { taskCreateToolDef } from '../../src/tools/task-create.js';
 import { taskUpdateToolDef } from '../../src/tools/task-update.js';
+import { DEFAULT_TRANSITION_GUARD_CONFIG } from '../../src/orchestrator/transition-guards.js';
 
 const NOW = '2026-02-24T12:00:00.000Z';
 
@@ -22,7 +23,17 @@ function createDeps(db: Database.Database): ToolDeps {
   const generateId = () => `01TOOL_${String(++idCounter).padStart(10, '0')}`;
   const now = () => NOW;
   const eventLog = new EventLog(eventRepo, generateId, now);
-  return { db, taskRepo, orchestratorRepo, leaseRepo, eventLog, generateId, now, validate: createValidator() };
+  return {
+    db,
+    taskRepo,
+    orchestratorRepo,
+    leaseRepo,
+    eventLog,
+    generateId,
+    now,
+    validate: createValidator(),
+    transitionGuardConfig: DEFAULT_TRANSITION_GUARD_CONFIG,
+  };
 }
 
 describe('task.update tool', () => {

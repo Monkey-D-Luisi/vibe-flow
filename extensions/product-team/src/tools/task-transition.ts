@@ -24,6 +24,7 @@ export function taskTransitionToolDef(deps: ToolDeps): ToolDef {
         leaseRepo: deps.leaseRepo,
         eventLog: deps.eventLog,
         now: deps.now,
+        guardConfig: deps.transitionGuardConfig,
       });
 
       return {

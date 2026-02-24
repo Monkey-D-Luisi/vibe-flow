@@ -60,6 +60,50 @@ export class EventLog {
     return event;
   }
 
+  logFastTrack(
+    taskId: string,
+    requestedTo: TaskStatus,
+    effectiveTo: TaskStatus,
+    agentId: string,
+  ): EventRecord {
+    const event: EventRecord = {
+      id: this.generateId(),
+      taskId,
+      eventType: 'task.fast_track',
+      agentId,
+      payload: {
+        requestedTo,
+        effectiveTo,
+      },
+      createdAt: this.now(),
+    };
+    this.eventRepo.append(event);
+    return event;
+  }
+
+  logWorkflowStep(
+    taskId: string,
+    stepId: string,
+    stepType: string,
+    agentId: string,
+    schemaKey: string | null,
+  ): EventRecord {
+    const event: EventRecord = {
+      id: this.generateId(),
+      taskId,
+      eventType: 'workflow.step.completed',
+      agentId,
+      payload: {
+        stepId,
+        stepType,
+        schemaKey,
+      },
+      createdAt: this.now(),
+    };
+    this.eventRepo.append(event);
+    return event;
+  }
+
   logLeaseAcquired(taskId: string, agentId: string): EventRecord {
     const event: EventRecord = {
       id: this.generateId(),

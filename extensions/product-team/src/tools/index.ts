@@ -5,6 +5,7 @@ import type { SqliteOrchestratorRepository } from '../persistence/orchestrator-r
 import type { SqliteLeaseRepository } from '../persistence/lease-repository.js';
 import type { EventLog } from '../orchestrator/event-log.js';
 import type { ValidateFn } from '../schemas/validator.js';
+import type { TransitionGuardConfig } from '../orchestrator/transition-guards.js';
 
 export interface ToolDeps {
   db: Database.Database;
@@ -15,6 +16,7 @@ export interface ToolDeps {
   generateId: () => string;
   now: () => string;
   validate: ValidateFn;
+  transitionGuardConfig: TransitionGuardConfig;
 }
 
 export interface ToolDef {
@@ -33,6 +35,8 @@ import { taskGetToolDef } from './task-get.js';
 import { taskSearchToolDef } from './task-search.js';
 import { taskUpdateToolDef } from './task-update.js';
 import { taskTransitionToolDef } from './task-transition.js';
+import { workflowStepRunToolDef } from './workflow-step-run.js';
+import { workflowStateGetToolDef } from './workflow-state-get.js';
 
 export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
   return [
@@ -41,5 +45,7 @@ export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
     taskSearchToolDef(deps),
     taskUpdateToolDef(deps),
     taskTransitionToolDef(deps),
+    workflowStepRunToolDef(deps),
+    workflowStateGetToolDef(deps),
   ];
 }

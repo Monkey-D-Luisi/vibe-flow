@@ -15,10 +15,53 @@ import {
   TaskNotFoundError,
   InvalidTransitionError,
   LeaseConflictError,
+  TransitionGuardError,
 } from '../../src/domain/errors.js';
+import { DEFAULT_TRANSITION_GUARD_CONFIG } from '../../src/orchestrator/transition-guards.js';
 
 const NOW = '2026-02-24T12:00:00.000Z';
 const TASK_ID = '01SM_TEST_0000001';
+
+interface WorkflowMetadataOptions {
+  adrId?: string;
+  contracts?: string[];
+  coverage?: number;
+  lintClean?: boolean;
+  refactorLog?: string[];
+  reviewViolations?: Array<Record<string, unknown>>;
+  qaFailed?: number;
+}
+
+function createWorkflowMetadata(options: WorkflowMetadataOptions = {}): Record<string, unknown> {
+  return {
+    architecture_plan: {
+      modules: ['api'],
+      contracts: options.contracts ?? ['task.create', 'task.update'],
+      patterns: ['hexagonal'],
+      test_plan: ['unit', 'integration'],
+      adr_id: options.adrId ?? 'ADR-001',
+    },
+    dev_result: {
+      diff_summary: 'Implemented feature',
+      metrics: {
+        coverage: options.coverage ?? 92,
+        lint_clean: options.lintClean ?? true,
+      },
+      red_green_refactor_log: options.refactorLog ?? ['red', 'green'],
+    },
+    review_result: {
+      violations: options.reviewViolations ?? [],
+      overall_verdict: 'approve',
+    },
+    qa_report: {
+      total: 12,
+      passed: 12,
+      failed: options.qaFailed ?? 0,
+      skipped: 0,
+      evidence: ['qa-report.xml'],
+    },
+  };
+}
 
 describe('state-machine transition', () => {
   let db: Database.Database;
@@ -47,10 +90,18 @@ describe('state-machine transition', () => {
       leaseRepo,
       eventLog,
       now: () => currentTime,
+      guardConfig: DEFAULT_TRANSITION_GUARD_CONFIG,
     };
 
-    // Create a task
-    const task = createTaskRecord({ title: 'Test task' }, TASK_ID, NOW);
+    const task = createTaskRecord(
+      {
+        title: 'Test task',
+        scope: 'major',
+        metadata: createWorkflowMetadata(),
+      },
+      TASK_ID,
+      NOW,
+    );
     const orchState = createOrchestratorState(TASK_ID, NOW);
     taskRepo.create(task, orchState);
   });
@@ -68,46 +119,62 @@ describe('state-machine transition', () => {
       expect(result.orchestratorState.previous).toBe('backlog');
       expect(result.orchestratorState.lastAgent).toBe('pm');
       expect(result.event.eventType).toBe('task.transition');
+      expect(result.fastTrack).toBe(false);
     });
 
     it('should transition through full lifecycle', () => {
-      // backlog -> grooming
       let result = transition(TASK_ID, 'grooming', 'pm', 0, deps);
       expect(result.task.status).toBe('grooming');
 
-      // grooming -> design
       result = transition(TASK_ID, 'design', 'architect', result.orchestratorState.rev, deps);
       expect(result.task.status).toBe('design');
 
-      // design -> in_progress
       result = transition(TASK_ID, 'in_progress', 'dev', result.orchestratorState.rev, deps);
       expect(result.task.status).toBe('in_progress');
 
-      // in_progress -> in_review
       result = transition(TASK_ID, 'in_review', 'dev', result.orchestratorState.rev, deps);
       expect(result.task.status).toBe('in_review');
 
-      // in_review -> qa
       result = transition(TASK_ID, 'qa', 'reviewer', result.orchestratorState.rev, deps);
       expect(result.task.status).toBe('qa');
 
-      // qa -> done
       result = transition(TASK_ID, 'done', 'qa', result.orchestratorState.rev, deps);
       expect(result.task.status).toBe('done');
     });
 
-    it('should support grooming -> in_progress fast-track', () => {
-      transition(TASK_ID, 'grooming', 'pm', 0, deps);
+    it('should auto-fast-track minor tasks from grooming to in_progress', () => {
+      const minorTaskId = '01SM_MINOR_000001';
+      const minorTask = createTaskRecord(
+        {
+          title: 'Minor task',
+          scope: 'minor',
+          metadata: createWorkflowMetadata(),
+        },
+        minorTaskId,
+        NOW,
+      );
+      taskRepo.create(minorTask, createOrchestratorState(minorTaskId, NOW));
 
-      const orchState = orchestratorRepo.getByTaskId(TASK_ID)!;
+      const grooming = transition(minorTaskId, 'grooming', 'pm', 0, deps);
       const result = transition(
-        TASK_ID,
-        'in_progress',
-        'dev',
-        orchState.rev,
+        minorTaskId,
+        'design',
+        'architect',
+        grooming.orchestratorState.rev,
         deps,
       );
+
       expect(result.task.status).toBe('in_progress');
+      expect(result.effectiveToStatus).toBe('in_progress');
+      expect(result.fastTrack).toBe(true);
+
+      const history = deps.eventLog.getHistory(minorTaskId);
+      const fastTrackEvent = history.find((event) => event.eventType === 'task.fast_track');
+      expect(fastTrackEvent).toBeDefined();
+      expect(fastTrackEvent?.payload).toEqual({
+        requestedTo: 'design',
+        effectiveTo: 'in_progress',
+      });
     });
   });
 
@@ -122,6 +189,78 @@ describe('state-machine transition', () => {
       expect(() =>
         transition('NONEXISTENT', 'grooming', 'pm', 0, deps),
       ).toThrow(TaskNotFoundError);
+    });
+  });
+
+  describe('transition guards', () => {
+    it('should block design -> in_progress when architecture evidence is incomplete', () => {
+      let result = transition(TASK_ID, 'grooming', 'pm', 0, deps);
+      result = transition(TASK_ID, 'design', 'architect', result.orchestratorState.rev, deps);
+
+      const currentTask = taskRepo.getById(TASK_ID);
+      expect(currentTask).not.toBeNull();
+      taskRepo.update(
+        TASK_ID,
+        {
+          metadata: createWorkflowMetadata({
+            adrId: '',
+            contracts: [],
+          }),
+        },
+        currentTask!.rev,
+        NOW,
+      );
+
+      expect(() =>
+        transition(TASK_ID, 'in_progress', 'dev', result.orchestratorState.rev, deps),
+      ).toThrow(TransitionGuardError);
+    });
+
+    it('should apply scope coverage thresholds for in_progress -> in_review', () => {
+      const minorTaskId = '01SM_MINOR_000002';
+      const minorTask = createTaskRecord(
+        {
+          title: 'Minor task with low coverage',
+          scope: 'minor',
+          metadata: createWorkflowMetadata({
+            coverage: 69,
+          }),
+        },
+        minorTaskId,
+        NOW,
+      );
+      taskRepo.create(minorTask, createOrchestratorState(minorTaskId, NOW));
+
+      let result = transition(minorTaskId, 'grooming', 'pm', 0, deps);
+      result = transition(
+        minorTaskId,
+        'in_progress',
+        'dev',
+        result.orchestratorState.rev,
+        deps,
+      );
+
+      expect(() =>
+        transition(minorTaskId, 'in_review', 'dev', result.orchestratorState.rev, deps),
+      ).toThrow(TransitionGuardError);
+    });
+
+    it('should block in_review -> qa when max review rounds is reached', () => {
+      let result = transition(TASK_ID, 'grooming', 'pm', 0, deps);
+      result = transition(TASK_ID, 'design', 'architect', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'in_progress', 'dev', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'in_review', 'reviewer', result.orchestratorState.rev, deps);
+
+      const cappedState = orchestratorRepo.update(
+        TASK_ID,
+        { roundsReview: DEFAULT_TRANSITION_GUARD_CONFIG.maxReviewRounds },
+        result.orchestratorState.rev,
+        NOW,
+      );
+
+      expect(() =>
+        transition(TASK_ID, 'qa', 'reviewer', cappedState.rev, deps),
+      ).toThrow(TransitionGuardError);
     });
   });
 
@@ -142,7 +281,6 @@ describe('state-machine transition', () => {
     it('should reject stale orchestrator rev', () => {
       transition(TASK_ID, 'grooming', 'pm', 0, deps);
 
-      // Try with stale rev=0 (should be 1 now)
       expect(() =>
         transition(TASK_ID, 'design', 'architect', 0, deps),
       ).toThrow(/[Ss]tale/);
@@ -151,15 +289,13 @@ describe('state-machine transition', () => {
 
   describe('review rejection counter', () => {
     it('should increment roundsReview on in_review -> in_progress', () => {
-      // backlog -> grooming -> design -> in_progress -> in_review
       let result = transition(TASK_ID, 'grooming', 'pm', 0, deps);
       result = transition(TASK_ID, 'design', 'architect', result.orchestratorState.rev, deps);
       result = transition(TASK_ID, 'in_progress', 'dev', result.orchestratorState.rev, deps);
-      result = transition(TASK_ID, 'in_review', 'dev', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'in_review', 'reviewer', result.orchestratorState.rev, deps);
 
       expect(result.orchestratorState.roundsReview).toBe(0);
 
-      // Rejection: in_review -> in_progress
       result = transition(TASK_ID, 'in_progress', 'reviewer', result.orchestratorState.rev, deps);
       expect(result.orchestratorState.roundsReview).toBe(1);
     });
@@ -167,10 +303,8 @@ describe('state-machine transition', () => {
 
   describe('lease enforcement', () => {
     it('should reject transition when lease held by different agent', () => {
-      // Acquire lease as pm
       deps.leaseRepo.acquire(TASK_ID, 'pm', NOW, '2026-02-24T12:05:00.000Z');
 
-      // Try to transition as dev
       expect(() =>
         transition(TASK_ID, 'grooming', 'dev', 0, deps),
       ).toThrow(LeaseConflictError);
