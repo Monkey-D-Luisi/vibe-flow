@@ -11,10 +11,10 @@ export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 
 export function register(api: OpenClawPluginApi): void {
   api.logger.info('product-team plugin loaded');
-  // EP02: task.create, task.get, task.search, task.update, task.transition
-  // EP03: workflow.step.run, workflow.state.get
-  // EP04: vcs.branch.create, vcs.pr.create, vcs.pr.update, vcs.label.sync
-  // EP05: quality.coverage, quality.lint, quality.complexity
+  // EP02: task_create, task_get, task_search, task_update, task_transition
+  // EP03: workflow_step_run, workflow_state_get
+  // EP04: vcs_branch_create, vcs_pr_create, vcs_pr_update, vcs_label_sync
+  // EP05: quality_coverage, quality_lint, quality_complexity
 }
 
 export default {
