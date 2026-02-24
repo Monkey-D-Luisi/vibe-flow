@@ -2,9 +2,9 @@ name: Project Sync
 
 on:
   pull_request:
-    types: [opened, ready_for_review, review_requested, review_request_removed, closed, converted_to_draft]
+    types: [opened, reopened, ready_for_review, review_requested, review_request_removed, closed, converted_to_draft]
   issues:
-    types: [opened, edited, closed, reopened, assigned]
+    types: [opened, edited, closed, reopened, assigned, unassigned, labeled, unlabeled]
 
 permissions:
   contents: read
@@ -21,21 +21,132 @@ jobs:
           github-token: ${{ secrets.PROJECT_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const owner = context.repo.owner
+            const repo = context.repo.repo
             const projectNumber = 3
+            const action = context.payload.action
 
-            function mapStatus(evt, payload) {
-              if (context.eventName === "issues") {
-                if (payload.issue.state === "closed") return "Done"
-                if (payload.action === "assigned") return "In Progress"
-                return "To Do"
-              }
-              const pr = payload.pull_request
-              if (pr.merged) return "Done"
-              if (pr.draft) return "In Review"
-              return pr.state === "open" ? "In Review" : "Done"
+            function normalizeLabelNames(labels) {
+              if (!Array.isArray(labels)) return []
+              return labels
+                .map(label => (typeof label === "string" ? label : label?.name))
+                .filter(Boolean)
             }
 
-            const statusValue = mapStatus(context.payload.action, context.payload)
+            function mapIssueStatus(payload) {
+              if (payload.issue.state === "closed" || action === "closed") return "Done"
+              if (action === "assigned") return "In Progress"
+              if (action === "unassigned") {
+                return (payload.issue.assignees?.length ?? 0) > 0 ? "In Progress" : "To Do"
+              }
+              if (action === "opened" || action === "reopened") return "To Do"
+              return null
+            }
+
+            function mapPullRequestStatus(payload) {
+              const pr = payload.pull_request
+              if (!pr) return null
+              if (pr.merged || pr.state === "closed" || action === "closed") return "Done"
+              if (
+                action === "opened" ||
+                action === "reopened" ||
+                action === "ready_for_review" ||
+                action === "review_requested" ||
+                action === "review_request_removed" ||
+                action === "converted_to_draft"
+              ) {
+                return "In Review"
+              }
+              return null
+            }
+
+            function mapStatus(payload) {
+              if (context.eventName === "issues") return mapIssueStatus(payload)
+              return mapPullRequestStatus(payload)
+            }
+
+            function getEpicCode(labels) {
+              const epicLabel = labels.find(label => /^epic:/i.test(label))
+              if (!epicLabel) return null
+              const code = epicLabel.split(":")[1]
+              return code?.trim().toUpperCase() || null
+            }
+
+            async function setArchiveState(projectId, itemId, archived) {
+              const mutationName = archived ? "archiveProjectV2Item" : "unarchiveProjectV2Item"
+              await github.graphql(
+                `
+                mutation($projectId:ID!, $itemId:ID!){
+                  ${mutationName}(input:{projectId:$projectId, itemId:$itemId}){ clientMutationId }
+                }`,
+                { projectId, itemId }
+              )
+            }
+
+            async function linkIssueToEpicParent(issueNumber, labels) {
+              const epicCode = getEpicCode(labels)
+              if (!epicCode) return
+
+              const issueRes = await github.graphql(
+                `
+                query($owner:String!, $repo:String!, $number:Int!){
+                  repository(owner:$owner, name:$repo){
+                    issue(number:$number){
+                      id
+                      number
+                      parent { id number }
+                    }
+                  }
+                }`,
+                { owner, repo, number: issueNumber }
+              )
+              const issue = issueRes?.repository?.issue
+              if (!issue || issue.parent) return
+
+              const epicPrefix = `${epicCode}:`
+              const searchQuery = `repo:${owner}/${repo} is:issue label:epic -label:deprecated in:title \"${epicPrefix}\"`
+              const epicRes = await github.graphql(
+                `
+                query($query:String!){
+                  search(type:ISSUE, query:$query, first:10){
+                    nodes{
+                      ... on Issue{
+                        id
+                        number
+                        title
+                        state
+                        labels(first:20){ nodes { name } }
+                      }
+                    }
+                  }
+                }`,
+                { query: searchQuery }
+              )
+              const epicIssue = epicRes?.search?.nodes?.find(candidate => {
+                const candidateLabels = normalizeLabelNames(candidate?.labels?.nodes ?? [])
+                return (
+                  candidate?.title?.toUpperCase().startsWith(epicPrefix) &&
+                  !candidateLabels.includes("deprecated")
+                )
+              })
+
+              if (!epicIssue) {
+                core.notice(`No active epic found for '${epicCode}' while syncing issue #${issueNumber}`)
+                return
+              }
+              if (epicIssue.number === issue.number) return
+
+              await github.graphql(
+                `
+                mutation($issueId:ID!, $subIssueId:ID!){
+                  addSubIssue(input:{issueId:$issueId, subIssueId:$subIssueId, replaceParent:true}){
+                    issue { number }
+                    subIssue { number }
+                  }
+                }`,
+                { issueId: epicIssue.id, subIssueId: issue.id }
+              )
+              core.notice(`Linked issue #${issue.number} as sub-issue of #${epicIssue.number}`)
+            }
 
             async function getProject(login, number) {
               const fieldSelection = `
@@ -75,6 +186,7 @@ jobs:
             const nodeId = context.eventName === "issues"
               ? context.payload.issue.node_id
               : context.payload.pull_request.node_id
+            if (!nodeId) { core.notice("Content node id not found, skipping sync"); return }
 
             const addRes = await github.graphql(`
               mutation($projectId:ID!,$itemId:ID!){
@@ -82,6 +194,27 @@ jobs:
               }`, { projectId: project.id, itemId: nodeId }
             )
             const itemId = addRes.addProjectV2ItemById.item.id
+
+            const labels = context.eventName === "issues"
+              ? normalizeLabelNames(context.payload.issue.labels)
+              : normalizeLabelNames(context.payload.pull_request.labels)
+            const isDeprecated = labels.includes("deprecated")
+
+            if (isDeprecated) {
+              await setArchiveState(project.id, itemId, true)
+              core.notice("Item archived because it is labeled deprecated")
+              return
+            }
+
+            await setArchiveState(project.id, itemId, false)
+
+            const statusValue = mapStatus(context.payload)
+            if (!statusValue) {
+              if (context.eventName === "issues") {
+                await linkIssueToEpicParent(context.payload.issue.number, labels)
+              }
+              return
+            }
 
             const option = statusField.options?.find(o => o.name === statusValue)
             if (!option) { core.notice(`Status option '${statusValue}' not found, skipping sync`); return }
@@ -94,3 +227,7 @@ jobs:
                 }) { clientMutationId }
               }`, { projectId: project.id, itemId, fieldId: statusField.id, optionId: option.id }
             )
+
+            if (context.eventName === "issues") {
+              await linkIssueToEpicParent(context.payload.issue.number, labels)
+            }

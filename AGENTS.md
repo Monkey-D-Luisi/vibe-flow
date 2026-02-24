@@ -1,5 +1,13 @@
 # AGENTS.md - Agent Instructions for OpenClaw Extensions
 
+## Autonomous execution -- read this first
+
+Never create blocking "continue" checkpoints. Execute every workflow atomically from start to PR.
+- No mid-task pauses. No "should I proceed?" for steps already in the spec.
+- If a tool/command fails: retry once, skip, document in walkthrough -- never stop.
+- Read only local files. Never fetch external repos or URLs during execution.
+- Genuine ambiguity: ask before implementation, not mid-task.
+
 ## Priority
 1. `.agent.md` (governance)
 2. Current task in `docs/tasks/`
