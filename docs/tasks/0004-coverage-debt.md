@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Epic | Pre-EP04 prerequisite |
 | Priority | HIGH |
 | Scope | MINOR |
@@ -65,11 +65,11 @@ Current state (approximate):
 
 ## Acceptance Criteria
 
-- [ ] AC1: `vitest run --coverage` passes with all files in `src/` at >= 80% statements
-- [ ] AC2: `vitest run --coverage` passes with all files in `src/` at >= 80% branches
-- [ ] AC3: `vitest run --coverage` passes with all files in `src/` at >= 80% functions
-- [ ] AC4: No test regressions (all existing 147+ tests still pass)
-- [ ] AC5: Coverage report committed as CI artifact reference in walkthrough
+- [x] AC1: `vitest run --coverage` passes with all files in `src/` at >= 80% statements
+- [x] AC2: `vitest run --coverage` passes with all files in `src/` at >= 80% branches
+- [x] AC3: `vitest run --coverage` passes with all files in `src/` at >= 80% functions
+- [x] AC4: No test regressions (all existing 147+ tests still pass)
+- [x] AC5: Coverage report committed as CI artifact reference in walkthrough
 
 ---
 
@@ -148,11 +148,11 @@ pnpm typecheck       # zero errors
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Tests written and passing
-- [ ] Coverage meets threshold (>= 80% all dimensions)
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated
-- [ ] Code reviewed (if applicable)
+- [x] All Acceptance Criteria met
+- [x] Tests written and passing
+- [x] Coverage meets threshold (>= 80% all dimensions)
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated
+- [x] Code reviewed (if applicable)
 - [ ] PR created and linked
