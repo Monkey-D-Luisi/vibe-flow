@@ -47,13 +47,13 @@ export function register(api: OpenClawPluginApi): void {
     try {
       db.close();
       api.logger.info('database closed');
-    } catch {
-      // Best-effort close — ignore errors during shutdown
+    } catch (error: unknown) {
+      api.logger.warn(`failed to close database during shutdown: ${String(error)}`);
     }
   };
-  process.on('exit', closeDb);
-  process.on('SIGINT', closeDb);
-  process.on('SIGTERM', closeDb);
+  process.once('exit', closeDb);
+  process.once('SIGINT', closeDb);
+  process.once('SIGTERM', closeDb);
 
   api.logger.info(`database initialized at ${resolvedPath}`);
 

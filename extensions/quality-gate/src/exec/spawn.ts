@@ -34,8 +34,8 @@ export function assertSafeCommand(cmd: string, args: string[] = []): void {
     }
   };
 
-  // Extract the base command (first token) for allowlist check
-  const baseCmd = cmd.split(/\s+/)[0].toLowerCase();
+  // cmd is already the parsed executable (first token); use it directly
+  const baseCmd = cmd.toLowerCase();
   if (!ALLOWED_COMMAND_PREFIXES.some((prefix) => baseCmd === prefix || baseCmd.endsWith(`/${prefix}`) || baseCmd.endsWith(`\\${prefix}`))) {
     throw new Error(`UNSAFE_COMMAND: command "${baseCmd}" is not in the allowed list: ${ALLOWED_COMMAND_PREFIXES.join(', ')}`);
   }
@@ -66,15 +66,40 @@ export interface SpawnResult {
   exitCode: number;
   durationMs: number;
   timedOut: boolean;
+  stdoutTruncated: boolean;
+  stderrTruncated: boolean;
 }
 
 /**
  * Parse a command string into the executable and its arguments.
+ * Handles single- and double-quoted tokens so paths with spaces are preserved.
  */
 export function parseCommand(command: string): { cmd: string; args: string[] } {
-  const parts = command.split(/\s+/);
-  const cmd = parts[0];
-  const args = parts.slice(1);
+  const tokens: string[] = [];
+  let current = '';
+  let inSingle = false;
+  let inDouble = false;
+
+  for (let i = 0; i < command.length; i++) {
+    const ch = command[i];
+
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle;
+    } else if (ch === '"' && !inSingle) {
+      inDouble = !inDouble;
+    } else if ((ch === ' ' || ch === '\t') && !inSingle && !inDouble) {
+      if (current.length > 0) {
+        tokens.push(current);
+        current = '';
+      }
+    } else {
+      current += ch;
+    }
+  }
+  if (current.length > 0) tokens.push(current);
+
+  const cmd = tokens[0] ?? '';
+  const args = tokens.slice(1);
   return { cmd, args };
 }
 
@@ -130,7 +155,7 @@ export async function safeSpawn(cmd: string, args: string[], options: SpawnOptio
     child.stdout?.on('data', (data) => {
       if (!stdoutTruncated) {
         stdout += data.toString();
-        if (stdout.length > MAX_BUFFER_BYTES) {
+        if (Buffer.byteLength(stdout, 'utf8') > MAX_BUFFER_BYTES) {
           stdout = stdout.slice(0, MAX_BUFFER_BYTES);
           stdoutTruncated = true;
         }
@@ -140,7 +165,7 @@ export async function safeSpawn(cmd: string, args: string[], options: SpawnOptio
     child.stderr?.on('data', (data) => {
       if (!stderrTruncated) {
         stderr += data.toString();
-        if (stderr.length > MAX_BUFFER_BYTES) {
+        if (Buffer.byteLength(stderr, 'utf8') > MAX_BUFFER_BYTES) {
           stderr = stderr.slice(0, MAX_BUFFER_BYTES);
           stderrTruncated = true;
         }
@@ -161,6 +186,8 @@ export async function safeSpawn(cmd: string, args: string[], options: SpawnOptio
         exitCode: code ?? -1,
         durationMs,
         timedOut,
+        stdoutTruncated,
+        stderrTruncated,
       });
     });
 
@@ -174,6 +201,8 @@ export async function safeSpawn(cmd: string, args: string[], options: SpawnOptio
           exitCode: -1,
           durationMs,
           timedOut: true,
+          stdoutTruncated,
+          stderrTruncated,
         });
       } else if (err?.code === 'ENOENT' || err?.code === 'EACCES') {
         const durationMs = Date.now() - startTime;
@@ -186,6 +215,8 @@ export async function safeSpawn(cmd: string, args: string[], options: SpawnOptio
           exitCode: -1,
           durationMs,
           timedOut,
+          stdoutTruncated,
+          stderrTruncated,
         });
       } else {
         reject(err);

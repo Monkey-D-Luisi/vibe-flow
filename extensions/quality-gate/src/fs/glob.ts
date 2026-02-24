@@ -19,7 +19,7 @@ export async function resolveGlobPatterns(patterns: string[], options: GlobOptio
     dot: false,
     absolute: true,
     unique: true,
-    followSymbolicLinks: false
+    followSymbolicLinks: false,
   });
 
   const unique = new Set<string>();
