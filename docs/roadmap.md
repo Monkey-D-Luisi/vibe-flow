@@ -167,6 +167,10 @@ graph TD
 ## References
 
 ### Task Specs
+Task-level execution status source of truth:
+- `docs/roadmap.md` tracks task status (`PENDING`, `IN_PROGRESS`, `DONE`).
+- `docs/backlog/EPxx-*.md` tracks epic-level status only.
+
 - [Task 0001: OpenClaw Foundation](tasks/0001-openclaw-foundation.md) -- DONE
 - [Task 0002: Task Engine](tasks/0002-task-engine.md) -- DONE
 - [Task 0003: Role Execution](tasks/0003-role-execution.md) -- DONE
