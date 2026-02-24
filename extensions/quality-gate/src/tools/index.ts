@@ -16,10 +16,17 @@ import { lintToolDef } from './lint.js';
 import { runTestsToolDef } from './run_tests.js';
 import { gateEnforceToolDef } from './gate_enforce.js';
 
+interface QualityToolDef {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+  execute: (id: string, params: Record<string, unknown>) => Promise<unknown>;
+}
+
 /**
  * Get all quality gate tool definitions.
  */
-export function getAllToolDefs() {
+export function getAllToolDefs(): QualityToolDef[] {
   return [
     complexityToolDef,
     coverageReportToolDef,
