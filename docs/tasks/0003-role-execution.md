@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | EP03 -- Role Execution |
 | Priority | HIGH |
 | Scope | MAJOR |
@@ -61,15 +61,15 @@ EP02 delivered the task lifecycle engine, persistence, leases, and transition me
 
 ## Acceptance Criteria
 
-- [ ] AC1: All five role output schemas are implemented and exported.
-- [ ] AC2: Invalid role payloads are rejected with clear validation errors.
-- [ ] AC3: Step runner executes steps in order and stops on the first invalid output.
-- [ ] AC4: Successful role outputs are written to task metadata using schema keys.
-- [ ] AC5: Transition guards block invalid transitions with actionable error messages.
-- [ ] AC6: Guard thresholds are configurable and applied by task scope.
-- [ ] AC7: Transition guard matrix is documented in code and exposed by workflow state tooling.
-- [ ] AC8: Minor tasks bypass design via FastTrack and emit an audit event.
-- [ ] AC9: Workflow tools are registered and covered by tests.
+- [x] AC1: All five role output schemas are implemented and exported.
+- [x] AC2: Invalid role payloads are rejected with clear validation errors.
+- [x] AC3: Step runner executes steps in order and stops on the first invalid output.
+- [x] AC4: Successful role outputs are written to task metadata using schema keys.
+- [x] AC5: Transition guards block invalid transitions with actionable error messages.
+- [x] AC6: Guard thresholds are configurable and applied by task scope.
+- [x] AC7: Transition guard matrix is documented in code and exposed by workflow state tooling.
+- [x] AC8: Minor tasks bypass design via FastTrack and emit an audit event.
+- [x] AC9: Workflow tools are registered and covered by tests.
 
 ---
 
@@ -102,11 +102,11 @@ EP02 delivered the task lifecycle engine, persistence, leases, and transition me
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Tests written and passing
+- [x] All Acceptance Criteria met
+- [x] Tests written and passing
 - [ ] Coverage meets threshold (>= 80% major)
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated
 - [ ] Code reviewed (if applicable)
 - [ ] PR created and linked
