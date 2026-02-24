@@ -52,6 +52,21 @@ CREATE TABLE IF NOT EXISTS leases (
 );
 `;
 
+const MIGRATION_002 = `
+CREATE TABLE IF NOT EXISTS ext_requests (
+  request_id   TEXT PRIMARY KEY,
+  task_id      TEXT NOT NULL REFERENCES task_records(id),
+  tool         TEXT NOT NULL,
+  payload_hash TEXT NOT NULL,
+  response     TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  UNIQUE(tool, payload_hash)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ext_requests_task ON ext_requests(task_id);
+CREATE INDEX IF NOT EXISTS idx_ext_requests_lookup ON ext_requests(tool, payload_hash);
+`;
+
 interface Migration {
   readonly version: number;
   readonly sql: string;
@@ -59,6 +74,7 @@ interface Migration {
 
 const MIGRATIONS: readonly Migration[] = [
   { version: 1, sql: MIGRATION_001 },
+  { version: 2, sql: MIGRATION_002 },
 ];
 
 /**

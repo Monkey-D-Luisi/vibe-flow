@@ -130,6 +130,24 @@ export class EventLog {
     return event;
   }
 
+  logVcsEvent(
+    taskId: string,
+    eventType: `vcs.${string}`,
+    agentId: string | null,
+    payload: Record<string, unknown>,
+  ): EventRecord {
+    const event: EventRecord = {
+      id: this.generateId(),
+      taskId,
+      eventType,
+      agentId,
+      payload,
+      createdAt: this.now(),
+    };
+    this.eventRepo.append(event);
+    return event;
+  }
+
   getHistory(taskId: string): EventRecord[] {
     return this.eventRepo.getByTaskId(taskId);
   }

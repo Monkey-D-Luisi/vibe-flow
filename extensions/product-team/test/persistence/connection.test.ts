@@ -52,6 +52,7 @@ describe('runMigrations', () => {
     expect(tableNames).toContain('orchestrator_state');
     expect(tableNames).toContain('event_log');
     expect(tableNames).toContain('leases');
+    expect(tableNames).toContain('ext_requests');
     expect(tableNames).toContain('schema_version');
   });
 
@@ -62,7 +63,7 @@ describe('runMigrations', () => {
     const row = db
       .prepare('SELECT MAX(version) as v FROM schema_version')
       .get() as { v: number };
-    expect(row.v).toBe(1);
+    expect(row.v).toBe(2);
   });
 
   it('should be idempotent', () => {
@@ -73,6 +74,6 @@ describe('runMigrations', () => {
     const rows = db
       .prepare('SELECT COUNT(*) as c FROM schema_version')
       .get() as { c: number };
-    expect(rows.c).toBe(1);
+    expect(rows.c).toBe(2);
   });
 });

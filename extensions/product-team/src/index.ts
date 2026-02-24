@@ -14,12 +14,49 @@ import { SqliteTaskRepository } from './persistence/task-repository.js';
 import { SqliteOrchestratorRepository } from './persistence/orchestrator-repository.js';
 import { SqliteEventRepository } from './persistence/event-repository.js';
 import { SqliteLeaseRepository } from './persistence/lease-repository.js';
+import { SqliteRequestRepository } from './persistence/request-repository.js';
 import { EventLog } from './orchestrator/event-log.js';
 import { resolveTransitionGuardConfig } from './orchestrator/transition-guards.js';
 import { getAllToolDefs } from './tools/index.js';
 import { createValidator } from './schemas/validator.js';
+import { GhClient } from './github/gh-client.js';
+import { BranchService } from './github/branch-service.js';
+import { PrService } from './github/pr-service.js';
+import { LabelService } from './github/label-service.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
+
+interface GithubConfig {
+  readonly owner: string;
+  readonly repo: string;
+  readonly defaultBase: string;
+  readonly timeoutMs: number;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function asNonEmptyString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function asPositiveInteger(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function resolveGithubConfig(pluginConfig: Record<string, unknown> | undefined): GithubConfig {
+  const github = asRecord(pluginConfig?.github);
+  return {
+    owner: asNonEmptyString(github?.owner) ?? 'local-owner',
+    repo: asNonEmptyString(github?.repo) ?? 'local-repo',
+    defaultBase: asNonEmptyString(github?.defaultBase) ?? 'main',
+    timeoutMs: asPositiveInteger(github?.timeoutMs) ?? 30_000,
+  };
+}
 
 export function register(api: OpenClawPluginApi): void {
   api.logger.info('product-team plugin loaded');
@@ -63,6 +100,7 @@ export function register(api: OpenClawPluginApi): void {
   const orchestratorRepo = new SqliteOrchestratorRepository(db);
   const eventRepo = new SqliteEventRepository(db);
   const leaseRepo = new SqliteLeaseRepository(db);
+  const requestRepo = new SqliteRequestRepository(db);
 
   // Create orchestrator services
   const generateId = () => ulid();
@@ -70,6 +108,35 @@ export function register(api: OpenClawPluginApi): void {
   const validate = createValidator();
   const transitionGuardConfig = resolveTransitionGuardConfig(pluginConfig?.workflow);
   const eventLog = new EventLog(eventRepo, generateId, now);
+  const githubConfig = resolveGithubConfig(pluginConfig);
+  const ghClient = new GhClient({
+    owner: githubConfig.owner,
+    repo: githubConfig.repo,
+    timeoutMs: githubConfig.timeoutMs,
+  });
+  const branchService = new BranchService({
+    ghClient,
+    requestRepo,
+    eventLog,
+    generateId,
+    now,
+    defaultBase: githubConfig.defaultBase,
+  });
+  const prService = new PrService({
+    ghClient,
+    requestRepo,
+    eventLog,
+    generateId,
+    now,
+    defaultBase: githubConfig.defaultBase,
+  });
+  const labelService = new LabelService({
+    ghClient,
+    requestRepo,
+    eventLog,
+    generateId,
+    now,
+  });
 
   // Register EP02 tools
   const deps = {
@@ -82,6 +149,12 @@ export function register(api: OpenClawPluginApi): void {
     now,
     validate,
     transitionGuardConfig,
+    vcs: {
+      requestRepo,
+      branchService,
+      prService,
+      labelService,
+    },
   };
   const tools = getAllToolDefs(deps);
 
@@ -89,7 +162,7 @@ export function register(api: OpenClawPluginApi): void {
     api.registerTool(tool);
   }
 
-  api.logger.info(`registered ${tools.length} task engine/workflow tools`);
+  api.logger.info(`registered ${tools.length} task/workflow/vcs tools`);
   // EP03: workflow.step.run, workflow.state.get
   // EP04: vcs_branch_create, vcs_pr_create, vcs_pr_update, vcs_label_sync
   // EP05: quality_coverage, quality_lint, quality_complexity
