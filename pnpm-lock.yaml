@@ -48,6 +48,15 @@ importers:
       '@types/node':
         specifier: ^22.5.4
         version: 22.18.9
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^6.21.0
+        version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^6.21.0
+        version: 6.21.0(eslint@8.57.1)(typescript@5.9.3)
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -5206,7 +5215,7 @@ snapshots:
   '@commitlint/config-validator@20.0.0':
     dependencies:
       '@commitlint/types': 20.0.0
-      ajv: 8.17.1
+      ajv: 8.18.0
 
   '@commitlint/ensure@20.0.0':
     dependencies:
