@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 
@@ -10,6 +10,13 @@ import { spawn } from 'child_process';
 import { assertSafeCommand, safeSpawn } from '../../src/github/spawn.js';
 
 const mockSpawn = vi.mocked(spawn);
+
+const ORIGINAL_ENV = {
+  APPDATA: process.env.APPDATA,
+  LOCALAPPDATA: process.env.LOCALAPPDATA,
+  USERPROFILE: process.env.USERPROFILE,
+  HOME: process.env.HOME,
+};
 
 interface MockChild extends EventEmitter {
   stdout: PassThrough;
@@ -24,6 +31,17 @@ function createMockChild(): MockChild {
 }
 
 describe('github spawn helpers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    process.env.APPDATA = ORIGINAL_ENV.APPDATA;
+    process.env.LOCALAPPDATA = ORIGINAL_ENV.LOCALAPPDATA;
+    process.env.USERPROFILE = ORIGINAL_ENV.USERPROFILE;
+    process.env.HOME = ORIGINAL_ENV.HOME;
+  });
+
   it('should validate allowed commands and reject shell metacharacters', () => {
     expect(() => assertSafeCommand('gh', ['pr', 'view'])).not.toThrow();
     expect(() => assertSafeCommand('bash', ['-lc', 'echo'])).toThrow(/allowed list/);
@@ -59,5 +77,25 @@ describe('github spawn helpers', () => {
     const result = await runPromise;
     expect(result.exitCode).toBe(-1);
     expect(result.stderr).toContain('gh not found');
+  });
+
+  it('should preserve gh auth environment variables required for credential lookup', async () => {
+    process.env.APPDATA = 'C:\\Users\\tester\\AppData\\Roaming';
+    process.env.LOCALAPPDATA = 'C:\\Users\\tester\\AppData\\Local';
+    process.env.USERPROFILE = 'C:\\Users\\tester';
+    process.env.HOME = 'C:\\Users\\tester';
+
+    const child = createMockChild();
+    mockSpawn.mockReturnValueOnce(child as unknown as ReturnType<typeof spawn>);
+
+    const runPromise = safeSpawn('gh', ['auth', 'status'], { timeoutMs: 1000 });
+    child.emit('close', 0);
+    await runPromise;
+
+    const spawnOptions = mockSpawn.mock.calls[0]?.[2] as { env: Record<string, string> };
+    expect(spawnOptions.env.APPDATA).toBe(process.env.APPDATA);
+    expect(spawnOptions.env.LOCALAPPDATA).toBe(process.env.LOCALAPPDATA);
+    expect(spawnOptions.env.USERPROFILE).toBe(process.env.USERPROFILE);
+    expect(spawnOptions.env.HOME).toBe(process.env.HOME);
   });
 });

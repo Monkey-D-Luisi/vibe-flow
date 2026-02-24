@@ -159,4 +159,32 @@ describe('PrService', () => {
       }),
     ).rejects.toThrow(/requires at least one field/);
   });
+
+  it('should reject updates with empty labels array', async () => {
+    const ghClient = {
+      createPr: vi.fn(),
+      updatePr: vi.fn(),
+    } as unknown as GhClient;
+
+    const service = new PrService({
+      ghClient,
+      requestRepo,
+      eventLog: new EventLog(
+        new SqliteEventRepository(db),
+        () => `EVT-${++idCounter}`,
+        () => NOW,
+      ),
+      generateId: () => `REQ-${++idCounter}`,
+      now: () => NOW,
+      defaultBase: 'main',
+    });
+
+    await expect(
+      service.updateTaskPr({
+        taskId: 'TASK-1',
+        prNumber: 10,
+        labels: [],
+      }),
+    ).rejects.toThrow(/labels must contain at least one label/);
+  });
 });

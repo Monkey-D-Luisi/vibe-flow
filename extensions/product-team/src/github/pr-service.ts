@@ -65,10 +65,14 @@ function assertLabels(labels: string[]): void {
 }
 
 function assertUpdateInput(input: UpdateTaskPrInput): void {
+  const hasLabels = input.labels !== undefined && input.labels.length > 0;
+  if (input.labels !== undefined && input.labels.length === 0) {
+    throw new Error('vcs.pr.update labels must contain at least one label when provided');
+  }
   if (
     input.title === undefined &&
     input.body === undefined &&
-    input.labels === undefined &&
+    !hasLabels &&
     input.state === undefined
   ) {
     throw new Error('vcs.pr.update requires at least one field to update');
