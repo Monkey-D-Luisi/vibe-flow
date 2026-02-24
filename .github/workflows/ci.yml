@@ -25,8 +25,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Rebuild native modules
-        run: pnpm rebuild better-sqlite3
-
+        working-directory: extensions/product-team
+        run: node -e "const c=require('child_process'),p=require('path');const pkg=p.dirname(require.resolve('better-sqlite3/package.json'));console.log('Rebuilding better-sqlite3 at',pkg);c.execSync('npm run install',{cwd:pkg,stdio:'inherit'});"
       - name: Type check
         run: pnpm typecheck
 
