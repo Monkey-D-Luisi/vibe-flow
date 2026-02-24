@@ -9,8 +9,8 @@
         "config": {
           "dbPath": "./data/product-team.db",
           "github": {
-            "owner": "",
-            "repo": "",
+            "owner": "<your-github-owner>",
+            "repo": "<your-github-repo>",
             "defaultBase": "main"
           }
         }

@@ -40,6 +40,7 @@ sandbox config, and plugin entries. The plugin source defined a local
 | Set `workspaceAccess: "rw"` | Agents need read-write access to their workspace for task execution |
 | Mark `pm` agent as `default: true` | PM is the entry point for task creation workflows |
 | Re-export `OpenClawPluginApi` type from plugin index | Tests and downstream consumers can import the type without depending on `openclaw` directly |
+| Use `anthropic/` provider prefix on model ID | OpenClaw's model routing requires a `<provider>/<model>` format to route requests to the correct backend |
 
 ---
 
