@@ -3,7 +3,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | Epic        | EP03                                             |
-| Status      | PENDING                                          |
+| Status      | IN_PROGRESS                                      |
 | Priority    | P1                                               |
 | Phase       | 2 -- Role Execution                              |
 | Target      | April 2026                                       |

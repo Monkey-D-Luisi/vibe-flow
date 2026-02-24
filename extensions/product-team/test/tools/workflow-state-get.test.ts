@@ -10,6 +10,7 @@ import { createValidator } from '../../src/schemas/validator.js';
 import type { ToolDeps } from '../../src/tools/index.js';
 import { taskCreateToolDef } from '../../src/tools/task-create.js';
 import { taskTransitionToolDef } from '../../src/tools/task-transition.js';
+import { workflowStateGetToolDef } from '../../src/tools/workflow-state-get.js';
 import { DEFAULT_TRANSITION_GUARD_CONFIG } from '../../src/orchestrator/transition-guards.js';
 
 const NOW = '2026-02-24T12:00:00.000Z';
@@ -36,7 +37,7 @@ function createDeps(db: Database.Database): ToolDeps {
   };
 }
 
-describe('task.transition tool', () => {
+describe('workflow.state.get tool', () => {
   let db: Database.Database;
   let deps: ToolDeps;
   let taskId: string;
@@ -46,71 +47,46 @@ describe('task.transition tool', () => {
     deps = createDeps(db);
 
     const createTool = taskCreateToolDef(deps);
-    const result = await createTool.execute('c1', { title: 'Test task' });
-    const { task } = result.details as { task: { id: string } };
-    taskId = task.id;
+    const created = await createTool.execute('c1', { title: 'State task' });
+    taskId = (created.details as { task: { id: string } }).task.id;
+
+    const transitionTool = taskTransitionToolDef(deps);
+    await transitionTool.execute('t1', {
+      id: taskId,
+      toStatus: 'grooming',
+      agentId: 'pm',
+      rev: 0,
+    });
   });
 
   afterEach(() => {
     db?.close();
   });
 
-  it('should transition backlog -> grooming', async () => {
-    const tool = taskTransitionToolDef(deps);
-    const result = await tool.execute('c1', {
-      id: taskId,
-      toStatus: 'grooming',
-      agentId: 'pm',
-      rev: 0,
-    });
+  it('should return workflow state and guard matrix', async () => {
+    const tool = workflowStateGetToolDef(deps);
+    const result = await tool.execute('s1', { id: taskId });
 
     const details = result.details as {
-      task: { status: string };
-      orchestratorState: { current: string; previous: string };
-      event: { eventType: string };
+      task: { id: string };
+      orchestratorState: { current: string };
+      history: Array<{ eventType: string }>;
+      transitionGuards: {
+        matrix: unknown[];
+        config: { coverageByScope: { major: number } };
+      };
     };
-    expect(details.task.status).toBe('grooming');
+
+    expect(details.task.id).toBe(taskId);
     expect(details.orchestratorState.current).toBe('grooming');
-    expect(details.orchestratorState.previous).toBe('backlog');
-    expect(details.event.eventType).toBe('task.transition');
+    expect(details.history.length).toBeGreaterThan(0);
+    expect(details.history.some((event) => event.eventType === 'task.created')).toBe(true);
+    expect(details.transitionGuards.matrix.length).toBeGreaterThan(0);
+    expect(details.transitionGuards.config.coverageByScope.major).toBe(80);
   });
 
-  it('should reject invalid transition', async () => {
-    const tool = taskTransitionToolDef(deps);
-    await expect(
-      tool.execute('c1', {
-        id: taskId,
-        toStatus: 'done',
-        agentId: 'pm',
-        rev: 0,
-      }),
-    ).rejects.toThrow(/[Ii]nvalid transition/);
-  });
-
-  it('should reject non-existent task', async () => {
-    const tool = taskTransitionToolDef(deps);
-    await expect(
-      tool.execute('c1', {
-        id: 'NONEXISTENT',
-        toStatus: 'grooming',
-        agentId: 'pm',
-        rev: 0,
-      }),
-    ).rejects.toThrow(/not found/i);
-  });
-
-  it('should return structured JSON content', async () => {
-    const tool = taskTransitionToolDef(deps);
-    const result = await tool.execute('c1', {
-      id: taskId,
-      toStatus: 'grooming',
-      agentId: 'pm',
-      rev: 0,
-    });
-
-    expect(result.content).toHaveLength(1);
-    expect(result.content[0].type).toBe('text');
-    const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.task.status).toBe('grooming');
+  it('should fail for unknown task id', async () => {
+    const tool = workflowStateGetToolDef(deps);
+    await expect(tool.execute('s2', { id: 'UNKNOWN' })).rejects.toThrow(/not found/i);
   });
 });

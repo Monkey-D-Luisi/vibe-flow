@@ -15,6 +15,7 @@ import { SqliteOrchestratorRepository } from './persistence/orchestrator-reposit
 import { SqliteEventRepository } from './persistence/event-repository.js';
 import { SqliteLeaseRepository } from './persistence/lease-repository.js';
 import { EventLog } from './orchestrator/event-log.js';
+import { resolveTransitionGuardConfig } from './orchestrator/transition-guards.js';
 import { getAllToolDefs } from './tools/index.js';
 import { createValidator } from './schemas/validator.js';
 
@@ -67,18 +68,29 @@ export function register(api: OpenClawPluginApi): void {
   const generateId = () => ulid();
   const now = () => new Date().toISOString();
   const validate = createValidator();
+  const transitionGuardConfig = resolveTransitionGuardConfig(pluginConfig?.workflow);
   const eventLog = new EventLog(eventRepo, generateId, now);
 
   // Register EP02 tools
-  const deps = { db, taskRepo, orchestratorRepo, leaseRepo, eventLog, generateId, now, validate };
+  const deps = {
+    db,
+    taskRepo,
+    orchestratorRepo,
+    leaseRepo,
+    eventLog,
+    generateId,
+    now,
+    validate,
+    transitionGuardConfig,
+  };
   const tools = getAllToolDefs(deps);
 
   for (const tool of tools) {
     api.registerTool(tool);
   }
 
-  api.logger.info(`registered ${tools.length} task engine tools`);
-  // EP03: workflow_step_run, workflow_state_get
+  api.logger.info(`registered ${tools.length} task engine/workflow tools`);
+  // EP03: workflow.step.run, workflow.state.get
   // EP04: vcs_branch_create, vcs_pr_create, vcs_pr_update, vcs_label_sync
   // EP05: quality_coverage, quality_lint, quality_complexity
 }

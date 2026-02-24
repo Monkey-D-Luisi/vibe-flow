@@ -10,12 +10,20 @@ import {
   TaskNotFoundError,
   InvalidTransitionError,
   LeaseConflictError,
+  TransitionGuardError,
 } from '../domain/errors.js';
+import {
+  evaluateTransitionGuards,
+  type TransitionGuardConfig,
+} from './transition-guards.js';
 
 export interface TransitionResult {
   task: TaskRecord;
   orchestratorState: OrchestratorState;
   event: EventRecord;
+  requestedToStatus: TaskStatus;
+  effectiveToStatus: TaskStatus;
+  fastTrack: boolean;
 }
 
 export interface TransitionDeps {
@@ -25,6 +33,7 @@ export interface TransitionDeps {
   leaseRepo: SqliteLeaseRepository;
   eventLog: EventLog;
   now: () => string;
+  guardConfig: TransitionGuardConfig;
 }
 
 /**
@@ -42,7 +51,7 @@ export function transition(
   orchestratorRev: number,
   deps: TransitionDeps,
 ): TransitionResult {
-  const { db, taskRepo, orchestratorRepo, leaseRepo, eventLog, now } = deps;
+  const { db, taskRepo, orchestratorRepo, leaseRepo, eventLog, now, guardConfig } = deps;
   const currentNow = now();
 
   const doTransition = db.transaction((): TransitionResult => {
@@ -53,9 +62,19 @@ export function transition(
     }
 
     const fromStatus = task.status;
+    const orchState = orchestratorRepo.getByTaskId(taskId);
+    if (!orchState) {
+      throw new Error(`Inconsistent data: OrchestratorState not found for existing task ${taskId}`);
+    }
+
+    const shouldFastTrack =
+      task.scope === 'minor'
+      && fromStatus === 'grooming'
+      && (toStatus === 'design' || toStatus === 'in_progress');
+    const effectiveToStatus: TaskStatus = shouldFastTrack ? 'in_progress' : toStatus;
 
     // Validate transition
-    if (!isValidTransition(fromStatus, toStatus)) {
+    if (!isValidTransition(fromStatus, effectiveToStatus)) {
       throw new InvalidTransitionError(taskId, fromStatus, toStatus);
     }
 
@@ -66,17 +85,29 @@ export function transition(
       throw new LeaseConflictError(taskId, lease.agentId);
     }
 
-    // Determine if this is a review rejection (in_review -> in_progress)
-    const orchState = orchestratorRepo.getByTaskId(taskId);
-    if (!orchState) {
-      throw new Error(`Inconsistent data: OrchestratorState not found for existing task ${taskId}`);
+    const guardFailures = evaluateTransitionGuards({
+      task,
+      orchestratorState: orchState,
+      fromStatus,
+      toStatus: effectiveToStatus,
+      config: guardConfig,
+    });
+    if (guardFailures.length > 0) {
+      throw new TransitionGuardError(
+        taskId,
+        fromStatus,
+        effectiveToStatus,
+        guardFailures.map((failure) => `${failure.field} ${failure.message}`),
+      );
     }
+
+    // Determine if this is a review rejection (in_review -> in_progress)
     const isReviewRejection =
-      fromStatus === 'in_review' && toStatus === 'in_progress';
+      fromStatus === 'in_review' && effectiveToStatus === 'in_progress';
 
     // Update orchestrator_state with optimistic lock
     const orchFields: Partial<Pick<OrchestratorState, 'current' | 'previous' | 'lastAgent' | 'roundsReview'>> = {
-      current: toStatus,
+      current: effectiveToStatus,
       previous: fromStatus,
       lastAgent: agentId,
     };
@@ -95,15 +126,26 @@ export function transition(
     // Mirror status to task_records
     const updatedTask = taskRepo.update(
       taskId,
-      { status: toStatus },
+      { status: effectiveToStatus },
       task.rev,
       currentNow,
     );
 
-    // Log the transition event
-    const event = eventLog.logTransition(taskId, fromStatus, toStatus, agentId);
+    if (shouldFastTrack) {
+      eventLog.logFastTrack(taskId, toStatus, effectiveToStatus, agentId);
+    }
 
-    return { task: updatedTask, orchestratorState: updatedOrchState, event };
+    // Log the transition event
+    const event = eventLog.logTransition(taskId, fromStatus, effectiveToStatus, agentId);
+
+    return {
+      task: updatedTask,
+      orchestratorState: updatedOrchState,
+      event,
+      requestedToStatus: toStatus,
+      effectiveToStatus,
+      fastTrack: shouldFastTrack,
+    };
   });
 
   return doTransition();

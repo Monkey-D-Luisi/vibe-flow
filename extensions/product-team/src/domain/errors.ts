@@ -50,3 +50,12 @@ export class ValidationError extends Error {
     this.name = 'ValidationError';
   }
 }
+
+export class TransitionGuardError extends Error {
+  constructor(taskId: string, from: string, to: string, reasons: string[]) {
+    super(
+      `Transition guard failed for task ${taskId} (${from} -> ${to}): ${reasons.join('; ')}`,
+    );
+    this.name = 'TransitionGuardError';
+  }
+}
