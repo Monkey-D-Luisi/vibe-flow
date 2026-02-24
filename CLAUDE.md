@@ -1,5 +1,12 @@
 # CLAUDE.md - Agent Instructions for OpenClaw Extensions
 
+## ⚡ Autonomous execution — read this first
+
+**Never pause mid-task.** Execute every workflow atomically from start to PR.
+- No confirmation prompts. No "should I proceed?". No mid-task checkpoints.
+- If a tool/command fails: retry once, skip, document in walkthrough — never stop.
+- Read only local files. Never fetch external repos or URLs during execution.
+
 ## Priority
 1. `.agent.md` (governance)
 2. Current task in `docs/tasks/`

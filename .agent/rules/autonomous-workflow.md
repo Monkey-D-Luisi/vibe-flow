@@ -3,6 +3,15 @@
 ## Trigger Command
 **Command:** `"next task"`
 
+## Execution contract
+
+Execute this workflow **atomically** — no pauses, no confirmation prompts, no "continue" checkpoints.
+
+- Complete all steps in a single uninterrupted run.
+- If a step fails: fix it or document the blocker in the walkthrough and continue.
+- Only stop if the task spec is fundamentally ambiguous or a destructive irreversible action is required.
+- Read only local files. Do not fetch external repos or URLs.
+
 ## Workflow Steps
 
 ### Step 0: Sync with Main
