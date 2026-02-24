@@ -78,6 +78,7 @@ export function runWorkflowSteps(input: StepRunnerInput, deps: StepRunnerDeps): 
 
     const metadata = toWorkflowMetadata(task.metadata);
     const stepResults: StepExecutionResult[] = [];
+    const customSteps = cloneCustomSteps(metadata.custom_steps);
 
     for (const step of input.steps) {
       if (step.type === 'llm-task') {
@@ -99,7 +100,6 @@ export function runWorkflowSteps(input: StepRunnerInput, deps: StepRunnerDeps): 
         continue;
       }
 
-      const customSteps = cloneCustomSteps(metadata.custom_steps);
       customSteps[step.id] = step.type === 'shell'
         ? {
             type: step.type,
@@ -111,13 +111,14 @@ export function runWorkflowSteps(input: StepRunnerInput, deps: StepRunnerDeps): 
             script: step.script,
             output: toObject(step.output),
           };
-      metadata.custom_steps = customSteps;
       stepResults.push({
         stepId: step.id,
         stepType: step.type,
         schemaKey: null,
       });
     }
+
+    metadata.custom_steps = customSteps;
 
     const updatedTask = taskRepo.update(
       task.id,

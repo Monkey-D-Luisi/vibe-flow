@@ -116,4 +116,92 @@ describe('transition guards', () => {
     expect(resolved.coverageByScope.patch).toBe(70);
     expect(resolved.maxReviewRounds).toBe(4);
   });
+
+  it('should reject coverage threshold > 100 and fall back to default', () => {
+    const resolved = resolveTransitionGuardConfig({
+      transitionGuards: {
+        coverage: {
+          major: 150,
+          minor: 72,
+        },
+      },
+    });
+
+    expect(resolved.coverageByScope.major).toBe(DEFAULT_TRANSITION_GUARD_CONFIG.coverageByScope.major);
+    expect(resolved.coverageByScope.minor).toBe(72);
+  });
+
+  it('should block in_review -> qa when violations array contains non-object entry', () => {
+    const task: TaskRecord = {
+      ...BASE_TASK,
+      status: 'in_review',
+      metadata: {
+        ...BASE_TASK.metadata,
+        review_result: {
+          violations: ['critical'],
+          overall_verdict: 'changes_requested',
+        },
+      },
+    };
+
+    const failures = evaluateTransitionGuards({
+      task,
+      orchestratorState: { ...BASE_ORCH, current: 'in_review' },
+      fromStatus: 'in_review',
+      toStatus: 'qa',
+      config: DEFAULT_TRANSITION_GUARD_CONFIG,
+    });
+
+    expect(failures.some((f) => f.field === 'review_result.violations')).toBe(true);
+  });
+
+  it('should block in_review -> qa when a violation has unknown/malformed severity', () => {
+    const task: TaskRecord = {
+      ...BASE_TASK,
+      status: 'in_review',
+      metadata: {
+        ...BASE_TASK.metadata,
+        review_result: {
+          violations: [{ rule: 'no-any', severity: 'fatal', message: 'blocked' }],
+          overall_verdict: 'changes_requested',
+        },
+      },
+    };
+
+    const failures = evaluateTransitionGuards({
+      task,
+      orchestratorState: { ...BASE_ORCH, current: 'in_review' },
+      fromStatus: 'in_review',
+      toStatus: 'qa',
+      config: DEFAULT_TRANSITION_GUARD_CONFIG,
+    });
+
+    expect(failures.some((f) => f.field === 'review_result.violations')).toBe(true);
+  });
+
+  it('should block design -> in_progress when contracts contains only empty strings', () => {
+    const task: TaskRecord = {
+      ...BASE_TASK,
+      metadata: {
+        ...BASE_TASK.metadata,
+        architecture_plan: {
+          modules: ['api'],
+          contracts: ['', '   '],
+          patterns: ['hexagonal'],
+          test_plan: ['unit'],
+          adr_id: 'ADR-001',
+        },
+      },
+    };
+
+    const failures = evaluateTransitionGuards({
+      task,
+      orchestratorState: BASE_ORCH,
+      fromStatus: 'design',
+      toStatus: 'in_progress',
+      config: DEFAULT_TRANSITION_GUARD_CONFIG,
+    });
+
+    expect(failures.some((f) => f.field === 'architecture_plan.contracts')).toBe(true);
+  });
 });
