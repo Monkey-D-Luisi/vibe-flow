@@ -16,49 +16,54 @@ export function workflowStepRunToolDef(deps: ToolDeps): ToolDef {
     execute: async (_toolCallId, params) => {
       const input = deps.validate<WorkflowStepRunParamsType>(WorkflowStepRunParams, params);
 
-      const stepResult = runWorkflowSteps(
-        {
-          taskId: input.id,
-          agentId: input.agentId,
-          rev: input.rev,
-          steps: input.steps,
-        },
-        {
-          db: deps.db,
-          taskRepo: deps.taskRepo,
-          eventLog: deps.eventLog,
-          validate: deps.validate,
-          now: deps.now,
-        },
-      );
+      if (input.toStatus && input.orchestratorRev === undefined) {
+        throw new ValidationError('orchestratorRev is required when toStatus is provided');
+      }
 
-      let transitionResult: ReturnType<typeof transition> | null = null;
-      if (input.toStatus) {
-        if (input.orchestratorRev === undefined) {
-          throw new ValidationError('orchestratorRev is required when toStatus is provided');
-        }
-        transitionResult = transition(
-          input.id,
-          input.toStatus,
-          input.agentId,
-          input.orchestratorRev,
+      const outerTx = deps.db.transaction(() => {
+        const stepResult = runWorkflowSteps(
+          {
+            taskId: input.id,
+            agentId: input.agentId,
+            rev: input.rev,
+            steps: input.steps,
+          },
           {
             db: deps.db,
             taskRepo: deps.taskRepo,
-            orchestratorRepo: deps.orchestratorRepo,
-            leaseRepo: deps.leaseRepo,
             eventLog: deps.eventLog,
+            validate: deps.validate,
             now: deps.now,
-            guardConfig: deps.transitionGuardConfig,
           },
         );
-      }
 
-      const result = {
-        task: stepResult.task,
-        steps: stepResult.steps,
-        transition: transitionResult,
-      };
+        let transitionResult: ReturnType<typeof transition> | null = null;
+        if (input.toStatus) {
+          transitionResult = transition(
+            input.id,
+            input.toStatus,
+            input.agentId,
+            input.orchestratorRev!,
+            {
+              db: deps.db,
+              taskRepo: deps.taskRepo,
+              orchestratorRepo: deps.orchestratorRepo,
+              leaseRepo: deps.leaseRepo,
+              eventLog: deps.eventLog,
+              now: deps.now,
+              guardConfig: deps.transitionGuardConfig,
+            },
+          );
+        }
+
+        return {
+          task: stepResult.task,
+          steps: stepResult.steps,
+          transition: transitionResult,
+        };
+      });
+
+      const result = outerTx();
 
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],

@@ -182,4 +182,58 @@ describe('workflow.step.run tool', () => {
     expect(details.transition?.task.status).toBe('in_progress');
     expect(details.transition?.fastTrack).toBe(false);
   });
+
+  it('should roll back metadata when transition fails due to guard failure', async () => {
+    const transitionTool = taskTransitionToolDef(deps);
+    let transitioned = await transitionTool.execute('tr-1', {
+      id: taskId,
+      toStatus: 'grooming',
+      agentId: 'pm',
+      rev: 0,
+    });
+    transitioned = await transitionTool.execute('tr-2', {
+      id: taskId,
+      toStatus: 'design',
+      agentId: 'architect',
+      rev: (transitioned.details as { orchestratorState: { rev: number } }).orchestratorState.rev,
+    });
+
+    const currentTask = deps.taskRepo.getById(taskId);
+    const currentOrch = deps.orchestratorRepo.getByTaskId(taskId);
+    expect(currentTask).not.toBeNull();
+    expect(currentOrch).not.toBeNull();
+    const revBefore = currentTask!.rev;
+
+    const workflowTool = workflowStepRunToolDef(deps);
+    // architecture_plan has empty contracts → guard will block design -> in_progress
+    await expect(
+      workflowTool.execute('run-atomic', {
+        id: taskId,
+        agentId: 'architect',
+        rev: currentTask!.rev,
+        orchestratorRev: currentOrch!.rev,
+        toStatus: 'in_progress',
+        steps: [
+          {
+            id: 'step-bad-arch',
+            type: 'llm-task',
+            role: 'architect',
+            schemaKey: 'architecture_plan',
+            output: {
+              modules: ['api'],
+              contracts: ['task.create'],
+              patterns: ['hexagonal'],
+              test_plan: ['unit'],
+              adr_id: '',
+            },
+          },
+        ],
+      }),
+    ).rejects.toThrow();
+
+    // Metadata must not have been persisted
+    const taskAfter = deps.taskRepo.getById(taskId);
+    expect(taskAfter?.rev).toBe(revBefore);
+    expect(taskAfter?.metadata).toEqual({});
+  });
 });

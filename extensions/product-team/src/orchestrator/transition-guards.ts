@@ -108,10 +108,14 @@ function evaluateDesignToInProgress(task: TaskRecord): TransitionGuardFailure[] 
     });
   }
 
-  if (!Array.isArray(architecturePlan.contracts) || architecturePlan.contracts.length === 0) {
+  if (
+    !Array.isArray(architecturePlan.contracts)
+    || architecturePlan.contracts.length === 0
+    || !architecturePlan.contracts.some((contract) => asNonEmptyString(contract))
+  ) {
     failures.push({
       field: 'architecture_plan.contracts',
-      message: 'must be a non-empty array',
+      message: 'must be a non-empty array with at least one non-empty string entry',
     });
   }
 
@@ -203,9 +207,15 @@ function evaluateInReviewToQa(
   } else {
     const hasHighSeverity = violations.some((violation) => {
       if (!isRecord(violation)) {
-        return false;
+        // Treat non-object entries conservatively as high severity
+        return true;
       }
-      return violation.severity === 'high' || violation.severity === 'critical';
+      const severity = violation.severity;
+      if (severity !== 'low' && severity !== 'medium' && severity !== 'high' && severity !== 'critical') {
+        // Treat unknown/malformed severities conservatively as high severity
+        return true;
+      }
+      return severity === 'high' || severity === 'critical';
     });
     if (hasHighSeverity) {
       failures.push({
@@ -281,8 +291,10 @@ export function evaluateTransitionGuards(context: TransitionGuardContext): Trans
   return [];
 }
 
-function asPositiveNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+function asCoverageThreshold(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
+    ? value
+    : null;
 }
 
 function asPositiveInteger(value: unknown): number | null {
@@ -302,9 +314,9 @@ export function resolveTransitionGuardConfig(workflowConfig: unknown): Transitio
   const coverage = isRecord(guardsConfig.coverage)
     ? guardsConfig.coverage
     : {};
-  const majorCoverage = asPositiveNumber(coverage.major);
-  const minorCoverage = asPositiveNumber(coverage.minor);
-  const patchCoverage = asPositiveNumber(coverage.patch);
+  const majorCoverage = asCoverageThreshold(coverage.major);
+  const minorCoverage = asCoverageThreshold(coverage.minor);
+  const patchCoverage = asCoverageThreshold(coverage.patch);
   const maxReviewRounds = asPositiveInteger(guardsConfig.maxReviewRounds);
 
   return {
