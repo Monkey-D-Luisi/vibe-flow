@@ -1,14 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { register } from '../src/index.js';
 import type { OpenClawPluginApi } from '../src/index.js';
 
-function createMockApi(): OpenClawPluginApi {
+function createMockApi(options?: {
+  pluginConfig?: Record<string, unknown>;
+  resolvePath?: (path: string) => string;
+}): OpenClawPluginApi {
   return {
     id: 'product-team',
     name: 'Product Team Engine',
     source: 'config',
     config: {} as OpenClawPluginApi['config'],
-    pluginConfig: { dbPath: ':memory:' },
+    pluginConfig: options?.pluginConfig ?? { dbPath: ':memory:' },
     runtime: {} as OpenClawPluginApi['runtime'],
     logger: {
       info: vi.fn(),
@@ -26,12 +29,16 @@ function createMockApi(): OpenClawPluginApi {
     registerService: vi.fn(),
     registerProvider: vi.fn(),
     registerCommand: vi.fn(),
-    resolvePath: vi.fn((p: string) => p),
+    resolvePath: vi.fn(options?.resolvePath ?? ((p: string) => p)),
     on: vi.fn(),
   };
 }
 
 describe('product-team plugin', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('exports a register function', () => {
     expect(typeof register).toBe('function');
   });
@@ -77,5 +84,71 @@ describe('product-team plugin', () => {
     expect(api.logger.info).toHaveBeenCalledWith(
       'registered 7 task engine/workflow tools',
     );
+  });
+
+  it('defaults dbPath to :memory: when plugin config dbPath is not a string', () => {
+    const api = createMockApi({
+      pluginConfig: { dbPath: 123 },
+    });
+    register(api);
+    expect(api.resolvePath).toHaveBeenCalledWith(':memory:');
+  });
+
+  it('rejects database paths that escape the workspace root', () => {
+    const api = createMockApi({
+      pluginConfig: { dbPath: '..\\outside.db' },
+      resolvePath: (value) => {
+        if (value === '.') {
+          return 'C:\\workspace\\repo';
+        }
+        if (value === '..\\outside.db') {
+          return 'C:\\workspace\\outside.db';
+        }
+        return value;
+      },
+    });
+
+    expect(() => register(api)).toThrow(/escapes workspace root/);
+  });
+
+  it('executes registered shutdown handlers and closes the database', () => {
+    const handlers: Partial<Record<'exit' | 'SIGINT' | 'SIGTERM', () => void>> = {};
+    vi.spyOn(process, 'once').mockImplementation(
+      ((event: string, handler: () => void) => {
+        if (event === 'exit' || event === 'SIGINT' || event === 'SIGTERM') {
+          handlers[event] = handler;
+        }
+        return process;
+      }) as unknown as typeof process.once,
+    );
+
+    const api = createMockApi();
+    register(api);
+
+    expect(handlers.exit).toBeTypeOf('function');
+    expect(handlers.SIGINT).toBeTypeOf('function');
+    expect(handlers.SIGTERM).toBeTypeOf('function');
+
+    handlers.exit?.();
+    handlers.SIGINT?.();
+    handlers.SIGTERM?.();
+
+    expect(api.logger.info).toHaveBeenCalledWith('database closed');
+  });
+
+  it('can execute a registered task.create tool', async () => {
+    const api = createMockApi();
+    register(api);
+
+    const calls = (api.registerTool as ReturnType<typeof vi.fn>).mock.calls;
+    const createTool = calls
+      .map((call: unknown[]) => call[0] as { name: string; execute: (toolCallId: string, params: unknown) => Promise<{ details: unknown }> })
+      .find((tool) => tool.name === 'task.create');
+    expect(createTool).toBeDefined();
+
+    const result = await createTool!.execute('c1', { title: 'Created from plugin test' });
+    const details = result.details as { task: { title: string; rev: number } };
+    expect(details.task.title).toBe('Created from plugin test');
+    expect(details.task.rev).toBe(0);
   });
 });
