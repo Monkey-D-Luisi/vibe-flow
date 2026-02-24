@@ -65,11 +65,11 @@ Current state (approximate):
 
 ## Acceptance Criteria
 
-- [x] AC1: `vitest run --coverage` passes with all files in `src/` at >= 80% statements
-- [x] AC2: `vitest run --coverage` passes with all files in `src/` at >= 80% branches
-- [x] AC3: `vitest run --coverage` passes with all files in `src/` at >= 80% functions
-- [x] AC4: No test regressions (all existing 147+ tests still pass)
-- [x] AC5: Coverage report committed as CI artifact reference in walkthrough
+- [ ] AC1: `vitest run --coverage` passes with all files in `src/` at >= 80% statements
+- [ ] AC2: `vitest run --coverage` passes with all files in `src/` at >= 80% branches
+- [ ] AC3: `vitest run --coverage` passes with all files in `src/` at >= 80% functions
+- [ ] AC4: No test regressions (all existing 147+ tests still pass)
+- [ ] AC5: Coverage report committed as CI artifact reference in walkthrough
 
 ---
 
