@@ -4,7 +4,7 @@
  * Runs test suite and reports results.
  */
 
-import { safeSpawn, assertSafeCommand } from '../exec/spawn.js';
+import { safeSpawn, assertSafeCommand, parseCommand } from '../exec/spawn.js';
 import { parseVitestOutput, type VitestSummary } from '../parsers/vitest.js';
 
 const DEFAULT_COMMAND = 'pnpm vitest run --reporter=json';
@@ -26,16 +26,6 @@ export interface RunTestsOutput {
   summary?: VitestSummary;
   stdout?: string;
   stderr?: string;
-}
-
-/**
- * Parse command string into cmd and args.
- */
-function parseCommand(command: string): { cmd: string; args: string[] } {
-  const parts = command.split(/\s+/);
-  const cmd = parts[0];
-  const args = parts.slice(1);
-  return { cmd, args };
 }
 
 /**
