@@ -24,7 +24,7 @@ export function register(api: OpenClawPluginApi): void {
 
   // Initialize database
   const pluginConfig = api.pluginConfig as Record<string, unknown> | undefined;
-  const dbPath = (pluginConfig?.dbPath as string) ?? ':memory:';
+  const dbPath = typeof pluginConfig?.dbPath === 'string' ? pluginConfig.dbPath : ':memory:';
   const resolvedPath = api.resolvePath(dbPath);
   const db = createDatabase(resolvedPath);
   runMigrations(db);

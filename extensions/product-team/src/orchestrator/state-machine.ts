@@ -32,7 +32,8 @@ export interface TransitionDeps {
  *
  * Validates the transition, checks lease ownership, updates both
  * task_records and orchestrator_state, and logs the transition event.
- * All mutations are wrapped in a single SQLite transaction.
+ * All reads and mutations are wrapped in a single SQLite transaction
+ * to prevent TOCTOU race conditions.
  */
 export function transition(
   taskId: string,
@@ -42,39 +43,37 @@ export function transition(
   deps: TransitionDeps,
 ): TransitionResult {
   const { db, taskRepo, orchestratorRepo, leaseRepo, eventLog, now } = deps;
-
-  // Read current state before transaction
-  const task = taskRepo.getById(taskId);
-  if (!task) {
-    throw new TaskNotFoundError(taskId);
-  }
-
-  const fromStatus = task.status;
-
-  // Validate transition
-  if (!isValidTransition(fromStatus, toStatus)) {
-    throw new InvalidTransitionError(taskId, fromStatus, toStatus);
-  }
-
-  // Check lease: expire stale leases first
   const currentNow = now();
-  leaseRepo.expireStale(currentNow);
-  const lease = leaseRepo.getByTaskId(taskId);
-  if (lease && lease.agentId !== agentId) {
-    throw new LeaseConflictError(taskId, lease.agentId);
-  }
 
-  // Determine if this is a review rejection (in_review -> in_progress)
-  const orchState = orchestratorRepo.getByTaskId(taskId)!;
-  const isReviewRejection =
-    fromStatus === 'in_review' && toStatus === 'in_progress';
+  const doTransition = db.transaction((): TransitionResult => {
+    // Read current state inside transaction
+    const task = taskRepo.getById(taskId);
+    if (!task) {
+      throw new TaskNotFoundError(taskId);
+    }
 
-  // Execute all mutations in a single transaction
-  let updatedTask: TaskRecord;
-  let updatedOrchState: OrchestratorState;
-  let event: EventRecord;
+    const fromStatus = task.status;
 
-  const doTransition = db.transaction(() => {
+    // Validate transition
+    if (!isValidTransition(fromStatus, toStatus)) {
+      throw new InvalidTransitionError(taskId, fromStatus, toStatus);
+    }
+
+    // Check lease: expire stale leases first
+    leaseRepo.expireStale(currentNow);
+    const lease = leaseRepo.getByTaskId(taskId);
+    if (lease && lease.agentId !== agentId) {
+      throw new LeaseConflictError(taskId, lease.agentId);
+    }
+
+    // Determine if this is a review rejection (in_review -> in_progress)
+    const orchState = orchestratorRepo.getByTaskId(taskId);
+    if (!orchState) {
+      throw new Error(`Inconsistent data: OrchestratorState not found for existing task ${taskId}`);
+    }
+    const isReviewRejection =
+      fromStatus === 'in_review' && toStatus === 'in_progress';
+
     // Update orchestrator_state with optimistic lock
     const orchFields: Partial<Pick<OrchestratorState, 'current' | 'previous' | 'lastAgent' | 'roundsReview'>> = {
       current: toStatus,
@@ -86,7 +85,7 @@ export function transition(
       orchFields.roundsReview = orchState.roundsReview + 1;
     }
 
-    updatedOrchState = orchestratorRepo.update(
+    const updatedOrchState = orchestratorRepo.update(
       taskId,
       orchFields,
       orchestratorRev,
@@ -94,7 +93,7 @@ export function transition(
     );
 
     // Mirror status to task_records
-    updatedTask = taskRepo.update(
+    const updatedTask = taskRepo.update(
       taskId,
       { status: toStatus },
       task.rev,
@@ -102,14 +101,10 @@ export function transition(
     );
 
     // Log the transition event
-    event = eventLog.logTransition(taskId, fromStatus, toStatus, agentId);
+    const event = eventLog.logTransition(taskId, fromStatus, toStatus, agentId);
+
+    return { task: updatedTask, orchestratorState: updatedOrchState, event };
   });
 
-  doTransition();
-
-  return {
-    task: updatedTask!,
-    orchestratorState: updatedOrchState!,
-    event: event!,
-  };
+  return doTransition();
 }

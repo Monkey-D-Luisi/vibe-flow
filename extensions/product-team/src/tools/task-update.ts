@@ -1,5 +1,6 @@
 import type { ToolDef, ToolDeps } from './index.js';
 import { TaskUpdateParams } from '../schemas/task-update.schema.js';
+import { TaskNotFoundError } from '../domain/errors.js';
 
 export function taskUpdateToolDef(deps: ToolDeps): ToolDef {
   return {
@@ -18,12 +19,22 @@ export function taskUpdateToolDef(deps: ToolDeps): ToolDef {
         metadata?: Record<string, unknown>;
       }>(TaskUpdateParams, params);
 
+      const changedFields = Object.keys(fields);
+      if (changedFields.length === 0) {
+        const current = deps.taskRepo.getById(id);
+        if (!current) {
+          throw new TaskNotFoundError(id);
+        }
+        const result = { task: current };
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+          details: result,
+        };
+      }
+
       const now = deps.now();
       const updated = deps.taskRepo.update(id, fields, rev, now);
-      const changedFields = Object.keys(fields);
-      if (changedFields.length > 0) {
-        deps.eventLog.logTaskUpdated(id, changedFields, null);
-      }
+      deps.eventLog.logTaskUpdated(id, changedFields, null);
 
       const result = { task: updated };
       return {

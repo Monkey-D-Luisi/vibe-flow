@@ -20,8 +20,13 @@ export function taskCreateToolDef(deps: ToolDeps): ToolDef {
       const now = deps.now();
       const task = createTaskRecord(input, id, now);
       const orchState = createOrchestratorState(id, now);
-      const created = deps.taskRepo.create(task, orchState);
-      deps.eventLog.logTaskCreated(id, null);
+
+      // Wrap creation and event log in a single transaction for atomicity
+      const created = deps.db.transaction(() => {
+        const result = deps.taskRepo.create(task, orchState);
+        deps.eventLog.logTaskCreated(id, null);
+        return result;
+      })();
 
       const result = { task: created };
       return {
