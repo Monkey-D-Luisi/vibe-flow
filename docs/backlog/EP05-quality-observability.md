@@ -17,27 +17,54 @@ activity through dashboards, and structured logging with correlation IDs.
 
 ## Context
 
-Quality was previously enforced ad-hoc through CLI scripts. This epic promotes
-quality checks to gated workflow steps that block state transitions when
-thresholds are not met, and adds observability to understand agent behavior.
+> **Decided 2026-02-24:** Consolidate quality-gate extension code into the
+> product-team plugin instead of maintaining cross-extension coordination. The
+> standalone quality-gate CLI (`pnpm q:gate`) remains available.
+
+Quality was previously enforced ad-hoc through CLI scripts. The quality-gate
+extension (`extensions/quality-gate/`) contains working parsers, complexity
+analyzers, and gate evaluation logic, but operates independently from the
+product-team plugin's task lifecycle.
+
+This epic moves quality measurement into the task workflow so that:
+1. Quality tools write results directly into `TaskRecord.metadata`
+2. Transition guards can evaluate these results automatically
+3. An event dashboard provides agent-activity visibility
+4. Structured logging with correlation IDs enables debugging
 
 ## Tasks
 
-### 5.1 Quality tools migration
+### 5.1 Quality tools consolidation
 
-- Port quality measurement tools from old tooling/quality-mcp
-- Implement as OpenClaw plugin tools:
+> **This is NOT a migration from scratch.** Copy working modules from
+> `extensions/quality-gate/src/` into `extensions/product-team/src/quality/`.
 
-| Tool                   | Description                             |
-|------------------------|-----------------------------------------|
-| `quality.coverage`     | Measure and report test coverage        |
-| `quality.lint`         | Run linter and report violations        |
-| `quality.complexity`   | Measure cyclomatic complexity           |
+Modules to copy and adapt:
 
-**Acceptance Criteria:**
-- All three tools registered and functional
-- Tools return structured JSON with metric values
-- Results stored in task event log
+| Source (quality-gate) | Target (product-team) | Adaptation needed |
+|---|---|---|
+| `src/exec/spawn.ts` | `src/exec/spawn.ts` | Already needed by EP04 |
+| `src/parsers/*.ts` | `src/quality/parsers/*.ts` | Update imports |
+| `src/complexity/*.ts` | `src/quality/complexity/*.ts` | Update imports |
+| `src/gate/policy.ts` | `src/quality/gate-policy.ts` | Add correlationId param |
+| `src/gate/sources.ts` | `src/quality/gate-sources.ts` | Read from TaskRecord |
+| `src/gate/types.ts` | `src/quality/types.ts` | No changes |
+| `src/fs/*.ts` | `src/quality/fs.ts` | No changes |
+
+Register 5 tools: `quality.tests`, `quality.coverage`, `quality.lint`,
+`quality.complexity`, `quality.gate`
+
+**Critical pattern:** Each quality tool auto-writes results to TaskRecord metadata:
+```
+quality.tests    -> task.metadata.qa_report = { total, passed, failed, skipped, evidence }
+quality.coverage -> task.metadata.dev_result.metrics.coverage = <number>
+quality.lint     -> task.metadata.dev_result.metrics.lint_clean = <boolean>
+quality.complexity -> task.metadata.complexity = { avg, max, files }
+quality.gate     -> evaluates all above against scope policy
+```
+
+Dependencies to add to product-team `package.json`:
+`ts-morph`, `typhonjs-escomplex`, `fast-glob`, `picomatch`
 
 ### 5.2 Gate enforcement integration
 
@@ -54,14 +81,21 @@ thresholds are not met, and adds observability to understand agent behavior.
 
 ### 5.3 Event log dashboard
 
-- Read-only API for querying event log
-- Filter by task, agent, event type, time range
+> **Format: OpenClaw tool** (`workflow.events.query`)
+
+- Tool returns paginated, filterable event history
+- Filter by: taskId, agentId, eventType, time range
 - Aggregate views: tasks per agent, average cycle time, failure rate
-- Expose as `workflow.events.query` tool
+- Maximum 100 results per page
+- Read-only (no mutations)
+
+Requires new `queryEvents()` method on `SqliteEventRepository` with SQL
+filtering and COUNT aggregation.
 
 **Acceptance Criteria:**
-- Dashboard tool returns paginated results
-- Supports filtering and aggregation
+- Dashboard tool returns paginated results with total count
+- Supports all filter dimensions
+- Includes aggregate stats in response
 - No write access through dashboard
 
 ### 5.4 Structured logging
@@ -78,8 +112,16 @@ thresholds are not met, and adds observability to understand agent behavior.
 
 ## Out of Scope
 
+- Deleting the standalone quality-gate extension (keep for CLI use)
 - Security hardening (EP06)
-- External monitoring integrations
+- External monitoring integrations (Datadog, Sentry)
+- PR status checks (future enhancement building on EP04)
+- Dashboard as web UI (tool-only)
+
+## Task Spec
+
+Full implementation spec with pseudocode, TypeBox schemas, test plan, and
+file-by-file breakdown: [`docs/tasks/0006-quality-observability.md`](../tasks/0006-quality-observability.md)
 
 ## References
 

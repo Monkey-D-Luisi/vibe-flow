@@ -23,27 +23,37 @@ tracked through the event log for auditability.
 
 ## Tasks
 
-### 4.1 GithubService migration
+### 4.1 GH CLI Wrapper + Idempotency Layer
 
-- Port GithubService from old MCP server codebase
-- Adapt to OpenClaw plugin API patterns
-- Replace direct Octokit usage with abstracted VCS interface
-- Create dedicated `ext_requests` table for **idempotency tracking**:
+> **Decided 2026-02-24:** Wrap `gh` CLI via `safeSpawn` instead of Octokit. Auth
+> is pre-configured (`gh auth status`). No token handling in plugin code.
+
+- Create `src/github/gh-client.ts` wrapping `gh` CLI commands via `safeSpawn`
+  (reuse pattern from `extensions/quality-gate/src/exec/spawn.ts`)
+- Create `src/github/idempotency.ts` with SHA-256 payload hashing
+- Create dedicated `ext_requests` table (migration v2) for **idempotency tracking**:
   - Fields: `request_id` (PK), `task_id` (FK), `tool`, `payload_hash`, `response` (JSON), `created_at`
-  - Before executing any GitHub API call, hash the payload and check for an
+  - `UNIQUE(tool, payload_hash)` constraint for O(1) dedup lookup
+  - Before executing any `gh` command, hash the sorted payload and check for an
     existing record — if found, return cached response (no-op)
-  - Pattern ported from old `GithubRequestRepository.ensure()` which used
-    payload hashing to prevent duplicate branches/PRs/comments
+- Create `src/persistence/request-repository.ts` (SqliteRequestRepository)
 
-> **Design note (from deep-research report):** Using the event log alone for
-> idempotency is insufficient — a dedicated table with `payload_hash` allows
-> O(1) lookup and guarantees that re-runs of the same operation are true no-ops.
+**New files:**
+- `src/github/gh-client.ts`
+- `src/github/idempotency.ts`
+- `src/github/branch-service.ts`
+- `src/github/pr-service.ts`
+- `src/github/label-service.ts`
+- `src/persistence/request-repository.ts`
 
 **Acceptance Criteria:**
-- GithubService works within plugin context
 - All operations are idempotent via `ext_requests` hash check
 - Request IDs and `task_id` logged for every GitHub API call
 - Duplicate calls return cached response without hitting GitHub API
+- All `gh` arguments validated via `assertSafeCommand`
+
+**Implementation detail:** See `docs/tasks/0005-github-integration.md` for
+full pseudocode, schema definitions, and test plan.
 
 ### 4.2 VCS tools registration
 
@@ -89,6 +99,18 @@ Register the following tools:
 
 - Quality gate logic (EP05)
 - Security hardening of tokens (EP06)
+- CI webhook listener (future sub-task)
+- Auto-reviewer assignment (future enhancement)
+
+## Task Spec
+
+Full implementation spec with pseudocode, TypeBox schemas, test plan, and
+file-by-file breakdown: [`docs/tasks/0005-github-integration.md`](../tasks/0005-github-integration.md)
+
+## Prerequisite
+
+Task 0004 (Coverage Debt Fix) must be completed first to ensure product-team
+base coverage is >= 80% before adding new modules.
 
 ## References
 

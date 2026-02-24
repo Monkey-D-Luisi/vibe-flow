@@ -17,7 +17,7 @@ structured JSON contracts, and is governed by tool-policy allow-lists.
 |-------|------|---------------------------------|--------------|--------------|---------|
 | 1     | EP01 | OpenClaw Foundation             | None         | March 2026   | DONE    |
 | 1     | EP02 | Task Engine                     | None         | March 2026   | DONE    |
-| 2     | EP03 | Role Execution                  | EP02         | April 2026   | PENDING |
+| 2     | EP03 | Role Execution                  | EP02         | April 2026   | DONE    |
 | 3     | EP04 | GitHub Integration              | EP02         | May-Jun 2026 | PENDING |
 | 4     | EP05 | Quality & Observability         | EP02, EP03   | July 2026    | PENDING |
 | 5     | EP06 | Hardening                       | EP03, EP04   | August 2026  | PENDING |
@@ -83,7 +83,7 @@ with idempotent request tracking to avoid duplicate operations.
 
 Key deliverables:
 
-- GithubService migration from old MCP server
+- GitHub operations wrapper over `gh` CLI (via `safeSpawn`)
 - VCS tool registration (`vcs.branch.create`, `vcs.pr.create`, `vcs.pr.update`,
   `vcs.label.sync`)
 - PR-Bot skill for standard PR workflows
@@ -101,12 +101,10 @@ agent activity through dashboards and structured logging.
 
 Key deliverables:
 
-- Quality tools migration (`quality.coverage`, `quality.lint`,
-  `quality.complexity`)
-- Gate enforcement at state transitions (e.g., cannot transition to
-  `in_review` without passing coverage threshold)
-- Event log dashboard (read-only view of task history)
-- Structured logging (JSON logs with correlation IDs)
+- Quality tools consolidation (merge `quality-gate` into `product-team`)
+- Gate enforcement at state transitions
+- Event log dashboard (`workflow.events.query` tool)
+- Structured logging (JSON with correlation IDs)
 
 ---
 
@@ -120,8 +118,9 @@ concurrency safeguards, and comprehensive documentation.
 Key deliverables:
 
 - Tool allow-list audit and tightening
-- Cost tracking and per-task budget limits
-- Secrets management review (no secrets in task metadata)
+- Cost tracking (LLM tokens + agent wall-clock time per task)
+- Per-task budget limits (configurable)
+- Secrets management review (DB path validation, no secrets in metadata/logs)
 - Concurrency limits (max parallel tasks per agent)
 - Runbook for operators
 - End-to-end walkthrough documentation
@@ -167,10 +166,26 @@ graph TD
 
 ## References
 
-- [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)
+### Task Specs
+- [Task 0001: OpenClaw Foundation](tasks/0001-openclaw-foundation.md) -- DONE
+- [Task 0002: Task Engine](tasks/0002-task-engine.md) -- DONE
+- [Task 0003: Role Execution](tasks/0003-role-execution.md) -- DONE
+- [Task 0004: Coverage Debt Fix](tasks/0004-coverage-debt.md) -- PENDING (pre-EP04)
+- [Task 0005: GitHub Integration](tasks/0005-github-integration.md) -- PENDING (EP04)
+- [Task 0006: Quality & Observability](tasks/0006-quality-observability.md) -- PENDING (EP05)
+- [Task 0007: Hardening](tasks/0007-hardening.md) -- PENDING (EP06)
+
+### Epic Backlogs
 - [EP01 Backlog](backlog/EP01-openclaw-foundation.md)
 - [EP02 Backlog](backlog/EP02-task-engine.md)
 - [EP03 Backlog](backlog/EP03-role-execution.md)
 - [EP04 Backlog](backlog/EP04-github-integration.md)
 - [EP05 Backlog](backlog/EP05-quality-observability.md)
 - [EP06 Backlog](backlog/EP06-hardening.md)
+
+### Architecture & Operations
+- [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)
+- [Transition Guard Evidence](transition-guard-evidence.md)
+- [Error Recovery Patterns](error-recovery.md)
+- [Extension Integration Patterns](extension-integration.md)
+- [Comprehensive Audit (2026-02-24)](audits/2026-02-24-comprehensive-audit.md)

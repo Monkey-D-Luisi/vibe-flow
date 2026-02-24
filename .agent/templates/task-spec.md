@@ -89,3 +89,14 @@ Link to relevant ADRs, epics, or prior tasks.>
 - [ ] Walkthrough updated
 - [ ] Code reviewed (if applicable)
 - [ ] PR created and linked
+
+---
+
+## Agent References
+
+- [Architecture Standards](../../.agent/rules/architecture-standards.md) -- hexagonal layers, dependency rules
+- [Coding Standards](../../.agent/rules/coding-standards.md) -- TypeScript, naming, error handling
+- [Testing Standards](../../.agent/rules/testing-standards.md) -- Vitest, TDD, coverage, helpers
+- [Transition Guard Evidence](../transition-guard-evidence.md) -- required metadata per transition
+- [Error Recovery Patterns](../error-recovery.md) -- how to handle failures
+- [Extension Integration](../extension-integration.md) -- how extensions interact
