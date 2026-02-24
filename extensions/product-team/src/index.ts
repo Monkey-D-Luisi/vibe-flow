@@ -7,6 +7,7 @@
 
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { ulid } from 'ulid';
+import { resolve, isAbsolute, relative } from 'node:path';
 import { createDatabase } from './persistence/connection.js';
 import { runMigrations } from './persistence/migrations.js';
 import { SqliteTaskRepository } from './persistence/task-repository.js';
@@ -26,8 +27,33 @@ export function register(api: OpenClawPluginApi): void {
   const pluginConfig = api.pluginConfig as Record<string, unknown> | undefined;
   const dbPath = typeof pluginConfig?.dbPath === 'string' ? pluginConfig.dbPath : ':memory:';
   const resolvedPath = api.resolvePath(dbPath);
+
+  // Validate database path stays within workspace (skip for in-memory DBs)
+  if (resolvedPath !== ':memory:') {
+    const workspaceRoot = api.resolvePath('.');
+    const rootAbs = resolve(workspaceRoot);
+    const dbAbs = resolve(resolvedPath);
+    const rel = relative(rootAbs, dbAbs);
+    if (rel.startsWith('..') || isAbsolute(rel)) {
+      throw new Error(`Database path "${dbPath}" escapes workspace root`);
+    }
+  }
+
   const db = createDatabase(resolvedPath);
   runMigrations(db);
+
+  // Close database on process exit to flush WAL
+  const closeDb = () => {
+    try {
+      db.close();
+      api.logger.info('database closed');
+    } catch {
+      // Best-effort close — ignore errors during shutdown
+    }
+  };
+  process.on('exit', closeDb);
+  process.on('SIGINT', closeDb);
+  process.on('SIGTERM', closeDb);
 
   api.logger.info(`database initialized at ${resolvedPath}`);
 
