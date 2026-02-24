@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0002-task-engine.md`
 - Epic: EP02
 - Branch: `feat/0002-task-engine`
-- PR: #161
+- PR: #161 (merged `e495235` into main)
 
 ---
 
