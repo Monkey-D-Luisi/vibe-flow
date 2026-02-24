@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0003-role-execution.md`
 - Epic: EP03 -- Role Execution
 - Branch: `feat/0003-role-execution`
-- PR: Pending
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/163
 
 ---
 
@@ -85,6 +85,9 @@ pnpm typecheck
 
 pnpm --filter @openclaw/plugin-product-team test:coverage
 pnpm --filter @openclaw/plugin-product-team test:coverage
+
+git push -u origin feat/0003-role-execution
+gh pr create --title "feat(product-team): implement EP03 role execution" --body "<completed template>"
 ```
 
 Coverage command outcome:
