@@ -4,12 +4,13 @@ on:
   pull_request:
     types: [opened, ready_for_review, review_requested, review_request_removed, closed, converted_to_draft]
   issues:
-    types: [opened, edited, closed]
+    types: [opened, edited, closed, reopened, assigned]
 
 permissions:
   contents: read
   pull-requests: write
   issues: write
+  projects: write
 
 jobs:
   sync:
@@ -24,7 +25,9 @@ jobs:
 
             function mapStatus(evt, payload) {
               if (context.eventName === "issues") {
-                return payload.issue.state === "closed" ? "Done" : "To Do"
+                if (payload.issue.state === "closed") return "Done"
+                if (payload.action === "assigned") return "In Progress"
+                return "To Do"
               }
               const pr = payload.pull_request
               if (pr.merged) return "Done"

@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0002-task-engine.md`
 - Epic: EP02
 - Branch: `feat/0002-task-engine`
-- PR: TBD
+- PR: #161
 
 ---
 
@@ -141,6 +141,29 @@ pnpm lint        # Zero errors
 - EP05: Quality & observability (blocked on EP02 and EP03)
 - Consider adding ESLint rules for product-team package (currently `echo 'no lint rules yet'`)
 - Consider adding coverage measurement to product-team tests
+
+---
+
+## Code Review Fixes (PR #161)
+
+Addressed findings from independent code review:
+
+| # | Severity | Fix |
+|---|----------|-----|
+| 1 | MUST_FIX | Moved all reads inside `db.transaction()` in `state-machine.ts` to prevent TOCTOU race |
+| 2 | MUST_FIX | Wrapped `lease-repository.ts` `acquire()` in `db.transaction()` to prevent check-then-act race |
+| 3 | SHOULD_FIX | Replaced unsafe `as string` cast with `typeof` check for `pluginConfig.dbPath` in `index.ts` |
+| 5 | SHOULD_FIX | Short-circuit empty updates in `task-update.ts` to avoid spurious `rev` increments |
+| 7+8 | SHOULD_FIX | Removed `!` non-null assertions in `state-machine.ts` by returning from transaction directly; added explicit null check for orchestrator state |
+| 10 | SHOULD_FIX | Derived status unions in TypeBox schemas from `ALL_STATUSES` source of truth |
+| 12 | SHOULD_FIX | Wrapped event log inside task creation transaction in `task-create.ts` for atomicity |
+
+Items deferred (acceptable risk or future refactor):
+- #4 (unconstrained generic in validator) -- deferred to future type-safety pass
+- #6 (concrete deps instead of interfaces) -- deferred to interface extraction refactor
+- #9 (lease check in task.update) -- deferred to EP03 when lease enforcement is finalized
+- #11 (db.close lifecycle) -- deferred until OpenClaw plugin SDK adds lifecycle hooks
+- #13-18 (NITs) -- accepted as-is or deferred
 
 ---
 

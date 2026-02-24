@@ -1,16 +1,13 @@
 import { Type, type Static } from '@sinclair/typebox';
+import { ALL_STATUSES } from '../domain/task-status.js';
+
+const TaskStatusUnion = Type.Union(
+  ALL_STATUSES.map((s) => Type.Literal(s)),
+);
 
 export const TaskTransitionParams = Type.Object({
   id: Type.String({ minLength: 1 }),
-  toStatus: Type.Union([
-    Type.Literal('backlog'),
-    Type.Literal('grooming'),
-    Type.Literal('design'),
-    Type.Literal('in_progress'),
-    Type.Literal('in_review'),
-    Type.Literal('qa'),
-    Type.Literal('done'),
-  ]),
+  toStatus: TaskStatusUnion,
   agentId: Type.String({ minLength: 1 }),
   rev: Type.Integer({ minimum: 0 }),
 });

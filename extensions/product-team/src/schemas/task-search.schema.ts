@@ -1,17 +1,12 @@
 import { Type, type Static } from '@sinclair/typebox';
+import { ALL_STATUSES } from '../domain/task-status.js';
+
+const TaskStatusUnion = Type.Union(
+  ALL_STATUSES.map((s) => Type.Literal(s)),
+);
 
 export const TaskSearchParams = Type.Object({
-  status: Type.Optional(
-    Type.Union([
-      Type.Literal('backlog'),
-      Type.Literal('grooming'),
-      Type.Literal('design'),
-      Type.Literal('in_progress'),
-      Type.Literal('in_review'),
-      Type.Literal('qa'),
-      Type.Literal('done'),
-    ]),
-  ),
+  status: Type.Optional(TaskStatusUnion),
   assignee: Type.Optional(Type.String()),
   tags: Type.Optional(Type.Array(Type.String())),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 20 })),

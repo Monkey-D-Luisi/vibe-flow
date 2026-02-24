@@ -113,5 +113,5 @@ The TaskRecord is the central domain object for the product-team plugin. Every p
 - [x] Lint passes with zero errors
 - [x] TypeScript compiles without errors
 - [x] Walkthrough updated
-- [ ] Code reviewed (if applicable)
-- [ ] PR created and linked
+- [x] Code reviewed (PR #161)
+- [ ] PR created and linked (#161)

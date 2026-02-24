@@ -33,30 +33,34 @@ export class SqliteLeaseRepository {
     acquiredAt: string,
     expiresAt: string,
   ): LeaseRecord {
-    // First, clean up expired leases for this task
-    this.db
-      .prepare('DELETE FROM leases WHERE task_id = ? AND expires_at < ?')
-      .run(taskId, acquiredAt);
+    const doAcquire = this.db.transaction(() => {
+      // Clean up expired leases for this task
+      this.db
+        .prepare('DELETE FROM leases WHERE task_id = ? AND expires_at < ?')
+        .run(taskId, acquiredAt);
 
-    // Check for existing active lease
-    const existing = this.getByTaskId(taskId);
-    if (existing && existing.agentId !== agentId) {
-      throw new LeaseConflictError(taskId, existing.agentId);
-    }
+      // Check for existing active lease
+      const existing = this.getByTaskId(taskId);
+      if (existing && existing.agentId !== agentId) {
+        throw new LeaseConflictError(taskId, existing.agentId);
+      }
 
-    // Upsert lease
-    this.db
-      .prepare(
-        `INSERT INTO leases (task_id, agent_id, acquired_at, expires_at)
-         VALUES (?, ?, ?, ?)
-         ON CONFLICT(task_id) DO UPDATE SET
-           agent_id = excluded.agent_id,
-           acquired_at = excluded.acquired_at,
-           expires_at = excluded.expires_at`,
-      )
-      .run(taskId, agentId, acquiredAt, expiresAt);
+      // Upsert lease
+      this.db
+        .prepare(
+          `INSERT INTO leases (task_id, agent_id, acquired_at, expires_at)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(task_id) DO UPDATE SET
+             agent_id = excluded.agent_id,
+             acquired_at = excluded.acquired_at,
+             expires_at = excluded.expires_at`,
+        )
+        .run(taskId, agentId, acquiredAt, expiresAt);
 
-    return { taskId, agentId, acquiredAt, expiresAt };
+      return { taskId, agentId, acquiredAt, expiresAt };
+    });
+
+    return doAcquire();
   }
 
   release(taskId: string, agentId: string): void {
