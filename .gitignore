@@ -57,3 +57,5 @@ Thumbs.db
 # Misc
 *.swp
 *.swo
+
+actions-runner/

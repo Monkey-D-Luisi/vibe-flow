@@ -46,4 +46,34 @@ describe('product-team plugin', () => {
     register(api);
     expect(api.logger.info).toHaveBeenCalledWith('product-team plugin loaded');
   });
+
+  it('registers exactly 5 task engine tools', () => {
+    const api = createMockApi();
+    register(api);
+    expect(api.registerTool).toHaveBeenCalledTimes(5);
+  });
+
+  it('registers tools with expected names', () => {
+    const api = createMockApi();
+    register(api);
+
+    const calls = (api.registerTool as ReturnType<typeof vi.fn>).mock.calls;
+    const toolNames = calls.map(
+      (call: unknown[]) => (call[0] as { name: string }).name,
+    );
+
+    expect(toolNames).toContain('task.create');
+    expect(toolNames).toContain('task.get');
+    expect(toolNames).toContain('task.search');
+    expect(toolNames).toContain('task.update');
+    expect(toolNames).toContain('task.transition');
+  });
+
+  it('logs tool registration count', () => {
+    const api = createMockApi();
+    register(api);
+    expect(api.logger.info).toHaveBeenCalledWith(
+      'registered 5 task engine tools',
+    );
+  });
 });
