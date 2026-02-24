@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { safeSpawn, assertSafeCommand, assertPathContained } from '../src/exec/spawn.js';
+import { safeSpawn, assertSafeCommand, assertPathContained, parseCommand } from '../src/exec/spawn.js';
 
 const isWindows = process.platform === 'win32';
 
@@ -154,6 +154,18 @@ describe('assertSafeCommand', () => {
     expect(() => assertSafeCommand('node', ['-e', 'console.log'])).not.toThrow();
     expect(() => assertSafeCommand('vitest', ['run', '--reporter=json'])).not.toThrow();
   });
+
+  it('rejects commands not in the allowlist', () => {
+    expect(() => assertSafeCommand('rm')).toThrow('UNSAFE_COMMAND');
+    expect(() => assertSafeCommand('curl')).toThrow('UNSAFE_COMMAND');
+    expect(() => assertSafeCommand('bash')).toThrow('UNSAFE_COMMAND');
+    expect(() => assertSafeCommand('python')).toThrow('UNSAFE_COMMAND');
+  });
+
+  it('allows allowlisted commands matched by path suffix', () => {
+    expect(() => assertSafeCommand('/usr/local/bin/pnpm', ['test'])).not.toThrow();
+    expect(() => assertSafeCommand('/usr/bin/node', ['-v'])).not.toThrow();
+  });
 });
 
 describe('assertPathContained', () => {
@@ -179,5 +191,57 @@ describe('assertPathContained', () => {
 
   it('rejects absolute paths outside root', () => {
     expect(() => assertPathContained('/etc/passwd', '/app')).toThrow('PATH_TRAVERSAL');
+  });
+});
+
+describe('parseCommand', () => {
+  it('splits a simple command into cmd and args', () => {
+    expect(parseCommand('pnpm vitest run')).toEqual({ cmd: 'pnpm', args: ['vitest', 'run'] });
+  });
+
+  it('handles a single token with no args', () => {
+    expect(parseCommand('node')).toEqual({ cmd: 'node', args: [] });
+  });
+
+  it('preserves spaces inside double-quoted tokens', () => {
+    expect(parseCommand('eslint "./src/my file.ts"')).toEqual({ cmd: 'eslint', args: ['./src/my file.ts'] });
+  });
+
+  it('preserves spaces inside single-quoted tokens', () => {
+    expect(parseCommand("eslint './src/my file.ts'")).toEqual({ cmd: 'eslint', args: ['./src/my file.ts'] });
+  });
+
+  it('handles a double-quoted executable path containing spaces', () => {
+    expect(parseCommand('"/path with spaces/pnpm" vitest run')).toEqual({
+      cmd: '/path with spaces/pnpm',
+      args: ['vitest', 'run'],
+    });
+  });
+
+  it('collapses multiple spaces between tokens', () => {
+    expect(parseCommand('pnpm  lint')).toEqual({ cmd: 'pnpm', args: ['lint'] });
+  });
+});
+
+describe('safeSpawn output truncation', () => {
+  // Writing 11 MB of data on Windows via shell: true is unreliable due to cmd.exe arg limits
+  it.skipIf(isWindows)('truncates stdout when output exceeds 10 MB', async () => {
+    const MB = 1024 * 1024;
+    const result = await safeSpawn(
+      'node',
+      ['-e', `process.stdout.write(Buffer.alloc(${11 * MB}, 97).toString())`],
+      { envAllow: CROSS_PLATFORM_ENV, timeoutMs: 30000 },
+    );
+    expect(result.stdoutTruncated).toBe(true);
+    expect(result.stdout.length).toBeGreaterThan(0);
+    expect(result.stdout.length).toBeLessThanOrEqual(10 * MB + 1000);
+  }, 30000);
+
+  it('sets stdoutTruncated=false for small output', async () => {
+    const result = await safeSpawn('node', ['-e', "process.stdout.write('hello')"], {
+      envAllow: CROSS_PLATFORM_ENV,
+    });
+    expect(result.stdoutTruncated).toBe(false);
+    expect(result.stderrTruncated).toBe(false);
   });
 });
