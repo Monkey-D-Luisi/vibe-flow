@@ -10,8 +10,21 @@ export interface SpawnOptions {
 /** Shell metacharacters that enable command injection. */
 const SHELL_META = /[;&|`$(){}!<>"'\\~\n\r]/;
 
+/** Allowed command prefixes for spawn tools. Only these can be executed. */
+const ALLOWED_COMMAND_PREFIXES: readonly string[] = [
+  'pnpm',
+  'npx',
+  'npm',
+  'node',
+  'vitest',
+  'eslint',
+  'ruff',
+  'tsc',
+];
+
 /**
  * Validate that a command string and its arguments do not contain shell metacharacters.
+ * Also validates the command against an allowlist of safe prefixes.
  * Prevents command injection when `shell: true` is used on Windows.
  */
 export function assertSafeCommand(cmd: string, args: string[] = []): void {
@@ -20,6 +33,13 @@ export function assertSafeCommand(cmd: string, args: string[] = []): void {
       throw new Error(`UNSAFE_COMMAND: ${label} contains shell metacharacters: ${input}`);
     }
   };
+
+  // Extract the base command (first token) for allowlist check
+  const baseCmd = cmd.split(/\s+/)[0].toLowerCase();
+  if (!ALLOWED_COMMAND_PREFIXES.some((prefix) => baseCmd === prefix || baseCmd.endsWith(`/${prefix}`) || baseCmd.endsWith(`\\${prefix}`))) {
+    throw new Error(`UNSAFE_COMMAND: command "${baseCmd}" is not in the allowed list: ${ALLOWED_COMMAND_PREFIXES.join(', ')}`);
+  }
+
   validate(cmd, 'command');
   for (const arg of args) {
     validate(arg, 'argument');
@@ -78,6 +98,8 @@ export async function safeSpawn(cmd: string, args: string[], options: SpawnOptio
   const startTime = Date.now();
   let timedOut = false;
 
+  const MAX_BUFFER_BYTES = 10 * 1024 * 1024; // 10 MB
+
   return new Promise((resolve, reject) => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -92,13 +114,27 @@ export async function safeSpawn(cmd: string, args: string[], options: SpawnOptio
 
     let stdout = '';
     let stderr = '';
+    let stdoutTruncated = false;
+    let stderrTruncated = false;
 
     child.stdout?.on('data', (data) => {
-      stdout += data.toString();
+      if (!stdoutTruncated) {
+        stdout += data.toString();
+        if (stdout.length > MAX_BUFFER_BYTES) {
+          stdout = stdout.slice(0, MAX_BUFFER_BYTES);
+          stdoutTruncated = true;
+        }
+      }
     });
 
     child.stderr?.on('data', (data) => {
-      stderr += data.toString();
+      if (!stderrTruncated) {
+        stderr += data.toString();
+        if (stderr.length > MAX_BUFFER_BYTES) {
+          stderr = stderr.slice(0, MAX_BUFFER_BYTES);
+          stderrTruncated = true;
+        }
+      }
     });
 
     const timeoutId = setTimeout(() => {
