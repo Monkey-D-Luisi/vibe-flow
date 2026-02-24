@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0005-github-integration.md`
 - Epic: EP04 -- GitHub Integration
 - Branch: `feat/0005-github-integration`
-- PR: <PR URL when created>
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/165
 
 ---
 
