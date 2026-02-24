@@ -110,12 +110,13 @@
         "workspace": "~/.openclaw/workspaces/product-team/infra",
         "tools": {
           "allow": [
-            "vcs_branch_create",
-            "vcs_pr_create",
-            "vcs_pr_update",
-            "vcs_label_sync",
-            "task_get",
-            "task_transition"
+            "vcs.branch.create",
+            "vcs.pr.create",
+            "vcs.pr.update",
+            "vcs.label.sync",
+            "task.get",
+            "task.search",
+            "workflow.state.get"
           ]
         }
       }
