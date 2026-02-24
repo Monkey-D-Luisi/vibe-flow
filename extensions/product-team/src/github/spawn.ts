@@ -63,6 +63,20 @@ function includeIfPresent(
   }
 }
 
+const REQUIRED_RUNTIME_ENV_KEYS: readonly string[] = [
+  'PATH',
+  'Path',
+  'SystemRoot',
+  'ComSpec',
+  // Preserve gh auth/config discovery across platforms.
+  'HOME',
+  'USERPROFILE',
+  'APPDATA',
+  'LOCALAPPDATA',
+  'XDG_CONFIG_HOME',
+  'GH_CONFIG_DIR',
+];
+
 export async function safeSpawn(
   cmd: string,
   args: string[],
@@ -84,10 +98,9 @@ export async function safeSpawn(
     }
   }
 
-  includeIfPresent(sourceEnv, env, 'PATH');
-  includeIfPresent(sourceEnv, env, 'Path');
-  includeIfPresent(sourceEnv, env, 'SystemRoot');
-  includeIfPresent(sourceEnv, env, 'ComSpec');
+  for (const key of REQUIRED_RUNTIME_ENV_KEYS) {
+    includeIfPresent(sourceEnv, env, key);
+  }
 
   if (process.platform === 'win32') {
     normalizeWindowsPathEnv(env);

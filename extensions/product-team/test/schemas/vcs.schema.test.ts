@@ -43,6 +43,14 @@ describe('VCS schemas', () => {
         prNumber: 0,
       }),
     ).toThrow();
+
+    expect(() =>
+      validate(VcsPrUpdateParams, {
+        taskId: 'TASK-1',
+        prNumber: 10,
+        labels: [],
+      }),
+    ).toThrow();
   });
 
   it('should validate vcs.label.sync params', () => {

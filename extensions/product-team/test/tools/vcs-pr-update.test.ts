@@ -126,6 +126,17 @@ describe('vcs.pr.update tool', () => {
     ).rejects.toThrow(/requires at least one field/);
   });
 
+  it('should fail when labels is an empty array', async () => {
+    const tool = vcsPrUpdateToolDef(deps);
+    await expect(
+      tool.execute('call-1', {
+        taskId: 'TASK-1',
+        prNumber: 22,
+        labels: [],
+      }),
+    ).rejects.toThrow(/labels/);
+  });
+
   it('should fail for unknown task', async () => {
     const tool = vcsPrUpdateToolDef(deps);
     await expect(
