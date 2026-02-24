@@ -68,6 +68,16 @@ export interface SpawnResult {
   timedOut: boolean;
 }
 
+/**
+ * Parse a command string into the executable and its arguments.
+ */
+export function parseCommand(command: string): { cmd: string; args: string[] } {
+  const parts = command.split(/\s+/);
+  const cmd = parts[0];
+  const args = parts.slice(1);
+  return { cmd, args };
+}
+
 function normalizeWindowsPathEnv(env: Record<string, string>): void {
   const pathMixed = env.Path;
   const pathUpper = env.PATH;

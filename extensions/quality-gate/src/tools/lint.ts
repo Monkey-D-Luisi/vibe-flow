@@ -4,7 +4,7 @@
  * Runs linters and reports violations.
  */
 
-import { safeSpawn, assertSafeCommand } from '../exec/spawn.js';
+import { safeSpawn, assertSafeCommand, parseCommand } from '../exec/spawn.js';
 import { parseEslintOutput, summarizeEslint } from '../parsers/eslint.js';
 import { parseRuffOutput, summarizeRuff } from '../parsers/ruff.js';
 import type { NormalizedLintFileReport } from '../parsers/types.js';
@@ -36,16 +36,6 @@ export interface LintOutput {
   exitCode: number;
   durationMs: number;
   raw?: string;
-}
-
-/**
- * Parse command string into cmd and args.
- */
-function parseCommand(command: string): { cmd: string; args: string[] } {
-  const parts = command.split(/\s+/);
-  const cmd = parts[0];
-  const args = parts.slice(1);
-  return { cmd, args };
 }
 
 /**
