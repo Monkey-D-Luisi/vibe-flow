@@ -109,4 +109,4 @@ EP02 delivered the task lifecycle engine, persistence, leases, and transition me
 - [x] TypeScript compiles without errors
 - [x] Walkthrough updated
 - [ ] Code reviewed (if applicable)
-- [ ] PR created and linked
+- [x] PR created and linked (#163)
