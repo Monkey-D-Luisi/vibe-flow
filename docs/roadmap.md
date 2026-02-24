@@ -170,7 +170,7 @@ graph TD
 - [Task 0001: OpenClaw Foundation](tasks/0001-openclaw-foundation.md) -- DONE
 - [Task 0002: Task Engine](tasks/0002-task-engine.md) -- DONE
 - [Task 0003: Role Execution](tasks/0003-role-execution.md) -- DONE
-- [Task 0004: Coverage Debt Fix](tasks/0004-coverage-debt.md) -- IN_PROGRESS (pre-EP04)
+- [Task 0004: Coverage Debt Fix](tasks/0004-coverage-debt.md) -- DONE (pre-EP04)
 - [Task 0005: GitHub Integration](tasks/0005-github-integration.md) -- PENDING (EP04)
 - [Task 0006: Quality & Observability](tasks/0006-quality-observability.md) -- PENDING (EP05)
 - [Task 0007: Hardening](tasks/0007-hardening.md) -- PENDING (EP06)
