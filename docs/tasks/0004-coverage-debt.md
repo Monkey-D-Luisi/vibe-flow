@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | IN_PROGRESS |
 | Epic | Pre-EP04 prerequisite |
 | Priority | HIGH |
 | Scope | MINOR |

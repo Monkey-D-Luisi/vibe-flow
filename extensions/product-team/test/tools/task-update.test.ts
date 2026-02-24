@@ -93,4 +93,26 @@ describe('task.update tool', () => {
       updateTool.execute('c1', { id: taskId, title: 'Updated' }),
     ).rejects.toThrow(/[Vv]alidation/);
   });
+
+  it('should return the current task when no mutable fields are provided', async () => {
+    const updateTool = taskUpdateToolDef(deps);
+    const result = await updateTool.execute('c1', { id: taskId, rev: 0 });
+
+    const { task } = result.details as { task: { id: string; rev: number; title: string } };
+    expect(task.id).toBe(taskId);
+    expect(task.rev).toBe(0);
+    expect(task.title).toBe('Original');
+
+    const updateEvents = deps.eventLog
+      .getHistory(taskId)
+      .filter((event) => event.eventType === 'task.updated');
+    expect(updateEvents).toHaveLength(0);
+  });
+
+  it('should raise not found when no mutable fields are provided for unknown task id', async () => {
+    const updateTool = taskUpdateToolDef(deps);
+    await expect(
+      updateTool.execute('c1', { id: '01TASK_MISSING_0001', rev: 0 }),
+    ).rejects.toThrow(/[Nn]ot [Ff]ound/);
+  });
 });
