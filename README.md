@@ -44,6 +44,8 @@ vibe-flow/
   .agent/templates/            # Task, walkthrough, ADR, PR review templates
   CLAUDE.md                    # Claude Code instructions
   AGENTS.md                    # Generic agent instructions
+  .claude/commands/            # Claude command shortcuts mapped to .agent rules
+  .codex/commands/             # Codex command shortcuts mapped to .agent rules
   openclaw.json                # OpenClaw configuration
   extensions/
     quality-gate/              # Quality gate engine
