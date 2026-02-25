@@ -10,6 +10,7 @@ describe('secret-detector', () => {
   it('detects known secret formats', () => {
     expect(containsSecret('ghp_123456789012345678901234567890123456')).toBe(true);
     expect(containsSecret('sk-abcdefghijklmnopqrstuvwxyz123456')).toBe(true);
+    expect(containsSecret('0123456789abcdef0123456789abcdef01234567')).toBe(false);
     expect(containsSecret('plain text')).toBe(false);
   });
 
@@ -46,5 +47,18 @@ describe('secret-detector', () => {
     expect(scrubbed.nested.apiKey).toBe(REDACTED_VALUE);
     expect(scrubbed.arr[1]).toBe(REDACTED_VALUE);
     expect(scrubbed.arr[0]).toBe('safe');
+  });
+
+  it('handles deeply nested objects without stack overflow', () => {
+    const nested: Record<string, unknown> = {};
+    let cursor: Record<string, unknown> = nested;
+    for (let depth = 0; depth < 20_000; depth += 1) {
+      cursor.level = {};
+      cursor = cursor.level as Record<string, unknown>;
+    }
+    cursor.token = 'ghp_123456789012345678901234567890123456';
+
+    expect(() => validateMetadataNoSecrets(nested)).not.toThrow();
+    expect(() => scrubSecrets(nested)).not.toThrow();
   });
 });

@@ -6,7 +6,6 @@ const SECRET_PATTERNS: readonly RegExp[] = [
   /\bsk-[A-Za-z0-9]{20,}\b/,
   /\bAKIA[0-9A-Z]{16}\b/,
   /-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----/,
-  /\b[A-Za-z0-9+/]{40,}={0,2}\b/,
   /\b(?:password|passwd|token|secret|api[_-]?key)\b\s*[:=]\s*\S{8,}/i,
 ];
 
@@ -32,55 +31,106 @@ function collectSecretPaths(
   currentPath: string,
   out: string[],
 ): void {
-  if (typeof value === 'string') {
-    if (containsSecret(value)) {
-      out.push(currentPath);
-    }
-    return;
-  }
+  const stack: Array<{ value: unknown; path: string }> = [
+    { value, path: currentPath },
+  ];
 
-  if (Array.isArray(value)) {
-    for (let index = 0; index < value.length; index += 1) {
-      collectSecretPaths(value[index], pathFor(currentPath, index), out);
-    }
-    return;
-  }
+  while (stack.length > 0) {
+    const frame = stack.pop()!;
+    const currentValue = frame.value;
+    const path = frame.path;
 
-  if (!isRecord(value)) {
-    return;
-  }
-
-  for (const [key, nested] of Object.entries(value)) {
-    const nestedPath = pathFor(currentPath, key);
-    if (shouldRedactKeyValue(key, nested)) {
-      out.push(nestedPath);
+    if (typeof currentValue === 'string') {
+      if (containsSecret(currentValue)) {
+        out.push(path);
+      }
       continue;
     }
-    collectSecretPaths(nested, nestedPath, out);
+
+    if (Array.isArray(currentValue)) {
+      for (let index = currentValue.length - 1; index >= 0; index -= 1) {
+        stack.push({ value: currentValue[index], path: pathFor(path, index) });
+      }
+      continue;
+    }
+
+    if (!isRecord(currentValue)) {
+      continue;
+    }
+
+    const entries = Object.entries(currentValue);
+    for (let index = entries.length - 1; index >= 0; index -= 1) {
+      const [key, nested] = entries[index];
+      const nestedPath = pathFor(path, key);
+      if (shouldRedactKeyValue(key, nested)) {
+        out.push(nestedPath);
+        continue;
+      }
+      stack.push({ value: nested, path: nestedPath });
+    }
   }
 }
 
 function scrubValue(key: string | null, value: unknown): unknown {
-  if (typeof value === 'string') {
-    if ((key !== null && SECRET_KEY_HINT.test(key)) || containsSecret(value)) {
-      return REDACTED_VALUE;
+  type Container = Record<string, unknown> | unknown[];
+  interface ScrubFrame {
+    source: unknown;
+    keyContext: string | null;
+    parent: Container | null;
+    parentKey: string | number | null;
+  }
+
+  const stack: ScrubFrame[] = [
+    { source: value, keyContext: key, parent: null, parentKey: null },
+  ];
+  let rootResult: unknown = value;
+
+  while (stack.length > 0) {
+    const frame = stack.pop()!;
+    const { source, keyContext, parent, parentKey } = frame;
+
+    let sanitized: unknown;
+    if (typeof source === 'string') {
+      sanitized =
+        (keyContext !== null && SECRET_KEY_HINT.test(keyContext)) || containsSecret(source)
+          ? REDACTED_VALUE
+          : source;
+    } else if (Array.isArray(source)) {
+      const next: unknown[] = new Array(source.length);
+      sanitized = next;
+      for (let index = source.length - 1; index >= 0; index -= 1) {
+        stack.push({
+          source: source[index],
+          keyContext,
+          parent: next,
+          parentKey: index,
+        });
+      }
+    } else if (isRecord(source)) {
+      const next: Record<string, unknown> = {};
+      sanitized = next;
+      const entries = Object.entries(source);
+      for (let index = entries.length - 1; index >= 0; index -= 1) {
+        const [nestedKey, nestedValue] = entries[index];
+        stack.push({
+          source: nestedValue,
+          keyContext: nestedKey,
+          parent: next,
+          parentKey: nestedKey,
+        });
+      }
+    } else {
+      sanitized = source;
     }
-    return value;
+
+    if (parent === null || parentKey === null) {
+      rootResult = sanitized;
+      continue;
+    }
+    (parent as Record<string | number, unknown>)[parentKey] = sanitized;
   }
 
-  if (Array.isArray(value)) {
-    return value.map((item) => scrubValue(key, item));
-  }
-
-  if (!isRecord(value)) {
-    return value;
-  }
-
-  const result: Record<string, unknown> = {};
-  for (const [nestedKey, nestedValue] of Object.entries(value)) {
-    result[nestedKey] = scrubValue(nestedKey, nestedValue);
-  }
-  return result;
+  return rootResult;
 }
 
 export function containsSecret(value: string): boolean {

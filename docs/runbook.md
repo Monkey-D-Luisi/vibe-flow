@@ -83,7 +83,7 @@ pnpm typecheck
 
 1. Create/update tasks with `task.create`, `task.update`, `task.transition`.
 2. Capture quality evidence with `quality.coverage`, `quality.lint`,
-   `quality.complexity`, `quality.tests`.
+   `quality.complexity`, `quality.tests`, then evaluate `quality.gate`.
 3. Inspect lifecycle and events with `workflow.state.get`,
    `workflow.events.query`.
 4. Use infra VCS tools (`vcs.branch.create`, `vcs.pr.create`,
