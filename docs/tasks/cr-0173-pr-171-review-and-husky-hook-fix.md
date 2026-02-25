@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | IN_PROGRESS |
+| Status | DONE |
 | PR | #171 |
 | Priority | HIGH |
 | Created | 2026-02-25 |
@@ -31,8 +31,8 @@ Execute the `code review` workflow for PR #171, resolve all MUST_FIX/SHOULD_FIX 
 
 ## Definition of Done
 
-- [ ] MUST_FIX items resolved
-- [ ] SHOULD_FIX items resolved or documented with rationale
-- [ ] Independent review findings captured with severity
-- [ ] Review artifact committed (`docs/tasks/cr-0173-*` + `docs/walkthroughs/cr-0173-*`)
-- [ ] Validation gates executed (`pnpm lint`, `pnpm typecheck`, `pnpm test`)
+- [x] MUST_FIX items resolved
+- [x] SHOULD_FIX items resolved or documented with rationale
+- [x] Independent review findings captured with severity
+- [x] Review artifact committed (`docs/tasks/cr-0173-*` + `docs/walkthroughs/cr-0173-*`)
+- [x] Validation gates executed (`pnpm lint`, `pnpm typecheck`, `pnpm test`)
