@@ -37,8 +37,8 @@ export async function runTestsTool(input: RunTestsInput): Promise<RunTestsOutput
   const timeoutMs = input.timeoutMs || 300000;
   const reporter = input.reporter || 'vitest';
 
-  assertSafeCommand(command);
   const { cmd, args } = parseCommand(command);
+  assertSafeCommand(cmd, args);
 
   const result = await safeSpawn(cmd, args, {
     cwd,

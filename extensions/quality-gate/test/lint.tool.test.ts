@@ -1,14 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
-
-/**
- * Tests for the lint tool (src/tools/lint.ts).
- *
- * The lint tool orchestrates spawning lint commands (eslint or ruff),
- * parsing their output, and returning normalized results.
- */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { NormalizedLintFileReport } from '../src/parsers/types.js';
 
 vi.mock('../src/exec/spawn.js', () => ({
   safeSpawn: vi.fn(),
+  assertSafeCommand: vi.fn(),
+  parseCommand: vi.fn(),
 }));
 
 vi.mock('../src/parsers/eslint.js', () => ({
@@ -21,103 +17,105 @@ vi.mock('../src/parsers/ruff.js', () => ({
   summarizeRuff: vi.fn(),
 }));
 
-import { safeSpawn } from '../src/exec/spawn.js';
+import { safeSpawn, assertSafeCommand, parseCommand } from '../src/exec/spawn.js';
 import { parseEslintOutput, summarizeEslint } from '../src/parsers/eslint.js';
 import { parseRuffOutput, summarizeRuff } from '../src/parsers/ruff.js';
+import { lintTool } from '../src/tools/lint.js';
 
 const mockSafeSpawn = vi.mocked(safeSpawn);
+const mockAssertSafeCommand = vi.mocked(assertSafeCommand);
+const mockParseCommand = vi.mocked(parseCommand);
 const mockParseEslint = vi.mocked(parseEslintOutput);
 const mockSummarizeEslint = vi.mocked(summarizeEslint);
 const mockParseRuff = vi.mocked(parseRuffOutput);
 const mockSummarizeRuff = vi.mocked(summarizeRuff);
 
-describe('lint tool types', () => {
-  it('should accept eslint tool type', () => {
-    const input = { tool: 'eslint' as const };
-    expect(input.tool).toBe('eslint');
+const emptySpawnResult = {
+  stdout: '[]',
+  stderr: '',
+  exitCode: 0,
+  durationMs: 50,
+  timedOut: false,
+  stdoutTruncated: false,
+  stderrTruncated: false,
+};
+
+const sampleReport: NormalizedLintFileReport[] = [
+  {
+    file: 'src/example.ts',
+    errors: 0,
+    warnings: 0,
+    messages: [],
+  },
+];
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockAssertSafeCommand.mockImplementation(() => undefined);
+  mockSafeSpawn.mockResolvedValue(emptySpawnResult);
+  mockParseEslint.mockReturnValue(sampleReport);
+  mockSummarizeEslint.mockReturnValue({
+    totalErrors: 0,
+    totalWarnings: 0,
+    filesWithIssues: 0,
+    totalFiles: 1,
   });
-
-  it('should accept ruff tool type', () => {
-    const input = { tool: 'ruff' as const };
-    expect(input.tool).toBe('ruff');
-  });
-
-  it('should accept optional fields', () => {
-    const input = {
-      tool: 'eslint' as const,
-      cmd: 'npx eslint',
-      cwd: '/project',
-      timeoutMs: 30000,
-      envAllow: ['NODE_ENV'],
-      paths: ['src/**/*.ts'],
-    };
-
-    expect(input.tool).toBe('eslint');
-    expect(input.cmd).toBe('npx eslint');
-    expect(input.cwd).toBe('/project');
-    expect(input.timeoutMs).toBe(30000);
-    expect(input.envAllow).toEqual(['NODE_ENV']);
-    expect(input.paths).toEqual(['src/**/*.ts']);
+  mockParseRuff.mockReturnValue(sampleReport);
+  mockSummarizeRuff.mockReturnValue({
+    totalErrors: 0,
+    totalWarnings: 0,
+    filesWithIssues: 0,
+    totalFiles: 1,
   });
 });
 
-describe('lint mocks integration', () => {
-  it('eslint parser can be mocked and called', () => {
-    mockParseEslint.mockReturnValue([
-      { file: '/src/a.ts', errors: 1, warnings: 0, messages: [] },
-    ]);
-
-    const result = parseEslintOutput('[]');
-    expect(result).toHaveLength(1);
-    expect(result[0].errors).toBe(1);
-  });
-
-  it('ruff parser can be mocked and called', () => {
-    mockParseRuff.mockReturnValue([
-      { file: '/src/main.py', errors: 2, warnings: 1, messages: [] },
-    ]);
-
-    const result = parseRuffOutput('[]');
-    expect(result).toHaveLength(1);
-    expect(result[0].errors).toBe(2);
-  });
-
-  it('safeSpawn can be mocked to return lint output', async () => {
-    mockSafeSpawn.mockResolvedValue({
-      stdout: '[]',
-      stderr: '',
-      exitCode: 0,
-      durationMs: 500,
-      timedOut: false,
+describe('lintTool command validation', () => {
+  it('parses default eslint command before safety validation', async () => {
+    mockParseCommand.mockReturnValue({
+      cmd: 'pnpm',
+      args: ['lint', '-f', 'json'],
     });
 
-    const result = await safeSpawn('eslint', ['--format', 'json', 'src/']);
-    expect(result.exitCode).toBe(0);
-    expect(result.stdout).toBe('[]');
+    const result = await lintTool({});
+
+    expect(mockParseCommand).toHaveBeenCalledWith('pnpm lint -f json');
+    expect(mockAssertSafeCommand).toHaveBeenCalledWith('pnpm', ['lint', '-f', 'json']);
+    expect(mockSafeSpawn).toHaveBeenCalledWith(
+      'pnpm',
+      ['lint', '-f', 'json'],
+      expect.objectContaining({ timeoutMs: 120000 }),
+    );
+    expect(result.command).toBe('pnpm lint -f json');
   });
 
-  it('eslint summarize can be mocked', () => {
-    mockSummarizeEslint.mockReturnValue({
-      totalErrors: 0,
-      totalWarnings: 2,
-      filesWithIssues: 1,
-      totalFiles: 5,
+  it('parses default ruff command before safety validation', async () => {
+    mockParseCommand.mockReturnValue({
+      cmd: 'ruff',
+      args: ['check', '--output-format', 'json', '.'],
     });
 
-    const summary = summarizeEslint([]);
-    expect(summary.totalErrors).toBe(0);
-    expect(summary.totalWarnings).toBe(2);
+    const result = await lintTool({ engine: 'ruff' });
+
+    expect(mockParseCommand).toHaveBeenCalledWith('ruff check --output-format json .');
+    expect(mockAssertSafeCommand).toHaveBeenCalledWith('ruff', ['check', '--output-format', 'json', '.']);
+    expect(mockSafeSpawn).toHaveBeenCalledWith(
+      'ruff',
+      ['check', '--output-format', 'json', '.'],
+      expect.objectContaining({ timeoutMs: 120000 }),
+    );
+    expect(result.engine).toBe('ruff');
   });
 
-  it('ruff summarize can be mocked', () => {
-    mockSummarizeRuff.mockReturnValue({
-      totalErrors: 3,
-      totalWarnings: 0,
-      filesWithIssues: 2,
-      totalFiles: 10,
+  it('rejects unsafe payloads based on parsed executable and args', async () => {
+    mockParseCommand.mockReturnValue({
+      cmd: 'pnpm',
+      args: ['lint;rm', '-f', 'json'],
+    });
+    mockAssertSafeCommand.mockImplementation(() => {
+      throw new Error('UNSAFE_COMMAND: argument contains shell metacharacters: lint;rm');
     });
 
-    const summary = summarizeRuff([]);
-    expect(summary.totalErrors).toBe(3);
+    await expect(lintTool({ command: 'pnpm lint;rm -f json' })).rejects.toThrow('UNSAFE_COMMAND');
+    expect(mockSafeSpawn).not.toHaveBeenCalled();
   });
 });

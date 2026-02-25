@@ -47,8 +47,8 @@ export async function lintTool(input: LintInput): Promise<LintOutput> {
   const cwd = input.cwd || process.cwd();
   const timeoutMs = input.timeoutMs || 120000;
 
-  assertSafeCommand(command);
   const { cmd, args } = parseCommand(command);
+  assertSafeCommand(cmd, args);
 
   const result = await safeSpawn(cmd, args, {
     cwd,
