@@ -59,6 +59,8 @@ ci: add coverage threshold check to PR workflow
 | `next task` | `.agent/rules/autonomous-workflow.md` |
 | `code review` | `.agent/rules/code-review-workflow.md` |
 | `fast track: <X>` | `.agent/rules/fast-track-workflow.md` |
+| `full audit` | `.agent/rules/full-audit-workflow.md` |
+| `process findings` | `.agent/rules/findings-processing-workflow.md` |
 | `pr` | `.agent/rules/pr-workflow.md` |
 
 ## Quality Gates

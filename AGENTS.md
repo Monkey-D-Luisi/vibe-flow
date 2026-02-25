@@ -28,6 +28,8 @@ Monorepo of extensions, skills, and quality tooling for [OpenClaw](https://openc
 | `next task` | Read `.agent/rules/autonomous-workflow.md`, execute |
 | `code review` | Read `.agent/rules/code-review-workflow.md`, execute |
 | `fast track: <X>` | Read `.agent/rules/fast-track-workflow.md`, execute |
+| `full audit` | Read `.agent/rules/full-audit-workflow.md`, execute |
+| `process findings` | Read `.agent/rules/findings-processing-workflow.md`, execute |
 | `pr` | Read `.agent/rules/pr-workflow.md`, execute |
 
 ## Key Commands
