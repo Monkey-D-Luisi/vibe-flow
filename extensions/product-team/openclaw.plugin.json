@@ -26,7 +26,46 @@
         "properties": {
           "owner": { "type": "string" },
           "repo": { "type": "string" },
-          "defaultBase": { "type": "string", "default": "main" }
+          "defaultBase": { "type": "string", "default": "main" },
+          "timeoutMs": { "type": "integer", "minimum": 1, "default": 30000 },
+          "prBot": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": { "type": "boolean", "default": true },
+              "reviewers": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "default": { "type": "array", "items": { "type": "string" }, "default": [] },
+                  "major": { "type": "array", "items": { "type": "string" }, "default": [] },
+                  "minor": { "type": "array", "items": { "type": "string" }, "default": [] },
+                  "patch": { "type": "array", "items": { "type": "string" }, "default": [] }
+                }
+              }
+            }
+          },
+          "ciFeedback": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": { "type": "boolean", "default": true },
+              "routePath": { "type": "string", "default": "/webhooks/github/ci" },
+              "commentOnPr": { "type": "boolean", "default": true },
+              "autoTransition": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "enabled": { "type": "boolean", "default": false },
+                  "toStatus": {
+                    "type": "string",
+                    "enum": ["backlog", "grooming", "design", "in_progress", "in_review", "qa", "done"]
+                  },
+                  "agentId": { "type": "string", "default": "infra" }
+                }
+              }
+            }
+          }
         }
       }
     }
