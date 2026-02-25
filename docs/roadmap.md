@@ -1,6 +1,6 @@
 # Roadmap -- OpenClaw Product Team Extensions
 
-> Last updated: 2026-02-24
+> Last updated: 2026-02-25
 
 ## Vision
 
@@ -19,7 +19,7 @@ structured JSON contracts, and is governed by tool-policy allow-lists.
 | 1     | EP02 | Task Engine                     | None         | March 2026   | DONE    |
 | 2     | EP03 | Role Execution                  | EP02         | April 2026   | DONE    |
 | 3     | EP04 | GitHub Integration              | EP02         | May-Jun 2026 | PENDING |
-| 4     | EP05 | Quality & Observability         | EP02, EP03   | July 2026    | PENDING |
+| 4     | EP05 | Quality & Observability         | EP02, EP03   | July 2026    | DONE    |
 | 5     | EP06 | Hardening                       | EP03, EP04   | August 2026  | PENDING |
 
 ---
@@ -176,7 +176,7 @@ Task-level execution status source of truth:
 - [Task 0003: Role Execution](tasks/0003-role-execution.md) -- DONE
 - [Task 0004: Coverage Debt Fix](tasks/0004-coverage-debt.md) -- DONE (pre-EP04)
 - [Task 0005: GitHub Integration](tasks/0005-github-integration.md) -- DONE (EP04)
-- [Task 0006: Quality & Observability](tasks/0006-quality-observability.md) -- IN_PROGRESS (EP05)
+- [Task 0006: Quality & Observability](tasks/0006-quality-observability.md) -- DONE (EP05)
 - [Task 0007: Hardening](tasks/0007-hardening.md) -- PENDING (EP06)
 
 ### Epic Backlogs

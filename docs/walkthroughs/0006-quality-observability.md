@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0006-quality-observability.md`
 - Epic: EP05 -- Quality & Observability
 - Branch: `feat/0006-quality-observability`
-- PR: `TBD (set after PR creation)`
+- PR: `https://github.com/Monkey-D-Luisi/vibe-flow/pull/166`
 
 ---
 
