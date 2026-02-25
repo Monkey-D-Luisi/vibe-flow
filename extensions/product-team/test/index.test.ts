@@ -96,6 +96,37 @@ describe('product-team plugin', () => {
     );
   });
 
+  it('registers PR-Bot after_tool_call hook by default', () => {
+    const api = createMockApi();
+    register(api);
+
+    expect(api.on).toHaveBeenCalledWith(
+      'after_tool_call',
+      expect.any(Function),
+    );
+    expect(api.logger.info).toHaveBeenCalledWith(
+      'registered PR-Bot after_tool_call hook',
+    );
+  });
+
+  it('does not register PR-Bot hook when disabled in config', () => {
+    const api = createMockApi({
+      pluginConfig: {
+        dbPath: ':memory:',
+        github: {
+          prBot: {
+            enabled: false,
+          },
+        },
+      },
+    });
+
+    register(api);
+
+    const hookCalls = (api.on as ReturnType<typeof vi.fn>).mock.calls;
+    expect(hookCalls.some((call: unknown[]) => call[0] === 'after_tool_call')).toBe(false);
+  });
+
   it('defaults dbPath to :memory: when plugin config dbPath is not a string', () => {
     const api = createMockApi({
       pluginConfig: { dbPath: 123 },

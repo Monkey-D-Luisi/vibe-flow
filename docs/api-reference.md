@@ -389,6 +389,9 @@ This document lists every registered tool from
 
 - Parameters: `taskId`, `title`, optional `body`, `labels`, `base`, `head`, `draft`
 - Returns: PR payload from PR service + `bodyGenerated`
+- Side effect (when `github.prBot.enabled=true`): `after_tool_call` automation
+  derives metadata labels (`scope:*`, `epic:*`, `area:*`), assigns configured
+  reviewers, and posts a status checklist comment.
 
 ```json
 {
