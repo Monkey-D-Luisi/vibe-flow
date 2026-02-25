@@ -24,6 +24,7 @@
             "ciFeedback": {
               "enabled": false,
               "routePath": "/webhooks/github/ci",
+              "webhookSecret": "<github-webhook-secret>",
               "commentOnPr": true,
               "autoTransition": {
                 "enabled": false,

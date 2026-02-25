@@ -20,7 +20,9 @@ export {
   buildTaskIdCandidatesFromBranch,
   InvalidJsonPayloadError,
   normalizeGithubCiEvent,
+  parseJsonRequestBody,
   RequestBodyTooLargeError,
+  readRequestBody,
   readJsonRequestBody,
   type NormalizedGithubCiEvent,
 } from './ci-feedback-utils.js';
@@ -43,6 +45,7 @@ export interface CiAutoTransitionConfig {
 export interface CiFeedbackConfig {
   readonly enabled: boolean;
   readonly routePath: string;
+  readonly webhookSecret: string;
   readonly expectedRepository: string | null;
   readonly commentOnPr: boolean;
   readonly autoTransition: CiAutoTransitionConfig;

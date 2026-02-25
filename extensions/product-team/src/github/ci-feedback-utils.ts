@@ -240,10 +240,10 @@ export function normalizeGithubCiEvent(
   return null;
 }
 
-export async function readJsonRequestBody(
+export async function readRequestBody(
   req: IncomingMessage,
   maxBodyBytes: number = DEFAULT_MAX_BODY_BYTES,
-): Promise<Record<string, unknown>> {
+): Promise<Buffer> {
   const chunks: Buffer[] = [];
   let totalBytes = 0;
 
@@ -256,11 +256,11 @@ export async function readJsonRequestBody(
     chunks.push(buffer);
   }
 
-  if (chunks.length === 0) {
-    return {};
-  }
+  return chunks.length === 0 ? Buffer.alloc(0) : Buffer.concat(chunks);
+}
 
-  const raw = Buffer.concat(chunks).toString('utf8').trim();
+export function parseJsonRequestBody(body: Buffer): Record<string, unknown> {
+  const raw = body.toString('utf8').trim();
   if (raw.length === 0) {
     return {};
   }
@@ -277,6 +277,14 @@ export async function readJsonRequestBody(
     throw new InvalidJsonPayloadError('Expected JSON object payload');
   }
   return record;
+}
+
+export async function readJsonRequestBody(
+  req: IncomingMessage,
+  maxBodyBytes: number = DEFAULT_MAX_BODY_BYTES,
+): Promise<Record<string, unknown>> {
+  const body = await readRequestBody(req, maxBodyBytes);
+  return parseJsonRequestBody(body);
 }
 
 export function buildTaskIdCandidatesFromBranch(branch: string): string[] {

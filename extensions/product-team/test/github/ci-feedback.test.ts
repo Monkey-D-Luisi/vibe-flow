@@ -62,6 +62,7 @@ describe('ci-feedback', () => {
     const baseConfig: CiFeedbackConfig = {
       enabled: true,
       routePath: '/webhooks/github/ci',
+      webhookSecret: 'test-secret',
       expectedRepository: 'acme/vibe-flow',
       commentOnPr: true,
       autoTransition: {
