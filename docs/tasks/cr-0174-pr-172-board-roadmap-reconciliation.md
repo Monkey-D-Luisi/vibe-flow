@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | IN_PROGRESS |
+| Status | DONE |
 | PR | #172 |
 | Priority | HIGH |
 | Created | 2026-02-25 |
@@ -31,9 +31,9 @@ traceability so GitHub project issues map clearly to delivered or queued work.
 
 ## Definition of Done
 
-- [ ] MUST_FIX items resolved
-- [ ] SHOULD_FIX items resolved or documented with rationale
-- [ ] Independent review findings captured with severity
-- [ ] Review artifact committed (`docs/tasks/cr-0174-*` + `docs/walkthroughs/cr-0174-*`)
-- [ ] Validation gates executed (`pnpm lint`, `pnpm typecheck`, `pnpm test`)
-- [ ] PR #172 checks green and merged
+- [x] MUST_FIX items resolved
+- [x] SHOULD_FIX items resolved or documented with rationale
+- [x] Independent review findings captured with severity
+- [x] Review artifact committed (`docs/tasks/cr-0174-*` + `docs/walkthroughs/cr-0174-*`)
+- [x] Validation gates executed (`pnpm lint`, `pnpm typecheck`, `pnpm test`)
+- [x] PR #172 checks green and merged
