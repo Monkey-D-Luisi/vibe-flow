@@ -99,16 +99,9 @@ pnpm typecheck
 
 ### Security exception ledger checks
 
-Track active transitive vulnerability exceptions in
-`docs/security-vulnerability-exception-ledger.md`.
-
-```bash
-pnpm audit --prod
-pnpm audit --prod --audit-level=high
-pnpm audit --prod --json
-pnpm --filter @openclaw/plugin-product-team why openclaw
-pnpm outdated -r openclaw
-```
+Track and revalidate active transitive vulnerability exceptions using the
+canonical procedure in `docs/security-vulnerability-exception-ledger.md`
+(`Revalidation Procedure` section).
 
 ## Tool Allow-Lists
 
