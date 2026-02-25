@@ -13,8 +13,6 @@ export const QualityComplexityParams = Type.Object({
     ]),
   ),
   workingDir: Type.Optional(Type.String({ minLength: 1 })),
-  maxCyclomatic: Type.Optional(Type.Number({ minimum: 0 })),
-  topN: Type.Optional(Type.Integer({ minimum: 1 })),
 });
 
 export type QualityComplexityParams = Static<typeof QualityComplexityParams>;

@@ -100,6 +100,7 @@ describe('quality.lint tool', () => {
       agentId: 'dev',
       rev: 0,
       engine: 'eslint',
+      paths: ['src/a.ts', 'src/b.ts'],
     });
 
     const metadata = (result.details as { task: { metadata: Record<string, unknown> } }).task.metadata;
@@ -114,5 +115,24 @@ describe('quality.lint tool', () => {
 
     const events = deps.eventLog.getHistory(taskId).filter((event) => event.eventType === 'quality.lint');
     expect(events).toHaveLength(1);
+    expect(safeSpawn).toHaveBeenCalledTimes(1);
+    const [cmd, args] = vi.mocked(safeSpawn).mock.calls[0];
+    expect(cmd).toBe('pnpm');
+    expect(args).toContain('src/a.ts');
+    expect(args).toContain('src/b.ts');
+  });
+
+  it('rejects path values with whitespace when building default command', async () => {
+    const tool = qualityLintToolDef(deps);
+    await expect(
+      tool.execute('lint-2', {
+        taskId,
+        agentId: 'dev',
+        rev: 0,
+        engine: 'eslint',
+        paths: ['src/my file.ts'],
+      }),
+    ).rejects.toThrow('paths cannot contain whitespace');
+    expect(safeSpawn).not.toHaveBeenCalled();
   });
 });

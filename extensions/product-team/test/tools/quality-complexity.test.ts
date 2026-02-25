@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type Database from 'better-sqlite3';
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
 import { createTestDatabase } from '../helpers.js';
 import { SqliteTaskRepository } from '../../src/persistence/task-repository.js';
 import { SqliteOrchestratorRepository } from '../../src/persistence/orchestrator-repository.js';
@@ -57,7 +56,9 @@ describe('quality.complexity tool', () => {
     const createTool = taskCreateToolDef(deps);
     const created = await createTool.execute('create', { title: 'Complexity task' });
     taskId = (created.details as { task: { id: string } }).task.id;
-    workingDir = await mkdtemp(join(tmpdir(), 'complexity-tool-'));
+    const tempRoot = join(process.cwd(), '.tmp-tests');
+    await mkdir(tempRoot, { recursive: true });
+    workingDir = await mkdtemp(join(tempRoot, 'complexity-tool-'));
     await mkdir(join(workingDir, 'src'));
     await writeFile(
       join(workingDir, 'src', 'sample.ts'),

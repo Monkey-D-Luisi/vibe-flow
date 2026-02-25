@@ -4,6 +4,7 @@ import { TaskNotFoundError } from '../domain/errors.js';
 import { createCorrelatedLogger } from '../logging/correlated-logger.js';
 import type { TaskRecord } from '../domain/task-record.js';
 import type { ToolDeps } from './index.js';
+import { assertPathContained } from '../exec/spawn.js';
 
 interface MinimalLogger {
   readonly info: (message: string) => void;
@@ -47,13 +48,19 @@ export function beginQualityExecution(
 }
 
 export function resolveWorkingDir(deps: ToolDeps, workingDir?: string): string {
-  if (workingDir) {
-    return resolve(workingDir);
+  const workspaceRoot = deps.workspaceDir
+    ? resolve(deps.workspaceDir)
+    : undefined;
+  if (!workingDir) {
+    return workspaceRoot ?? process.cwd();
   }
-  if (deps.workspaceDir) {
-    return resolve(deps.workspaceDir);
+  const resolved = workspaceRoot
+    ? resolve(workspaceRoot, workingDir)
+    : resolve(workingDir);
+  if (workspaceRoot) {
+    assertPathContained(resolved, workspaceRoot);
   }
-  return process.cwd();
+  return resolved;
 }
 
 export function getTaskOrThrow(deps: ToolDeps, taskId: string): TaskRecord {
