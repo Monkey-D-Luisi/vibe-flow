@@ -20,6 +20,16 @@
                 "minor": [],
                 "patch": []
               }
+            },
+            "ciFeedback": {
+              "enabled": true,
+              "routePath": "/webhooks/github/ci",
+              "commentOnPr": true,
+              "autoTransition": {
+                "enabled": false,
+                "toStatus": "qa",
+                "agentId": "infra"
+              }
             }
           }
         }

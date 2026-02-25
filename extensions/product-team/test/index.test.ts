@@ -109,6 +109,21 @@ describe('product-team plugin', () => {
     );
   });
 
+  it('registers CI webhook route by default', () => {
+    const api = createMockApi();
+    register(api);
+
+    expect(api.registerHttpRoute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: '/webhooks/github/ci',
+        handler: expect.any(Function),
+      }),
+    );
+    expect(api.logger.info).toHaveBeenCalledWith(
+      'registered CI webhook route at /webhooks/github/ci',
+    );
+  });
+
   it('does not register PR-Bot hook when disabled in config', () => {
     const api = createMockApi({
       pluginConfig: {
@@ -125,6 +140,22 @@ describe('product-team plugin', () => {
 
     const hookCalls = (api.on as ReturnType<typeof vi.fn>).mock.calls;
     expect(hookCalls.some((call: unknown[]) => call[0] === 'after_tool_call')).toBe(false);
+  });
+
+  it('does not register CI webhook route when disabled in config', () => {
+    const api = createMockApi({
+      pluginConfig: {
+        dbPath: ':memory:',
+        github: {
+          ciFeedback: {
+            enabled: false,
+          },
+        },
+      },
+    });
+
+    register(api);
+    expect(api.registerHttpRoute).not.toHaveBeenCalled();
   });
 
   it('swallows unexpected errors from PR-Bot hook callback', async () => {

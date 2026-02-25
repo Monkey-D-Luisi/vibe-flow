@@ -8,6 +8,7 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { ulid } from 'ulid';
 import { resolve, isAbsolute, relative } from 'node:path';
+import type { ServerResponse } from 'node:http';
 import { createDatabase } from './persistence/connection.js';
 import { runMigrations } from './persistence/migrations.js';
 import { SqliteTaskRepository } from './persistence/task-repository.js';
@@ -15,6 +16,7 @@ import { SqliteOrchestratorRepository } from './persistence/orchestrator-reposit
 import { SqliteEventRepository } from './persistence/event-repository.js';
 import { SqliteLeaseRepository } from './persistence/lease-repository.js';
 import { SqliteRequestRepository } from './persistence/request-repository.js';
+import { ALL_STATUSES, type TaskStatus } from './domain/task-status.js';
 import { EventLog } from './orchestrator/event-log.js';
 import { LeaseManager } from './orchestrator/lease-manager.js';
 import { resolveTransitionGuardConfig } from './orchestrator/transition-guards.js';
@@ -25,6 +27,11 @@ import { BranchService } from './github/branch-service.js';
 import { PrService } from './github/pr-service.js';
 import { LabelService } from './github/label-service.js';
 import { PrBotAutomation, type PrBotConfig } from './github/pr-bot.js';
+import {
+  CiFeedbackAutomation,
+  readJsonRequestBody,
+  type CiFeedbackConfig,
+} from './github/ci-feedback.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 
@@ -34,6 +41,7 @@ interface GithubConfig {
   readonly defaultBase: string;
   readonly timeoutMs: number;
   readonly prBot: PrBotConfig;
+  readonly ciFeedback: CiFeedbackConfig;
 }
 
 interface ConcurrencyConfig {
@@ -56,6 +64,10 @@ function asPositiveInteger(value: unknown): number | null {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null;
 }
 
+function asBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -66,10 +78,40 @@ function asStringArray(value: unknown): string[] {
     .filter((item) => item.length > 0);
 }
 
+function normalizeRoutePath(input: string): string {
+  const trimmed = input.trim();
+  if (trimmed.length === 0) {
+    return '/webhooks/github/ci';
+  }
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+}
+
+function asTaskStatus(value: unknown): TaskStatus | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  return (ALL_STATUSES as readonly string[]).includes(value) ? value as TaskStatus : null;
+}
+
+function headerValue(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) {
+    return asNonEmptyString(value[0]);
+  }
+  return asNonEmptyString(value);
+}
+
+function writeJson(res: ServerResponse, statusCode: number, payload: Record<string, unknown>): void {
+  res.statusCode = statusCode;
+  res.setHeader('content-type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify(payload));
+}
+
 function resolveGithubConfig(pluginConfig: Record<string, unknown> | undefined): GithubConfig {
   const github = asRecord(pluginConfig?.github);
   const prBot = asRecord(github?.prBot);
   const reviewers = asRecord(prBot?.reviewers);
+  const ciFeedback = asRecord(github?.ciFeedback);
+  const autoTransition = asRecord(ciFeedback?.autoTransition);
   return {
     owner: asNonEmptyString(github?.owner) ?? 'local-owner',
     repo: asNonEmptyString(github?.repo) ?? 'local-repo',
@@ -82,6 +124,18 @@ function resolveGithubConfig(pluginConfig: Record<string, unknown> | undefined):
         major: asStringArray(reviewers?.major),
         minor: asStringArray(reviewers?.minor),
         patch: asStringArray(reviewers?.patch),
+      },
+    },
+    ciFeedback: {
+      enabled: asBoolean(ciFeedback?.enabled) ?? true,
+      routePath: normalizeRoutePath(
+        asNonEmptyString(ciFeedback?.routePath) ?? '/webhooks/github/ci',
+      ),
+      commentOnPr: asBoolean(ciFeedback?.commentOnPr) ?? true,
+      autoTransition: {
+        enabled: asBoolean(autoTransition?.enabled) ?? false,
+        toStatus: asTaskStatus(autoTransition?.toStatus),
+        agentId: asNonEmptyString(autoTransition?.agentId) ?? 'infra',
       },
     },
   };
@@ -192,6 +246,28 @@ export function register(api: OpenClawPluginApi): void {
     defaultBase: githubConfig.defaultBase,
     config: githubConfig.prBot,
   });
+  const ciFeedbackAutomation = new CiFeedbackAutomation({
+    taskRepo,
+    orchestratorRepo,
+    leaseManager,
+    requestRepo,
+    eventLog,
+    ghClient,
+    generateId,
+    now,
+    transitionDeps: {
+      db,
+      taskRepo,
+      orchestratorRepo,
+      leaseRepo,
+      eventLog,
+      now,
+      guardConfig: transitionGuardConfig,
+      concurrencyConfig,
+    },
+    logger: api.logger,
+    config: githubConfig.ciFeedback,
+  });
 
   // Register EP02 tools
   const deps = {
@@ -230,6 +306,67 @@ export function register(api: OpenClawPluginApi): void {
       }
     });
     api.logger.info('registered PR-Bot after_tool_call hook');
+  }
+
+  if (githubConfig.ciFeedback.enabled) {
+    api.registerHttpRoute({
+      path: githubConfig.ciFeedback.routePath,
+      handler: async (req, res) => {
+        if (req.method !== 'POST') {
+          writeJson(res, 405, {
+            ok: false,
+            error: 'method_not_allowed',
+          });
+          return;
+        }
+
+        const eventName = headerValue(req.headers['x-github-event']);
+        if (!eventName) {
+          writeJson(res, 400, {
+            ok: false,
+            error: 'missing_x_github_event_header',
+          });
+          return;
+        }
+
+        try {
+          const payload = await readJsonRequestBody(req);
+          const deliveryId = headerValue(req.headers['x-github-delivery']);
+          const result = await ciFeedbackAutomation.handleGithubWebhook({
+            eventName,
+            deliveryId,
+            payload,
+          });
+
+          writeJson(res, result.handled ? 200 : 202, {
+            ok: true,
+            ...result,
+          });
+        } catch (error: unknown) {
+          const message = String(error);
+          api.logger.warn(`ci-feedback webhook failed: ${message}`);
+          if (
+            error instanceof Error
+            && (
+              error.message.includes('JSON')
+              || error.message.includes('Request body')
+              || error.message.includes('payload')
+            )
+          ) {
+            writeJson(res, 400, {
+              ok: false,
+              error: 'invalid_json_payload',
+            });
+            return;
+          }
+          writeJson(res, 500, {
+            ok: false,
+            error: 'ci_feedback_processing_failed',
+          });
+        }
+      },
+    });
+    api.logger.info(`registered CI webhook route at ${githubConfig.ciFeedback.routePath}`);
   }
 
   api.logger.info(`registered ${tools.length} task/workflow/quality/vcs tools`);
