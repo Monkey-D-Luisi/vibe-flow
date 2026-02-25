@@ -68,6 +68,10 @@ function asNonEmptyString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
+function asNonBlankString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value : null;
+}
+
 function asPositiveInteger(value: unknown): number | null {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null;
 }
@@ -121,7 +125,7 @@ function resolveGithubConfig(pluginConfig: Record<string, unknown> | undefined):
   const ciFeedback = asRecord(github?.ciFeedback);
   const autoTransition = asRecord(ciFeedback?.autoTransition);
   const ciFeedbackEnabled = asBoolean(ciFeedback?.enabled) ?? false;
-  const webhookSecret = asNonEmptyString(ciFeedback?.webhookSecret);
+  const webhookSecret = asNonBlankString(ciFeedback?.webhookSecret);
   if (ciFeedbackEnabled && !webhookSecret) {
     throw new Error(
       'github.ciFeedback.webhookSecret must be configured when github.ciFeedback.enabled is true',
@@ -374,27 +378,27 @@ export function register(api: OpenClawPluginApi): void {
           if (error instanceof RequestBodyTooLargeError) {
             writeJson(res, 413, {
               ok: false,
-            error: 'payload_too_large',
-          });
-          return;
-        }
-        if (error instanceof MissingGithubSignatureError) {
-          writeJson(res, 401, {
-            ok: false,
-            error: 'missing_x_hub_signature_256_header',
-          });
-          return;
-        }
-        if (error instanceof InvalidGithubSignatureError) {
-          writeJson(res, 401, {
-            ok: false,
-            error: 'invalid_x_hub_signature_256',
-          });
-          return;
-        }
-        if (error instanceof InvalidJsonPayloadError || error instanceof SyntaxError) {
-          writeJson(res, 400, {
-            ok: false,
+              error: 'payload_too_large',
+            });
+            return;
+          }
+          if (error instanceof MissingGithubSignatureError) {
+            writeJson(res, 401, {
+              ok: false,
+              error: 'missing_x_hub_signature_256_header',
+            });
+            return;
+          }
+          if (error instanceof InvalidGithubSignatureError) {
+            writeJson(res, 401, {
+              ok: false,
+              error: 'invalid_x_hub_signature_256',
+            });
+            return;
+          }
+          if (error instanceof InvalidJsonPayloadError || error instanceof SyntaxError) {
+            writeJson(res, 400, {
+              ok: false,
               error: 'invalid_json_payload',
             });
             return;
