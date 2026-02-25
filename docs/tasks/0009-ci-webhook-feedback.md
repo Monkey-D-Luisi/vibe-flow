@@ -109,7 +109,7 @@ Open issue triage (`docs/audits/2026-02-25-open-issues-triage.md`) identifies is
 
 ## Definition of Done
 
-- [x] All Acceptance Criteria met
+- [x] Acceptance criteria validated in walkthrough evidence
 - [x] Tests written and passing
 - [x] Coverage meets threshold (>= 80% major / >= 70% minor)
 - [x] Lint passes with zero errors

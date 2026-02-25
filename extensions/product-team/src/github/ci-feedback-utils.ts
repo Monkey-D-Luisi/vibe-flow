@@ -2,6 +2,20 @@ import type { IncomingMessage } from 'node:http';
 
 const DEFAULT_MAX_BODY_BYTES = 1_000_000;
 
+export class RequestBodyTooLargeError extends Error {
+  constructor(maxBodyBytes: number) {
+    super(`Request body exceeds max size (${maxBodyBytes} bytes)`);
+    this.name = 'RequestBodyTooLargeError';
+  }
+}
+
+export class InvalidJsonPayloadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidJsonPayloadError';
+  }
+}
+
 interface CiCheckSummary {
   readonly name: string;
   readonly status: string | null;
@@ -237,7 +251,7 @@ export async function readJsonRequestBody(
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     totalBytes += buffer.length;
     if (totalBytes > maxBodyBytes) {
-      throw new Error(`Request body exceeds max size (${maxBodyBytes} bytes)`);
+      throw new RequestBodyTooLargeError(maxBodyBytes);
     }
     chunks.push(buffer);
   }
@@ -251,10 +265,16 @@ export async function readJsonRequestBody(
     return {};
   }
 
-  const parsed = JSON.parse(raw) as unknown;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    throw new InvalidJsonPayloadError('Malformed JSON payload');
+  }
+
   const record = asRecord(parsed);
   if (!record) {
-    throw new Error('Expected JSON object payload');
+    throw new InvalidJsonPayloadError('Expected JSON object payload');
   }
   return record;
 }

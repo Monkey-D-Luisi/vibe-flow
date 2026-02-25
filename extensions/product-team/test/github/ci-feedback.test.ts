@@ -62,6 +62,7 @@ describe('ci-feedback', () => {
     const baseConfig: CiFeedbackConfig = {
       enabled: true,
       routePath: '/webhooks/github/ci',
+      expectedRepository: 'acme/vibe-flow',
       commentOnPr: true,
       autoTransition: {
         enabled: false,
@@ -218,6 +219,39 @@ describe('ci-feedback', () => {
     expect(first.cached).toBe(false);
     expect(second.cached).toBe(true);
     expect(ghCommentPr).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects webhook events from unexpected repositories', async () => {
+    seedTask('TASK-100');
+    const automation = createAutomation();
+
+    const result = await automation.handleGithubWebhook({
+      eventName: 'check_run',
+      deliveryId: 'delivery-repo-mismatch',
+      payload: {
+        action: 'completed',
+        repository: { full_name: 'evil/repo' },
+        check_run: {
+          name: 'CI / test',
+          status: 'completed',
+          conclusion: 'success',
+          html_url: 'https://ci.example/run/blocked',
+          pull_requests: [{ number: 61 }],
+          check_suite: { head_branch: 'task/TASK-100-security' },
+        },
+      },
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        handled: false,
+        cached: false,
+        reason: 'repository-mismatch',
+      }),
+    );
+    expect(taskRepo.getById('TASK-100')?.metadata).toEqual({});
+    expect(eventLog.getHistory('TASK-100').every((event) => event.eventType !== 'vcs.ci.feedback')).toBe(true);
+    expect(ghCommentPr).not.toHaveBeenCalled();
   });
 
   it('attempts auto-transition when enabled and CI is successful', async () => {

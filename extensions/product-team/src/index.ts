@@ -29,6 +29,8 @@ import { LabelService } from './github/label-service.js';
 import { PrBotAutomation, type PrBotConfig } from './github/pr-bot.js';
 import {
   CiFeedbackAutomation,
+  InvalidJsonPayloadError,
+  RequestBodyTooLargeError,
   readJsonRequestBody,
   type CiFeedbackConfig,
 } from './github/ci-feedback.js';
@@ -112,9 +114,11 @@ function resolveGithubConfig(pluginConfig: Record<string, unknown> | undefined):
   const reviewers = asRecord(prBot?.reviewers);
   const ciFeedback = asRecord(github?.ciFeedback);
   const autoTransition = asRecord(ciFeedback?.autoTransition);
+  const owner = asNonEmptyString(github?.owner) ?? 'local-owner';
+  const repo = asNonEmptyString(github?.repo) ?? 'local-repo';
   return {
-    owner: asNonEmptyString(github?.owner) ?? 'local-owner',
-    repo: asNonEmptyString(github?.repo) ?? 'local-repo',
+    owner,
+    repo,
     defaultBase: asNonEmptyString(github?.defaultBase) ?? 'main',
     timeoutMs: asPositiveInteger(github?.timeoutMs) ?? 30_000,
     prBot: {
@@ -127,10 +131,11 @@ function resolveGithubConfig(pluginConfig: Record<string, unknown> | undefined):
       },
     },
     ciFeedback: {
-      enabled: asBoolean(ciFeedback?.enabled) ?? true,
+      enabled: asBoolean(ciFeedback?.enabled) ?? false,
       routePath: normalizeRoutePath(
         asNonEmptyString(ciFeedback?.routePath) ?? '/webhooks/github/ci',
       ),
+      expectedRepository: `${owner}/${repo}`,
       commentOnPr: asBoolean(ciFeedback?.commentOnPr) ?? true,
       autoTransition: {
         enabled: asBoolean(autoTransition?.enabled) ?? false,
@@ -345,14 +350,14 @@ export function register(api: OpenClawPluginApi): void {
         } catch (error: unknown) {
           const message = String(error);
           api.logger.warn(`ci-feedback webhook failed: ${message}`);
-          if (
-            error instanceof Error
-            && (
-              error.message.includes('JSON')
-              || error.message.includes('Request body')
-              || error.message.includes('payload')
-            )
-          ) {
+          if (error instanceof RequestBodyTooLargeError) {
+            writeJson(res, 413, {
+              ok: false,
+              error: 'payload_too_large',
+            });
+            return;
+          }
+          if (error instanceof InvalidJsonPayloadError || error instanceof SyntaxError) {
             writeJson(res, 400, {
               ok: false,
               error: 'invalid_json_payload',

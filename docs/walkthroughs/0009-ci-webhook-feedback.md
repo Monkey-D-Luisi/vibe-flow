@@ -48,8 +48,7 @@ so this task introduced `0009` as the explicit EP04 follow-up execution item.
 
 ### Approach
 
-1. Added task/walkthrough docs for `0009` and moved roadmap entry to
-   `IN_PROGRESS`.
+1. Added task/walkthrough docs for `0009` and finalized roadmap/backlog status to `DONE`.
 2. Added CI feedback utilities for payload parsing, request JSON reading,
    branch candidate extraction, and CI comment rendering.
 3. Added CI feedback automation class for idempotent handling, metadata updates,
@@ -100,7 +99,7 @@ gh pr create --title "feat(product-team): add ci webhook feedback automation" --
 |------|--------|-------------|
 | `docs/tasks/0009-ci-webhook-feedback.md` | Created | New task spec for EP04 CI webhook feedback follow-up. |
 | `docs/walkthroughs/0009-ci-webhook-feedback.md` | Created | Execution evidence for task 0009. |
-| `docs/roadmap.md` | Modified | Added task 0009 entry and set to `IN_PROGRESS`. |
+| `docs/roadmap.md` | Modified | Added task 0009 entry and set EP04/task 0009 to `DONE`. |
 | `extensions/product-team/src/github/ci-feedback.ts` | Created | CI webhook automation (idempotency, metadata updates, comments, optional transitions). |
 | `extensions/product-team/src/github/ci-feedback-utils.ts` | Created | CI payload normalization, comment builder, branch candidate resolver, request JSON reader. |
 | `extensions/product-team/src/index.ts` | Modified | CI feedback config parsing and webhook route registration. |
@@ -137,3 +136,4 @@ gh pr create --title "feat(product-team): add ci webhook feedback automation" --
 - [x] Quality gates passed
 - [x] Files changed section complete
 - [x] Follow-ups recorded
+
