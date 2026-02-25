@@ -10,36 +10,45 @@ import {
   createTaskRecord,
   createOrchestratorState,
 } from '../../src/domain/task-record.js';
-import { LeaseConflictError } from '../../src/domain/errors.js';
+import { LeaseCapacityError, LeaseConflictError } from '../../src/domain/errors.js';
 
 const BASE_NOW = '2026-02-24T12:00:00.000Z';
 const TASK_ID = '01LEASE_MGR_00001';
+const TASK_ID_2 = '01LEASE_MGR_00002';
 
 describe('LeaseManager', () => {
   let db: Database.Database;
   let leaseManager: LeaseManager;
   let eventRepo: SqliteEventRepository;
   let currentTime: string;
+  let taskRepo: SqliteTaskRepository;
+  let leaseRepo: SqliteLeaseRepository;
+  let eventLog: EventLog;
+  let now: () => string;
+
+  function seedTask(taskId: string): void {
+    const task = createTaskRecord({ title: 'Test' }, taskId, BASE_NOW);
+    const orchState = createOrchestratorState(taskId, BASE_NOW);
+    taskRepo.create(task, orchState);
+  }
 
   beforeEach(() => {
     db = createTestDatabase();
     currentTime = BASE_NOW;
 
-    const taskRepo = new SqliteTaskRepository(db);
+    taskRepo = new SqliteTaskRepository(db);
     eventRepo = new SqliteEventRepository(db);
-    const leaseRepo = new SqliteLeaseRepository(db);
+    leaseRepo = new SqliteLeaseRepository(db);
 
     let idCounter = 0;
     const generateId = () => `01EVT_LM_${String(++idCounter).padStart(6, '0')}`;
-    const now = () => currentTime;
+    now = () => currentTime;
 
-    const eventLog = new EventLog(eventRepo, generateId, now);
+    eventLog = new EventLog(eventRepo, generateId, now);
     leaseManager = new LeaseManager(leaseRepo, eventLog, now);
 
-    // Create a task
-    const task = createTaskRecord({ title: 'Test' }, TASK_ID, BASE_NOW);
-    const orchState = createOrchestratorState(TASK_ID, BASE_NOW);
-    taskRepo.create(task, orchState);
+    seedTask(TASK_ID);
+    seedTask(TASK_ID_2);
   });
 
   afterEach(() => {
@@ -118,6 +127,32 @@ describe('LeaseManager', () => {
       // Advance time past expiry
       currentTime = '2026-02-24T12:02:00.000Z';
       expect(leaseManager.isHeldBy(TASK_ID, 'agent-pm')).toBe(false);
+    });
+  });
+
+  describe('capacity limits', () => {
+    it('enforces maxLeasesPerAgent', () => {
+      leaseManager = new LeaseManager(leaseRepo, eventLog, now, 300_000, {
+        maxLeasesPerAgent: 1,
+        maxTotalLeases: 10,
+      });
+
+      leaseManager.acquire(TASK_ID, 'agent-pm');
+      expect(() => leaseManager.acquire(TASK_ID_2, 'agent-pm')).toThrow(
+        LeaseCapacityError,
+      );
+    });
+
+    it('enforces maxTotalLeases', () => {
+      leaseManager = new LeaseManager(leaseRepo, eventLog, now, 300_000, {
+        maxLeasesPerAgent: 10,
+        maxTotalLeases: 1,
+      });
+
+      leaseManager.acquire(TASK_ID, 'agent-pm');
+      expect(() => leaseManager.acquire(TASK_ID_2, 'agent-dev')).toThrow(
+        LeaseCapacityError,
+      );
     });
   });
 });

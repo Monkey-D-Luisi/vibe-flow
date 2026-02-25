@@ -1,6 +1,7 @@
 import type { ToolDef, ToolDeps } from './index.js';
 import { TaskGetParams } from '../schemas/task-get.schema.js';
 import { TaskNotFoundError } from '../domain/errors.js';
+import { buildCostSummary } from '../cost/cost-summary.js';
 
 export function taskGetToolDef(deps: ToolDeps): ToolDef {
   return {
@@ -15,8 +16,9 @@ export function taskGetToolDef(deps: ToolDeps): ToolDef {
         throw new TaskNotFoundError(id);
       }
       const orchestratorState = deps.orchestratorRepo.getByTaskId(id);
+      const costSummary = buildCostSummary(deps.eventLog.getHistory(id));
 
-      const result = { task, orchestratorState };
+      const result = { task, orchestratorState, costSummary };
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
         details: result,

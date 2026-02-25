@@ -25,6 +25,7 @@ export function taskTransitionToolDef(deps: ToolDeps): ToolDef {
         eventLog: deps.eventLog,
         now: deps.now,
         guardConfig: deps.transitionGuardConfig,
+        concurrencyConfig: deps.concurrencyConfig,
       });
 
       return {

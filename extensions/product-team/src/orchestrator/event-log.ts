@@ -6,6 +6,27 @@ import type {
 } from '../persistence/event-repository.js';
 import type { TaskStatus } from '../domain/task-status.js';
 
+interface LlmCostPayload extends Record<string, unknown> {
+  readonly model: string;
+  readonly inputTokens: number;
+  readonly outputTokens: number;
+  readonly durationMs: number;
+  readonly stepId?: string;
+  readonly schemaKey?: string;
+}
+
+interface ToolCostPayload extends Record<string, unknown> {
+  readonly toolName: string;
+  readonly durationMs: number;
+  readonly success: boolean;
+}
+
+interface BudgetWarningPayload extends Record<string, unknown> {
+  readonly kind: 'tokens' | 'duration';
+  readonly total: number;
+  readonly limit: number;
+}
+
 /**
  * High-level facade over EventRepository with typed logging methods.
  * All events are append-only.
@@ -169,6 +190,57 @@ export class EventLog {
         correlationId,
         ...payload,
       },
+      createdAt: this.now(),
+    };
+    this.eventRepo.append(event);
+    return event;
+  }
+
+  logLlmCost(
+    taskId: string,
+    agentId: string,
+    payload: LlmCostPayload,
+  ): EventRecord {
+    const event: EventRecord = {
+      id: this.generateId(),
+      taskId,
+      eventType: 'cost.llm',
+      agentId,
+      payload,
+      createdAt: this.now(),
+    };
+    this.eventRepo.append(event);
+    return event;
+  }
+
+  logToolCost(
+    taskId: string,
+    agentId: string | null,
+    payload: ToolCostPayload,
+  ): EventRecord {
+    const event: EventRecord = {
+      id: this.generateId(),
+      taskId,
+      eventType: 'cost.tool',
+      agentId,
+      payload,
+      createdAt: this.now(),
+    };
+    this.eventRepo.append(event);
+    return event;
+  }
+
+  logBudgetWarning(
+    taskId: string,
+    agentId: string | null,
+    payload: BudgetWarningPayload,
+  ): EventRecord {
+    const event: EventRecord = {
+      id: this.generateId(),
+      taskId,
+      eventType: 'cost.warning',
+      agentId,
+      payload,
       createdAt: this.now(),
     };
     this.eventRepo.append(event);

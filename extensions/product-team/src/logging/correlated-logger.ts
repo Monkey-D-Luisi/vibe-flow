@@ -1,3 +1,5 @@
+import { scrubSecrets } from '../security/secret-detector.js';
+
 export interface CorrelatedLogger {
   debug(op: string, context?: Record<string, unknown>): void;
   info(op: string, context?: Record<string, unknown>): void;
@@ -42,7 +44,7 @@ function makePayload(
     op,
     ...(context ?? {}),
   };
-  return JSON.stringify(payload);
+  return JSON.stringify(scrubSecrets(payload));
 }
 
 export function createCorrelatedLogger(

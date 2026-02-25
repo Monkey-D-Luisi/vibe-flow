@@ -112,4 +112,16 @@ describe('task.create tool', () => {
     expect(task.tags).toEqual(['feature']);
     expect(task.metadata).toEqual({ priority: 'high' });
   });
+
+  it('should reject secret-like metadata values', async () => {
+    const tool = taskCreateToolDef(deps);
+    await expect(
+      tool.execute('call-1', {
+        title: 'Secret task',
+        metadata: {
+          apiKey: 'sk-abcdefghijklmnopqrstuvwxyz123456',
+        },
+      }),
+    ).rejects.toThrow(/secret-like values/i);
+  });
 });

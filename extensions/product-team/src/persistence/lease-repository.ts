@@ -90,4 +90,28 @@ export class SqliteLeaseRepository {
 
     return result.changes;
   }
+
+  countByAgent(agentId: string, now: string): number {
+    const row = this.db
+      .prepare(
+        `SELECT COUNT(*) as count
+         FROM leases
+         WHERE agent_id = ? AND expires_at >= ?`,
+      )
+      .get(agentId, now) as { count: number };
+
+    return row.count;
+  }
+
+  countActive(now: string): number {
+    const row = this.db
+      .prepare(
+        `SELECT COUNT(*) as count
+         FROM leases
+         WHERE expires_at >= ?`,
+      )
+      .get(now) as { count: number };
+
+    return row.count;
+  }
 }

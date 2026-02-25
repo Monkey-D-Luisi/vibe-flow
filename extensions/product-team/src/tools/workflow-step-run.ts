@@ -52,6 +52,7 @@ export function workflowStepRunToolDef(deps: ToolDeps): ToolDef {
               eventLog: deps.eventLog,
               now: deps.now,
               guardConfig: deps.transitionGuardConfig,
+              concurrencyConfig: deps.concurrencyConfig,
             },
           );
         }

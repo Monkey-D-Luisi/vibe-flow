@@ -10,6 +10,7 @@ import {
   TaskNotFoundError,
   InvalidTransitionError,
   LeaseConflictError,
+  LeaseCapacityError,
   TransitionGuardError,
 } from '../domain/errors.js';
 import {
@@ -34,7 +35,14 @@ export interface TransitionDeps {
   eventLog: EventLog;
   now: () => string;
   guardConfig: TransitionGuardConfig;
+  concurrencyConfig?: {
+    readonly maxLeasesPerAgent?: number;
+    readonly maxTotalLeases?: number;
+  };
 }
+
+const DEFAULT_MAX_LEASES_PER_AGENT = 3;
+const DEFAULT_MAX_TOTAL_LEASES = 10;
 
 /**
  * Execute a state transition for a task.
@@ -83,6 +91,27 @@ export function transition(
     const lease = leaseRepo.getByTaskId(taskId);
     if (lease && lease.agentId !== agentId) {
       throw new LeaseConflictError(taskId, lease.agentId);
+    }
+    if (!lease) {
+      const maxLeasesPerAgent =
+        deps.concurrencyConfig?.maxLeasesPerAgent ?? DEFAULT_MAX_LEASES_PER_AGENT;
+      const maxTotalLeases =
+        deps.concurrencyConfig?.maxTotalLeases ?? DEFAULT_MAX_TOTAL_LEASES;
+      const activeByAgent = leaseRepo.countByAgent(agentId, currentNow);
+      if (activeByAgent >= maxLeasesPerAgent) {
+        throw new LeaseCapacityError(
+          `Agent ${agentId} has ${activeByAgent}/${maxLeasesPerAgent} active leases. ` +
+          'Release a task before transitioning another task.',
+        );
+      }
+
+      const activeTotal = leaseRepo.countActive(currentNow);
+      if (activeTotal >= maxTotalLeases) {
+        throw new LeaseCapacityError(
+          `Global lease capacity reached (${activeTotal}/${maxTotalLeases}). ` +
+          'Release a task before transitioning another task.',
+        );
+      }
     }
 
     const guardFailures = evaluateTransitionGuards({

@@ -149,4 +149,50 @@ describe('runWorkflowSteps', () => {
       deps,
     )).toThrow(/workflow step "llm-1" failed contract "po_brief": schema exploded/);
   });
+
+  it('logs cost.llm events for llm-task steps', () => {
+    const deps = createDeps(db);
+    seedTask(deps.taskRepo);
+
+    runWorkflowSteps(
+      {
+        taskId: TASK_ID,
+        agentId: 'pm',
+        rev: 0,
+        steps: [
+          {
+            id: 'llm-1',
+            type: 'llm-task',
+            role: 'pm',
+            schemaKey: 'po_brief',
+            output: {
+              title: 'task',
+              acceptance_criteria: ['criterion'],
+              scope: 'minor',
+              done_if: ['done'],
+            },
+            cost: {
+              model: 'mock-model',
+              inputTokens: 10,
+              outputTokens: 5,
+              durationMs: 4,
+            },
+          },
+        ],
+      },
+      deps,
+    );
+
+    const events = deps.eventLog.getHistory(TASK_ID);
+    const costEvent = events.find((event) => event.eventType === 'cost.llm');
+    expect(costEvent).toBeDefined();
+    expect(costEvent?.payload).toMatchObject({
+      model: 'mock-model',
+      inputTokens: 10,
+      outputTokens: 5,
+      durationMs: 4,
+      stepId: 'llm-1',
+      schemaKey: 'po_brief',
+    });
+  });
 });

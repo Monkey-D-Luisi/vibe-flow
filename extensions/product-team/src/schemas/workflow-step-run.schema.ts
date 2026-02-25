@@ -18,12 +18,20 @@ const RoleUnion = Type.Union([
   Type.Literal('reviewer'),
 ]);
 
+const LlmStepCostSchema = Type.Object({
+  model: Type.String({ minLength: 1 }),
+  inputTokens: Type.Integer({ minimum: 0 }),
+  outputTokens: Type.Integer({ minimum: 0 }),
+  durationMs: Type.Integer({ minimum: 0 }),
+});
+
 const LlmTaskStepSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   type: Type.Literal('llm-task'),
   role: RoleUnion,
   schemaKey: RoleSchemaKeyUnion,
   output: Type.Record(Type.String(), Type.Unknown()),
+  cost: Type.Optional(LlmStepCostSchema),
 });
 
 const ShellStepSchema = Type.Object({

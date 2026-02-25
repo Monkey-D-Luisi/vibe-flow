@@ -1,6 +1,7 @@
 import type { ToolDef, ToolDeps } from './index.js';
 import { TaskUpdateParams } from '../schemas/task-update.schema.js';
-import { TaskNotFoundError } from '../domain/errors.js';
+import { TaskNotFoundError, ValidationError } from '../domain/errors.js';
+import { validateMetadataNoSecrets } from '../security/secret-detector.js';
 
 export function taskUpdateToolDef(deps: ToolDeps): ToolDef {
   return {
@@ -30,6 +31,15 @@ export function taskUpdateToolDef(deps: ToolDeps): ToolDef {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
           details: result,
         };
+      }
+
+      if (fields.metadata !== undefined) {
+        const secretPaths = validateMetadataNoSecrets(fields.metadata);
+        if (secretPaths.length > 0) {
+          throw new ValidationError(
+            `Metadata contains secret-like values at: ${secretPaths.join(', ')}`,
+          );
+        }
       }
 
       const now = deps.now();

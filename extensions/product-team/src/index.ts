@@ -16,6 +16,7 @@ import { SqliteEventRepository } from './persistence/event-repository.js';
 import { SqliteLeaseRepository } from './persistence/lease-repository.js';
 import { SqliteRequestRepository } from './persistence/request-repository.js';
 import { EventLog } from './orchestrator/event-log.js';
+import { LeaseManager } from './orchestrator/lease-manager.js';
 import { resolveTransitionGuardConfig } from './orchestrator/transition-guards.js';
 import { getAllToolDefs } from './tools/index.js';
 import { createValidator } from './schemas/validator.js';
@@ -31,6 +32,11 @@ interface GithubConfig {
   readonly repo: string;
   readonly defaultBase: string;
   readonly timeoutMs: number;
+}
+
+interface ConcurrencyConfig {
+  readonly maxLeasesPerAgent: number;
+  readonly maxTotalLeases: number;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -55,6 +61,17 @@ function resolveGithubConfig(pluginConfig: Record<string, unknown> | undefined):
     repo: asNonEmptyString(github?.repo) ?? 'local-repo',
     defaultBase: asNonEmptyString(github?.defaultBase) ?? 'main',
     timeoutMs: asPositiveInteger(github?.timeoutMs) ?? 30_000,
+  };
+}
+
+function resolveConcurrencyConfig(
+  pluginConfig: Record<string, unknown> | undefined,
+): ConcurrencyConfig {
+  const workflow = asRecord(pluginConfig?.workflow);
+  const concurrency = asRecord(workflow?.concurrency) ?? asRecord(pluginConfig?.concurrency);
+  return {
+    maxLeasesPerAgent: asPositiveInteger(concurrency?.maxLeasesPerAgent) ?? 3,
+    maxTotalLeases: asPositiveInteger(concurrency?.maxTotalLeases) ?? 10,
   };
 }
 
@@ -108,7 +125,9 @@ export function register(api: OpenClawPluginApi): void {
   const now = () => new Date().toISOString();
   const validate = createValidator();
   const transitionGuardConfig = resolveTransitionGuardConfig(pluginConfig?.workflow);
+  const concurrencyConfig = resolveConcurrencyConfig(pluginConfig);
   const eventLog = new EventLog(eventRepo, generateId, now);
+  const leaseManager = new LeaseManager(leaseRepo, eventLog, now, undefined, concurrencyConfig);
   const githubConfig = resolveGithubConfig(pluginConfig);
   const ghClient = new GhClient({
     owner: githubConfig.owner,
@@ -150,6 +169,8 @@ export function register(api: OpenClawPluginApi): void {
     now,
     validate,
     transitionGuardConfig,
+    concurrencyConfig,
+    leaseManager,
     logger: api.logger,
     workspaceDir,
     vcs: {
