@@ -1,12 +1,12 @@
 # CLAUDE.md - Agent Instructions for OpenClaw Extensions
 
-## ⚡ Autonomous execution — read this first
+## Autonomous execution -- read this first
 
-**Never create blocking "continue" checkpoints.** Execute every workflow atomically from start to PR.
+Never create blocking "continue" checkpoints. Execute every workflow atomically from start to PR.
 - No mid-task pauses. No "should I proceed?" for steps already in the spec.
-- If a tool/command fails: retry once, skip, document in walkthrough — never stop.
+- If a tool/command fails: retry once, skip, document in walkthrough -- never stop.
 - Read only local files. Never fetch external repos or URLs during execution.
-- **Genuine ambiguity?** Use the questionnaire tool (free, no requests consumed) — ask BEFORE starting, not mid-task.
+- Genuine ambiguity: use the questionnaire tool before implementation, not mid-task.
 
 ## Priority
 1. `.agent.md` (governance)
@@ -16,9 +16,16 @@
 ## Project Overview
 
 Monorepo of extensions, skills, and quality tooling for [OpenClaw](https://openclaw.ai):
-- `extensions/quality-gate/` - Quality gate extension (test runner, coverage, lint, complexity, gate enforcement)
+- `extensions/product-team/` - Primary product-team plugin (task engine, workflow, quality tools, VCS automation, CI feedback hooks)
+- `extensions/quality-gate/` - Standalone quality gate engine/CLI for local and CI quality runs
 - `skills/adr/` - ADR management skill
+- `skills/architecture-design/` - Architecture design workflow skill
+- `skills/code-review/` - Code review workflow skill
+- `skills/github-automation/` - GitHub automation workflow skill
 - `skills/patterns/` - Architecture patterns skill
+- `skills/qa-testing/` - QA/testing workflow skill
+- `skills/requirements-grooming/` - Requirements grooming workflow skill
+- `skills/tdd-implementation/` - TDD implementation workflow skill
 - `packages/schemas/` - Shared JSON Schemas for quality tools
 
 ## Commands
@@ -28,6 +35,8 @@ Monorepo of extensions, skills, and quality tooling for [OpenClaw](https://openc
 | `next task` | Read `.agent/rules/autonomous-workflow.md`, execute |
 | `code review` | Read `.agent/rules/code-review-workflow.md`, execute |
 | `fast track: <X>` | Read `.agent/rules/fast-track-workflow.md`, execute |
+| `full audit` | Read `.agent/rules/full-audit-workflow.md`, execute |
+| `process findings` | Read `.agent/rules/findings-processing-workflow.md`, execute |
 | `pr` | Read `.agent/rules/pr-workflow.md`, execute |
 
 ## Key Commands
@@ -55,13 +64,14 @@ pnpm q:complexity
 
 ## Conventions
 
-- **Commits**: `feat|fix|test|chore|docs(scope): message`
-- **Branches**: `feat/<description>`, `fix/<description>`
-- **Naming**: camelCase for variables/functions, PascalCase for types/interfaces
-- **Imports**: ESM with `.js` extensions
-- **Testing**: Vitest, strict TypeScript, no `any`
+- Commits: `feat|fix|test|chore|docs(scope): message`
+- Branches: `feat/<description>`, `fix/<description>`
+- Naming: camelCase for variables/functions, PascalCase for types/interfaces
+- Imports: ESM with `.js` extensions
+- Testing: Vitest, strict TypeScript, no `any`
 
 ## Rules (always)
+
 - English only in repo
 - Every task needs matching walkthrough (same filename)
 - No secrets in repo

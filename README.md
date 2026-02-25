@@ -1,35 +1,30 @@
 # OpenClaw Extensions
 
-Extensions, skills, and quality tooling for [OpenClaw](https://openclaw.ai) -- a self-hosted personal AI assistant gateway.
+Extensions, skills, and quality tooling for [OpenClaw](https://openclaw.ai).
 
 ## Overview
 
-This monorepo contains reusable components for OpenClaw:
+This monorepo contains:
 
-- **`extensions/quality-gate/`** -- Quality gate engine: parsers (ESLint, Istanbul, Vitest, Ruff), cyclomatic complexity analysis, gate policy evaluation, and CLI tool.
-- **`extensions/product-team/`** -- Product-team workflow plugin (foundation).
-- **`skills/`** -- OpenClaw skill definitions for ADR management, architecture patterns, and more.
-- **`packages/schemas/`** -- Shared JSON Schemas for quality tool I/O.
+- **`extensions/product-team/`**: primary OpenClaw plugin with task lifecycle, workflow orchestration, quality tooling, and VCS automation.
+- **`extensions/quality-gate/`**: standalone quality engine + CLI (`pnpm q:gate`, `pnpm q:*`) used for local/CI quality runs.
+- **`packages/schemas/`**: shared JSON Schemas for quality tool input/output.
+- **`skills/`**: role-focused skills used by OpenClaw agents.
 
 ## Architecture Overview
 
 ```mermaid
 flowchart LR
-  OC[OpenClaw Gateway]
-  PT[product-team plugin]
-  DB[(SQLite task DB)]
-  GH[GitHub via gh CLI]
-  AG[Role Agents]
-
-  AG --> OC
-  OC --> PT
-  PT --> DB
-  PT --> GH
+  AG[Role Agents] --> OC[OpenClaw Gateway]
+  OC --> PT[product-team plugin]
+  PT --> DB[(SQLite task DB)]
+  PT --> GH[GitHub via gh CLI]
+  CI[Local/CI pipeline] --> QG[quality-gate CLI]
 ```
 
 ## Prerequisites
 
-- [OpenClaw](https://openclaw.ai) installed
+- [OpenClaw](https://openclaw.ai)
 - Node.js 22+
 - pnpm
 
@@ -45,57 +40,66 @@ pnpm test
 ## Development
 
 ```bash
-pnpm test          # Run all tests
-pnpm lint          # Lint all packages
-pnpm typecheck     # Type-check all packages
-pnpm build         # Build all packages
+pnpm test
+pnpm lint
+pnpm typecheck
+pnpm build
 ```
 
 ## Project Structure
 
 ```
 vibe-flow/
-  .agent.md                    # Agent governance (single source of truth)
-  .agent/rules/                # Workflow and standards definitions
-  .agent/templates/            # Task, walkthrough, ADR, PR review templates
-  CLAUDE.md                    # Claude Code instructions
-  AGENTS.md                    # Generic agent instructions
-  .claude/commands/            # Claude command shortcuts mapped to .agent rules
-  .codex/commands/             # Codex command shortcuts mapped to .agent rules
-  openclaw.json                # OpenClaw configuration
+  .agent.md
+  .agent/rules/
+  .agent/templates/
+  AGENTS.md
+  CLAUDE.md
+  openclaw.json
   extensions/
-    quality-gate/              # Quality gate engine
+    product-team/
       src/
-        complexity/            # Cyclomatic complexity analysis
-        exec/                  # Process execution
-        fs/                    # File system utilities
-        gate/                  # Gate policy and evaluation
-        parsers/               # Output parsers (ESLint, Istanbul, Vitest, Ruff)
-        tools/                 # Tool implementations
-        utils/                 # Schema loading
-      cli/                     # CLI entry point (qcli)
-      test/                    # Vitest tests
-    product-team/              # Product-team workflow plugin
-  skills/
-    adr/                       # ADR management skill
-    patterns/                  # Architecture patterns skill
+        domain/
+        orchestrator/
+        persistence/
+        quality/
+        github/
+        tools/
+      test/
+    quality-gate/
+      src/
+      cli/
+      test/
   packages/
-    schemas/                   # Shared JSON Schemas
+    schemas/
+  skills/
+    adr/
+    architecture-design/
+    code-review/
+    github-automation/
+    patterns/
+    qa-testing/
+    requirements-grooming/
+    tdd-implementation/
   docs/
-    roadmap.md                 # Development roadmap
-    backlog/                   # Epic specifications
-    tasks/                     # Task specifications
-    walkthroughs/              # Implementation journals
-    runbook.md                 # Operator runbook
-    api-reference.md           # Tool API reference
-    allowlist-rationale.md     # Tool allow-list justifications
-    adr/                       # Architecture Decision Records
+    roadmap.md
+    runbook.md
+    api-reference.md
+    allowlist-rationale.md
+    extension-integration.md
+    error-recovery.md
+    transition-guard-evidence.md
+    adr/
+    audits/
+    backlog/
+    tasks/
+    walkthroughs/
 ```
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, coding standards, and PR process.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT -- see [LICENSE](LICENSE) for details.
+MIT. See [LICENSE](LICENSE).

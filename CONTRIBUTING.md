@@ -94,6 +94,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ### Scopes
 
+- `product-team` -- Product-team plugin
 - `quality-gate` -- Quality gate extension
 - `schemas` -- JSON Schemas
 - `skills` -- Skill definitions
@@ -103,6 +104,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 ### Examples
 
 ```
+feat(product-team): add task transition guard diagnostics
 feat(quality-gate): add ruff parser support
 fix(quality-gate): correct coverage ratio clamping
 docs: update README with CLI usage
@@ -121,7 +123,17 @@ test(quality-gate): add integration tests for gate policy
 ## Project Structure
 
 ```
-extensions/quality-gate/       # Quality gate extension
+extensions/product-team/       # Product-team plugin
+  src/
+    domain/                    # Task and workflow domain model
+    orchestrator/              # State transitions, guards, lifecycle
+    persistence/               # SQLite repositories and migrations
+    quality/                   # Quality parsers, policies, complexity logic
+    github/                    # gh CLI integration and idempotency
+    tools/                     # Registered OpenClaw tools
+  test/                        # Vitest suites
+
+extensions/quality-gate/       # Standalone quality-gate CLI/engine
   src/
     complexity/                # Cyclomatic complexity analysis
     exec/                      # Process execution
@@ -135,15 +147,28 @@ extensions/quality-gate/       # Quality gate extension
 
 skills/                        # OpenClaw skills
   adr/                         # ADR management
+  architecture-design/         # Architecture design workflow
+  code-review/                 # Code review workflow
+  github-automation/           # GitHub automation workflow
   patterns/                    # Architecture patterns
+  qa-testing/                  # QA/testing workflow
+  requirements-grooming/       # Requirements workflow
+  tdd-implementation/          # TDD workflow
 
 packages/
   schemas/                     # Shared JSON Schemas
 
 docs/
+  roadmap.md                   # Development roadmap
+  runbook.md                   # Operator runbook
+  api-reference.md             # Tool API reference
+  allowlist-rationale.md       # Agent-tool allow-list justifications
+  extension-integration.md     # Extension boundaries and integration model
+  error-recovery.md            # Failure and recovery patterns
+  transition-guard-evidence.md # Guard evidence requirements
   tasks/                       # Task specifications
   walkthroughs/                # Implementation journals
   backlog/                     # Epic/backlog specs
   adr/                         # Architecture decisions
-  patterns/                    # Pattern catalog
+  audits/                      # Security/architecture audit reports
 ```
