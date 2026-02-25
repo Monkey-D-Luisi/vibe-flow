@@ -35,7 +35,7 @@ function decodeSignature(signatureHeader: string): Buffer | null {
 }
 
 function computeDigest(secret: string, payload: Buffer): Buffer {
-  return Buffer.from(createHmac('sha256', secret).update(payload).digest('hex'), 'hex');
+  return createHmac('sha256', secret).update(payload).digest();
 }
 
 export function assertValidGithubWebhookSignature(

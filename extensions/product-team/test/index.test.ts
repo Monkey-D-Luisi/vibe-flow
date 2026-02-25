@@ -88,6 +88,42 @@ function buildGithubSignature(secret: string, payload: string): string {
   return `sha256=${digest}`;
 }
 
+type RegisteredTool = {
+  name: string;
+  execute: (
+    toolCallId: string,
+    params: unknown,
+  ) => Promise<{ details: unknown }>;
+};
+
+function getRegisteredTool(api: OpenClawPluginApi, name: string): RegisteredTool {
+  const calls = (api.registerTool as ReturnType<typeof vi.fn>).mock.calls;
+  const tool = calls
+    .map((call: unknown[]) => call[0] as RegisteredTool)
+    .find((entry) => entry.name === name);
+  if (!tool) {
+    throw new Error(`Tool '${name}' is not registered`);
+  }
+  return tool;
+}
+
+async function createTask(api: OpenClawPluginApi, title: string): Promise<string> {
+  const createTool = getRegisteredTool(api, 'task.create');
+  const result = await createTool.execute('create-task', { title });
+  const details = result.details as { task: { id: string } };
+  return details.task.id;
+}
+
+async function getTaskMetadata(
+  api: OpenClawPluginApi,
+  taskId: string,
+): Promise<Record<string, unknown>> {
+  const getTool = getRegisteredTool(api, 'task.get');
+  const result = await getTool.execute('get-task', { id: taskId });
+  const details = result.details as { task: { metadata: Record<string, unknown> } };
+  return details.task.metadata;
+}
+
 describe('product-team plugin', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -363,7 +399,7 @@ describe('product-team plugin', () => {
     expect(res.end).toHaveBeenCalledWith(expect.stringContaining('"invalid_x_hub_signature_256"'));
   });
 
-  it('accepts valid webhook signature before CI processing', async () => {
+  it('accepts valid webhook signature and applies CI metadata side effects', async () => {
     const secret = 'test-secret';
     const api = createMockApi({
       pluginConfig: {
@@ -374,11 +410,13 @@ describe('product-team plugin', () => {
           ciFeedback: {
             enabled: true,
             webhookSecret: secret,
+            commentOnPr: false,
           },
         },
       },
     });
     register(api);
+    const taskId = await createTask(api, 'CI signature happy path');
 
     const route = getCiRoute(api);
     expect(route).not.toBeNull();
@@ -391,7 +429,7 @@ describe('product-team plugin', () => {
         status: 'completed',
         conclusion: 'success',
         pull_requests: [{ number: 42 }],
-        check_suite: { head_branch: 'task/UNKNOWN-100-ci' },
+        check_suite: { head_branch: `task/${taskId}-ci` },
       },
     });
     const req = createWebhookRequest({
@@ -405,8 +443,126 @@ describe('product-team plugin', () => {
 
     await route!.handler(req as unknown, res as unknown);
 
-    expect(res.statusCode).toBe(202);
-    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('"ok":true'));
+    expect(res.statusCode).toBe(200);
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('"handled":true'));
+
+    const metadata = await getTaskMetadata(api, taskId);
+    expect(metadata).toHaveProperty('ci');
+  });
+
+  it('does not apply CI metadata side effects when webhook signature is invalid', async () => {
+    const secret = 'test-secret';
+    const api = createMockApi({
+      pluginConfig: {
+        dbPath: ':memory:',
+        github: {
+          owner: 'acme',
+          repo: 'vibe-flow',
+          ciFeedback: {
+            enabled: true,
+            webhookSecret: secret,
+            commentOnPr: false,
+          },
+        },
+      },
+    });
+    register(api);
+    const taskId = await createTask(api, 'CI invalid signature side effects');
+
+    const route = getCiRoute(api);
+    expect(route).not.toBeNull();
+
+    const payload = JSON.stringify({
+      action: 'completed',
+      repository: { full_name: 'acme/vibe-flow' },
+      check_run: {
+        name: 'CI / test',
+        status: 'completed',
+        conclusion: 'success',
+        pull_requests: [{ number: 52 }],
+        check_suite: { head_branch: `task/${taskId}-ci` },
+      },
+    });
+
+    const invalidReq = createWebhookRequest({
+      headers: {
+        'x-github-event': 'check_run',
+        'x-hub-signature-256': 'sha256=deadbeef',
+      },
+      chunks: [payload],
+    });
+    const invalidRes = createWebhookResponse();
+
+    await route!.handler(invalidReq as unknown, invalidRes as unknown);
+
+    expect(invalidRes.statusCode).toBe(401);
+    expect(invalidRes.end).toHaveBeenCalledWith(
+      expect.stringContaining('"invalid_x_hub_signature_256"'),
+    );
+    expect(await getTaskMetadata(api, taskId)).toEqual({});
+
+    const validReq = createWebhookRequest({
+      headers: {
+        'x-github-event': 'check_run',
+        'x-hub-signature-256': buildGithubSignature(secret, payload),
+      },
+      chunks: [payload],
+    });
+    const validRes = createWebhookResponse();
+
+    await route!.handler(validReq as unknown, validRes as unknown);
+
+    expect(validRes.statusCode).toBe(200);
+    expect(validRes.end).toHaveBeenCalledWith(expect.stringContaining('"handled":true'));
+    expect(await getTaskMetadata(api, taskId)).toHaveProperty('ci');
+  });
+
+  it('uses webhook secret verbatim without trimming whitespace', async () => {
+    const secret = '  test-secret-with-spaces  ';
+    const api = createMockApi({
+      pluginConfig: {
+        dbPath: ':memory:',
+        github: {
+          owner: 'acme',
+          repo: 'vibe-flow',
+          ciFeedback: {
+            enabled: true,
+            webhookSecret: secret,
+            commentOnPr: false,
+          },
+        },
+      },
+    });
+    register(api);
+    const taskId = await createTask(api, 'CI whitespace secret');
+
+    const route = getCiRoute(api);
+    expect(route).not.toBeNull();
+
+    const payload = JSON.stringify({
+      action: 'completed',
+      repository: { full_name: 'acme/vibe-flow' },
+      check_run: {
+        name: 'CI / coverage',
+        status: 'completed',
+        conclusion: 'success',
+        pull_requests: [{ number: 63 }],
+        check_suite: { head_branch: `task/${taskId}-ci` },
+      },
+    });
+    const req = createWebhookRequest({
+      headers: {
+        'x-github-event': 'check_run',
+        'x-hub-signature-256': buildGithubSignature(secret, payload),
+      },
+      chunks: [payload],
+    });
+    const res = createWebhookResponse();
+
+    await route!.handler(req as unknown, res as unknown);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('"handled":true'));
   });
 
   it('throws when CI feedback is enabled without webhook secret', () => {
