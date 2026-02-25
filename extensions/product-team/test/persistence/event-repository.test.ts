@@ -113,4 +113,72 @@ describe('SqliteEventRepository', () => {
       expect(repo['remove']).toBeUndefined();
     });
   });
+
+  describe('queryEvents', () => {
+    it('should return paginated events with aggregates', () => {
+      eventRepo.append({
+        id: '01EVT_Q_0001',
+        taskId: TASK_ID,
+        eventType: 'task.created',
+        agentId: 'pm',
+        payload: {},
+        createdAt: '2026-02-24T12:00:00.000Z',
+      });
+      eventRepo.append({
+        id: '01EVT_Q_0002',
+        taskId: TASK_ID,
+        eventType: 'quality.lint',
+        agentId: 'dev',
+        payload: { errors: 0 },
+        createdAt: '2026-02-24T12:02:00.000Z',
+      });
+      eventRepo.append({
+        id: '01EVT_Q_0003',
+        taskId: TASK_ID,
+        eventType: 'task.transition',
+        agentId: 'dev',
+        payload: { from: 'qa', to: 'done' },
+        createdAt: '2026-02-24T12:10:00.000Z',
+      });
+
+      const result = eventRepo.queryEvents({
+        taskId: TASK_ID,
+        limit: 2,
+        offset: 0,
+      });
+      expect(result.events).toHaveLength(2);
+      expect(result.total).toBe(3);
+      expect(result.aggregates.byAgent.dev).toBe(2);
+      expect(result.aggregates.byEventType['task.transition']).toBe(1);
+      expect(result.aggregates.avgCycleTimeMs).toBeGreaterThan(0);
+    });
+
+    it('should filter events by event type', () => {
+      eventRepo.append({
+        id: '01EVT_F_0001',
+        taskId: TASK_ID,
+        eventType: 'task.created',
+        agentId: 'pm',
+        payload: {},
+        createdAt: '2026-02-24T12:00:00.000Z',
+      });
+      eventRepo.append({
+        id: '01EVT_F_0002',
+        taskId: TASK_ID,
+        eventType: 'quality.coverage',
+        agentId: 'dev',
+        payload: {},
+        createdAt: '2026-02-24T12:01:00.000Z',
+      });
+
+      const result = eventRepo.queryEvents({
+        taskId: TASK_ID,
+        eventType: 'quality.coverage',
+        limit: 10,
+        offset: 0,
+      });
+      expect(result.total).toBe(1);
+      expect(result.events[0].eventType).toBe('quality.coverage');
+    });
+  });
 });

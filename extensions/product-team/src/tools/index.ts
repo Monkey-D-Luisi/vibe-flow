@@ -11,6 +11,13 @@ import type { BranchService } from '../github/branch-service.js';
 import type { PrService } from '../github/pr-service.js';
 import type { LabelService } from '../github/label-service.js';
 
+interface ToolLogger {
+  readonly info: (message: string) => void;
+  readonly warn: (message: string) => void;
+  readonly error: (message: string) => void;
+  readonly debug?: (message: string) => void;
+}
+
 export interface ToolDeps {
   db: Database.Database;
   taskRepo: SqliteTaskRepository;
@@ -21,6 +28,8 @@ export interface ToolDeps {
   now: () => string;
   validate: ValidateFn;
   transitionGuardConfig: TransitionGuardConfig;
+  logger?: ToolLogger;
+  workspaceDir?: string;
   vcs?: {
     requestRepo: SqliteRequestRepository;
     branchService: BranchService;
@@ -47,6 +56,12 @@ import { taskUpdateToolDef } from './task-update.js';
 import { taskTransitionToolDef } from './task-transition.js';
 import { workflowStepRunToolDef } from './workflow-step-run.js';
 import { workflowStateGetToolDef } from './workflow-state-get.js';
+import { workflowEventsQueryToolDef } from './workflow-events-query.js';
+import { qualityTestsToolDef } from './quality-tests.js';
+import { qualityCoverageToolDef } from './quality-coverage.js';
+import { qualityLintToolDef } from './quality-lint.js';
+import { qualityComplexityToolDef } from './quality-complexity.js';
+import { qualityGateToolDef } from './quality-gate.js';
 import { vcsBranchCreateToolDef } from './vcs-branch-create.js';
 import { vcsPrCreateToolDef } from './vcs-pr-create.js';
 import { vcsPrUpdateToolDef } from './vcs-pr-update.js';
@@ -61,6 +76,12 @@ export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
     taskTransitionToolDef(deps),
     workflowStepRunToolDef(deps),
     workflowStateGetToolDef(deps),
+    workflowEventsQueryToolDef(deps),
+    qualityTestsToolDef(deps),
+    qualityCoverageToolDef(deps),
+    qualityLintToolDef(deps),
+    qualityComplexityToolDef(deps),
+    qualityGateToolDef(deps),
     vcsBranchCreateToolDef(deps),
     vcsPrCreateToolDef(deps),
     vcsPrUpdateToolDef(deps),
