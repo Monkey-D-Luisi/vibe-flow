@@ -45,23 +45,19 @@ jobs:
             function mapPullRequestStatus(payload) {
               const pr = payload.pull_request
               if (!pr) return null
-              if (pr.merged || pr.state === "closed" || action === "closed") return "Done"
+              if (pr.merged) return "Done"
+              if (pr.state === "closed" || action === "closed") return "In Progress"
+              if (action === "converted_to_draft") return "In Progress"
               if (
                 action === "opened" ||
                 action === "reopened" ||
                 action === "ready_for_review" ||
                 action === "review_requested" ||
-                action === "review_request_removed" ||
-                action === "converted_to_draft"
+                action === "review_request_removed"
               ) {
                 return "In Review"
               }
               return null
-            }
-
-            function mapStatus(payload) {
-              if (context.eventName === "issues") return mapIssueStatus(payload)
-              return mapPullRequestStatus(payload)
             }
 
             function getEpicCode(labels) {
@@ -79,6 +75,76 @@ jobs:
                   ${mutationName}(input:{projectId:$projectId, itemId:$itemId}){ clientMutationId }
                 }`,
                 { projectId, itemId }
+              )
+            }
+
+            async function getProjectItemIdByContentId(projectId, contentId) {
+              let cursor = null
+              while (true) {
+                const res = await github.graphql(
+                  `
+                  query($projectId:ID!, $cursor:String){
+                    node(id:$projectId){
+                      ... on ProjectV2{
+                        items(first:100, after:$cursor, includeArchived:true){
+                          nodes{
+                            id
+                            content{
+                              __typename
+                              ... on Issue { id }
+                              ... on PullRequest { id }
+                              ... on DraftIssue { id }
+                            }
+                          }
+                          pageInfo{ hasNextPage endCursor }
+                        }
+                      }
+                    }
+                  }`,
+                  { projectId, cursor }
+                )
+                const items = res?.node?.items?.nodes ?? []
+                const found = items.find(item => item?.content?.id === contentId)
+                if (found?.id) return found.id
+
+                const pageInfo = res?.node?.items?.pageInfo
+                if (!pageInfo?.hasNextPage) break
+                cursor = pageInfo.endCursor
+              }
+              return null
+            }
+
+            async function ensureProjectItem(projectId, contentId) {
+              const existingItemId = await getProjectItemIdByContentId(projectId, contentId)
+              if (existingItemId) return existingItemId
+
+              const addRes = await github.graphql(
+                `
+                mutation($projectId:ID!,$itemId:ID!){
+                  addProjectV2ItemById(input:{projectId:$projectId, contentId:$itemId}){ item { id } }
+                }`,
+                { projectId, itemId: contentId }
+              )
+              return addRes?.addProjectV2ItemById?.item?.id ?? null
+            }
+
+            async function updateProjectItemStatus(projectId, itemId, statusField, statusValue) {
+              if (!statusValue) return
+              const option = statusField.options?.find(o => o.name === statusValue)
+              if (!option) {
+                core.notice(`Status option '${statusValue}' not found, skipping sync`)
+                return
+              }
+
+              await github.graphql(
+                `
+                mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!){
+                  updateProjectV2ItemFieldValue(input:{
+                    projectId:$projectId, itemId:$itemId,
+                    fieldId:$fieldId, value:{singleSelectOptionId:$optionId}
+                  }) { clientMutationId }
+                }`,
+                { projectId, itemId, fieldId: statusField.id, optionId: option.id }
               )
             }
 
@@ -148,6 +214,113 @@ jobs:
               core.notice(`Linked issue #${issue.number} as sub-issue of #${epicIssue.number}`)
             }
 
+            function escapeRegex(value) {
+              return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+            }
+
+            function extractIssueNumbersFromText(text) {
+              if (!text || typeof text !== "string") return []
+              const issueNumbers = new Set()
+              const ownerRepoPattern = `${escapeRegex(owner)}\\/${escapeRegex(repo)}`
+              const referenceRegex = new RegExp(
+                `(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?|related to)\\s+(?:${ownerRepoPattern}#|#)(\\d+)`,
+                "gi"
+              )
+              const plainHashRegex = new RegExp(`(?:^|\\s)(?:${ownerRepoPattern})?#(\\d+)\\b`, "gi")
+
+              for (const regex of [referenceRegex, plainHashRegex]) {
+                let match
+                while ((match = regex.exec(text)) !== null) {
+                  const number = Number(match[1])
+                  if (Number.isInteger(number) && number > 0) issueNumbers.add(number)
+                }
+              }
+              return [...issueNumbers]
+            }
+
+            async function getLinkedIssueNumbersFromPullRequest(pr) {
+              const issueNumbers = new Set(extractIssueNumbersFromText(pr?.body ?? ""))
+
+              try {
+                const linkedRes = await github.graphql(
+                  `
+                  query($owner:String!, $repo:String!, $number:Int!){
+                    repository(owner:$owner, name:$repo){
+                      pullRequest(number:$number){
+                        closingIssuesReferences(first:50){
+                          nodes{ number }
+                        }
+                      }
+                    }
+                  }`,
+                  { owner, repo, number: pr.number }
+                )
+                const nodes = linkedRes?.repository?.pullRequest?.closingIssuesReferences?.nodes ?? []
+                for (const node of nodes) {
+                  const number = Number(node?.number)
+                  if (Number.isInteger(number) && number > 0) issueNumbers.add(number)
+                }
+              } catch (error) {
+                core.notice(`Unable to resolve closing issues for PR #${pr.number}: ${String(error)}`)
+              }
+
+              issueNumbers.delete(pr.number)
+              return [...issueNumbers]
+            }
+
+            async function syncIssueItem(issueNumber, statusHint, project, statusField) {
+              let issueData
+              try {
+                const issueRes = await github.rest.issues.get({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                })
+                issueData = issueRes.data
+              } catch (error) {
+                core.notice(`Unable to fetch issue #${issueNumber}: ${String(error)}`)
+                return
+              }
+
+              if (issueData.pull_request) {
+                core.notice(`Skipping #${issueNumber} because it is a pull request`)
+                return
+              }
+              if (!issueData.node_id) {
+                core.notice(`Issue #${issueNumber} has no node id, skipping sync`)
+                return
+              }
+
+              const itemId = await ensureProjectItem(project.id, issueData.node_id)
+              if (!itemId) {
+                core.notice(`Unable to ensure project item for issue #${issueNumber}`)
+                return
+              }
+
+              const labels = normalizeLabelNames(issueData.labels)
+              const isDeprecated = labels.includes("deprecated")
+              if (isDeprecated) {
+                await setArchiveState(project.id, itemId, true)
+                core.notice(`Issue #${issueNumber} archived because it is labeled deprecated`)
+                return
+              }
+
+              await setArchiveState(project.id, itemId, false)
+
+              let statusValue = statusHint
+              if (issueData.state === "closed") statusValue = "Done"
+              await updateProjectItemStatus(project.id, itemId, statusField, statusValue)
+              await linkIssueToEpicParent(issueNumber, labels)
+            }
+
+            async function archivePullRequestItemIfPresent(projectId, pullRequestNodeId, pullRequestNumber) {
+              if (!pullRequestNodeId) return
+              const prItemId = await getProjectItemIdByContentId(projectId, pullRequestNodeId)
+              if (!prItemId) return
+              await setArchiveState(projectId, prItemId, true)
+              core.notice(`Archived PR #${pullRequestNumber} item to keep board issue-centric`)
+            }
+
             async function getProject(login, number) {
               const fieldSelection = `
                 fields(first:50){
@@ -183,51 +356,30 @@ jobs:
             if (!statusField) { core.notice("Status field not found, skipping sync"); return }
             if (!statusField.options?.length) { core.notice("Status field has no options, skipping sync"); return }
 
-            const nodeId = context.eventName === "issues"
-              ? context.payload.issue.node_id
-              : context.payload.pull_request.node_id
-            if (!nodeId) { core.notice("Content node id not found, skipping sync"); return }
-
-            const addRes = await github.graphql(`
-              mutation($projectId:ID!,$itemId:ID!){
-                addProjectV2ItemById(input:{projectId:$projectId, contentId:$itemId}){ item { id } }
-              }`, { projectId: project.id, itemId: nodeId }
-            )
-            const itemId = addRes.addProjectV2ItemById.item.id
-
-            const labels = context.eventName === "issues"
-              ? normalizeLabelNames(context.payload.issue.labels)
-              : normalizeLabelNames(context.payload.pull_request.labels)
-            const isDeprecated = labels.includes("deprecated")
-
-            if (isDeprecated) {
-              await setArchiveState(project.id, itemId, true)
-              core.notice("Item archived because it is labeled deprecated")
-              return
-            }
-
-            await setArchiveState(project.id, itemId, false)
-
-            const statusValue = mapStatus(context.payload)
-            if (!statusValue) {
-              if (context.eventName === "issues") {
-                await linkIssueToEpicParent(context.payload.issue.number, labels)
-              }
-              return
-            }
-
-            const option = statusField.options?.find(o => o.name === statusValue)
-            if (!option) { core.notice(`Status option '${statusValue}' not found, skipping sync`); return }
-
-            await github.graphql(`
-              mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!){
-                updateProjectV2ItemFieldValue(input:{
-                  projectId:$projectId, itemId:$itemId,
-                  fieldId:$fieldId, value:{singleSelectOptionId:$optionId}
-                }) { clientMutationId }
-              }`, { projectId: project.id, itemId, fieldId: statusField.id, optionId: option.id }
-            )
-
             if (context.eventName === "issues") {
-              await linkIssueToEpicParent(context.payload.issue.number, labels)
+              const issueNumber = context.payload?.issue?.number
+              if (!issueNumber) {
+                core.notice("Issue number not found, skipping sync")
+                return
+              }
+              await syncIssueItem(issueNumber, mapIssueStatus(context.payload), project, statusField)
+              return
             }
+
+            const pr = context.payload?.pull_request
+            if (!pr) {
+              core.notice("Pull request payload not found, skipping sync")
+              return
+            }
+
+            const prStatus = mapPullRequestStatus(context.payload)
+            const linkedIssueNumbers = await getLinkedIssueNumbersFromPullRequest(pr)
+            if (linkedIssueNumbers.length === 0) {
+              core.notice(`PR #${pr.number} has no linked issues; nothing to sync`)
+            }
+
+            for (const issueNumber of linkedIssueNumbers) {
+              await syncIssueItem(issueNumber, prStatus, project, statusField)
+            }
+
+            await archivePullRequestItemIfPresent(project.id, pr.node_id, pr.number)
