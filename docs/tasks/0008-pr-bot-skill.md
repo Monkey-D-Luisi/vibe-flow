@@ -115,7 +115,7 @@ PR-Bot automation. EP04 backlog and issue `#143` still require:
 - [x] TypeScript compiles without errors
 - [x] Walkthrough updated
 - [ ] Code reviewed (if applicable)
-- [ ] PR created and linked
+- [x] PR created and linked (#168)
 
 ---
 
