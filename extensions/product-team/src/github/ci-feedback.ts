@@ -18,7 +18,9 @@ import {
 export {
   buildCiStatusComment,
   buildTaskIdCandidatesFromBranch,
+  InvalidJsonPayloadError,
   normalizeGithubCiEvent,
+  RequestBodyTooLargeError,
   readJsonRequestBody,
   type NormalizedGithubCiEvent,
 } from './ci-feedback-utils.js';
@@ -41,6 +43,7 @@ export interface CiAutoTransitionConfig {
 export interface CiFeedbackConfig {
   readonly enabled: boolean;
   readonly routePath: string;
+  readonly expectedRepository: string | null;
   readonly commentOnPr: boolean;
   readonly autoTransition: CiAutoTransitionConfig;
 }
@@ -90,6 +93,14 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 function isSuccessConclusion(value: string | null): boolean {
   return value === 'success';
+}
+
+function normalizeRepositoryName(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase();
+  return normalized.length > 0 ? normalized : null;
 }
 
 export class CiFeedbackAutomation {
@@ -313,6 +324,19 @@ export class CiFeedbackAutomation {
         handled: false,
         cached: false,
         reason: 'event-not-completed',
+      };
+    }
+
+    const expectedRepository = normalizeRepositoryName(this.deps.config.expectedRepository);
+    const eventRepository = normalizeRepositoryName(normalized.repository);
+    if (expectedRepository && eventRepository !== expectedRepository) {
+      this.deps.logger.warn(
+        `ci-feedback repository mismatch: expected '${expectedRepository}', got '${normalized.repository ?? 'unknown'}'`,
+      );
+      return {
+        handled: false,
+        cached: false,
+        reason: 'repository-mismatch',
       };
     }
 

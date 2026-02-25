@@ -22,7 +22,7 @@
               }
             },
             "ciFeedback": {
-              "enabled": true,
+              "enabled": false,
               "routePath": "/webhooks/github/ci",
               "commentOnPr": true,
               "autoTransition": {

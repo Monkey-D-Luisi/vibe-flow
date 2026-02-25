@@ -47,14 +47,8 @@ jobs:
               if (!pr) return null
               if (pr.merged) return "Done"
               if (pr.state === "closed" || action === "closed") return "In Progress"
-              if (action === "converted_to_draft") return "In Progress"
-              if (
-                action === "opened" ||
-                action === "reopened" ||
-                action === "ready_for_review" ||
-                action === "review_requested" ||
-                action === "review_request_removed"
-              ) {
+              if (action === "converted_to_draft" || pr.draft) return "In Progress"
+              if (pr.state === "open") {
                 return "In Review"
               }
               return null

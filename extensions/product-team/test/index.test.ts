@@ -34,6 +34,54 @@ function createMockApi(options?: {
   };
 }
 
+function getCiRoute(api: OpenClawPluginApi): {
+  path: string;
+  handler: (req: unknown, res: unknown) => Promise<void>;
+} | null {
+  const calls = (api.registerHttpRoute as ReturnType<typeof vi.fn>).mock.calls;
+  if (calls.length === 0) {
+    return null;
+  }
+  const route = calls[0]?.[0] as {
+    path: string;
+    handler: (req: unknown, res: unknown) => Promise<void>;
+  } | undefined;
+  return route ?? null;
+}
+
+function createWebhookRequest(options?: {
+  method?: string;
+  headers?: Record<string, string | undefined>;
+  chunks?: string[];
+}): {
+  method: string;
+  headers: Record<string, string | undefined>;
+  [Symbol.asyncIterator](): AsyncIterableIterator<string>;
+} {
+  const chunks = options?.chunks ?? [];
+  return {
+    method: options?.method ?? 'POST',
+    headers: options?.headers ?? { 'x-github-event': 'check_run' },
+    async *[Symbol.asyncIterator]() {
+      for (const chunk of chunks) {
+        yield chunk;
+      }
+    },
+  };
+}
+
+function createWebhookResponse(): {
+  statusCode: number;
+  setHeader: ReturnType<typeof vi.fn>;
+  end: ReturnType<typeof vi.fn>;
+} {
+  return {
+    statusCode: 0,
+    setHeader: vi.fn(),
+    end: vi.fn(),
+  };
+}
+
 describe('product-team plugin', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -109,8 +157,26 @@ describe('product-team plugin', () => {
     );
   });
 
-  it('registers CI webhook route by default', () => {
+  it('does not register CI webhook route by default', () => {
     const api = createMockApi();
+    register(api);
+
+    expect(api.registerHttpRoute).not.toHaveBeenCalled();
+  });
+
+  it('registers CI webhook route when enabled in config', () => {
+    const api = createMockApi({
+      pluginConfig: {
+        dbPath: ':memory:',
+        github: {
+          owner: 'acme',
+          repo: 'vibe-flow',
+          ciFeedback: {
+            enabled: true,
+          },
+        },
+      },
+    });
     register(api);
 
     expect(api.registerHttpRoute).toHaveBeenCalledWith(
@@ -119,9 +185,7 @@ describe('product-team plugin', () => {
         handler: expect.any(Function),
       }),
     );
-    expect(api.logger.info).toHaveBeenCalledWith(
-      'registered CI webhook route at /webhooks/github/ci',
-    );
+    expect(api.logger.info).toHaveBeenCalledWith('registered CI webhook route at /webhooks/github/ci');
   });
 
   it('does not register PR-Bot hook when disabled in config', () => {
@@ -156,6 +220,66 @@ describe('product-team plugin', () => {
 
     register(api);
     expect(api.registerHttpRoute).not.toHaveBeenCalled();
+  });
+
+  it('returns 413 when webhook payload exceeds max size', async () => {
+    const api = createMockApi({
+      pluginConfig: {
+        dbPath: ':memory:',
+        github: {
+          owner: 'acme',
+          repo: 'vibe-flow',
+          ciFeedback: {
+            enabled: true,
+          },
+        },
+      },
+    });
+    register(api);
+
+    const route = getCiRoute(api);
+    expect(route).not.toBeNull();
+
+    const req = createWebhookRequest({
+      headers: { 'x-github-event': 'check_run' },
+      chunks: ['x'.repeat(1_000_001)],
+    });
+    const res = createWebhookResponse();
+
+    await route!.handler(req as unknown, res as unknown);
+
+    expect(res.statusCode).toBe(413);
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('"payload_too_large"'));
+  });
+
+  it('returns 400 when webhook payload is invalid JSON', async () => {
+    const api = createMockApi({
+      pluginConfig: {
+        dbPath: ':memory:',
+        github: {
+          owner: 'acme',
+          repo: 'vibe-flow',
+          ciFeedback: {
+            enabled: true,
+          },
+        },
+      },
+    });
+    register(api);
+
+    const route = getCiRoute(api);
+    expect(route).not.toBeNull();
+
+    const req = createWebhookRequest({
+      headers: { 'x-github-event': 'check_run' },
+      chunks: ['{not-json'],
+    });
+    const res = createWebhookResponse();
+
+    await route!.handler(req as unknown, res as unknown);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('"invalid_json_payload"'));
   });
 
   it('swallows unexpected errors from PR-Bot hook callback', async () => {
