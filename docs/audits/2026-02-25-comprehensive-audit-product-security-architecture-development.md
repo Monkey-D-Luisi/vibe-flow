@@ -97,7 +97,7 @@ Processing policy applied:
 | P-001 | `docs/tasks/0010-restore-root-quality-gate-command-surface.md` | `docs/walkthroughs/0010-restore-root-quality-gate-command-surface.md` | PLANNED |
 | P-002 | `docs/tasks/0011-fix-quality-gate-default-command-validation.md` | `docs/walkthroughs/0011-fix-quality-gate-default-command-validation.md` | PLANNED |
 | P-003 | `docs/tasks/0012-align-runbook-schema-and-runtime-config-contract.md` | `docs/walkthroughs/0012-align-runbook-schema-and-runtime-config-contract.md` | PLANNED |
-| S-001 | `docs/tasks/0013-manage-transitive-vulnerability-remediation-path.md` | `docs/walkthroughs/0013-manage-transitive-vulnerability-remediation-path.md` | PLANNED |
+| S-001 | `docs/tasks/0013-manage-transitive-vulnerability-remediation-path.md` | `docs/walkthroughs/0013-manage-transitive-vulnerability-remediation-path.md` | IN_PROGRESS |
 | S-002 | `docs/tasks/0016-upgrade-ajv-and-verify-schema-security.md` | `docs/walkthroughs/0016-upgrade-ajv-and-verify-schema-security.md` | PLANNED |
 | S-003 | `docs/tasks/0014-add-github-webhook-signature-verification.md` | `docs/walkthroughs/0014-add-github-webhook-signature-verification.md` | PLANNED |
 | A-001 | `docs/tasks/0017-consolidate-quality-parser-and-policy-contracts.md` | `docs/walkthroughs/0017-consolidate-quality-parser-and-policy-contracts.md` | PLANNED |

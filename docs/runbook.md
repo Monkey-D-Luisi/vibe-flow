@@ -97,6 +97,19 @@ pnpm lint
 pnpm typecheck
 ```
 
+### Security exception ledger checks
+
+Track active transitive vulnerability exceptions in
+`docs/security-vulnerability-exception-ledger.md`.
+
+```bash
+pnpm audit --prod
+pnpm audit --prod --audit-level=high
+pnpm audit --prod --json
+pnpm --filter @openclaw/plugin-product-team why openclaw
+pnpm outdated -r openclaw
+```
+
 ## Tool Allow-Lists
 
 - Allow-list justifications are documented in `docs/allowlist-rationale.md`.
