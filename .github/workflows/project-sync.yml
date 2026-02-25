@@ -80,7 +80,7 @@ jobs:
                   query($projectId:ID!, $cursor:String){
                     node(id:$projectId){
                       ... on ProjectV2{
-                        items(first:100, after:$cursor, includeArchived:true){
+                        items(first:100, after:$cursor){
                           nodes{
                             id
                             content{

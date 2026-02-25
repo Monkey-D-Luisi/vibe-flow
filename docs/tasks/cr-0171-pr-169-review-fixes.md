@@ -31,6 +31,7 @@ Execute the `code review` workflow for PR #169 and resolve all MUST_FIX and SHOU
 | 7 | SHOULD_FIX | Independent review | `project-sync` PR status mapping returned `null` for `edited`/`synchronize`, so newly linked issues could be added without status assignment. |
 | 8 | SUGGESTION | Gemini comment | Separate export aggregation into dedicated `index.ts` for `ci-feedback` module. |
 | 9 | OUT_OF_SCOPE | Copilot comment | Full webhook signature verification (`X-Hub-Signature-256`) requested; partial hardening applied in this PR, full cryptographic verification deferred to hardening track. |
+| 10 | MUST_FIX | CI failure (`sync` check) | GraphQL query used unsupported `includeArchived` argument on `ProjectV2.items`, failing workflow execution in GitHub Actions. |
 
 ---
 
@@ -48,6 +49,7 @@ Execute the `code review` workflow for PR #169 and resolve all MUST_FIX and SHOU
   - `src/index.ts`: runtime fallback default for `ciFeedback.enabled` -> `false`
 - Fixed project board sync status for PR update events:
   - `.github/workflows/project-sync.yml` maps all open non-draft PR states to `In Review`, including `edited` and `synchronize`.
+  - removed unsupported `includeArchived` query argument from `ProjectV2.items`.
 - Resolved documentation inconsistencies in task/walkthrough `0009`:
   - updated DoD wording to make acceptance validation evidence explicit
   - aligned walkthrough references from `IN_PROGRESS` to final `DONE` state.
