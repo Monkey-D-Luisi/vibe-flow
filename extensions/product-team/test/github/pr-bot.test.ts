@@ -71,6 +71,7 @@ describe('PrBotAutomation', () => {
       logger,
       githubOwner: 'acme',
       githubRepo: 'vibe',
+      defaultBase: 'main',
       config: {
         enabled: true,
         reviewers: { default: ['infra-reviewer'], major: [], minor: [], patch: [] },
@@ -98,6 +99,7 @@ describe('PrBotAutomation', () => {
       logger,
       githubOwner: 'acme',
       githubRepo: 'vibe',
+      defaultBase: 'main',
       config: {
         enabled: true,
         reviewers: { default: ['infra-reviewer'], major: ['architect-reviewer'], minor: [], patch: [] },
@@ -131,6 +133,7 @@ describe('PrBotAutomation', () => {
       logger,
       githubOwner: 'acme',
       githubRepo: 'vibe',
+      defaultBase: 'release/1.2',
       config: {
         enabled: true,
         reviewers: { default: ['infra-reviewer'], major: ['architect-reviewer'], minor: [], patch: [] },
@@ -167,6 +170,10 @@ describe('PrBotAutomation', () => {
       77,
       expect.stringContaining('Task: [TASK-100]('),
     );
+    expect(ghClient.commentPr).toHaveBeenCalledWith(
+      77,
+      expect.stringContaining('blob/release%2F1.2/docs/tasks/0008-pr-bot-skill.md'),
+    );
 
     expect(eventLog.logVcsEvent).toHaveBeenCalledWith(
       'TASK-100',
@@ -176,6 +183,38 @@ describe('PrBotAutomation', () => {
         labelsApplied: ['area:vcs', 'epic:ep04', 'scope:major'],
         reviewersAssigned: ['architect-reviewer', 'infra-reviewer'],
         commentPosted: true,
+      }),
+    );
+  });
+
+  it('trims task tags before deriving epic/area labels', async () => {
+    taskReader.getById.mockReturnValue(
+      createTask({
+        tags: [' epic:EP04 ', ' area:vcs '],
+      }),
+    );
+
+    const bot = new PrBotAutomation({
+      taskReader,
+      labelService,
+      prService,
+      ghClient,
+      eventLog,
+      logger,
+      githubOwner: 'acme',
+      githubRepo: 'vibe',
+      defaultBase: 'main',
+      config: {
+        enabled: true,
+        reviewers: { default: ['infra-reviewer'], major: [], minor: [], patch: [] },
+      },
+    });
+
+    await bot.handleAfterToolCall(createEvent(), createContext());
+
+    expect(prService.updateTaskPr).toHaveBeenCalledWith(
+      expect.objectContaining({
+        labels: ['area:vcs', 'epic:ep04', 'scope:major'],
       }),
     );
   });
@@ -191,6 +230,7 @@ describe('PrBotAutomation', () => {
       logger,
       githubOwner: 'acme',
       githubRepo: 'vibe',
+      defaultBase: 'main',
       config: {
         enabled: true,
         reviewers: { default: ['infra-reviewer'], major: [], minor: [], patch: [] },
@@ -213,6 +253,70 @@ describe('PrBotAutomation', () => {
           expect.stringContaining('reviewers: Error: cannot assign reviewers'),
         ]),
       }),
+    );
+  });
+
+  it('falls back to search URL when taskPath contains traversal segments', async () => {
+    taskReader.getById.mockReturnValue(
+      createTask({
+        metadata: {
+          taskPath: '../docs/tasks/0008-pr-bot-skill.md',
+        },
+      }),
+    );
+
+    const bot = new PrBotAutomation({
+      taskReader,
+      labelService,
+      prService,
+      ghClient,
+      eventLog,
+      logger,
+      githubOwner: 'acme',
+      githubRepo: 'vibe',
+      defaultBase: 'main',
+      config: {
+        enabled: true,
+        reviewers: { default: ['infra-reviewer'], major: [], minor: [], patch: [] },
+      },
+    });
+
+    await bot.handleAfterToolCall(createEvent(), createContext());
+
+    expect(ghClient.commentPr).toHaveBeenCalledWith(
+      77,
+      expect.stringContaining('Task: [TASK-100](https://github.com/acme/vibe/search?q=TASK-100)'),
+    );
+  });
+
+  it('skips processing when PR number is malformed', async () => {
+    const bot = new PrBotAutomation({
+      taskReader,
+      labelService,
+      prService,
+      ghClient,
+      eventLog,
+      logger,
+      githubOwner: 'acme',
+      githubRepo: 'vibe',
+      defaultBase: 'main',
+      config: {
+        enabled: true,
+        reviewers: { default: ['infra-reviewer'], major: [], minor: [], patch: [] },
+      },
+    });
+
+    await bot.handleAfterToolCall(
+      createEvent({ result: { details: { number: '77oops', cached: false } } }),
+      createContext(),
+    );
+
+    expect(labelService.syncLabels).not.toHaveBeenCalled();
+    expect(prService.updateTaskPr).not.toHaveBeenCalled();
+    expect(ghClient.requestReviewers).not.toHaveBeenCalled();
+    expect(ghClient.commentPr).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('invalid vcs.pr.create result'),
     );
   });
 });

@@ -1,5 +1,5 @@
 const BRANCH_NAME_PATTERN = /^[a-zA-Z0-9._/-]+$/;
-const LABEL_NAME_PATTERN = /^[a-zA-Z0-9 _-]+$/;
+const LABEL_NAME_PATTERN = /^[a-zA-Z0-9 _:-]+$/;
 const HEX_COLOR_PATTERN = /^[0-9a-fA-F]{6}$/;
 const SHELL_META = /[;&|`$(){}!<>"'\\~\n\r]/;
 
@@ -42,7 +42,7 @@ export function assertValidLabelName(labelName: string): void {
   assert(labelName.length <= 50, 'Invalid label name: maximum length is 50 characters');
   assert(
     LABEL_NAME_PATTERN.test(labelName),
-    `Invalid label name "${labelName}": use letters, numbers, spaces, "_" or "-"`,
+    `Invalid label name "${labelName}": use letters, numbers, spaces, "_", "-", or ":"`,
   );
 }
 

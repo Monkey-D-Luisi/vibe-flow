@@ -78,6 +78,7 @@ export interface PrBotAutomationDeps {
   readonly logger: PrBotLogger;
   readonly githubOwner: string;
   readonly githubRepo: string;
+  readonly defaultBase: string;
   readonly config: PrBotConfig;
 }
 
@@ -122,7 +123,10 @@ function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
 }
 
 function toLabelSlug(value: string): string {
@@ -244,7 +248,36 @@ function extractAcceptanceCriteria(task: TaskRecord): string[] {
   return asStringArray(poBrief.acceptance_criteria);
 }
 
-function resolveTaskLink(task: TaskRecord, owner: string, repo: string): string {
+function sanitizeTaskPath(taskPath: string): string | null {
+  const normalized = taskPath
+    .replace(/\\/g, '/')
+    .trim()
+    .replace(/^\/+/, '');
+
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  const segments: string[] = [];
+  for (const segment of normalized.split('/')) {
+    const trimmed = segment.trim();
+    if (trimmed.length === 0 || trimmed === '.') {
+      continue;
+    }
+    if (trimmed === '..') {
+      return null;
+    }
+    segments.push(trimmed);
+  }
+
+  if (segments.length === 0) {
+    return null;
+  }
+
+  return segments.map((segment) => encodeURIComponent(segment)).join('/');
+}
+
+function resolveTaskLink(task: TaskRecord, owner: string, repo: string, defaultBase: string): string {
   const metadata = asRecord(task.metadata) ?? {};
   const directUrl = asString(metadata.taskUrl);
   if (directUrl) {
@@ -253,8 +286,10 @@ function resolveTaskLink(task: TaskRecord, owner: string, repo: string): string 
 
   const taskPath = asString(metadata.taskPath);
   if (taskPath) {
-    const normalized = taskPath.replace(/^\/+/, '');
-    return `https://github.com/${owner}/${repo}/blob/main/${normalized}`;
+    const normalized = sanitizeTaskPath(taskPath);
+    if (normalized) {
+      return `https://github.com/${owner}/${repo}/blob/${encodeURIComponent(defaultBase)}/${normalized}`;
+    }
   }
 
   return `https://github.com/${owner}/${repo}/search?q=${encodeURIComponent(task.id)}`;
@@ -297,7 +332,7 @@ function toPrCreateResult(value: unknown): PrCreateResult | null {
   const prNumber = typeof numberValue === 'number'
     ? numberValue
     : typeof numberValue === 'string'
-      ? Number.parseInt(numberValue, 10)
+      ? /^\d+$/.test(numberValue.trim()) ? Number(numberValue.trim()) : Number.NaN
       : Number.NaN;
 
   if (!Number.isInteger(prNumber) || prNumber <= 0) {
@@ -328,93 +363,102 @@ export class PrBotAutomation {
     if (event.error) {
       return;
     }
-
-    const taskId = asString(event.params.taskId);
-    if (!taskId) {
-      this.deps.logger.warn('pr-bot skipped: missing taskId in vcs.pr.create params');
-      return;
-    }
-
-    const result = toPrCreateResult(event.result);
-    if (!result) {
-      this.deps.logger.warn(`pr-bot skipped: invalid vcs.pr.create result for task ${taskId}`);
-      return;
-    }
-    if (result.cached) {
-      this.deps.eventLog.logVcsEvent(taskId, 'vcs.pr.bot', ctx.agentId ?? null, {
-        prNumber: result.prNumber,
-        skipped: true,
-        reason: 'cached-pr-create-result',
-      });
-      return;
-    }
-
-    const task = this.deps.taskReader.getById(taskId);
-    if (!task) {
-      this.deps.logger.warn(`pr-bot skipped: task ${taskId} not found`);
-      return;
-    }
-
-    const summary: PrBotExecutionSummary = {
-      prNumber: result.prNumber,
-      cached: false,
-      labelsApplied: [],
-      reviewersAssigned: [],
-      commentPosted: false,
-      failures: [],
-    };
-
-    const derivedLabels = extractMetadataLabels(task);
-    if (derivedLabels.length > 0) {
-      try {
-        const labelInputs = derivedLabels.map((label) => toLabelInput(label));
-        await this.deps.labelService.syncLabels({
-          taskId,
-          labels: labelInputs,
-        });
-        await this.deps.prService.updateTaskPr({
-          taskId,
-          prNumber: result.prNumber,
-          labels: derivedLabels,
-        });
-        summary.labelsApplied = derivedLabels;
-      } catch (error: unknown) {
-        const message = `labels: ${String(error)}`;
-        this.deps.logger.warn(`pr-bot automation failed (${message})`);
-        summary.failures.push(message);
-      }
-    }
-
-    const reviewers = resolveReviewers(task, this.deps.config);
-    if (reviewers.length > 0) {
-      try {
-        await this.deps.ghClient.requestReviewers(result.prNumber, reviewers);
-        summary.reviewersAssigned = reviewers;
-      } catch (error: unknown) {
-        const message = `reviewers: ${String(error)}`;
-        this.deps.logger.warn(`pr-bot automation failed (${message})`);
-        summary.failures.push(message);
-      }
-    }
-
     try {
-      const taskLink = resolveTaskLink(task, this.deps.githubOwner, this.deps.githubRepo);
-      const statusComment = buildStatusComment(task, taskLink);
-      await this.deps.ghClient.commentPr(result.prNumber, statusComment);
-      summary.commentPosted = true;
-      summary.taskLink = taskLink;
-    } catch (error: unknown) {
-      const message = `comment: ${String(error)}`;
-      this.deps.logger.warn(`pr-bot automation failed (${message})`);
-      summary.failures.push(message);
-    }
+      const params = asRecord(event.params);
+      const taskId = asString(params?.taskId);
+      if (!taskId) {
+        this.deps.logger.warn('pr-bot skipped: missing taskId in vcs.pr.create params');
+        return;
+      }
 
-    this.deps.eventLog.logVcsEvent(taskId, 'vcs.pr.bot', ctx.agentId ?? null, {
-      ...summary,
-      prUrl: result.url,
-    });
-    this.deps.logger.info(
-      `pr-bot processed PR #${result.prNumber} for task ${taskId} (labels=${summary.labelsApplied.length}, reviewers=${summary.reviewersAssigned.length}, comment=${summary.commentPosted})`,
-    );
+      const result = toPrCreateResult(event.result);
+      if (!result) {
+        this.deps.logger.warn(`pr-bot skipped: invalid vcs.pr.create result for task ${taskId}`);
+        return;
+      }
+      if (result.cached) {
+        this.deps.eventLog.logVcsEvent(taskId, 'vcs.pr.bot', ctx.agentId ?? null, {
+          prNumber: result.prNumber,
+          skipped: true,
+          reason: 'cached-pr-create-result',
+        });
+        return;
+      }
+
+      const task = this.deps.taskReader.getById(taskId);
+      if (!task) {
+        this.deps.logger.warn(`pr-bot skipped: task ${taskId} not found`);
+        return;
+      }
+
+      const summary: PrBotExecutionSummary = {
+        prNumber: result.prNumber,
+        cached: false,
+        labelsApplied: [],
+        reviewersAssigned: [],
+        commentPosted: false,
+        failures: [],
+      };
+
+      const derivedLabels = extractMetadataLabels(task);
+      if (derivedLabels.length > 0) {
+        try {
+          const labelInputs = derivedLabels.map((label) => toLabelInput(label));
+          await this.deps.labelService.syncLabels({
+            taskId,
+            labels: labelInputs,
+          });
+          await this.deps.prService.updateTaskPr({
+            taskId,
+            prNumber: result.prNumber,
+            labels: derivedLabels,
+          });
+          summary.labelsApplied = derivedLabels;
+        } catch (error: unknown) {
+          const message = `labels: ${String(error)}`;
+          this.deps.logger.warn(`pr-bot automation failed (${message})`);
+          summary.failures.push(message);
+        }
+      }
+
+      const reviewers = resolveReviewers(task, this.deps.config);
+      if (reviewers.length > 0) {
+        try {
+          await this.deps.ghClient.requestReviewers(result.prNumber, reviewers);
+          summary.reviewersAssigned = reviewers;
+        } catch (error: unknown) {
+          const message = `reviewers: ${String(error)}`;
+          this.deps.logger.warn(`pr-bot automation failed (${message})`);
+          summary.failures.push(message);
+        }
+      }
+
+      try {
+        const taskLink = resolveTaskLink(
+          task,
+          this.deps.githubOwner,
+          this.deps.githubRepo,
+          this.deps.defaultBase,
+        );
+        const statusComment = buildStatusComment(task, taskLink);
+        await this.deps.ghClient.commentPr(result.prNumber, statusComment);
+        summary.commentPosted = true;
+        summary.taskLink = taskLink;
+      } catch (error: unknown) {
+        const message = `comment: ${String(error)}`;
+        this.deps.logger.warn(`pr-bot automation failed (${message})`);
+        summary.failures.push(message);
+      }
+
+      this.deps.eventLog.logVcsEvent(taskId, 'vcs.pr.bot', ctx.agentId ?? null, {
+        ...summary,
+        prUrl: result.url,
+      });
+      this.deps.logger.info(
+        `pr-bot processed PR #${result.prNumber} for task ${taskId} (labels=${summary.labelsApplied.length}, reviewers=${summary.reviewersAssigned.length}, comment=${summary.commentPosted})`,
+      );
+    } catch (error: unknown) {
+      this.deps.logger.warn(`pr-bot hook failed unexpectedly: ${String(error)}`);
+    }
   }
 }
