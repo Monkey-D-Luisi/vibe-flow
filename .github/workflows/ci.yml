@@ -34,6 +34,9 @@ jobs:
       - name: Validate tool allow-lists
         run: pnpm tsx scripts/validate-allowlists.ts
 
+      - name: Verify root quality-gate command surface
+        run: pnpm verify:q-surface
+
       - name: Type check
         run: pnpm typecheck
 

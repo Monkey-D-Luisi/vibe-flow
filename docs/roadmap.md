@@ -21,6 +21,7 @@ structured JSON contracts, and is governed by tool-policy allow-lists.
 | 3     | EP04 | GitHub Integration              | EP02         | May-Jun 2026 | DONE    |
 | 4     | EP05 | Quality & Observability         | EP02, EP03   | July 2026    | DONE    |
 | 5     | EP06 | Hardening                       | EP03, EP04   | August 2026  | DONE    |
+| 6     | AR01 | Audit Remediation Program       | EP06         | Q1 2026      | IN_PROGRESS |
 
 ---
 
@@ -127,6 +128,24 @@ Key deliverables:
 
 ---
 
+## Phase 6: Audit Remediation Program (Q1 2026)
+
+### AR01 -- Post-Audit Remediation Execution
+
+Execute remediation work derived from the 2026-02-25 comprehensive audit in a
+controlled queue, preserving strict traceability from finding to task and
+walkthrough evidence.
+
+Execution lanes:
+
+- Product contract restoration: command surface and config contract alignment.
+- Security hardening and policy enforcement: webhook authenticity, audit gating,
+  dependency risk handling.
+- Architecture and maintainability convergence: shared quality logic, lifecycle
+  reliability, and test/coverage quality.
+
+---
+
 ## Dependency Graph
 
 ```mermaid
@@ -139,6 +158,7 @@ graph TD
   EP05 --> EP03
   EP06[EP06: Hardening] --> EP03
   EP06 --> EP04
+  AR01[AR01: Audit Remediation Program] --> EP06
 ```
 
 ---
@@ -180,6 +200,19 @@ Task-level execution status source of truth:
 - [Task 0007: Hardening](tasks/0007-hardening.md) -- DONE (EP06)
 - [Task 0008: PR-Bot Skill Automation](tasks/0008-pr-bot-skill.md) -- DONE (EP04)
 - [Task 0009: CI Webhook Feedback](tasks/0009-ci-webhook-feedback.md) -- DONE (EP04)
+
+Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-product-security-architecture-development.md`):
+
+- [Task 0010: Restore Root Quality-Gate Command Surface](tasks/0010-restore-root-quality-gate-command-surface.md) -- DONE (Product lane)
+- [Task 0011: Fix Quality-Gate Default Command Validation](tasks/0011-fix-quality-gate-default-command-validation.md) -- PENDING (Product lane)
+- [Task 0012: Align Runbook, Schema, and Runtime Config Contract](tasks/0012-align-runbook-schema-and-runtime-config-contract.md) -- PENDING (Product lane)
+- [Task 0013: Manage Transitive Vulnerability Remediation Path](tasks/0013-manage-transitive-vulnerability-remediation-path.md) -- PENDING (Security lane)
+- [Task 0014: Add GitHub Webhook Signature Verification](tasks/0014-add-github-webhook-signature-verification.md) -- PENDING (Security lane)
+- [Task 0015: Enforce CI High Vulnerability Gating](tasks/0015-enforce-ci-high-vulnerability-gating.md) -- PENDING (Security lane)
+- [Task 0016: Upgrade Ajv and Verify Schema Security](tasks/0016-upgrade-ajv-and-verify-schema-security.md) -- PENDING (Security lane)
+- [Task 0017: Consolidate Quality Parser and Policy Contracts](tasks/0017-consolidate-quality-parser-and-policy-contracts.md) -- PENDING (Architecture lane)
+- [Task 0018: Fix Plugin Lifecycle Listeners and Hotspot Maintainability](tasks/0018-fix-plugin-lifecycle-listeners-and-hotspot-maintainability.md) -- PENDING (Architecture and Development lane)
+- [Task 0019: Strengthen Quality-Gate Tests and Coverage Policy](tasks/0019-strengthen-quality-gate-tests-and-coverage-policy.md) -- PENDING (Development lane)
 
 ### Epic Backlogs
 - [EP01 Backlog](backlog/EP01-openclaw-foundation.md)
