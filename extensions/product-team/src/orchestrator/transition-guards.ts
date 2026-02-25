@@ -133,7 +133,7 @@ function evaluateInProgressToInReview(
     return [
       {
         field: 'dev_result',
-        message: 'is required for transition in_progress -> in_review',
+        message: 'is required for transition in_progress -> in_review. Run quality.coverage and quality.lint first',
       },
     ];
   }
@@ -241,7 +241,7 @@ function evaluateQaToDone(task: TaskRecord): TransitionGuardFailure[] {
     return [
       {
         field: 'qa_report',
-        message: 'is required for transition qa -> done',
+        message: 'is required for transition qa -> done. Run quality.tests first',
       },
     ];
   }
@@ -266,6 +266,33 @@ function evaluateQaToDone(task: TaskRecord): TransitionGuardFailure[] {
   }
 
   return [];
+}
+
+export function getMissingQualityEvidence(
+  task: TaskRecord,
+  toStatus: TaskStatus,
+): string[] {
+  const missing: string[] = [];
+  if (toStatus === 'in_review') {
+    const devResult = task.metadata.dev_result;
+    if (!isRecord(devResult)) {
+      missing.push('Run quality.coverage and quality.lint first');
+    } else {
+      const metrics = devResult.metrics;
+      if (!isRecord(metrics) || asNumber(metrics.coverage) === null || asBoolean(metrics.lint_clean) === null) {
+        missing.push('Run quality.coverage and quality.lint first');
+      }
+    }
+  }
+
+  if (toStatus === 'done') {
+    const qaReport = task.metadata.qa_report;
+    if (!isRecord(qaReport)) {
+      missing.push('Run quality.tests first');
+    }
+  }
+
+  return missing;
 }
 
 export function evaluateTransitionGuards(context: TransitionGuardContext): TransitionGuardFailure[] {

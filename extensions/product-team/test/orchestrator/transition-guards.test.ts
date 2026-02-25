@@ -247,7 +247,7 @@ describe('transition guards', () => {
     expect(failures).toEqual([
       {
         field: 'dev_result',
-        message: 'is required for transition in_progress -> in_review',
+        message: 'is required for transition in_progress -> in_review. Run quality.coverage and quality.lint first',
       },
     ]);
   });
@@ -420,7 +420,7 @@ describe('transition guards', () => {
     expect(failures).toEqual([
       {
         field: 'qa_report',
-        message: 'is required for transition qa -> done',
+        message: 'is required for transition qa -> done. Run quality.tests first',
       },
     ]);
   });

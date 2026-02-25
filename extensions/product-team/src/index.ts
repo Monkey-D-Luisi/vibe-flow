@@ -65,6 +65,7 @@ export function register(api: OpenClawPluginApi): void {
   const pluginConfig = api.pluginConfig as Record<string, unknown> | undefined;
   const dbPath = typeof pluginConfig?.dbPath === 'string' ? pluginConfig.dbPath : ':memory:';
   const resolvedPath = api.resolvePath(dbPath);
+  const workspaceDir = api.resolvePath('.');
 
   // Validate database path stays within workspace (skip for in-memory DBs)
   if (resolvedPath !== ':memory:') {
@@ -149,6 +150,8 @@ export function register(api: OpenClawPluginApi): void {
     now,
     validate,
     transitionGuardConfig,
+    logger: api.logger,
+    workspaceDir,
     vcs: {
       requestRepo,
       branchService,
@@ -162,7 +165,7 @@ export function register(api: OpenClawPluginApi): void {
     api.registerTool(tool);
   }
 
-  api.logger.info(`registered ${tools.length} task/workflow/vcs tools`);
+  api.logger.info(`registered ${tools.length} task/workflow/quality/vcs tools`);
   // EP03: workflow.step.run, workflow.state.get
   // EP04: vcs_branch_create, vcs_pr_create, vcs_pr_update, vcs_label_sync
   // EP05: quality_coverage, quality_lint, quality_complexity

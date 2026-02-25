@@ -17,7 +17,11 @@
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "better-sqlite3": "^11.10.0",
+    "fast-glob": "^3.3.2",
     "openclaw": "2026.2.22-2",
+    "picomatch": "2.3.1",
+    "ts-morph": "^23.0.0",
+    "typhonjs-escomplex": "^0.1.0",
     "ulid": "^2.3.0"
   },
   "devDependencies": {

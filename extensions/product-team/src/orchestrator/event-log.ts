@@ -1,4 +1,9 @@
-import type { SqliteEventRepository, EventRecord } from '../persistence/event-repository.js';
+import type {
+  SqliteEventRepository,
+  EventRecord,
+  EventQueryFilters,
+  EventQueryResult,
+} from '../persistence/event-repository.js';
 import type { TaskStatus } from '../domain/task-status.js';
 
 /**
@@ -148,7 +153,33 @@ export class EventLog {
     return event;
   }
 
+  logQualityEvent(
+    taskId: string,
+    eventType: `quality.${string}`,
+    agentId: string,
+    correlationId: string,
+    payload: Record<string, unknown>,
+  ): EventRecord {
+    const event: EventRecord = {
+      id: this.generateId(),
+      taskId,
+      eventType,
+      agentId,
+      payload: {
+        correlationId,
+        ...payload,
+      },
+      createdAt: this.now(),
+    };
+    this.eventRepo.append(event);
+    return event;
+  }
+
   getHistory(taskId: string): EventRecord[] {
     return this.eventRepo.getByTaskId(taskId);
+  }
+
+  queryEvents(filters: EventQueryFilters): EventQueryResult {
+    return this.eventRepo.queryEvents(filters);
   }
 }

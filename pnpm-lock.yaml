@@ -35,9 +35,21 @@ importers:
       better-sqlite3:
         specifier: ^11.10.0
         version: 11.10.0
+      fast-glob:
+        specifier: ^3.3.2
+        version: 3.3.3
       openclaw:
         specifier: 2026.2.22-2
         version: 2026.2.22-2(@napi-rs/canvas@0.1.94)(@types/express@5.0.6)(hono@4.12.2)(node-llama-cpp@3.15.1(typescript@5.9.3))
+      picomatch:
+        specifier: 2.3.1
+        version: 2.3.1
+      ts-morph:
+        specifier: ^23.0.0
+        version: 23.0.0
+      typhonjs-escomplex:
+        specifier: ^0.1.0
+        version: 0.1.0
       ulid:
         specifier: ^2.3.0
         version: 2.4.0
