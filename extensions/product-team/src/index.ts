@@ -30,10 +30,16 @@ import { PrBotAutomation, type PrBotConfig } from './github/pr-bot.js';
 import {
   CiFeedbackAutomation,
   InvalidJsonPayloadError,
+  parseJsonRequestBody,
   RequestBodyTooLargeError,
-  readJsonRequestBody,
+  readRequestBody,
   type CiFeedbackConfig,
 } from './github/ci-feedback.js';
+import {
+  assertValidGithubWebhookSignature,
+  InvalidGithubSignatureError,
+  MissingGithubSignatureError,
+} from './github/webhook-signature.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 
@@ -114,6 +120,13 @@ function resolveGithubConfig(pluginConfig: Record<string, unknown> | undefined):
   const reviewers = asRecord(prBot?.reviewers);
   const ciFeedback = asRecord(github?.ciFeedback);
   const autoTransition = asRecord(ciFeedback?.autoTransition);
+  const ciFeedbackEnabled = asBoolean(ciFeedback?.enabled) ?? false;
+  const webhookSecret = asNonEmptyString(ciFeedback?.webhookSecret);
+  if (ciFeedbackEnabled && !webhookSecret) {
+    throw new Error(
+      'github.ciFeedback.webhookSecret must be configured when github.ciFeedback.enabled is true',
+    );
+  }
   const owner = asNonEmptyString(github?.owner) ?? 'local-owner';
   const repo = asNonEmptyString(github?.repo) ?? 'local-repo';
   return {
@@ -131,10 +144,11 @@ function resolveGithubConfig(pluginConfig: Record<string, unknown> | undefined):
       },
     },
     ciFeedback: {
-      enabled: asBoolean(ciFeedback?.enabled) ?? false,
+      enabled: ciFeedbackEnabled,
       routePath: normalizeRoutePath(
         asNonEmptyString(ciFeedback?.routePath) ?? '/webhooks/github/ci',
       ),
+      webhookSecret: webhookSecret ?? '',
       expectedRepository: `${owner}/${repo}`,
       commentOnPr: asBoolean(ciFeedback?.commentOnPr) ?? true,
       autoTransition: {
@@ -335,7 +349,14 @@ export function register(api: OpenClawPluginApi): void {
         }
 
         try {
-          const payload = await readJsonRequestBody(req);
+          const payloadBytes = await readRequestBody(req);
+          const signature = headerValue(req.headers['x-hub-signature-256']);
+          assertValidGithubWebhookSignature(
+            githubConfig.ciFeedback.webhookSecret,
+            payloadBytes,
+            signature,
+          );
+          const payload = parseJsonRequestBody(payloadBytes);
           const deliveryId = headerValue(req.headers['x-github-delivery']);
           const result = await ciFeedbackAutomation.handleGithubWebhook({
             eventName,
@@ -353,13 +374,27 @@ export function register(api: OpenClawPluginApi): void {
           if (error instanceof RequestBodyTooLargeError) {
             writeJson(res, 413, {
               ok: false,
-              error: 'payload_too_large',
-            });
-            return;
-          }
-          if (error instanceof InvalidJsonPayloadError || error instanceof SyntaxError) {
-            writeJson(res, 400, {
-              ok: false,
+            error: 'payload_too_large',
+          });
+          return;
+        }
+        if (error instanceof MissingGithubSignatureError) {
+          writeJson(res, 401, {
+            ok: false,
+            error: 'missing_x_hub_signature_256_header',
+          });
+          return;
+        }
+        if (error instanceof InvalidGithubSignatureError) {
+          writeJson(res, 401, {
+            ok: false,
+            error: 'invalid_x_hub_signature_256',
+          });
+          return;
+        }
+        if (error instanceof InvalidJsonPayloadError || error instanceof SyntaxError) {
+          writeJson(res, 400, {
+            ok: false,
               error: 'invalid_json_payload',
             });
             return;

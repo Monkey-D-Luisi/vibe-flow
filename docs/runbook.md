@@ -49,6 +49,7 @@ Configuration lives in `openclaw.json`.
             "ciFeedback": {
               "enabled": false,
               "routePath": "/webhooks/github/ci",
+              "webhookSecret": "<github-webhook-secret>",
               "commentOnPr": true,
               "autoTransition": {
                 "enabled": false,
@@ -81,10 +82,13 @@ Configuration lives in `openclaw.json`.
 Canonical workflow settings are under `plugins.entries.product-team.config.workflow`.
 Root-level `concurrency` keys are not part of the plugin config contract.
 `ciFeedback.expectedRepository` is derived internally from `github.owner/repo`.
+When `github.ciFeedback.enabled=true`, `github.ciFeedback.webhookSecret` is required.
 
 ### Environment variables
 
 - No required plugin-specific environment variables.
+- If CI webhook feedback is enabled, inject `github.ciFeedback.webhookSecret`
+  from a secure runtime secret source; do not commit real secret values.
 - `gh` CLI can use `GH_TOKEN` in non-interactive environments.
 - Do not store tokens/secrets in task metadata or logs.
 
@@ -161,7 +165,9 @@ canonical procedure in `docs/security-vulnerability-exception-ledger.md`
 
 - Confirm `github.ciFeedback.enabled=true`.
 - Verify route path (`github.ciFeedback.routePath`) matches gateway routing.
+- Ensure `github.ciFeedback.webhookSecret` matches the GitHub webhook secret.
 - Validate event header `x-github-event` is present.
+- Validate signature header `x-hub-signature-256` is present and valid.
 - Check plugin logs for payload/JSON errors and repository mismatch.
 
 ## Recovery

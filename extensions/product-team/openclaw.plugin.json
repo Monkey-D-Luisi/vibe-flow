@@ -51,6 +51,7 @@
             "properties": {
               "enabled": { "type": "boolean", "default": false },
               "routePath": { "type": "string", "default": "/webhooks/github/ci" },
+              "webhookSecret": { "type": "string", "minLength": 1 },
               "commentOnPr": { "type": "boolean", "default": true },
               "autoTransition": {
                 "type": "object",

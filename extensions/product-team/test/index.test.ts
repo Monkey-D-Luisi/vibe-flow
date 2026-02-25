@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { createHmac } from 'node:crypto';
 import { register } from '../src/index.js';
 import type { OpenClawPluginApi } from '../src/index.js';
 
@@ -80,6 +81,11 @@ function createWebhookResponse(): {
     setHeader: vi.fn(),
     end: vi.fn(),
   };
+}
+
+function buildGithubSignature(secret: string, payload: string): string {
+  const digest = createHmac('sha256', secret).update(payload).digest('hex');
+  return `sha256=${digest}`;
 }
 
 describe('product-team plugin', () => {
@@ -173,6 +179,7 @@ describe('product-team plugin', () => {
           repo: 'vibe-flow',
           ciFeedback: {
             enabled: true,
+            webhookSecret: 'test-secret',
           },
         },
       },
@@ -231,6 +238,7 @@ describe('product-team plugin', () => {
           repo: 'vibe-flow',
           ciFeedback: {
             enabled: true,
+            webhookSecret: 'test-secret',
           },
         },
       },
@@ -253,6 +261,7 @@ describe('product-team plugin', () => {
   });
 
   it('returns 400 when webhook payload is invalid JSON', async () => {
+    const secret = 'test-secret';
     const api = createMockApi({
       pluginConfig: {
         dbPath: ':memory:',
@@ -261,6 +270,42 @@ describe('product-team plugin', () => {
           repo: 'vibe-flow',
           ciFeedback: {
             enabled: true,
+            webhookSecret: secret,
+          },
+        },
+      },
+    });
+    register(api);
+
+    const route = getCiRoute(api);
+    expect(route).not.toBeNull();
+
+    const rawPayload = '{not-json';
+    const req = createWebhookRequest({
+      headers: {
+        'x-github-event': 'check_run',
+        'x-hub-signature-256': buildGithubSignature(secret, rawPayload),
+      },
+      chunks: [rawPayload],
+    });
+    const res = createWebhookResponse();
+
+    await route!.handler(req as unknown, res as unknown);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('"invalid_json_payload"'));
+  });
+
+  it('returns 401 when webhook signature header is missing', async () => {
+    const api = createMockApi({
+      pluginConfig: {
+        dbPath: ':memory:',
+        github: {
+          owner: 'acme',
+          repo: 'vibe-flow',
+          ciFeedback: {
+            enabled: true,
+            webhookSecret: 'test-secret',
           },
         },
       },
@@ -272,14 +317,111 @@ describe('product-team plugin', () => {
 
     const req = createWebhookRequest({
       headers: { 'x-github-event': 'check_run' },
-      chunks: ['{not-json'],
+      chunks: ['{}'],
     });
     const res = createWebhookResponse();
 
     await route!.handler(req as unknown, res as unknown);
 
-    expect(res.statusCode).toBe(400);
-    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('"invalid_json_payload"'));
+    expect(res.statusCode).toBe(401);
+    expect(res.end).toHaveBeenCalledWith(
+      expect.stringContaining('"missing_x_hub_signature_256_header"'),
+    );
+  });
+
+  it('returns 401 when webhook signature is invalid', async () => {
+    const api = createMockApi({
+      pluginConfig: {
+        dbPath: ':memory:',
+        github: {
+          owner: 'acme',
+          repo: 'vibe-flow',
+          ciFeedback: {
+            enabled: true,
+            webhookSecret: 'test-secret',
+          },
+        },
+      },
+    });
+    register(api);
+
+    const route = getCiRoute(api);
+    expect(route).not.toBeNull();
+
+    const req = createWebhookRequest({
+      headers: {
+        'x-github-event': 'check_run',
+        'x-hub-signature-256': 'sha256=deadbeef',
+      },
+      chunks: ['{}'],
+    });
+    const res = createWebhookResponse();
+
+    await route!.handler(req as unknown, res as unknown);
+
+    expect(res.statusCode).toBe(401);
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('"invalid_x_hub_signature_256"'));
+  });
+
+  it('accepts valid webhook signature before CI processing', async () => {
+    const secret = 'test-secret';
+    const api = createMockApi({
+      pluginConfig: {
+        dbPath: ':memory:',
+        github: {
+          owner: 'acme',
+          repo: 'vibe-flow',
+          ciFeedback: {
+            enabled: true,
+            webhookSecret: secret,
+          },
+        },
+      },
+    });
+    register(api);
+
+    const route = getCiRoute(api);
+    expect(route).not.toBeNull();
+
+    const payload = JSON.stringify({
+      action: 'completed',
+      repository: { full_name: 'acme/vibe-flow' },
+      check_run: {
+        name: 'CI / lint',
+        status: 'completed',
+        conclusion: 'success',
+        pull_requests: [{ number: 42 }],
+        check_suite: { head_branch: 'task/UNKNOWN-100-ci' },
+      },
+    });
+    const req = createWebhookRequest({
+      headers: {
+        'x-github-event': 'check_run',
+        'x-hub-signature-256': buildGithubSignature(secret, payload),
+      },
+      chunks: [payload],
+    });
+    const res = createWebhookResponse();
+
+    await route!.handler(req as unknown, res as unknown);
+
+    expect(res.statusCode).toBe(202);
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('"ok":true'));
+  });
+
+  it('throws when CI feedback is enabled without webhook secret', () => {
+    const api = createMockApi({
+      pluginConfig: {
+        dbPath: ':memory:',
+        github: {
+          ciFeedback: {
+            enabled: true,
+          },
+        },
+      },
+    });
+
+    expect(() => register(api)).toThrow(/webhookSecret must be configured/);
   });
 
   it('swallows unexpected errors from PR-Bot hook callback', async () => {
