@@ -14,7 +14,10 @@ import { DEFAULT_TRANSITION_GUARD_CONFIG } from '../../src/orchestrator/transiti
 
 const NOW = '2026-02-24T12:00:00.000Z';
 
-function createDeps(db: Database.Database): ToolDeps {
+function createDeps(
+  db: Database.Database,
+  concurrencyConfig?: ToolDeps['concurrencyConfig'],
+): ToolDeps {
   let idCounter = 0;
   const taskRepo = new SqliteTaskRepository(db);
   const orchestratorRepo = new SqliteOrchestratorRepository(db);
@@ -33,6 +36,7 @@ function createDeps(db: Database.Database): ToolDeps {
     now,
     validate: createValidator(),
     transitionGuardConfig: DEFAULT_TRANSITION_GUARD_CONFIG,
+    concurrencyConfig,
   };
 }
 
@@ -97,6 +101,33 @@ describe('task.transition tool', () => {
         rev: 0,
       }),
     ).rejects.toThrow(/not found/i);
+  });
+
+  it('should reject transition when concurrency capacity is exhausted', async () => {
+    deps.concurrencyConfig = {
+      maxLeasesPerAgent: 1,
+      maxTotalLeases: 10,
+    };
+
+    const createTool = taskCreateToolDef(deps);
+    const extraTask = await createTool.execute('c-extra', { title: 'Another task' });
+    const extraTaskId = (extraTask.details as { task: { id: string } }).task.id;
+    deps.leaseRepo.acquire(
+      extraTaskId,
+      'pm',
+      NOW,
+      '2026-02-24T12:05:00.000Z',
+    );
+
+    const tool = taskTransitionToolDef(deps);
+    await expect(
+      tool.execute('c-cap', {
+        id: taskId,
+        toStatus: 'grooming',
+        agentId: 'pm',
+        rev: 0,
+      }),
+    ).rejects.toThrow(/active leases/i);
   });
 
   it('should return structured JSON content', async () => {

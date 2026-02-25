@@ -11,6 +11,7 @@ import { LeaseConflictError, LeaseNotHeldError } from '../../src/domain/errors.j
 
 const NOW = '2026-02-24T12:00:00.000Z';
 const TASK_ID = '01LEASE_TEST_001';
+const TASK_ID_2 = '01LEASE_TEST_002';
 
 describe('SqliteLeaseRepository', () => {
   let db: Database.Database;
@@ -25,6 +26,10 @@ describe('SqliteLeaseRepository', () => {
     const task = createTaskRecord({ title: 'Test' }, TASK_ID, NOW);
     const orchState = createOrchestratorState(TASK_ID, NOW);
     taskRepo.create(task, orchState);
+
+    const task2 = createTaskRecord({ title: 'Test 2' }, TASK_ID_2, NOW);
+    const orchState2 = createOrchestratorState(TASK_ID_2, NOW);
+    taskRepo.create(task2, orchState2);
   });
 
   afterEach(() => {
@@ -143,6 +148,24 @@ describe('SqliteLeaseRepository', () => {
 
       const lease = leaseRepo.getByTaskId(TASK_ID);
       expect(lease).not.toBeNull();
+    });
+  });
+
+  describe('lease counts', () => {
+    it('counts active leases per agent', () => {
+      leaseRepo.acquire(TASK_ID, 'agent-pm', NOW, '2026-02-24T12:05:00.000Z');
+      leaseRepo.acquire(TASK_ID_2, 'agent-pm', NOW, '2026-02-24T12:06:00.000Z');
+
+      const active = leaseRepo.countByAgent('agent-pm', '2026-02-24T12:01:00.000Z');
+      expect(active).toBe(2);
+    });
+
+    it('counts all active leases globally', () => {
+      leaseRepo.acquire(TASK_ID, 'agent-pm', NOW, '2026-02-24T12:05:00.000Z');
+      leaseRepo.acquire(TASK_ID_2, 'agent-dev', NOW, '2026-02-24T12:06:00.000Z');
+
+      const active = leaseRepo.countActive('2026-02-24T12:01:00.000Z');
+      expect(active).toBe(2);
     });
   });
 });

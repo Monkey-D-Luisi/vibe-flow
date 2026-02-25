@@ -11,6 +11,22 @@ This monorepo contains reusable components for OpenClaw:
 - **`skills/`** -- OpenClaw skill definitions for ADR management, architecture patterns, and more.
 - **`packages/schemas/`** -- Shared JSON Schemas for quality tool I/O.
 
+## Architecture Overview
+
+```mermaid
+flowchart LR
+  OC[OpenClaw Gateway]
+  PT[product-team plugin]
+  DB[(SQLite task DB)]
+  GH[GitHub via gh CLI]
+  AG[Role Agents]
+
+  AG --> OC
+  OC --> PT
+  PT --> DB
+  PT --> GH
+```
+
 ## Prerequisites
 
 - [OpenClaw](https://openclaw.ai) installed
@@ -70,6 +86,9 @@ vibe-flow/
     backlog/                   # Epic specifications
     tasks/                     # Task specifications
     walkthroughs/              # Implementation journals
+    runbook.md                 # Operator runbook
+    api-reference.md           # Tool API reference
+    allowlist-rationale.md     # Tool allow-list justifications
     adr/                       # Architecture Decision Records
 ```
 

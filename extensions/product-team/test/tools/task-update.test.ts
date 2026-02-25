@@ -115,4 +115,17 @@ describe('task.update tool', () => {
       updateTool.execute('c1', { id: '01TASK_MISSING_0001', rev: 0 }),
     ).rejects.toThrow(/[Nn]ot [Ff]ound/);
   });
+
+  it('should reject secret-like metadata values', async () => {
+    const updateTool = taskUpdateToolDef(deps);
+    await expect(
+      updateTool.execute('c1', {
+        id: taskId,
+        rev: 0,
+        metadata: {
+          token: 'ghp_123456789012345678901234567890123456',
+        },
+      }),
+    ).rejects.toThrow(/secret-like values/i);
+  });
 });

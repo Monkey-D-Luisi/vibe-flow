@@ -54,13 +54,36 @@ describe('task.get tool', () => {
     const created = await createTool.execute('c1', { title: 'Test task' });
     const { task } = created.details as { task: { id: string } };
 
+    deps.eventLog.logToolCost(task.id, 'dev', {
+      toolName: 'quality.tests',
+      durationMs: 15,
+      success: true,
+    });
+    deps.eventLog.logLlmCost(task.id, 'dev', {
+      model: 'mock-model',
+      inputTokens: 20,
+      outputTokens: 10,
+      durationMs: 5,
+      stepId: 'step-1',
+      schemaKey: 'po_brief',
+    });
+
     const getTool = taskGetToolDef(deps);
     const result = await getTool.execute('c2', { id: task.id });
 
-    const details = result.details as { task: { id: string; title: string }; orchestratorState: { current: string } };
+    const details = result.details as {
+      task: { id: string; title: string };
+      orchestratorState: { current: string };
+      costSummary: { totalTokens: number; totalDurationMs: number; eventCount: number };
+    };
     expect(details.task.id).toBe(task.id);
     expect(details.task.title).toBe('Test task');
     expect(details.orchestratorState.current).toBe('backlog');
+    expect(details.costSummary).toEqual({
+      totalTokens: 30,
+      totalDurationMs: 20,
+      eventCount: 2,
+    });
   });
 
   it('should throw TaskNotFoundError for non-existent id', async () => {

@@ -62,6 +62,24 @@ function toObject(value: unknown): Record<string, unknown> {
   return {};
 }
 
+function toLlmCostPayload(step: Extract<WorkflowStep, { type: 'llm-task' }>): {
+  readonly model: string;
+  readonly inputTokens: number;
+  readonly outputTokens: number;
+  readonly durationMs: number;
+  readonly stepId: string;
+  readonly schemaKey: RoleSchemaKey;
+} {
+  return {
+    model: step.cost?.model ?? 'unknown',
+    inputTokens: step.cost?.inputTokens ?? 0,
+    outputTokens: step.cost?.outputTokens ?? 0,
+    durationMs: step.cost?.durationMs ?? 0,
+    stepId: step.id,
+    schemaKey: step.schemaKey,
+  };
+}
+
 export interface StepRunnerResult {
   task: TaskRecord;
   steps: StepExecutionResult[];
@@ -97,6 +115,7 @@ export function runWorkflowSteps(input: StepRunnerInput, deps: StepRunnerDeps): 
           stepType: step.type,
           schemaKey: step.schemaKey,
         });
+        eventLog.logLlmCost(task.id, input.agentId, toLlmCostPayload(step));
         continue;
       }
 

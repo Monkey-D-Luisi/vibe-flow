@@ -28,6 +28,10 @@ export interface ToolDeps {
   now: () => string;
   validate: ValidateFn;
   transitionGuardConfig: TransitionGuardConfig;
+  concurrencyConfig?: {
+    readonly maxLeasesPerAgent?: number;
+    readonly maxTotalLeases?: number;
+  };
   logger?: ToolLogger;
   workspaceDir?: string;
   vcs?: {
@@ -66,9 +70,10 @@ import { vcsBranchCreateToolDef } from './vcs-branch-create.js';
 import { vcsPrCreateToolDef } from './vcs-pr-create.js';
 import { vcsPrUpdateToolDef } from './vcs-pr-update.js';
 import { vcsLabelSyncToolDef } from './vcs-label-sync.js';
+import { withCostTracking } from './cost-tracking.js';
 
 export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
-  return [
+  const toolDefs = [
     taskCreateToolDef(deps),
     taskGetToolDef(deps),
     taskSearchToolDef(deps),
@@ -87,4 +92,6 @@ export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
     vcsPrUpdateToolDef(deps),
     vcsLabelSyncToolDef(deps),
   ];
+
+  return toolDefs.map((tool) => withCostTracking(tool, deps));
 }

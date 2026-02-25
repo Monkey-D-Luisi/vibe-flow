@@ -44,6 +44,13 @@ export class LeaseNotHeldError extends Error {
   }
 }
 
+export class LeaseCapacityError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'LeaseCapacityError';
+  }
+}
+
 export class ValidationError extends Error {
   constructor(message: string) {
     super(`Validation failed: ${message}`);

@@ -42,4 +42,28 @@ describe('createCorrelatedLogger', () => {
     expect(payload.op).toBe('debug-op');
     expect(payload.foo).toBe('bar');
   });
+
+  it('scrubs secret-like context values before logging', () => {
+    const baseLogger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    };
+    const logger = createCorrelatedLogger(baseLogger, 'CID-003');
+
+    logger.info('task.update', {
+      token: 'ghp_123456789012345678901234567890123456',
+      nested: {
+        apiKey: 'sk-abcdefghijklmnopqrstuvwxyz123456',
+      },
+    });
+
+    const payload = JSON.parse(baseLogger.info.mock.calls[0][0]) as {
+      token: string;
+      nested: { apiKey: string };
+    };
+    expect(payload.token).toBe('[REDACTED]');
+    expect(payload.nested.apiKey).toBe('[REDACTED]');
+  });
 });

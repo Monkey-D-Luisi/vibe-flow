@@ -4,6 +4,8 @@ import {
   createTaskRecord,
   createOrchestratorState,
 } from '../domain/task-record.js';
+import { ValidationError } from '../domain/errors.js';
+import { validateMetadataNoSecrets } from '../security/secret-detector.js';
 
 export function taskCreateToolDef(deps: ToolDeps): ToolDef {
   return {
@@ -16,6 +18,12 @@ export function taskCreateToolDef(deps: ToolDeps): ToolDef {
         TaskCreateParams,
         params,
       );
+      const secretPaths = validateMetadataNoSecrets(input.metadata ?? {});
+      if (secretPaths.length > 0) {
+        throw new ValidationError(
+          `Metadata contains secret-like values at: ${secretPaths.join(', ')}`,
+        );
+      }
       const id = deps.generateId();
       const now = deps.now();
       const task = createTaskRecord(input, id, now);

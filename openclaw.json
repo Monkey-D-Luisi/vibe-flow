@@ -39,11 +39,11 @@
         "workspace": "~/.openclaw/workspaces/product-team/pm",
         "tools": {
           "allow": [
-            "task_create",
-            "task_get",
-            "task_search",
-            "task_update",
-            "task_transition"
+            "task.create",
+            "task.get",
+            "task.search",
+            "task.update",
+            "task.transition"
           ]
         }
       },
@@ -53,10 +53,10 @@
         "workspace": "~/.openclaw/workspaces/product-team/architect",
         "tools": {
           "allow": [
-            "task_get",
-            "task_update",
-            "task_transition",
-            "workflow_state_get"
+            "task.get",
+            "task.update",
+            "task.transition",
+            "workflow.state.get"
           ]
         }
       },
@@ -66,14 +66,14 @@
         "workspace": "~/.openclaw/workspaces/product-team/dev",
         "tools": {
           "allow": [
-            "task_get",
-            "task_update",
-            "task_transition",
-            "quality_coverage",
-            "quality_lint",
-            "quality_complexity",
-            "workflow_step_run",
-            "workflow_state_get"
+            "task.get",
+            "task.update",
+            "task.transition",
+            "quality.coverage",
+            "quality.lint",
+            "quality.complexity",
+            "workflow.step.run",
+            "workflow.state.get"
           ]
         }
       },
@@ -83,12 +83,12 @@
         "workspace": "~/.openclaw/workspaces/product-team/qa",
         "tools": {
           "allow": [
-            "task_get",
-            "task_update",
-            "task_transition",
-            "quality_coverage",
-            "quality_lint",
-            "quality_complexity"
+            "task.get",
+            "task.update",
+            "task.transition",
+            "quality.coverage",
+            "quality.lint",
+            "quality.complexity"
           ]
         }
       },
@@ -98,9 +98,9 @@
         "workspace": "~/.openclaw/workspaces/product-team/reviewer",
         "tools": {
           "allow": [
-            "task_get",
-            "task_update",
-            "task_transition"
+            "task.get",
+            "task.update",
+            "task.transition"
           ]
         }
       },
