@@ -11,6 +11,19 @@ changes. If required evidence is missing or invalid, transitions fail with
 
 Only guarded transitions are validated. Unguarded transitions always pass.
 
+```mermaid
+stateDiagram-v2
+  backlog --> grooming
+  grooming --> design
+  grooming --> in_progress : fast-track (minor)
+  design --> in_progress : requires architecture_plan
+  in_progress --> in_review : requires dev_result
+  in_review --> qa : requires review_result
+  in_review --> in_progress : rejection loop
+  qa --> done : requires qa_report
+  qa --> in_progress : rework loop
+```
+
 ## Guard Matrix
 
 | Transition | Guard | Required metadata | Typical source |
