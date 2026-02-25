@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0008-pr-bot-skill.md`
 - Epic: EP04 -- GitHub Integration
 - Branch: `feat/0008-pr-bot-skill`
-- PR: (to be added)
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/168
 
 ---
 
