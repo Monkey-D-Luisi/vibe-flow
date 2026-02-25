@@ -24,6 +24,7 @@ describe('github validation helpers', () => {
     expect(() => assertValidPrTitle('Bad;title')).toThrow(/metacharacters/);
 
     expect(() => assertValidLabelName('infra ready')).not.toThrow();
+    expect(() => assertValidLabelName('scope:major')).not.toThrow();
     expect(() => assertValidLabelName('bad@label')).toThrow(/Invalid label name/);
 
     expect(() => assertValidLabelColor('abc123')).not.toThrow();

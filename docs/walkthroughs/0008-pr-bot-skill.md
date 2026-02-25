@@ -28,7 +28,7 @@ Delivered behavior:
 ## Context
 
 Task `0005` completed core VCS tooling but deferred PR-Bot automation. EP04
-remained pending due missing `4.3` and `4.4` behaviors.
+remained pending due to missing `4.3` and `4.4` behaviors.
 
 ---
 

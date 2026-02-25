@@ -189,6 +189,7 @@ export function register(api: OpenClawPluginApi): void {
     logger: api.logger,
     githubOwner: githubConfig.owner,
     githubRepo: githubConfig.repo,
+    defaultBase: githubConfig.defaultBase,
     config: githubConfig.prBot,
   });
 
@@ -222,7 +223,11 @@ export function register(api: OpenClawPluginApi): void {
 
   if (githubConfig.prBot.enabled) {
     api.on('after_tool_call', async (event, ctx) => {
-      await prBotAutomation.handleAfterToolCall(event, ctx);
+      try {
+        await prBotAutomation.handleAfterToolCall(event, ctx);
+      } catch (error: unknown) {
+        api.logger.warn(`pr-bot after_tool_call hook failed: ${String(error)}`);
+      }
     });
     api.logger.info('registered PR-Bot after_tool_call hook');
   }

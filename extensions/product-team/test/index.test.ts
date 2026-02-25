@@ -127,6 +127,23 @@ describe('product-team plugin', () => {
     expect(hookCalls.some((call: unknown[]) => call[0] === 'after_tool_call')).toBe(false);
   });
 
+  it('swallows unexpected errors from PR-Bot hook callback', async () => {
+    const api = createMockApi();
+    register(api);
+
+    const hookCalls = (api.on as ReturnType<typeof vi.fn>).mock.calls;
+    const afterToolCallHook = hookCalls
+      .find((call: unknown[]) => call[0] === 'after_tool_call')?.[1] as
+      | ((event: unknown, ctx: unknown) => Promise<void>)
+      | undefined;
+
+    expect(afterToolCallHook).toBeDefined();
+    await expect(afterToolCallHook!(null, {})).resolves.toBeUndefined();
+    expect(api.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('pr-bot after_tool_call hook failed:'),
+    );
+  });
+
   it('defaults dbPath to :memory: when plugin config dbPath is not a string', () => {
     const api = createMockApi({
       pluginConfig: { dbPath: 123 },
