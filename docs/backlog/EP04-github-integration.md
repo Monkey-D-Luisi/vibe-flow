@@ -71,7 +71,7 @@ Register the following tools:
 - Branch naming convention enforced (`task/<id>-<slug>`)
 - PR template auto-populated from task metadata
 
-### 4.3 PR-Bot skill
+### 4.3 PR-Bot skill (DONE)
 
 - Create a skill that automates standard PR workflows
 - Auto-label PRs based on task metadata (scope, epic, area)
@@ -100,7 +100,6 @@ Register the following tools:
 - Quality gate logic (EP05)
 - Security hardening of tokens (EP06)
 - CI webhook listener (future sub-task)
-- Auto-reviewer assignment (future enhancement)
 
 ## Task Spec
 

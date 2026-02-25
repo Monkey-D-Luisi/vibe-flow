@@ -178,6 +178,7 @@ Task-level execution status source of truth:
 - [Task 0005: GitHub Integration](tasks/0005-github-integration.md) -- DONE (EP04)
 - [Task 0006: Quality & Observability](tasks/0006-quality-observability.md) -- DONE (EP05)
 - [Task 0007: Hardening](tasks/0007-hardening.md) -- DONE (EP06)
+- [Task 0008: PR-Bot Skill Automation](tasks/0008-pr-bot-skill.md) -- DONE (EP04)
 
 ### Epic Backlogs
 - [EP01 Backlog](backlog/EP01-openclaw-foundation.md)
