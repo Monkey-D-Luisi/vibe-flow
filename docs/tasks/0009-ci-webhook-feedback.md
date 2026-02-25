@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | EP04 -- GitHub Integration |
 | Priority | HIGH |
 | Scope | MAJOR |
@@ -109,13 +109,13 @@ Open issue triage (`docs/audits/2026-02-25-open-issues-triage.md`) identifies is
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Tests written and passing
-- [ ] Coverage meets threshold (>= 80% major / >= 70% minor)
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated
-- [ ] Code reviewed (if applicable)
+- [x] All Acceptance Criteria met
+- [x] Tests written and passing
+- [x] Coverage meets threshold (>= 80% major / >= 70% minor)
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated
+- [x] Code reviewed (if applicable)
 - [ ] PR created and linked
 
 ---
