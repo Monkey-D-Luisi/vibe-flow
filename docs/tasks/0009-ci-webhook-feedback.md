@@ -116,7 +116,7 @@ Open issue triage (`docs/audits/2026-02-25-open-issues-triage.md`) identifies is
 - [x] TypeScript compiles without errors
 - [x] Walkthrough updated
 - [x] Code reviewed (if applicable)
-- [ ] PR created and linked
+- [x] PR created and linked
 
 ---
 
