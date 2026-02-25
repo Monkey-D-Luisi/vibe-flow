@@ -85,6 +85,8 @@ Get-Content docs/walkthroughs/0009-ci-webhook-feedback.md
 pnpm lint
 pnpm typecheck
 pnpm test
+gh pr checks 172 --watch
+gh pr merge 172 --rebase --delete-branch
 ~~~
 
 ---
@@ -104,8 +106,15 @@ pnpm test
 
 ## Phase D - CI / Merge
 
-Pending after push:
+CI and merge execution:
 
 - `gh pr checks 172 --watch`
-- Merge when checks are green:
-  `gh pr merge 172 --rebase --delete-branch`
+  - First watch timed out locally; retried once and completed successfully.
+  - Final remote checks:
+    - `test-lint-build`: pass
+    - `semgrep-cloud-platform/scan`: pass
+    - `sync`: pass
+- `gh pr merge 172 --rebase --delete-branch`
+  - PR merged on 2026-02-25 (`MERGED`)
+  - Branch `feat/0012-align-runbook-schema-and-runtime-config-contract`
+    deleted after merge.
