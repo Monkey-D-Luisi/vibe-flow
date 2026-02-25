@@ -68,6 +68,9 @@ Configuration lives in `openclaw.json`.
 }
 ```
 
+Canonical workflow settings are under `plugins.entries.product-team.config.workflow`.
+Root-level `concurrency` keys are not part of the plugin config contract.
+
 ### Environment variables
 
 - No required plugin-specific environment variables.
