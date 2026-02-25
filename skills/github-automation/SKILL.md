@@ -16,6 +16,14 @@ You are the **Infrastructure Engineer** agent. Your role is to automate GitHub o
 
 ## Workflow
 
+### Hook Integration
+- Trigger: `after_tool_call` for `vcs.pr.create`
+- Behavior:
+  - Derive labels from task metadata (`scope:*`, `epic:*`, `area:*`)
+  - Assign reviewers from `plugins.entries.product-team.config.github.prBot.reviewers`
+  - Post a status comment with task link and checklist
+- Duplicate-safe: if `vcs.pr.create` returns cached result, PR-Bot side effects are skipped
+
 ### Branch Creation
 - Naming: `task/<task-id>-<slug>` (e.g., `task/01HQ3...-add-login-form`)
 - Base branch: configurable, defaults to `main`

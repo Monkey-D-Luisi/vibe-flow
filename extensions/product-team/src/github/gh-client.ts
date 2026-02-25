@@ -282,4 +282,38 @@ export class GhClient {
       '--force',
     ]);
   }
+
+  async requestReviewers(prNumber: number, reviewers: string[]): Promise<void> {
+    if (reviewers.length === 0) {
+      return;
+    }
+
+    const args: string[] = [
+      'pr',
+      'edit',
+      String(prNumber),
+      '--repo',
+      `${this.config.owner}/${this.config.repo}`,
+    ];
+
+    for (const reviewer of reviewers) {
+      args.push('--add-reviewer', reviewer);
+    }
+
+    await this.run(args);
+  }
+
+  async commentPr(prNumber: number, body: string): Promise<void> {
+    await withBodyFile(body, async (bodyFilePath) => {
+      await this.run([
+        'pr',
+        'comment',
+        String(prNumber),
+        '--repo',
+        `${this.config.owner}/${this.config.repo}`,
+        '--body-file',
+        bodyFilePath,
+      ]);
+    });
+  }
 }

@@ -24,6 +24,7 @@ import { GhClient } from './github/gh-client.js';
 import { BranchService } from './github/branch-service.js';
 import { PrService } from './github/pr-service.js';
 import { LabelService } from './github/label-service.js';
+import { PrBotAutomation, type PrBotConfig } from './github/pr-bot.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 
@@ -32,6 +33,7 @@ interface GithubConfig {
   readonly repo: string;
   readonly defaultBase: string;
   readonly timeoutMs: number;
+  readonly prBot: PrBotConfig;
 }
 
 interface ConcurrencyConfig {
@@ -54,13 +56,34 @@ function asPositiveInteger(value: unknown): number | null {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null;
 }
 
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
 function resolveGithubConfig(pluginConfig: Record<string, unknown> | undefined): GithubConfig {
   const github = asRecord(pluginConfig?.github);
+  const prBot = asRecord(github?.prBot);
+  const reviewers = asRecord(prBot?.reviewers);
   return {
     owner: asNonEmptyString(github?.owner) ?? 'local-owner',
     repo: asNonEmptyString(github?.repo) ?? 'local-repo',
     defaultBase: asNonEmptyString(github?.defaultBase) ?? 'main',
     timeoutMs: asPositiveInteger(github?.timeoutMs) ?? 30_000,
+    prBot: {
+      enabled: typeof prBot?.enabled === 'boolean' ? prBot.enabled : true,
+      reviewers: {
+        default: asStringArray(reviewers?.default),
+        major: asStringArray(reviewers?.major),
+        minor: asStringArray(reviewers?.minor),
+        patch: asStringArray(reviewers?.patch),
+      },
+    },
   };
 }
 
@@ -157,6 +180,17 @@ export function register(api: OpenClawPluginApi): void {
     generateId,
     now,
   });
+  const prBotAutomation = new PrBotAutomation({
+    taskReader: taskRepo,
+    labelService,
+    prService,
+    ghClient,
+    eventLog,
+    logger: api.logger,
+    githubOwner: githubConfig.owner,
+    githubRepo: githubConfig.repo,
+    config: githubConfig.prBot,
+  });
 
   // Register EP02 tools
   const deps = {
@@ -184,6 +218,13 @@ export function register(api: OpenClawPluginApi): void {
 
   for (const tool of tools) {
     api.registerTool(tool);
+  }
+
+  if (githubConfig.prBot.enabled) {
+    api.on('after_tool_call', async (event, ctx) => {
+      await prBotAutomation.handleAfterToolCall(event, ctx);
+    });
+    api.logger.info('registered PR-Bot after_tool_call hook');
   }
 
   api.logger.info(`registered ${tools.length} task/workflow/quality/vcs tools`);

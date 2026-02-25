@@ -36,7 +36,16 @@ Configuration lives in `openclaw.json`.
             "owner": "org-or-user",
             "repo": "repo-name",
             "defaultBase": "main",
-            "timeoutMs": 30000
+            "timeoutMs": 30000,
+            "prBot": {
+              "enabled": true,
+              "reviewers": {
+                "default": ["infra-reviewer"],
+                "major": ["architect-reviewer"],
+                "minor": [],
+                "patch": []
+              }
+            }
           },
           "workflow": {
             "transitionGuards": {

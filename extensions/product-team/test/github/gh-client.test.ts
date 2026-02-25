@@ -121,4 +121,28 @@ describe('GhClient', () => {
       client.createBranch('task/TASK-1-feature', 'base-sha'),
     ).rejects.toBeInstanceOf(GhCommandError);
   });
+
+  it('should request reviewers using gh pr edit', async () => {
+    mockSafeSpawn.mockResolvedValueOnce(ok(''));
+
+    const client = new GhClient({ owner: 'acme', repo: 'vibe' });
+    await client.requestReviewers(42, ['alice', 'bob']);
+
+    const args = mockSafeSpawn.mock.calls[0][1];
+    expect(args).toEqual(
+      expect.arrayContaining(['pr', 'edit', '42', '--add-reviewer', 'alice', '--add-reviewer', 'bob']),
+    );
+  });
+
+  it('should post PR comments using a body file', async () => {
+    mockSafeSpawn.mockResolvedValueOnce(ok(''));
+
+    const client = new GhClient({ owner: 'acme', repo: 'vibe' });
+    await client.commentPr(42, 'Automated PR status');
+
+    const args = mockSafeSpawn.mock.calls[0][1];
+    expect(args).toEqual(
+      expect.arrayContaining(['pr', 'comment', '42', '--body-file']),
+    );
+  });
 });
