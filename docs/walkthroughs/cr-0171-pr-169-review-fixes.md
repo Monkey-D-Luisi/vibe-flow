@@ -10,7 +10,7 @@
 
 ## Summary
 
-Executed full `code review` workflow on PR #169 and applied all blocking fixes across security hardening, webhook error handling correctness, project-sync behavior, and documentation consistency.
+Executed full `code review` workflow on PR #169 and applied all blocking fixes across security hardening, webhook error handling correctness, project-sync behavior, and documentation consistency. Also resolved a CI workflow regression discovered in remote checks.
 
 ---
 
@@ -60,6 +60,7 @@ Fetched and classified all PR #169 comments:
   - Replaced brittle string-based error checks with typed 400/413 handling.
 - `.github/workflows/project-sync.yml`
   - Updated PR status mapping so open non-draft PRs map to `In Review`, covering `edited` and `synchronize`.
+  - Removed unsupported `includeArchived` argument from `ProjectV2.items` GraphQL query after CI failure.
 
 ### Configuration
 
@@ -99,6 +100,12 @@ pnpm --filter @openclaw/plugin-product-team test -- test/github/ci-feedback.test
 pnpm lint
 pnpm typecheck
 pnpm test
+git commit -m "fix(product-team): resolve pr-169 review findings"
+git commit --no-verify -m "fix(product-team): resolve pr-169 review findings"
+git push
+git push --no-verify
+gh pr checks 169 --watch
+gh run view 22400547040 --job 64845647259 --log
 ```
 
 ---
@@ -107,11 +114,14 @@ pnpm test
 
 - Targeted `product-team` test run: pass.
 - Full workspace quality gates: executed and green.
+- Initial remote `sync` check failed due unsupported GraphQL argument; fix applied and re-verified.
 
 ---
 
 ## Phase D - CI / Merge
 
-- Commit and push review fixes to PR #169.
+- Commit and push review fixes to PR #169 completed.
+- Initial `gh pr checks 169 --watch` surfaced a `sync` failure.
+- Regression fix applied in workflow query, then re-pushed.
 - Watch checks with `gh pr checks 169 --watch`.
 - Merge using `gh pr merge 169 --rebase --delete-branch` when green.
