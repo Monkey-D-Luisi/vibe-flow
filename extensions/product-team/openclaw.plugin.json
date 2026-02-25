@@ -67,6 +67,36 @@
             }
           }
         }
+      },
+      "workflow": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "transitionGuards": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "coverage": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "major": { "type": "number", "minimum": 0, "maximum": 100, "default": 80 },
+                  "minor": { "type": "number", "minimum": 0, "maximum": 100, "default": 70 },
+                  "patch": { "type": "number", "minimum": 0, "maximum": 100, "default": 70 }
+                }
+              },
+              "maxReviewRounds": { "type": "integer", "minimum": 1, "default": 3 }
+            }
+          },
+          "concurrency": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "maxLeasesPerAgent": { "type": "integer", "minimum": 1, "default": 3 },
+              "maxTotalLeases": { "type": "integer", "minimum": 1, "default": 10 }
+            }
+          }
+        }
       }
     }
   }

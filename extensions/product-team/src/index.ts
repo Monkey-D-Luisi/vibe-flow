@@ -146,11 +146,11 @@ function resolveGithubConfig(pluginConfig: Record<string, unknown> | undefined):
   };
 }
 
-function resolveConcurrencyConfig(
+export function resolveConcurrencyConfig(
   pluginConfig: Record<string, unknown> | undefined,
 ): ConcurrencyConfig {
   const workflow = asRecord(pluginConfig?.workflow);
-  const concurrency = asRecord(workflow?.concurrency) ?? asRecord(pluginConfig?.concurrency);
+  const concurrency = asRecord(workflow?.concurrency);
   return {
     maxLeasesPerAgent: asPositiveInteger(concurrency?.maxLeasesPerAgent) ?? 3,
     maxTotalLeases: asPositiveInteger(concurrency?.maxTotalLeases) ?? 10,
