@@ -170,6 +170,14 @@ describe('SqliteEventRepository', () => {
         payload: {},
         createdAt: '2026-02-24T12:01:00.000Z',
       });
+      eventRepo.append({
+        id: '01EVT_F_0003',
+        taskId: TASK_ID,
+        eventType: 'task.transition',
+        agentId: 'dev',
+        payload: { from: 'qa', to: 'done' },
+        createdAt: '2026-02-24T12:03:00.000Z',
+      });
 
       const result = eventRepo.queryEvents({
         taskId: TASK_ID,
@@ -179,6 +187,14 @@ describe('SqliteEventRepository', () => {
       });
       expect(result.total).toBe(1);
       expect(result.events[0].eventType).toBe('quality.coverage');
+      expect(result.aggregates.avgCycleTimeMs).toBeNull();
+
+      const unfiltered = eventRepo.queryEvents({
+        taskId: TASK_ID,
+        limit: 10,
+        offset: 0,
+      });
+      expect(unfiltered.aggregates.avgCycleTimeMs).toBeGreaterThan(0);
     });
   });
 });

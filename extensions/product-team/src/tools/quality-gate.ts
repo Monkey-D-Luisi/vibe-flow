@@ -48,6 +48,10 @@ function asNumber(value: unknown, fallback = 0): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
+function asOptionalNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
 function mapViolationCode(checkName: string): QualityGateOutput['violations'][number]['code'] {
   if (checkName.startsWith('tests')) {
     return 'TESTS_FAILED';
@@ -110,15 +114,19 @@ export function qualityGateToolDef(deps: ToolDeps): ToolDef {
       const devResult = asRecord(metadata.dev_result);
       const rgrLog = devResult?.red_green_refactor_log;
       const rgrCount = Array.isArray(rgrLog) ? rgrLog.length : undefined;
+      const lintErrors = lint ? asOptionalNumber(lint.errors) : undefined;
+      const lintWarnings = lint ? asOptionalNumber(lint.warnings) : undefined;
+      const complexityAvg = complexityRoot ? asOptionalNumber(complexityRoot.avg) : undefined;
+      const complexityMax = complexityRoot ? asOptionalNumber(complexityRoot.max) : undefined;
 
       const scope = input.scope ?? task.scope;
       const policy = mergePolicy(resolvePolicy(DEFAULT_POLICIES, scope), input.policy);
       const gateResult = evaluateGate(
         {
           coveragePct: resolveCoverageLines(metadata),
-          lintErrors: lint ? asNumber(lint.errors) : 0,
-          lintWarnings: lint ? asNumber(lint.warnings) : 0,
-          maxCyclomatic: complexityRoot ? asNumber(complexityRoot.max) : 0,
+          lintErrors,
+          lintWarnings,
+          maxCyclomatic: complexityMax,
           testsExist: !!qaReport,
           testsPassed: qaReport ? asNumber(qaReport.failed) === 0 : false,
           rgrCount,
@@ -137,12 +145,12 @@ export function qualityGateToolDef(deps: ToolDeps): ToolDef {
             lines: resolveCoverageLines(metadata),
           },
           lint: {
-            errors: lint ? asNumber(lint.errors) : 0,
-            warnings: lint ? asNumber(lint.warnings) : 0,
+            errors: lintErrors ?? 0,
+            warnings: lintWarnings ?? 0,
           },
           complexity: {
-            avgCyclomatic: complexityRoot ? asNumber(complexityRoot.avg) : 0,
-            maxCyclomatic: complexityRoot ? asNumber(complexityRoot.max) : 0,
+            avgCyclomatic: complexityAvg ?? 0,
+            maxCyclomatic: complexityMax ?? 0,
           },
         },
         violations: gateResult.checks

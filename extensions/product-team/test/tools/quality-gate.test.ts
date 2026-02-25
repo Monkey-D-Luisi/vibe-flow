@@ -111,4 +111,32 @@ describe('quality.gate tool', () => {
     const quality = (details.task.metadata.quality as Record<string, unknown>);
     expect(quality.gate).toBeDefined();
   });
+
+  it('fails when lint or complexity evidence is missing', async () => {
+    const task = deps.taskRepo.getById(taskId)!;
+    deps.taskRepo.update(
+      taskId,
+      {
+        metadata: {
+          qa_report: task.metadata.qa_report,
+          dev_result: task.metadata.dev_result,
+        },
+      },
+      task.rev,
+      NOW,
+    );
+
+    const tool = qualityGateToolDef(deps);
+    const result = await tool.execute('gate-2', {
+      taskId,
+      agentId: 'qa',
+    });
+
+    const details = result.details as {
+      output: { passed: boolean; violations: Array<{ code: string; message: string }> };
+    };
+    expect(details.output.passed).toBe(false);
+    expect(details.output.violations.some((violation) => violation.code === 'LINT_ERRORS')).toBe(true);
+    expect(details.output.violations.some((violation) => violation.code === 'COMPLEXITY_HIGH')).toBe(true);
+  });
 });

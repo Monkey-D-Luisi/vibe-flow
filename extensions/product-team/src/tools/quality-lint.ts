@@ -16,11 +16,9 @@ import {
 import { mergeLintMetrics } from './quality-metadata.js';
 
 const DEFAULT_TIMEOUT_MS = 120_000;
-const DEFAULT_COMMANDS = {
-  eslint: 'pnpm --filter @openclaw/plugin-product-team exec eslint src/**/*.ts -f json --no-cache',
-  ruff: 'ruff check --output-format json .',
-} as const;
 const ENV_ALLOW = ['NODE_ENV', 'PATH', 'Path', 'HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'CI'];
+const DEFAULT_ESLINT_TARGETS = ['src/**/*.ts'];
+const DEFAULT_RUFF_TARGETS = ['.'];
 
 interface LintSummaryByRule {
   ruleId: string | null;
@@ -72,6 +70,26 @@ function summarizeByRule(byFile: NormalizedLintFileReport[]): LintSummaryByRule[
   });
 }
 
+function normalizePaths(paths: string[] | undefined): string[] | undefined {
+  if (!paths) {
+    return undefined;
+  }
+  const normalized = paths.map((value) => value.trim()).filter((value) => value.length > 0);
+  if (normalized.some((value) => /\s/.test(value))) {
+    throw new Error('INVALID_INPUT: paths cannot contain whitespace. Use command override for complex paths.');
+  }
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function buildDefaultCommand(engine: 'eslint' | 'ruff', paths: string[] | undefined): string {
+  if (engine === 'eslint') {
+    const targets = paths && paths.length > 0 ? paths : DEFAULT_ESLINT_TARGETS;
+    return `pnpm --filter @openclaw/plugin-product-team exec eslint ${targets.join(' ')} -f json --no-cache`;
+  }
+  const targets = paths && paths.length > 0 ? paths : DEFAULT_RUFF_TARGETS;
+  return `ruff check --output-format json ${targets.join(' ')}`;
+}
+
 export function qualityLintToolDef(deps: ToolDeps): ToolDef {
   return {
     name: 'quality.lint',
@@ -83,7 +101,8 @@ export function qualityLintToolDef(deps: ToolDeps): ToolDef {
       const task = getTaskOrThrow(deps, input.taskId);
       const execCtx = beginQualityExecution(deps, input.taskId, input.agentId);
       const engine = input.engine ?? 'eslint';
-      const command = input.command ?? DEFAULT_COMMANDS[engine];
+      const paths = normalizePaths(input.paths);
+      const command = input.command ?? buildDefaultCommand(engine, paths);
       const workingDir = resolveWorkingDir(deps, input.workingDir);
       const timeoutMs = input.timeoutMs ?? DEFAULT_TIMEOUT_MS;
       const { cmd, args } = parseCommand(command);

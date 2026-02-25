@@ -154,45 +154,25 @@ export class SqliteEventRepository {
       byEventType[row.id] = row.count;
     }
 
-    const cycleSql = filters.taskId
-      ? `
+    const cycleSql = `
+      SELECT
+        CAST(AVG((julianday(done_at) - julianday(created_at)) * 86400000.0) AS REAL) as avg_ms
+      FROM (
         SELECT
-          CAST(AVG((julianday(done_at) - julianday(created_at)) * 86400000.0) AS REAL) as avg_ms
-        FROM (
-          SELECT
-            task_id,
-            MIN(CASE WHEN event_type = 'task.created' THEN created_at END) as created_at,
-            MIN(CASE
-              WHEN event_type = 'task.transition'
-                AND json_extract(payload, '$.to') = 'done'
-              THEN created_at
-            END) as done_at
-          FROM event_log
-          WHERE task_id = ?
-          GROUP BY task_id
-        )
-        WHERE created_at IS NOT NULL AND done_at IS NOT NULL
-      `
-      : `
-        SELECT
-          CAST(AVG((julianday(done_at) - julianday(created_at)) * 86400000.0) AS REAL) as avg_ms
-        FROM (
-          SELECT
-            task_id,
-            MIN(CASE WHEN event_type = 'task.created' THEN created_at END) as created_at,
-            MIN(CASE
-              WHEN event_type = 'task.transition'
-                AND json_extract(payload, '$.to') = 'done'
-              THEN created_at
-            END) as done_at
-          FROM event_log
-          GROUP BY task_id
-        )
-        WHERE created_at IS NOT NULL AND done_at IS NOT NULL
-      `;
-    const cycleRow = filters.taskId
-      ? this.db.prepare(cycleSql).get(filters.taskId) as { avg_ms: number | null }
-      : this.db.prepare(cycleSql).get() as { avg_ms: number | null };
+          task_id,
+          MIN(CASE WHEN event_type = 'task.created' THEN created_at END) as created_at,
+          MIN(CASE
+            WHEN event_type = 'task.transition'
+              AND json_extract(payload, '$.to') = 'done'
+            THEN created_at
+          END) as done_at
+        FROM event_log
+        ${clause}
+        GROUP BY task_id
+      )
+      WHERE created_at IS NOT NULL AND done_at IS NOT NULL
+    `;
+    const cycleRow = this.db.prepare(cycleSql).get(...params) as { avg_ms: number | null };
 
     return {
       events,

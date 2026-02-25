@@ -52,4 +52,21 @@ describe('quality gate policy', () => {
 
     expect(result.verdict).toBe('pass');
   });
+
+  it('fails when lint or complexity metrics are missing', () => {
+    const policy = resolvePolicy(DEFAULT_POLICIES, 'major');
+    const result = evaluateGate(
+      {
+        coveragePct: 85,
+        testsExist: true,
+        testsPassed: true,
+        rgrCount: 0,
+      },
+      policy,
+    );
+
+    expect(result.verdict).toBe('fail');
+    expect(result.checks.some((check) => check.name === 'lint-errors' && check.verdict === 'fail')).toBe(true);
+    expect(result.checks.some((check) => check.name === 'complexity' && check.verdict === 'fail')).toBe(true);
+  });
 });

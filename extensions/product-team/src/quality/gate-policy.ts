@@ -51,10 +51,10 @@ function checkLintErrors(metrics: GateMetrics, policy: GatePolicy): GateCheckRes
   if (metrics.lintErrors === undefined) {
     return {
       name: 'lint-errors',
-      verdict: 'skip',
+      verdict: 'fail',
       actual: 'N/A',
       threshold: policy.lintMaxErrors,
-      message: 'Lint data not available',
+      message: 'Lint data not available. Run quality.lint first',
     };
   }
 
@@ -75,10 +75,10 @@ function checkLintWarnings(metrics: GateMetrics, policy: GatePolicy): GateCheckR
   if (metrics.lintWarnings === undefined) {
     return {
       name: 'lint-warnings',
-      verdict: 'skip',
+      verdict: 'fail',
       actual: 'N/A',
       threshold: policy.lintMaxWarnings,
-      message: 'Lint data not available',
+      message: 'Lint data not available. Run quality.lint first',
     };
   }
 
@@ -99,10 +99,10 @@ function checkComplexity(metrics: GateMetrics, policy: GatePolicy): GateCheckRes
   if (metrics.maxCyclomatic === undefined) {
     return {
       name: 'complexity',
-      verdict: 'skip',
+      verdict: 'fail',
       actual: 'N/A',
       threshold: policy.complexityMaxCyclomatic,
-      message: 'Complexity data not available',
+      message: 'Complexity data not available. Run quality.complexity first',
     };
   }
 
