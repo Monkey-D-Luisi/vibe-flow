@@ -18,7 +18,7 @@ structured JSON contracts, and is governed by tool-policy allow-lists.
 | 1     | EP01 | OpenClaw Foundation             | None         | March 2026   | DONE    |
 | 1     | EP02 | Task Engine                     | None         | March 2026   | DONE    |
 | 2     | EP03 | Role Execution                  | EP02         | April 2026   | DONE    |
-| 3     | EP04 | GitHub Integration              | EP02         | May-Jun 2026 | PENDING |
+| 3     | EP04 | GitHub Integration              | EP02         | May-Jun 2026 | DONE    |
 | 4     | EP05 | Quality & Observability         | EP02, EP03   | July 2026    | DONE    |
 | 5     | EP06 | Hardening                       | EP03, EP04   | August 2026  | DONE    |
 
@@ -179,7 +179,7 @@ Task-level execution status source of truth:
 - [Task 0006: Quality & Observability](tasks/0006-quality-observability.md) -- DONE (EP05)
 - [Task 0007: Hardening](tasks/0007-hardening.md) -- DONE (EP06)
 - [Task 0008: PR-Bot Skill Automation](tasks/0008-pr-bot-skill.md) -- DONE (EP04)
-- [Task 0009: CI Webhook Feedback](tasks/0009-ci-webhook-feedback.md) -- IN_PROGRESS (EP04)
+- [Task 0009: CI Webhook Feedback](tasks/0009-ci-webhook-feedback.md) -- DONE (EP04)
 
 ### Epic Backlogs
 - [EP01 Backlog](backlog/EP01-openclaw-foundation.md)

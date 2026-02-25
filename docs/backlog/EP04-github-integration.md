@@ -3,7 +3,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | Epic        | EP04                                             |
-| Status      | PENDING                                          |
+| Status      | DONE                                             |
 | Priority    | P1                                               |
 | Phase       | 3 -- GitHub Integration                          |
 | Target      | May--June 2026                                   |
@@ -83,7 +83,7 @@ Register the following tools:
 - Reviewers assigned based on configuration
 - Status comment posted with task link
 
-### 4.4 CI webhook feedback
+### 4.4 CI webhook feedback (DONE)
 
 - Listen for CI status check events
 - Update task metadata with build results
@@ -99,12 +99,13 @@ Register the following tools:
 
 - Quality gate logic (EP05)
 - Security hardening of tokens (EP06)
-- CI webhook listener (future sub-task)
 
 ## Task Spec
 
-Full implementation spec with pseudocode, TypeBox schemas, test plan, and
-file-by-file breakdown: [`docs/tasks/0005-github-integration.md`](../tasks/0005-github-integration.md)
+Full implementation specs:
+- [`docs/tasks/0005-github-integration.md`](../tasks/0005-github-integration.md)
+- [`docs/tasks/0008-pr-bot-skill.md`](../tasks/0008-pr-bot-skill.md)
+- [`docs/tasks/0009-ci-webhook-feedback.md`](../tasks/0009-ci-webhook-feedback.md)
 
 ## Prerequisite
 
