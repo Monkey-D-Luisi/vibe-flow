@@ -5,6 +5,17 @@ current architecture.
 
 ## Current Topology
 
+```mermaid
+flowchart TD
+  OC[OpenClaw Gateway] --> PT[product-team plugin]
+  PT --> T1[task.*]
+  PT --> T2[workflow.*]
+  PT --> T3[quality.*]
+  PT --> T4[vcs.*]
+  PT --> DB[(SQLite DB + event log)]
+  CI[Local/CI shell] --> QG[quality-gate CLI]
+```
+
 ```
 OpenClaw Gateway
   -> product-team plugin (runtime plugin loaded from openclaw.json)

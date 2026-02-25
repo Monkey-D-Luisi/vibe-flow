@@ -50,29 +50,29 @@ pnpm build
 
 ```
 vibe-flow/
-  .agent.md
-  .agent/rules/
-  .agent/templates/
-  AGENTS.md
-  CLAUDE.md
-  openclaw.json
-  extensions/
+  .agent.md                 # Governance and execution contract
+  .agent/rules/             # Workflow rules (next task, review, PR, audits)
+  .agent/templates/         # Templates for tasks, walkthroughs, and reviews
+  AGENTS.md                 # Generic multi-agent operating instructions
+  CLAUDE.md                 # Claude-focused operating instructions
+  openclaw.json             # OpenClaw runtime configuration
+  extensions/               # OpenClaw plugins and quality CLI package
     product-team/
       src/
-        domain/
-        orchestrator/
-        persistence/
-        quality/
-        github/
-        tools/
+        domain/             # Task and workflow domain model
+        orchestrator/       # State machine, transitions, guard enforcement
+        persistence/        # SQLite repositories and migrations
+        quality/            # Runtime quality logic used by product-team tools
+        github/             # GitHub integration via gh CLI
+        tools/              # Registered OpenClaw tools (task/workflow/quality/vcs)
       test/
     quality-gate/
-      src/
-      cli/
+      src/                  # Standalone quality-gate engine
+      cli/                  # q:gate / q:* CLI entrypoints
       test/
-  packages/
+  packages/                 # Shared packages
     schemas/
-  skills/
+  skills/                   # Role skills loaded by OpenClaw
     adr/
     architecture-design/
     code-review/
@@ -81,11 +81,11 @@ vibe-flow/
     qa-testing/
     requirements-grooming/
     tdd-implementation/
-  docs/
-    roadmap.md
-    runbook.md
-    api-reference.md
-    allowlist-rationale.md
+  docs/                     # Product, operations, and execution documentation
+    roadmap.md              # Status and execution queue
+    runbook.md              # Operator setup and troubleshooting
+    api-reference.md        # Tool-by-tool contract reference
+    allowlist-rationale.md  # Agent-tool access justifications
     extension-integration.md
     error-recovery.md
     transition-guard-evidence.md
