@@ -3,7 +3,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | Epic        | EP05                                             |
-| Status      | PENDING                                          |
+| Status      | DONE                                             |
 | Priority    | P2                                               |
 | Phase       | 4 -- Quality & Observability                     |
 | Target      | July 2026                                        |
