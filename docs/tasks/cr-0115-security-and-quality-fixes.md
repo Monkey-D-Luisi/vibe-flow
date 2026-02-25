@@ -3,7 +3,7 @@
 | Field     | Value                              |
 |-----------|------------------------------------|
 | PR        | #115                               |
-| Status    | done                               |
+| Status    | DONE                               |
 | Severity  | MUST_FIX + SHOULD_FIX              |
 
 ## MUST_FIX Items

@@ -45,6 +45,16 @@ Configuration lives in `openclaw.json`.
                 "minor": [],
                 "patch": []
               }
+            },
+            "ciFeedback": {
+              "enabled": false,
+              "routePath": "/webhooks/github/ci",
+              "commentOnPr": true,
+              "autoTransition": {
+                "enabled": false,
+                "toStatus": "qa",
+                "agentId": "infra"
+              }
             }
           },
           "workflow": {
@@ -70,6 +80,7 @@ Configuration lives in `openclaw.json`.
 
 Canonical workflow settings are under `plugins.entries.product-team.config.workflow`.
 Root-level `concurrency` keys are not part of the plugin config contract.
+`ciFeedback.expectedRepository` is derived internally from `github.owner/repo`.
 
 ### Environment variables
 
@@ -95,10 +106,14 @@ pnpm typecheck
 
 1. Create/update tasks with `task.create`, `task.update`, `task.transition`.
 2. Capture quality evidence with `quality.coverage`, `quality.lint`,
-   `quality.complexity`, `quality.tests`, then evaluate `quality.gate`.
-3. Inspect lifecycle and events with `workflow.state.get`,
+   `quality.complexity`, and `quality.tests`. Use `quality.gate` for an
+   explicit quality verdict snapshot.
+3. Use `workflow.step.run` for role outputs (`architecture_plan`,
+   `dev_result`, `review_result`, `qa_report`) when transitions require
+   structured evidence beyond quality metrics.
+4. Inspect lifecycle and events with `workflow.state.get`,
    `workflow.events.query`.
-4. Use infra VCS tools (`vcs.branch.create`, `vcs.pr.create`,
+5. Use infra VCS tools (`vcs.branch.create`, `vcs.pr.create`,
    `vcs.pr.update`, `vcs.label.sync`) from infra agent context.
 
 ## Troubleshooting
@@ -135,6 +150,13 @@ pnpm typecheck
 - Verify auth: `gh auth status`.
 - Confirm repo owner/name in plugin config.
 - Re-run infra VCS action; operations are idempotent.
+
+### CI feedback webhook issues
+
+- Confirm `github.ciFeedback.enabled=true`.
+- Verify route path (`github.ciFeedback.routePath`) matches gateway routing.
+- Validate event header `x-github-event` is present.
+- Check plugin logs for payload/JSON errors and repository mismatch.
 
 ## Recovery
 

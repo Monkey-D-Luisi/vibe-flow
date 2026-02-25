@@ -221,7 +221,15 @@ This document lists every registered tool from
     },
     "history": [],
     "transitionGuards": {
-      "matrix": []
+      "matrix": [],
+      "config": {
+        "coverageByScope": {
+          "major": 80,
+          "minor": 70,
+          "patch": 70
+        },
+        "maxReviewRounds": 3
+      }
     }
   }
 }
@@ -348,7 +356,8 @@ This document lists every registered tool from
 ### `quality.gate`
 
 - Parameters: `taskId`, `agentId`, optional `scope`, `policy`
-- Returns: `{ taskId, agentId, scope, passed, failures, appliedPolicy }`
+- Returns: `{ task, output }`
+- Persists gate verdict in `task.metadata.quality.gate`
 
 ```json
 {
@@ -358,9 +367,31 @@ This document lists every registered tool from
     "scope": "major"
   },
   "output": {
-    "taskId": "01HARDENINGTASK0001",
-    "passed": true,
-    "failures": []
+    "task": {
+      "id": "01HARDENINGTASK0001",
+      "rev": 8
+    },
+    "output": {
+      "passed": true,
+      "metrics": {
+        "tests": {
+          "total": 120,
+          "failed": 0
+        },
+        "coverage": {
+          "lines": 85.5
+        },
+        "lint": {
+          "errors": 0,
+          "warnings": 1
+        },
+        "complexity": {
+          "avgCyclomatic": 3.8,
+          "maxCyclomatic": 7
+        }
+      },
+      "violations": []
+    }
   }
 }
 ```
