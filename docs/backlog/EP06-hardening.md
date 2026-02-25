@@ -3,7 +3,7 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | Epic        | EP06                                             |
-| Status      | PENDING                                          |
+| Status      | DONE                                             |
 | Priority    | P2                                               |
 | Phase       | 5 -- Hardening                                   |
 | Target      | August 2026                                      |

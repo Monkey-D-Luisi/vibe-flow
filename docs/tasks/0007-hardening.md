@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | EP06 -- Hardening |
 | Priority | MEDIUM |
 | Scope | MAJOR |
@@ -392,13 +392,13 @@ Include example JSON for every tool's input and output.
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Tests written and passing
-- [ ] Coverage meets threshold (>= 80% major)
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated
-- [ ] Runbook reviewed by user
-- [ ] API reference complete for all tools
-- [ ] Code reviewed (if applicable)
+- [x] All Acceptance Criteria met
+- [x] Tests written and passing
+- [x] Coverage meets threshold (>= 80% major)
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated
+- [x] Runbook reviewed by user
+- [x] API reference complete for all tools
+- [x] Code reviewed (if applicable)
 - [ ] PR created and linked
