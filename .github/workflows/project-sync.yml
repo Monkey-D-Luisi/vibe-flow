@@ -2,7 +2,7 @@ name: Project Sync
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, review_requested, review_request_removed, closed, converted_to_draft]
+    types: [opened, reopened, edited, synchronize, ready_for_review, review_requested, review_request_removed, closed, converted_to_draft]
   issues:
     types: [opened, edited, closed, reopened, assigned, unassigned, labeled, unlabeled]
 

@@ -22,6 +22,7 @@ The workflow used `pull_request.node_id` as project content and always called `a
 ## Changes Made
 
 - `.github/workflows/project-sync.yml`
+  - Added `pull_request` trigger types `edited` and `synchronize` for continuous sync on body/commit updates.
   - PR status mapping updated (`merged` -> `Done`, closed/draft -> `In Progress`, active review events -> `In Review`).
   - Added project item helpers:
     - `getProjectItemIdByContentId`

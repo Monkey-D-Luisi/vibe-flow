@@ -28,6 +28,7 @@ Prevent pull requests from appearing as standalone project items in the board an
 ## Changes
 
 - Updated `.github/workflows/project-sync.yml` to process `pull_request` events by:
+  - Including `edited` and `synchronize` PR event types so sync runs after PR body/commit updates.
   - Resolving linked issue numbers from PR body references and `closingIssuesReferences`.
   - Updating project items/status on linked **issues** instead of adding PR content to the board.
   - Archiving existing PR project item (if present) to keep board issue-centric.
