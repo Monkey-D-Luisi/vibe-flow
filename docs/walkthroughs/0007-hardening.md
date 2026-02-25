@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0007-hardening.md`
 - Epic: EP06 -- Hardening
 - Branch: `feat/0007-hardening`
-- PR: <PR URL when created>
+- PR: `https://github.com/Monkey-D-Luisi/vibe-flow/pull/167`
 
 ---
 
