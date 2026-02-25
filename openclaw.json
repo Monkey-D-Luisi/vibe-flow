@@ -69,9 +69,11 @@
             "task.get",
             "task.update",
             "task.transition",
+            "quality.tests",
             "quality.coverage",
             "quality.lint",
             "quality.complexity",
+            "quality.gate",
             "workflow.step.run",
             "workflow.state.get"
           ]
@@ -86,6 +88,7 @@
             "task.get",
             "task.update",
             "task.transition",
+            "quality.tests",
             "quality.coverage",
             "quality.lint",
             "quality.complexity"
@@ -116,7 +119,8 @@
             "vcs.label.sync",
             "task.get",
             "task.search",
-            "workflow.state.get"
+            "workflow.state.get",
+            "workflow.events.query"
           ]
         }
       }

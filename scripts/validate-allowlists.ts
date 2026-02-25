@@ -33,9 +33,11 @@ const EXPECTED_TOOLS_BY_AGENT: Record<string, ReadonlySet<string>> = {
     'task.get',
     'task.update',
     'task.transition',
+    'quality.tests',
     'quality.coverage',
     'quality.lint',
     'quality.complexity',
+    'quality.gate',
     'workflow.step.run',
     'workflow.state.get',
   ]),
@@ -43,6 +45,7 @@ const EXPECTED_TOOLS_BY_AGENT: Record<string, ReadonlySet<string>> = {
     'task.get',
     'task.update',
     'task.transition',
+    'quality.tests',
     'quality.coverage',
     'quality.lint',
     'quality.complexity',
@@ -60,6 +63,7 @@ const EXPECTED_TOOLS_BY_AGENT: Record<string, ReadonlySet<string>> = {
     'task.get',
     'task.search',
     'workflow.state.get',
+    'workflow.events.query',
   ]),
 };
 
@@ -140,6 +144,12 @@ function validateAgent(
     }
     if (!expected.has(tool)) {
       errors.push(`Agent "${agent.id}" is not allowed to use tool "${tool}" by policy`);
+    }
+  }
+
+  for (const tool of expected) {
+    if (!seen.has(tool)) {
+      errors.push(`Agent "${agent.id}" is missing required tool "${tool}" from policy`);
     }
   }
 

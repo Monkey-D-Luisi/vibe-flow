@@ -29,9 +29,11 @@ It is used together with `scripts/validate-allowlists.ts`.
 | `task.get` | Retrieve implementation requirements |
 | `task.update` | Persist implementation notes and outputs |
 | `task.transition` | Move work from in-progress to review |
+| `quality.tests` | Execute automated test suite and persist QA report evidence |
 | `quality.coverage` | Collect coverage evidence |
 | `quality.lint` | Collect lint evidence |
 | `quality.complexity` | Collect complexity evidence |
+| `quality.gate` | Evaluate all quality evidence against scope policy before release |
 | `workflow.step.run` | Run structured workflow steps |
 | `workflow.state.get` | Check guard requirements and state |
 
@@ -42,6 +44,7 @@ It is used together with `scripts/validate-allowlists.ts`.
 | `task.get` | Read acceptance criteria and state |
 | `task.update` | Store QA report/evidence |
 | `task.transition` | Move tasks from QA to done/rework |
+| `quality.tests` | Run test suite and capture regression evidence |
 | `quality.coverage` | Validate coverage quality gate |
 | `quality.lint` | Validate lint quality gate |
 | `quality.complexity` | Validate complexity quality gate |
@@ -65,3 +68,4 @@ It is used together with `scripts/validate-allowlists.ts`.
 | `task.get` | Read task metadata for PR context |
 | `task.search` | Discover related tasks for release planning |
 | `workflow.state.get` | Inspect task workflow state during automation |
+| `workflow.events.query` | Query timeline and aggregates for release troubleshooting |
