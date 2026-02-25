@@ -221,6 +221,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - [EP04 Backlog](backlog/EP04-github-integration.md)
 - [EP05 Backlog](backlog/EP05-quality-observability.md)
 - [EP06 Backlog](backlog/EP06-hardening.md)
+- [Open Issues Intake (Unscheduled)](backlog/open-issues-intake.md)
 
 ### Architecture & Operations
 - [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)
