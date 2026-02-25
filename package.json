@@ -8,7 +8,13 @@
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "q:gate": "tsx scripts/run-root-q-gate.ts",
+    "q:tests": "pnpm --filter @openclaw/quality-gate q:cli run --tests",
+    "q:coverage": "pnpm --filter @openclaw/quality-gate q:cli run --coverage",
+    "q:lint": "pnpm --filter @openclaw/quality-gate q:cli run --lint",
+    "q:complexity": "pnpm --filter @openclaw/quality-gate q:cli run --complexity",
+    "verify:q-surface": "tsx scripts/verify-root-quality-gate-command-surface.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
