@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | IN_PROGRESS |
 | Epic | Audit remediation |
 | Priority | MEDIUM |
 | Scope | MINOR |
