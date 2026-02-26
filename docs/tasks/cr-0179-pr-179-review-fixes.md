@@ -36,4 +36,4 @@ apply required fixes, and merge after all checks are green.
 - [x] Independent review findings captured with severity
 - [x] Review artifact committed (`docs/tasks/cr-0179-*` + `docs/walkthroughs/cr-0179-*`)
 - [x] Validation gates executed (`pnpm lint`, `pnpm typecheck`, `pnpm test`)
-- [ ] PR #179 checks green and merged
+- [x] PR #179 checks green and merged
