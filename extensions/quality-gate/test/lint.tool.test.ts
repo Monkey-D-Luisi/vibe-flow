@@ -122,7 +122,7 @@ describe('lintTool behavior', () => {
   it('falls back to raw output when lint output is not parseable JSON', async () => {
     vi.spyOn(spawnModule, 'safeSpawn').mockResolvedValue(
       createSpawnResult({
-        stdout: '',
+        stdout: 'this is not parseable json',
         stderr: 'lint failed: formatter crashed',
         exitCode: 2,
       }),
@@ -133,7 +133,8 @@ describe('lintTool behavior', () => {
     expect(result.totalErrors).toBe(0);
     expect(result.totalWarnings).toBe(0);
     expect(result.reports).toHaveLength(0);
-    expect(result.raw).toBe('lint failed: formatter crashed');
+    expect(result.raw).toContain('this is not parseable json');
+    expect(result.raw).toContain('stderr: lint failed: formatter crashed');
     expect(result.exitCode).toBe(2);
   });
 
