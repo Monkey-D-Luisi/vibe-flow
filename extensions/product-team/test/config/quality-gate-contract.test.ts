@@ -59,6 +59,36 @@ describe('quality gate schema/runtime contract', () => {
     expect(gateScopes).toEqual(['default', ...productScopes].sort((left, right) => left.localeCompare(right)));
   });
 
+  it('keeps auto-tune safeguard schema keys aligned across tool surfaces', () => {
+    const qualityGateParamsSchema = asObject(QualityGateParams);
+    const productAutoTune = asObject(qualityGateParamsSchema.properties?.autoTune);
+    const productAutoTuneKeys = sortedKeys(productAutoTune.properties ?? {});
+    expect(productAutoTuneKeys).toEqual([
+      'bounds',
+      'enabled',
+      'historyWindow',
+      'maxDeltas',
+      'minSamples',
+      'smoothingFactor',
+    ]);
+
+    const gateToolParameters = asObject(gateEnforceToolDef.parameters);
+    const qualityGateAutoTune = asObject(gateToolParameters.properties?.autoTune);
+    const qualityGateAutoTuneKeys = sortedKeys(qualityGateAutoTune.properties ?? {});
+    expect(qualityGateAutoTuneKeys).toEqual([
+      'bounds',
+      'enabled',
+      'maxDeltas',
+      'minSamples',
+      'smoothingFactor',
+    ]);
+
+    const productAutoTuneMaxDeltas = asObject(productAutoTune.properties?.maxDeltas);
+    const qualityGateAutoTuneMaxDeltas = asObject(qualityGateAutoTune.properties?.maxDeltas);
+    expect(sortedKeys(productAutoTuneMaxDeltas.properties ?? {}))
+      .toEqual(sortedKeys(qualityGateAutoTuneMaxDeltas.properties ?? {}));
+  });
+
   it('enforces policy default values within schema bounds', () => {
     const overrideSchema = asObject(QualityGatePolicyOverrides);
     const overrideProperties = overrideSchema.properties ?? {};

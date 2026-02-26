@@ -13,12 +13,24 @@
 import { evaluateGate, resolvePolicy, type GateMetrics } from '../gate/policy.js';
 import { collectGateMetrics, type GateSourceDeps } from '../gate/sources.js';
 import { DEFAULT_POLICIES, type GatePolicy, type GateResult } from '../gate/types.js';
+import {
+  autoTunePolicy,
+  type GateAutoTuneConfig,
+  type GateAutoTuneResult,
+  type GatePolicyHistorySample,
+} from '../gate/auto-tune.js';
+
+interface GateEnforceAutoTuneInput extends GateAutoTuneConfig {
+  enabled?: boolean;
+}
 
 export interface GateEnforceInput {
   scope?: string;
   policy?: Partial<GatePolicy>;
   metrics?: Partial<GateMetrics>;
   deps?: GateSourceDeps;
+  history?: GatePolicyHistorySample[];
+  autoTune?: GateEnforceAutoTuneInput;
 }
 
 export interface GateEnforceOutput {
@@ -26,6 +38,25 @@ export interface GateEnforceOutput {
   scope: string;
   policy: GatePolicy;
   metrics: GateMetrics;
+  tuning?: {
+    applied: boolean;
+    sampleCount: number;
+    adjustments: GateAutoTuneResult['adjustments'];
+    reason?: string;
+  };
+}
+
+function resolveAutoTuneConfig(input?: GateEnforceAutoTuneInput): GateAutoTuneConfig | null {
+  if (!input?.enabled) {
+    return null;
+  }
+
+  return {
+    minSamples: input.minSamples,
+    smoothingFactor: input.smoothingFactor,
+    maxDeltas: input.maxDeltas,
+    bounds: input.bounds,
+  };
 }
 
 /**
@@ -49,6 +80,19 @@ export async function gateEnforceTool(input: GateEnforceInput): Promise<GateEnfo
     ...input.metrics,
   };
 
+  const autoTuneConfig = resolveAutoTuneConfig(input.autoTune);
+  let tuning: GateEnforceOutput['tuning'];
+  if (autoTuneConfig) {
+    const tuned = autoTunePolicy(policy, input.history ?? [], autoTuneConfig);
+    policy = tuned.tunedPolicy;
+    tuning = {
+      applied: tuned.applied,
+      sampleCount: tuned.sampleCount,
+      adjustments: tuned.adjustments,
+      reason: tuned.reason,
+    };
+  }
+
   // Evaluate gate
   const result = evaluateGate(metrics, policy);
 
@@ -57,6 +101,7 @@ export async function gateEnforceTool(input: GateEnforceInput): Promise<GateEnfo
     scope,
     policy,
     metrics,
+    tuning,
   };
 }
 
@@ -100,6 +145,73 @@ export const gateEnforceToolDef = {
           testsExist: { type: 'boolean' },
           testsPassed: { type: 'boolean' },
           rgrCount: { type: 'number' },
+        },
+        additionalProperties: false,
+      },
+      history: {
+        type: 'array',
+        description: 'Historical quality metric samples for optional auto-tuning',
+        items: {
+          type: 'object',
+          properties: {
+            coveragePct: { type: 'number' },
+            lintWarnings: { type: 'number' },
+            maxCyclomatic: { type: 'number' },
+            scope: { type: 'string' },
+            timestamp: { type: 'string', format: 'date-time' },
+          },
+          additionalProperties: false,
+        },
+      },
+      autoTune: {
+        type: 'object',
+        description: 'Optional bounded threshold auto-tuning controls',
+        properties: {
+          enabled: { type: 'boolean' },
+          minSamples: { type: 'integer', minimum: 1 },
+          smoothingFactor: { type: 'number', minimum: 0, maximum: 1 },
+          maxDeltas: {
+            type: 'object',
+            properties: {
+              coverageMinPct: { type: 'number', minimum: 0 },
+              lintMaxWarnings: { type: 'number', minimum: 0 },
+              complexityMaxCyclomatic: { type: 'number', minimum: 0 },
+            },
+            additionalProperties: false,
+          },
+          bounds: {
+            type: 'object',
+            properties: {
+              coverageMinPct: {
+                type: 'object',
+                properties: {
+                  min: { type: 'number', minimum: 0 },
+                  max: { type: 'number', minimum: 0 },
+                },
+                required: ['min', 'max'],
+                additionalProperties: false,
+              },
+              lintMaxWarnings: {
+                type: 'object',
+                properties: {
+                  min: { type: 'number', minimum: 0 },
+                  max: { type: 'number', minimum: 0 },
+                },
+                required: ['min', 'max'],
+                additionalProperties: false,
+              },
+              complexityMaxCyclomatic: {
+                type: 'object',
+                properties: {
+                  min: { type: 'number', minimum: 0 },
+                  max: { type: 'number', minimum: 0 },
+                },
+                required: ['min', 'max'],
+                additionalProperties: false,
+              },
+            },
+            additionalProperties: false,
+          },
         },
         additionalProperties: false,
       },

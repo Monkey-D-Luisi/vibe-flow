@@ -7,6 +7,8 @@ import { parseVitestOutput as parseVitestProduct } from '../../product-team/src/
 import { parseVitestOutput as parseVitestQualityGate } from '../src/parsers/vitest.js';
 import { evaluateGate as evaluateGateProduct, resolvePolicy as resolvePolicyProduct } from '../../product-team/src/quality/gate-policy.js';
 import { evaluateGate as evaluateGateQualityGate, resolvePolicy as resolvePolicyQualityGate } from '../src/gate/policy.js';
+import { autoTunePolicy as autoTunePolicyProduct } from '../../product-team/src/quality/gate-auto-tune.js';
+import { autoTunePolicy as autoTunePolicyQualityGate } from '../src/gate/auto-tune.js';
 import { DEFAULT_POLICIES as productPolicies } from '../../product-team/src/quality/types.js';
 import { DEFAULT_POLICIES as qualityGatePolicies } from '../src/gate/types.js';
 
@@ -104,5 +106,28 @@ describe('quality contract parity', () => {
     expect(qualityGateResult.verdict).toBe('fail');
     expect(qualityGateResult.checks.some((check) => check.name === 'lint-errors' && check.verdict === 'fail')).toBe(true);
     expect(qualityGateResult.checks.some((check) => check.name === 'complexity' && check.verdict === 'fail')).toBe(true);
+  });
+
+  it('produces identical auto-tuned policy adjustments', () => {
+    const history = Array.from({ length: 6 }, () => ({
+      coveragePct: 92,
+      lintWarnings: 2,
+      maxCyclomatic: 11,
+      scope: 'minor',
+    }));
+    const config = {
+      minSamples: 5,
+      smoothingFactor: 0.5,
+      maxDeltas: {
+        coverageMinPct: 4,
+        lintMaxWarnings: 6,
+        complexityMaxCyclomatic: 4,
+      },
+    };
+
+    const productTuned = autoTunePolicyProduct(productPolicies.minor, history, config);
+    const qualityGateTuned = autoTunePolicyQualityGate(qualityGatePolicies.minor, history, config);
+
+    expect(qualityGateTuned).toEqual(productTuned);
   });
 });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'fs';
 import { dirname } from 'path';
 import { runTestsTool } from '../src/tools/run_tests.js';
 import { coverageReportTool, type CoverageInput } from '../src/tools/coverage_report.js';
@@ -119,6 +119,60 @@ function parseComplexityArgs(args: string[]): ComplexityInput {
 
 const VALID_SCOPES = ['major', 'minor', 'patch', 'default'] as const;
 
+function parsePositiveInteger(raw: string, flag: string): number {
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new Error(`Invalid ${flag} value "${raw}"`);
+  }
+  return parsed;
+}
+
+function parseZeroToOne(raw: string, flag: string): number {
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    throw new Error(`Invalid ${flag} value "${raw}". Expected a number between 0 and 1`);
+  }
+  return parsed;
+}
+
+function readHistoryFile(path: string): GateEnforceInput['history'] {
+  const content = readFileSync(path, 'utf8');
+  const parsed = JSON.parse(content) as unknown;
+  if (!Array.isArray(parsed)) {
+    throw new Error(`History file "${path}" must contain a JSON array`);
+  }
+
+  return parsed.map((entry, index) => {
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+      throw new Error(`History entry at index ${index} must be an object`);
+    }
+    const record = entry as Record<string, unknown>;
+    const sample: {
+      coveragePct?: number;
+      lintWarnings?: number;
+      maxCyclomatic?: number;
+      scope?: string;
+      timestamp?: string;
+    } = {};
+    if (typeof record.coveragePct === 'number' && Number.isFinite(record.coveragePct)) {
+      sample.coveragePct = record.coveragePct;
+    }
+    if (typeof record.lintWarnings === 'number' && Number.isFinite(record.lintWarnings)) {
+      sample.lintWarnings = record.lintWarnings;
+    }
+    if (typeof record.maxCyclomatic === 'number' && Number.isFinite(record.maxCyclomatic)) {
+      sample.maxCyclomatic = record.maxCyclomatic;
+    }
+    if (typeof record.scope === 'string') {
+      sample.scope = record.scope;
+    }
+    if (typeof record.timestamp === 'string') {
+      sample.timestamp = record.timestamp;
+    }
+    return sample;
+  });
+}
+
 function parseGateArgs(args: string[]): GateEnforceInput {
   const input: GateEnforceInput = {};
   for (let i = 2; i < args.length; i += 1) {
@@ -130,6 +184,33 @@ function parseGateArgs(args: string[]): GateEnforceInput {
           throw new Error(`Invalid scope "${value}". Valid scopes: ${VALID_SCOPES.join(', ')}`);
         }
         input.scope = value;
+        break;
+      }
+      case '--auto-tune':
+        input.autoTune = { ...(input.autoTune ?? {}), enabled: true };
+        break;
+      case '--history': {
+        const value = ensureValue(args, ++i, '--history');
+        input.history = readHistoryFile(value);
+        input.autoTune = { ...(input.autoTune ?? {}), enabled: true };
+        break;
+      }
+      case '--min-samples': {
+        const value = ensureValue(args, ++i, '--min-samples');
+        input.autoTune = {
+          ...(input.autoTune ?? {}),
+          enabled: true,
+          minSamples: parsePositiveInteger(value, '--min-samples'),
+        };
+        break;
+      }
+      case '--smoothing-factor': {
+        const value = ensureValue(args, ++i, '--smoothing-factor');
+        input.autoTune = {
+          ...(input.autoTune ?? {}),
+          enabled: true,
+          smoothingFactor: parseZeroToOne(value, '--smoothing-factor'),
+        };
         break;
       }
       default:
@@ -145,7 +226,7 @@ function usage(): never {
   qcli run --coverage [--summary <path>] [--lcov <path>] [--cwd <path>] [--format <summary|lcov|auto>]
   qcli run --lint [--engine <eslint|ruff>] [--command <cmd>] [--cwd <path>] [--timeout <ms>]
   qcli run --complexity [--glob <pattern>]... [--exclude <glob>] [--cwd <path>] [--max-cyclomatic <num>] [--top-n <num>]
-  qcli run --gate [--scope <major|minor|patch|default>]`);
+  qcli run --gate [--scope <major|minor|patch|default>] [--auto-tune] [--history <path>] [--min-samples <n>] [--smoothing-factor <0-1>]`);
   process.exit(1);
 }
 
