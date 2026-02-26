@@ -2,6 +2,7 @@ import type { ToolDef, ToolDeps } from './index.js';
 import {
   QualityGateParams,
   type QualityGateAutoTune as QualityGateAutoTuneInput,
+  type QualityGateAlerts as QualityGateAlertsInput,
   type QualityGateParams as QualityGateParamsType,
 } from '../schemas/quality-gate.schema.js';
 import { evaluateGate, resolvePolicy } from '../quality/gate-policy.js';
@@ -13,6 +14,12 @@ import {
   type GatePolicyHistorySample,
 } from '../quality/gate-auto-tune.js';
 import {
+  evaluateRegressionAlerts,
+  type GateAlertConfig,
+  type GateRegressionAlert,
+  type GateRegressionAlertResult,
+} from '../quality/gate-alerts.js';
+import {
   beginQualityExecution,
   getTaskOrThrow,
   updateTaskMetadata,
@@ -20,6 +27,7 @@ import {
 import { mergeQualityGateResult } from './quality-metadata.js';
 
 const DEFAULT_HISTORY_WINDOW = 50;
+const DEFAULT_ALERT_COOLDOWN_EVENTS = 5;
 
 interface QualityGateOutput {
   passed: boolean;
@@ -44,6 +52,7 @@ interface QualityGateOutput {
     code: 'TESTS_FAILED' | 'COVERAGE_BELOW' | 'LINT_ERRORS' | 'COMPLEXITY_HIGH' | 'RGR_MISSING';
     message: string;
   }>;
+  alerts: GateRegressionAlert[];
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -121,6 +130,26 @@ function toAutoTuneConfig(input?: QualityGateAutoTuneInput): GateAutoTuneConfig 
   };
 }
 
+function toAlertConfig(input?: QualityGateAlertsInput): GateAlertConfig | null {
+  if (!input?.enabled) {
+    return null;
+  }
+  return {
+    thresholds: input.thresholds,
+    noise: input.noise,
+  };
+}
+
+function extractAlertKeys(payload: Record<string, unknown>): string[] | undefined {
+  const alerting = asRecord(payload.alerting);
+  const emittedKeys = alerting?.emittedKeys;
+  if (!Array.isArray(emittedKeys)) {
+    return undefined;
+  }
+  const keys = emittedKeys.filter((value): value is string => typeof value === 'string' && value.length > 0);
+  return keys.length > 0 ? keys : undefined;
+}
+
 function extractHistorySample(
   payload: Record<string, unknown>,
   createdAt: string,
@@ -150,6 +179,7 @@ function extractHistorySample(
     maxCyclomatic,
     scope: payloadScope ?? scope,
     timestamp: createdAt,
+    alertKeys: extractAlertKeys(payload),
   };
 }
 
@@ -205,6 +235,22 @@ function toTuningSummary(tuning: GateAutoTuneResult | undefined): Record<string,
   };
 }
 
+function toAlertingSummary(alerting: GateRegressionAlertResult | undefined): Record<string, unknown> | undefined {
+  if (!alerting) {
+    return undefined;
+  }
+  return {
+    enabled: true,
+    evaluatedAt: alerting.evaluatedAt,
+    thresholds: alerting.thresholds,
+    cooldownEvents: alerting.cooldownEvents,
+    baseline: alerting.baseline,
+    alerts: alerting.alerts,
+    suppressed: alerting.suppressed,
+    emittedKeys: alerting.emittedKeys,
+  };
+}
+
 export function qualityGateToolDef(deps: ToolDeps): ToolDef {
   return {
     name: 'quality.gate',
@@ -233,12 +279,34 @@ export function qualityGateToolDef(deps: ToolDeps): ToolDef {
       const basePolicy = mergePolicy(resolvePolicy(DEFAULT_POLICIES, scope), input.policy);
       let policy = basePolicy;
       let tuning: GateAutoTuneResult | undefined;
+      let alerting: GateRegressionAlertResult | undefined;
       const autoTuneConfig = toAutoTuneConfig(input.autoTune);
-      if (autoTuneConfig) {
-        const historyWindow = input.autoTune?.historyWindow ?? DEFAULT_HISTORY_WINDOW;
+      const alertConfig = toAlertConfig(input.alerts);
+      if (autoTuneConfig || alertConfig) {
+        const autoTuneHistoryWindow = autoTuneConfig
+          ? (input.autoTune?.historyWindow ?? DEFAULT_HISTORY_WINDOW)
+          : 0;
+        const alertHistoryWindow = alertConfig
+          ? Math.max(input.alerts?.noise?.cooldownEvents ?? DEFAULT_ALERT_COOLDOWN_EVENTS, 1)
+          : 0;
+        const historyWindow = Math.max(autoTuneHistoryWindow, alertHistoryWindow, 1);
         const history = loadGateHistory(deps, scope, historyWindow);
-        tuning = autoTunePolicy(basePolicy, history, autoTuneConfig);
-        policy = tuning.tunedPolicy;
+        if (autoTuneConfig) {
+          tuning = autoTunePolicy(basePolicy, history, autoTuneConfig);
+          policy = tuning.tunedPolicy;
+        }
+        if (alertConfig) {
+          alerting = evaluateRegressionAlerts(
+            {
+              coveragePct,
+              maxCyclomatic: complexityMax,
+            },
+            history,
+            scope,
+            alertConfig,
+            deps.now(),
+          );
+        }
       }
 
       const gateResult = evaluateGate(
@@ -279,6 +347,7 @@ export function qualityGateToolDef(deps: ToolDeps): ToolDef {
             code: mapViolationCode(check.name),
             message: check.message,
           })),
+        alerts: alerting?.alerts ?? [],
       };
 
       const merged = mergeQualityGateResult(task.metadata, output as unknown as Record<string, unknown>);
@@ -294,6 +363,7 @@ export function qualityGateToolDef(deps: ToolDeps): ToolDef {
           scope,
           metrics: buildMetricPayload(coveragePct, lintWarnings, complexityMax),
           tuning: toTuningSummary(tuning),
+          alerting: toAlertingSummary(alerting),
         },
       );
       execCtx.logger.info('quality.gate.complete', {
@@ -302,6 +372,8 @@ export function qualityGateToolDef(deps: ToolDeps): ToolDef {
         violations: output.violations.length,
         autoTuneApplied: tuning?.applied ?? false,
         tuningAdjustments: tuning?.adjustments.length ?? 0,
+        alertsTriggered: output.alerts.length,
+        alertsSuppressed: alerting?.suppressed.length ?? 0,
       });
 
       const result = {
@@ -309,6 +381,7 @@ export function qualityGateToolDef(deps: ToolDeps): ToolDef {
         output,
         effectivePolicy: policy,
         tuning: tuning ?? null,
+        alerting: alerting ?? null,
       };
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],

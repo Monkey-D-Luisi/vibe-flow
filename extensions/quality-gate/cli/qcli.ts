@@ -135,6 +135,14 @@ function parseZeroToOne(raw: string, flag: string): number {
   return parsed;
 }
 
+function parseNonNegativeNumber(raw: string, flag: string): number {
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`Invalid ${flag} value "${raw}". Expected a non-negative number`);
+  }
+  return parsed;
+}
+
 function readHistoryFile(path: string): GateEnforceInput['history'] {
   const content = readFileSync(path, 'utf8');
   const parsed = JSON.parse(content) as unknown;
@@ -153,6 +161,7 @@ function readHistoryFile(path: string): GateEnforceInput['history'] {
       maxCyclomatic?: number;
       scope?: string;
       timestamp?: string;
+      alertKeys?: string[];
     } = {};
     if (typeof record.coveragePct === 'number' && Number.isFinite(record.coveragePct)) {
       sample.coveragePct = record.coveragePct;
@@ -168,6 +177,10 @@ function readHistoryFile(path: string): GateEnforceInput['history'] {
     }
     if (typeof record.timestamp === 'string') {
       sample.timestamp = record.timestamp;
+    }
+    if (Array.isArray(record.alertKeys)) {
+      sample.alertKeys = record.alertKeys
+        .filter((value): value is string => typeof value === 'string' && value.length > 0);
     }
     return sample;
   });
@@ -213,6 +226,45 @@ function parseGateArgs(args: string[]): GateEnforceInput {
         };
         break;
       }
+      case '--alerts':
+        input.alerts = { ...(input.alerts ?? {}), enabled: true };
+        break;
+      case '--coverage-drop-threshold': {
+        const value = ensureValue(args, ++i, '--coverage-drop-threshold');
+        input.alerts = {
+          ...(input.alerts ?? {}),
+          enabled: true,
+          thresholds: {
+            ...(input.alerts?.thresholds ?? {}),
+            coverageDropPct: parseNonNegativeNumber(value, '--coverage-drop-threshold'),
+          },
+        };
+        break;
+      }
+      case '--complexity-rise-threshold': {
+        const value = ensureValue(args, ++i, '--complexity-rise-threshold');
+        input.alerts = {
+          ...(input.alerts ?? {}),
+          enabled: true,
+          thresholds: {
+            ...(input.alerts?.thresholds ?? {}),
+            complexityRise: parseNonNegativeNumber(value, '--complexity-rise-threshold'),
+          },
+        };
+        break;
+      }
+      case '--alert-cooldown-events': {
+        const value = ensureValue(args, ++i, '--alert-cooldown-events');
+        input.alerts = {
+          ...(input.alerts ?? {}),
+          enabled: true,
+          noise: {
+            ...(input.alerts?.noise ?? {}),
+            cooldownEvents: parsePositiveInteger(value, '--alert-cooldown-events'),
+          },
+        };
+        break;
+      }
       default:
         throw new Error(`Unknown option ${flag}`);
     }
@@ -226,7 +278,7 @@ function usage(): never {
   qcli run --coverage [--summary <path>] [--lcov <path>] [--cwd <path>] [--format <summary|lcov|auto>]
   qcli run --lint [--engine <eslint|ruff>] [--command <cmd>] [--cwd <path>] [--timeout <ms>]
   qcli run --complexity [--glob <pattern>]... [--exclude <glob>] [--cwd <path>] [--max-cyclomatic <num>] [--top-n <num>]
-  qcli run --gate [--scope <major|minor|patch|default>] [--auto-tune] [--history <path>] [--min-samples <n>] [--smoothing-factor <0-1>]`);
+  qcli run --gate [--scope <major|minor|patch|default>] [--auto-tune] [--history <path>] [--min-samples <n>] [--smoothing-factor <0-1>] [--alerts] [--coverage-drop-threshold <n>] [--complexity-rise-threshold <n>] [--alert-cooldown-events <n>]`);
   process.exit(1);
 }
 

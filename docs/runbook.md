@@ -131,7 +131,10 @@ CI enforces vulnerability policy through `pnpm verify:vuln-policy`.
    `quality.complexity`, and `quality.tests`. Use `quality.gate` for an
    explicit quality verdict snapshot. For adaptive thresholds, call
    `quality.gate` with `autoTune.enabled=true` and bounded safeguards
-   (`minSamples`, `smoothingFactor`, `maxDeltas`, `bounds`).
+   (`minSamples`, `smoothingFactor`, `maxDeltas`, `bounds`). For regression
+   notifications, enable `alerts.enabled=true` and configure
+   `alerts.thresholds.coverageDropPct`, `alerts.thresholds.complexityRise`, and
+   optional `alerts.noise.cooldownEvents`.
 3. Use `workflow.step.run` for role outputs (`architecture_plan`,
    `dev_result`, `review_result`, `qa_report`) when transitions require
    structured evidence beyond quality metrics.
@@ -163,6 +166,15 @@ CI enforces vulnerability policy through `pnpm verify:vuln-policy`.
 - Inspect `task.get` `costSummary`.
 - Increase `metadata.budget.maxTokens` or `metadata.budget.maxDurationMs` via
   `task.update` if warnings are expected for this task.
+
+### Quality regression alerts
+
+- Review `quality.gate` result `output.alerts` for emitted coverage-drop and
+  complexity-rise alerts.
+- Use `result.alerting.baseline` to understand comparison inputs and
+  `result.alerting.suppressed` for dedupe/noise decisions.
+- Increase thresholds or cooldown events if repeated low-signal alerts are
+  expected for the task scope.
 
 ### Allow-list validation failures
 

@@ -19,8 +19,17 @@ import {
   type GateAutoTuneResult,
   type GatePolicyHistorySample,
 } from '../gate/auto-tune.js';
+import {
+  evaluateRegressionAlerts,
+  type GateAlertConfig,
+  type GateRegressionAlertResult,
+} from '../gate/alerts.js';
 
 interface GateEnforceAutoTuneInput extends GateAutoTuneConfig {
+  enabled?: boolean;
+}
+
+interface GateEnforceAlertsInput extends GateAlertConfig {
   enabled?: boolean;
 }
 
@@ -31,6 +40,7 @@ export interface GateEnforceInput {
   deps?: GateSourceDeps;
   history?: GatePolicyHistorySample[];
   autoTune?: GateEnforceAutoTuneInput;
+  alerts?: GateEnforceAlertsInput;
 }
 
 export interface GateEnforceOutput {
@@ -44,6 +54,7 @@ export interface GateEnforceOutput {
     adjustments: GateAutoTuneResult['adjustments'];
     reason?: string;
   };
+  alerting?: GateRegressionAlertResult;
 }
 
 function resolveAutoTuneConfig(input?: GateEnforceAutoTuneInput): GateAutoTuneConfig | null {
@@ -56,6 +67,16 @@ function resolveAutoTuneConfig(input?: GateEnforceAutoTuneInput): GateAutoTuneCo
     smoothingFactor: input.smoothingFactor,
     maxDeltas: input.maxDeltas,
     bounds: input.bounds,
+  };
+}
+
+function resolveAlertConfig(input?: GateEnforceAlertsInput): GateAlertConfig | null {
+  if (!input?.enabled) {
+    return null;
+  }
+  return {
+    thresholds: input.thresholds,
+    noise: input.noise,
   };
 }
 
@@ -98,9 +119,12 @@ export async function gateEnforceTool(input: GateEnforceInput): Promise<GateEnfo
   };
 
   const autoTuneConfig = resolveAutoTuneConfig(input.autoTune);
+  const alertConfig = resolveAlertConfig(input.alerts);
+  const history = (autoTuneConfig || alertConfig)
+    ? filterHistoryByScope(input.history, scope)
+    : [];
   let tuning: GateEnforceOutput['tuning'];
   if (autoTuneConfig) {
-    const history = filterHistoryByScope(input.history, scope);
     const tuned = autoTunePolicy(policy, history, autoTuneConfig);
     policy = tuned.tunedPolicy;
     tuning = {
@@ -109,6 +133,18 @@ export async function gateEnforceTool(input: GateEnforceInput): Promise<GateEnfo
       adjustments: tuned.adjustments,
       reason: tuned.reason,
     };
+  }
+  let alerting: GateRegressionAlertResult | undefined;
+  if (alertConfig) {
+    alerting = evaluateRegressionAlerts(
+      {
+        coveragePct: metrics.coveragePct,
+        maxCyclomatic: metrics.maxCyclomatic,
+      },
+      history,
+      scope,
+      alertConfig,
+    );
   }
 
   // Evaluate gate
@@ -120,6 +156,7 @@ export async function gateEnforceTool(input: GateEnforceInput): Promise<GateEnfo
     policy,
     metrics,
     tuning,
+    alerting,
   };
 }
 
@@ -177,6 +214,10 @@ export const gateEnforceToolDef = {
             maxCyclomatic: { type: 'number' },
             scope: { type: 'string' },
             timestamp: { type: 'string', format: 'date-time' },
+            alertKeys: {
+              type: 'array',
+              items: { type: 'string' },
+            },
           },
           additionalProperties: false,
         },
@@ -227,6 +268,29 @@ export const gateEnforceToolDef = {
                 required: ['min', 'max'],
                 additionalProperties: false,
               },
+            },
+            additionalProperties: false,
+          },
+        },
+        additionalProperties: false,
+      },
+      alerts: {
+        type: 'object',
+        description: 'Optional regression alerting for coverage drops and complexity rises',
+        properties: {
+          enabled: { type: 'boolean' },
+          thresholds: {
+            type: 'object',
+            properties: {
+              coverageDropPct: { type: 'number', minimum: 0 },
+              complexityRise: { type: 'number', minimum: 0 },
+            },
+            additionalProperties: false,
+          },
+          noise: {
+            type: 'object',
+            properties: {
+              cooldownEvents: { type: 'integer', minimum: 1 },
             },
             additionalProperties: false,
           },

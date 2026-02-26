@@ -89,6 +89,32 @@ describe('quality gate schema/runtime contract', () => {
       .toEqual(sortedKeys(qualityGateAutoTuneMaxDeltas.properties ?? {}));
   });
 
+  it('keeps regression alert schema keys aligned across tool surfaces', () => {
+    const qualityGateParamsSchema = asObject(QualityGateParams);
+    const productAlerts = asObject(qualityGateParamsSchema.properties?.alerts);
+    const productAlertKeys = sortedKeys(productAlerts.properties ?? {});
+    expect(productAlertKeys).toEqual([
+      'enabled',
+      'noise',
+      'thresholds',
+    ]);
+
+    const gateToolParameters = asObject(gateEnforceToolDef.parameters);
+    const qualityGateAlerts = asObject(gateToolParameters.properties?.alerts);
+    const qualityGateAlertKeys = sortedKeys(qualityGateAlerts.properties ?? {});
+    expect(qualityGateAlertKeys).toEqual(productAlertKeys);
+
+    const productThresholds = asObject(productAlerts.properties?.thresholds);
+    const qualityGateThresholds = asObject(qualityGateAlerts.properties?.thresholds);
+    expect(sortedKeys(productThresholds.properties ?? {}))
+      .toEqual(sortedKeys(qualityGateThresholds.properties ?? {}));
+
+    const productNoise = asObject(productAlerts.properties?.noise);
+    const qualityGateNoise = asObject(qualityGateAlerts.properties?.noise);
+    expect(sortedKeys(productNoise.properties ?? {}))
+      .toEqual(sortedKeys(qualityGateNoise.properties ?? {}));
+  });
+
   it('enforces policy default values within schema bounds', () => {
     const overrideSchema = asObject(QualityGatePolicyOverrides);
     const overrideProperties = overrideSchema.properties ?? {};
