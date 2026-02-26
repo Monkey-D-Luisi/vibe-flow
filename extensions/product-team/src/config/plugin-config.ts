@@ -88,7 +88,7 @@ export function resolveGithubConfig(
     defaultBase: asNonEmptyString(github?.defaultBase) ?? 'main',
     timeoutMs: asPositiveInteger(github?.timeoutMs) ?? 30_000,
     prBot: {
-      enabled: typeof prBot?.enabled === 'boolean' ? prBot.enabled : true,
+      enabled: asBoolean(prBot?.enabled) ?? true,
       reviewers: {
         default: asStringArray(reviewers?.default),
         major: asStringArray(reviewers?.major),
