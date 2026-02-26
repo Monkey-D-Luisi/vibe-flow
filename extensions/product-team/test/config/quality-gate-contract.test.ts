@@ -27,8 +27,8 @@ describe('quality gate schema/runtime contract', () => {
   it('keeps policy override schema keys aligned with runtime policy keys across both extensions', () => {
     const overrideSchema = asObject(QualityGatePolicyOverrides);
     const overrideProperties = overrideSchema.properties ?? {};
-    const productPolicyKeys = sortedKeys(productPolicies.default as unknown as Record<string, unknown>);
-    const qualityGatePolicyKeys = sortedKeys(qualityGatePolicies.default as unknown as Record<string, unknown>);
+    const productPolicyKeys = sortedKeys(productPolicies.default);
+    const qualityGatePolicyKeys = sortedKeys(qualityGatePolicies.default);
     const overrideKeys = sortedKeys(overrideProperties);
 
     expect(overrideKeys).toEqual(productPolicyKeys);
