@@ -130,8 +130,9 @@ function normalizeBounds(
 }
 
 function normalizeConfig(config?: GateAutoTuneConfig): NormalizedConfig {
-  const minSamples = Number.isInteger(config?.minSamples)
-    ? Math.max(1, config?.minSamples ?? DEFAULT_MIN_SAMPLES)
+  const rawMinSamples = config?.minSamples;
+  const minSamples = typeof rawMinSamples === 'number' && Number.isInteger(rawMinSamples)
+    ? Math.max(1, rawMinSamples)
     : DEFAULT_MIN_SAMPLES;
   const rawSmoothing = isFiniteNumber(config?.smoothingFactor)
     ? config?.smoothingFactor
@@ -253,4 +254,3 @@ export function autoTunePolicy(
     reason: adjustments.length === 0 ? 'No tunable metrics produced bounded adjustments' : undefined,
   };
 }
-

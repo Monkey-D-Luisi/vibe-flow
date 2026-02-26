@@ -59,6 +59,23 @@ function resolveAutoTuneConfig(input?: GateEnforceAutoTuneInput): GateAutoTuneCo
   };
 }
 
+function filterHistoryByScope(
+  history: GatePolicyHistorySample[] | undefined,
+  scope: string,
+): GatePolicyHistorySample[] {
+  if (!history || history.length === 0) {
+    return [];
+  }
+
+  return history.filter((sample) => {
+    const sampleScope = sample.scope;
+    if (typeof sampleScope !== 'string' || sampleScope.length === 0) {
+      return true;
+    }
+    return sampleScope === scope;
+  });
+}
+
 /**
  * Execute gate enforcement tool.
  */
@@ -83,7 +100,8 @@ export async function gateEnforceTool(input: GateEnforceInput): Promise<GateEnfo
   const autoTuneConfig = resolveAutoTuneConfig(input.autoTune);
   let tuning: GateEnforceOutput['tuning'];
   if (autoTuneConfig) {
-    const tuned = autoTunePolicy(policy, input.history ?? [], autoTuneConfig);
+    const history = filterHistoryByScope(input.history, scope);
+    const tuned = autoTunePolicy(policy, history, autoTuneConfig);
     policy = tuned.tunedPolicy;
     tuning = {
       applied: tuned.applied,
