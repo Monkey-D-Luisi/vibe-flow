@@ -185,10 +185,12 @@ function extractHistorySample(
 
 function loadGateHistory(
   deps: ToolDeps,
+  taskId: string,
   scope: string,
   historyWindow: number,
 ): GatePolicyHistorySample[] {
   const queryResult = deps.eventLog.queryEvents({
+    taskId,
     eventType: 'quality.gate',
     limit: historyWindow,
     offset: 0,
@@ -290,7 +292,7 @@ export function qualityGateToolDef(deps: ToolDeps): ToolDef {
           ? Math.max(input.alerts?.noise?.cooldownEvents ?? DEFAULT_ALERT_COOLDOWN_EVENTS, 1)
           : 0;
         const historyWindow = Math.max(autoTuneHistoryWindow, alertHistoryWindow, 1);
-        const history = loadGateHistory(deps, scope, historyWindow);
+        const history = loadGateHistory(deps, task.id, scope, historyWindow);
         if (autoTuneConfig) {
           tuning = autoTunePolicy(basePolicy, history, autoTuneConfig);
           policy = tuning.tunedPolicy;

@@ -173,12 +173,7 @@ function toBaseline(sample: GatePolicyHistorySample | undefined): GateRegression
     baseline.timestamp = sample.timestamp;
   }
 
-  if (
-    baseline.coveragePct === undefined
-    && baseline.maxCyclomatic === undefined
-    && baseline.scope === undefined
-    && baseline.timestamp === undefined
-  ) {
+  if (Object.keys(baseline).length === 0) {
     return null;
   }
 
