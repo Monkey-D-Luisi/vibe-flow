@@ -5,7 +5,7 @@
 - Task: docs/tasks/0017-consolidate-quality-parser-and-policy-contracts.md
 - Source Finding IDs: A-001, A-002, A-003
 - Branch: feat/0017-consolidate-quality-parser-and-policy-contracts
-- Status: IN_PROGRESS
+- Status: DONE
 
 ---
 
@@ -70,9 +70,9 @@ pnpm lint
 
 ## Closure Decision
 
-- Current status: IN_PROGRESS (implementation complete; awaiting final status and commit closure step)
+- Current status: DONE_VERIFIED
 - Closure criteria met: YES (implementation + quality gates complete)
-- Notes: task and roadmap status will be moved to `DONE` in the closure commit.
+- Notes: roadmap/task status moved to `DONE` and quality-contract consolidation is complete.
 
 ---
 
