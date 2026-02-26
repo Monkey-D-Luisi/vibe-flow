@@ -139,4 +139,91 @@ describe('quality.gate tool', () => {
     expect(details.output.violations.some((violation) => violation.code === 'LINT_ERRORS')).toBe(true);
     expect(details.output.violations.some((violation) => violation.code === 'COMPLEXITY_HIGH')).toBe(true);
   });
+
+  it('applies auto-tuned policy from historical gate metrics when enabled', async () => {
+    for (let index = 0; index < 6; index += 1) {
+      deps.eventLog.logQualityEvent(
+        taskId,
+        'quality.gate',
+        'qa',
+        `history-${index}`,
+        {
+          scope: 'minor',
+          metrics: {
+            coveragePct: 92,
+            lintWarnings: 2,
+            maxCyclomatic: 11,
+          },
+        },
+      );
+    }
+
+    const tool = qualityGateToolDef(deps);
+    const result = await tool.execute('gate-3', {
+      taskId,
+      agentId: 'qa',
+      autoTune: {
+        enabled: true,
+        minSamples: 5,
+        smoothingFactor: 0.5,
+        maxDeltas: {
+          coverageMinPct: 4,
+          lintMaxWarnings: 6,
+          complexityMaxCyclomatic: 4,
+        },
+      },
+    });
+
+    const details = result.details as {
+      output: { passed: boolean };
+      effectivePolicy: {
+        coverageMinPct?: number;
+        lintMaxWarnings?: number;
+        complexityMaxCyclomatic?: number;
+      };
+      tuning: { applied: boolean; sampleCount: number; adjustments: unknown[] } | null;
+    };
+
+    expect(details.output.passed).toBe(true);
+    expect(details.tuning?.applied).toBe(true);
+    expect(details.tuning?.sampleCount).toBe(6);
+    expect(details.tuning?.adjustments.length).toBeGreaterThan(0);
+    expect(details.effectivePolicy.coverageMinPct).toBe(74);
+    expect(details.effectivePolicy.lintMaxWarnings).toBe(14);
+    expect(details.effectivePolicy.complexityMaxCyclomatic).toBe(16);
+
+    const qualityEvents = deps.eventLog
+      .getHistory(taskId)
+      .filter((event) => event.eventType === 'quality.gate');
+    const lastEvent = qualityEvents[qualityEvents.length - 1];
+    expect((lastEvent.payload.tuning as { applied?: boolean }).applied).toBe(true);
+    expect(lastEvent.payload).toHaveProperty('metrics');
+  });
+
+  it('keeps default policy when auto-tune lacks minimum samples', async () => {
+    const tool = qualityGateToolDef(deps);
+    const result = await tool.execute('gate-4', {
+      taskId,
+      agentId: 'qa',
+      autoTune: {
+        enabled: true,
+        minSamples: 10,
+      },
+    });
+
+    const details = result.details as {
+      effectivePolicy: {
+        coverageMinPct?: number;
+        lintMaxWarnings?: number;
+        complexityMaxCyclomatic?: number;
+      };
+      tuning: { applied: boolean; reason?: string } | null;
+    };
+
+    expect(details.effectivePolicy.coverageMinPct).toBe(70);
+    expect(details.effectivePolicy.lintMaxWarnings).toBe(20);
+    expect(details.effectivePolicy.complexityMaxCyclomatic).toBe(20);
+    expect(details.tuning?.applied).toBe(false);
+    expect(details.tuning?.reason).toContain('Insufficient history samples');
+  });
 });

@@ -33,6 +33,10 @@
       "types": "./src/gate/policy.ts",
       "default": "./src/gate/policy.ts"
     },
+    "./gate/auto-tune": {
+      "types": "./src/gate/auto-tune.ts",
+      "default": "./src/gate/auto-tune.ts"
+    },
     "./gate/sources": {
       "types": "./src/gate/sources.ts",
       "default": "./src/gate/sources.ts"

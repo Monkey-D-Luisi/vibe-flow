@@ -1,16 +1,25 @@
 import type { ToolDef, ToolDeps } from './index.js';
 import {
   QualityGateParams,
+  type QualityGateAutoTune as QualityGateAutoTuneInput,
   type QualityGateParams as QualityGateParamsType,
 } from '../schemas/quality-gate.schema.js';
 import { evaluateGate, resolvePolicy } from '../quality/gate-policy.js';
 import { DEFAULT_POLICIES, type GatePolicy } from '../quality/types.js';
+import {
+  autoTunePolicy,
+  type GateAutoTuneConfig,
+  type GateAutoTuneResult,
+  type GatePolicyHistorySample,
+} from '../quality/gate-auto-tune.js';
 import {
   beginQualityExecution,
   getTaskOrThrow,
   updateTaskMetadata,
 } from './quality-tool-common.js';
 import { mergeQualityGateResult } from './quality-metadata.js';
+
+const DEFAULT_HISTORY_WINDOW = 50;
 
 interface QualityGateOutput {
   passed: boolean;
@@ -50,6 +59,10 @@ function asNumber(value: unknown, fallback = 0): number {
 
 function asOptionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function asOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
 }
 
 function mapViolationCode(checkName: string): QualityGateOutput['violations'][number]['code'] {
@@ -96,6 +109,102 @@ function mergePolicy(base: GatePolicy, overrides?: Partial<GatePolicy>): GatePol
   };
 }
 
+function toAutoTuneConfig(input?: QualityGateAutoTuneInput): GateAutoTuneConfig | null {
+  if (!input?.enabled) {
+    return null;
+  }
+  return {
+    minSamples: input.minSamples,
+    smoothingFactor: input.smoothingFactor,
+    maxDeltas: input.maxDeltas,
+    bounds: input.bounds,
+  };
+}
+
+function extractHistorySample(
+  payload: Record<string, unknown>,
+  createdAt: string,
+  scope: string,
+): GatePolicyHistorySample | null {
+  const payloadScope = asOptionalString(payload.scope);
+  if (payloadScope && payloadScope !== scope) {
+    return null;
+  }
+
+  const metrics = asRecord(payload.metrics);
+  const coveragePct = metrics ? asOptionalNumber(metrics.coveragePct) : undefined;
+  const lintWarnings = metrics ? asOptionalNumber(metrics.lintWarnings) : undefined;
+  const maxCyclomatic = metrics ? asOptionalNumber(metrics.maxCyclomatic) : undefined;
+
+  if (
+    coveragePct === undefined
+    && lintWarnings === undefined
+    && maxCyclomatic === undefined
+  ) {
+    return null;
+  }
+
+  return {
+    coveragePct,
+    lintWarnings,
+    maxCyclomatic,
+    scope: payloadScope ?? scope,
+    timestamp: createdAt,
+  };
+}
+
+function loadGateHistory(
+  deps: ToolDeps,
+  scope: string,
+  historyWindow: number,
+): GatePolicyHistorySample[] {
+  const queryResult = deps.eventLog.queryEvents({
+    eventType: 'quality.gate',
+    limit: historyWindow,
+    offset: 0,
+  });
+
+  const history: GatePolicyHistorySample[] = [];
+  for (const event of queryResult.events) {
+    const sample = extractHistorySample(event.payload, event.createdAt, scope);
+    if (sample) {
+      history.push(sample);
+    }
+  }
+
+  return history;
+}
+
+function buildMetricPayload(
+  coveragePct: number,
+  lintWarnings: number | undefined,
+  maxCyclomatic: number | undefined,
+): Record<string, number> {
+  const metrics: Record<string, number> = {};
+  if (Number.isFinite(coveragePct)) {
+    metrics.coveragePct = coveragePct;
+  }
+  if (lintWarnings !== undefined) {
+    metrics.lintWarnings = lintWarnings;
+  }
+  if (maxCyclomatic !== undefined) {
+    metrics.maxCyclomatic = maxCyclomatic;
+  }
+  return metrics;
+}
+
+function toTuningSummary(tuning: GateAutoTuneResult | undefined): Record<string, unknown> | undefined {
+  if (!tuning) {
+    return undefined;
+  }
+  return {
+    applied: tuning.applied,
+    sampleCount: tuning.sampleCount,
+    reason: tuning.reason,
+    adjustments: tuning.adjustments,
+  };
+}
+
 export function qualityGateToolDef(deps: ToolDeps): ToolDef {
   return {
     name: 'quality.gate',
@@ -118,12 +227,23 @@ export function qualityGateToolDef(deps: ToolDeps): ToolDef {
       const lintWarnings = lint ? asOptionalNumber(lint.warnings) : undefined;
       const complexityAvg = complexityRoot ? asOptionalNumber(complexityRoot.avg) : undefined;
       const complexityMax = complexityRoot ? asOptionalNumber(complexityRoot.max) : undefined;
+      const coveragePct = resolveCoverageLines(metadata);
 
       const scope = input.scope ?? task.scope;
-      const policy = mergePolicy(resolvePolicy(DEFAULT_POLICIES, scope), input.policy);
+      const basePolicy = mergePolicy(resolvePolicy(DEFAULT_POLICIES, scope), input.policy);
+      let policy = basePolicy;
+      let tuning: GateAutoTuneResult | undefined;
+      const autoTuneConfig = toAutoTuneConfig(input.autoTune);
+      if (autoTuneConfig) {
+        const historyWindow = input.autoTune?.historyWindow ?? DEFAULT_HISTORY_WINDOW;
+        const history = loadGateHistory(deps, scope, historyWindow);
+        tuning = autoTunePolicy(basePolicy, history, autoTuneConfig);
+        policy = tuning.tunedPolicy;
+      }
+
       const gateResult = evaluateGate(
         {
-          coveragePct: resolveCoverageLines(metadata),
+          coveragePct,
           lintErrors,
           lintWarnings,
           maxCyclomatic: complexityMax,
@@ -142,7 +262,7 @@ export function qualityGateToolDef(deps: ToolDeps): ToolDef {
             failed: qaReport ? asNumber(qaReport.failed) : 0,
           },
           coverage: {
-            lines: resolveCoverageLines(metadata),
+            lines: coveragePct,
           },
           lint: {
             errors: lintErrors ?? 0,
@@ -172,15 +292,24 @@ export function qualityGateToolDef(deps: ToolDeps): ToolDef {
           verdict: gateResult.verdict,
           violations: output.violations.length,
           scope,
+          metrics: buildMetricPayload(coveragePct, lintWarnings, complexityMax),
+          tuning: toTuningSummary(tuning),
         },
       );
       execCtx.logger.info('quality.gate.complete', {
         durationMs: Date.now() - execCtx.startedAt,
         passed: output.passed,
         violations: output.violations.length,
+        autoTuneApplied: tuning?.applied ?? false,
+        tuningAdjustments: tuning?.adjustments.length ?? 0,
       });
 
-      const result = { task: updatedTask, output };
+      const result = {
+        task: updatedTask,
+        output,
+        effectivePolicy: policy,
+        tuning: tuning ?? null,
+      };
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
         details: result,

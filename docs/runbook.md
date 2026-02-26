@@ -129,7 +129,9 @@ CI enforces vulnerability policy through `pnpm verify:vuln-policy`.
 1. Create/update tasks with `task.create`, `task.update`, `task.transition`.
 2. Capture quality evidence with `quality.coverage`, `quality.lint`,
    `quality.complexity`, and `quality.tests`. Use `quality.gate` for an
-   explicit quality verdict snapshot.
+   explicit quality verdict snapshot. For adaptive thresholds, call
+   `quality.gate` with `autoTune.enabled=true` and bounded safeguards
+   (`minSamples`, `smoothingFactor`, `maxDeltas`, `bounds`).
 3. Use `workflow.step.run` for role outputs (`architecture_plan`,
    `dev_result`, `review_result`, `qa_report`) when transitions require
    structured evidence beyond quality metrics.

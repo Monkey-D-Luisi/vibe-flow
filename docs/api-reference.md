@@ -355,16 +355,30 @@ This document lists every registered tool from
 
 ### `quality.gate`
 
-- Parameters: `taskId`, `agentId`, optional `scope`, `policy`
-- Returns: `{ task, output }`
+- Parameters: `taskId`, `agentId`, optional `scope`, `policy`, `autoTune`
+- `autoTune` (optional) fields: `enabled`, `historyWindow`, `minSamples`,
+  `smoothingFactor`, `maxDeltas`, `bounds`
+- Returns: `{ task, output, effectivePolicy, tuning }`
 - Persists gate verdict in `task.metadata.quality.gate`
+- Emits `quality.gate` events with metric snapshots and optional tuning summary
 
 ```json
 {
   "input": {
     "taskId": "01HARDENINGTASK0001",
     "agentId": "dev",
-    "scope": "major"
+    "scope": "major",
+    "autoTune": {
+      "enabled": true,
+      "historyWindow": 50,
+      "minSamples": 5,
+      "smoothingFactor": 0.25,
+      "maxDeltas": {
+        "coverageMinPct": 4,
+        "lintMaxWarnings": 6,
+        "complexityMaxCyclomatic": 4
+      }
+    }
   },
   "output": {
     "task": {
@@ -391,6 +405,28 @@ This document lists every registered tool from
         }
       },
       "violations": []
+    },
+    "effectivePolicy": {
+      "coverageMinPct": 82,
+      "lintMaxErrors": 0,
+      "lintMaxWarnings": 8,
+      "complexityMaxCyclomatic": 14,
+      "testsRequired": true,
+      "testsMustPass": true,
+      "rgrMaxCount": 0
+    },
+    "tuning": {
+      "applied": true,
+      "sampleCount": 12,
+      "adjustments": [
+        {
+          "metric": "coverageMinPct",
+          "before": 80,
+          "after": 82,
+          "median": 88,
+          "samples": 12
+        }
+      ]
     }
   }
 }
