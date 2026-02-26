@@ -47,13 +47,14 @@ export async function runTestsTool(input: RunTestsInput): Promise<RunTestsOutput
   });
 
   if (result.timedOut) {
+    const timeoutDetail = result.stderr.trim();
     return {
       command,
       success: false,
       exitCode: result.exitCode,
       durationMs: result.durationMs,
       timedOut: true,
-      stderr: 'Test execution timed out',
+      stderr: timeoutDetail ? `Test execution timed out: ${timeoutDetail}` : 'Test execution timed out',
     };
   }
 

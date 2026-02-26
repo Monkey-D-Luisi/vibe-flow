@@ -57,6 +57,7 @@ export async function lintTool(input: LintInput): Promise<LintOutput> {
   });
 
   const stdout = result.stdout.trim();
+  const stderr = result.stderr.trim();
 
   // Try to extract JSON from the output
   let jsonContent = stdout;
@@ -93,6 +94,20 @@ export async function lintTool(input: LintInput): Promise<LintOutput> {
     }
   }
 
+  let raw: string | undefined;
+  if (reports.length === 0) {
+    const rawParts: string[] = [];
+    if (stdout) {
+      rawParts.push(stdout);
+    }
+    if (stderr) {
+      rawParts.push(`stderr: ${stderr}`);
+    }
+    if (rawParts.length > 0) {
+      raw = rawParts.join('\n');
+    }
+  }
+
   return {
     engine,
     command,
@@ -103,7 +118,7 @@ export async function lintTool(input: LintInput): Promise<LintOutput> {
     reports,
     exitCode: result.exitCode,
     durationMs: result.durationMs,
-    raw: reports.length === 0 ? (stdout || result.stderr) : undefined,
+    raw,
   };
 }
 

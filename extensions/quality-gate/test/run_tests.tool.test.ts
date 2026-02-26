@@ -63,7 +63,7 @@ describe('runTestsTool behavior', () => {
 
     expect(result.success).toBe(false);
     expect(result.timedOut).toBe(true);
-    expect(result.stderr).toBe('Test execution timed out');
+    expect(result.stderr).toBe('Test execution timed out: ABORT_ERR');
     expect(result.summary).toBeUndefined();
   });
 
