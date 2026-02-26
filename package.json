@@ -14,7 +14,8 @@
     "q:coverage": "pnpm --filter @openclaw/quality-gate q:cli run --coverage",
     "q:lint": "pnpm --filter @openclaw/quality-gate q:cli run --lint",
     "q:complexity": "pnpm --filter @openclaw/quality-gate q:cli run --complexity",
-    "verify:q-surface": "tsx scripts/verify-root-quality-gate-command-surface.ts"
+    "verify:q-surface": "tsx scripts/verify-root-quality-gate-command-surface.ts",
+    "verify:vuln-policy": "tsx scripts/enforce-ci-vulnerability-policy.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
