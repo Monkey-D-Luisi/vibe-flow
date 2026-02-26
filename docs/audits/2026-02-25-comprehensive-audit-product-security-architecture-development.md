@@ -106,7 +106,7 @@ Processing policy applied:
 | A-004 | `docs/tasks/0018-fix-plugin-lifecycle-listeners-and-hotspot-maintainability.md` | `docs/walkthroughs/0018-fix-plugin-lifecycle-listeners-and-hotspot-maintainability.md` | PLANNED |
 | D-001 | `docs/tasks/0019-strengthen-quality-gate-tests-and-coverage-policy.md` | `docs/walkthroughs/0019-strengthen-quality-gate-tests-and-coverage-policy.md` | PLANNED |
 | D-002 | `docs/tasks/0019-strengthen-quality-gate-tests-and-coverage-policy.md` | `docs/walkthroughs/0019-strengthen-quality-gate-tests-and-coverage-policy.md` | PLANNED |
-| D-003 | `docs/tasks/0015-enforce-ci-high-vulnerability-gating.md` | `docs/walkthroughs/0015-enforce-ci-high-vulnerability-gating.md` | PLANNED |
+| D-003 | `docs/tasks/0015-enforce-ci-high-vulnerability-gating.md` | `docs/walkthroughs/0015-enforce-ci-high-vulnerability-gating.md` | DONE_VERIFIED |
 | D-004 | `docs/tasks/0018-fix-plugin-lifecycle-listeners-and-hotspot-maintainability.md` | `docs/walkthroughs/0018-fix-plugin-lifecycle-listeners-and-hotspot-maintainability.md` | PLANNED |
 
 ---

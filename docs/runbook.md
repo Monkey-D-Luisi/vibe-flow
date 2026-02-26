@@ -96,6 +96,7 @@ When `github.ciFeedback.enabled=true`, `github.ciFeedback.webhookSecret` is requ
 
 ```bash
 pnpm tsx scripts/validate-allowlists.ts
+pnpm verify:vuln-policy
 pnpm test
 pnpm lint
 pnpm typecheck
@@ -106,6 +107,17 @@ pnpm typecheck
 Track and revalidate active transitive vulnerability exceptions using the
 canonical procedure in `docs/security-vulnerability-exception-ledger.md`
 (`Revalidation Procedure` section).
+
+### CI vulnerability gate policy
+
+CI enforces vulnerability policy through `pnpm verify:vuln-policy`.
+
+- The gate runs `pnpm audit --prod --json`.
+- Any `high` or `critical` finding must match an active exception row in
+  `docs/security-vulnerability-exception-ledger.md`.
+- Exception matching is strict by advisory (`GHSA-*`), package, installed
+  version, and dependency path.
+- Expired exceptions fail the gate even when still listed.
 
 ## Tool Allow-Lists
 
