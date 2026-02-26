@@ -28,17 +28,9 @@ Implemented by extracting canonical quality contracts into a shared workspace pa
 ### Commands Run
 
 ~~~bash
-git checkout main
-git pull origin main
-git checkout -b feat/0017-consolidate-quality-parser-and-policy-contracts
-pnpm install
-pnpm --filter @openclaw/plugin-product-team test
-pnpm --filter @openclaw/quality-gate test
 pnpm test
 pnpm lint
 pnpm typecheck
-pnpm test
-pnpm lint
 ~~~
 
 ### Files Changed
