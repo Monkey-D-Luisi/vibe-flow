@@ -44,11 +44,17 @@ pnpm typecheck
 
 Before merging, ensure:
 
-- **Coverage**: >= 80% (major scope) / >= 70% (minor scope)
+- **Workflow quality coverage gate**: >= 80% (major scope) / >= 70% (minor scope)
+- **Extension test coverage baseline (CI)**: statements >= 45%, lines >= 45%, functions >= 50%, branches >= 70% for `src/**/*.ts`
 - **Lint**: Zero errors
 - **Complexity**: Average cyclomatic <= 5.0
 - **Tests**: All passing
 - **Types**: No TypeScript errors
+
+CI enforces the extension baseline with:
+
+- `pnpm --filter @openclaw/quality-gate test:coverage`
+- `pnpm --filter @openclaw/plugin-product-team test:coverage`
 
 ## Coding Standards
 
