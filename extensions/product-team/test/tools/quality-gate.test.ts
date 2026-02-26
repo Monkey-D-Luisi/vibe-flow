@@ -104,10 +104,11 @@ describe('quality.gate tool', () => {
 
     const details = result.details as {
       task: { metadata: Record<string, unknown> };
-      output: { passed: boolean; violations: unknown[] };
+      output: { passed: boolean; violations: unknown[]; alerts: unknown[] };
     };
     expect(details.output.passed).toBe(true);
     expect(details.output.violations).toHaveLength(0);
+    expect(details.output.alerts).toHaveLength(0);
     const quality = (details.task.metadata.quality as Record<string, unknown>);
     expect(quality.gate).toBeDefined();
   });
@@ -225,5 +226,96 @@ describe('quality.gate tool', () => {
     expect(details.effectivePolicy.complexityMaxCyclomatic).toBe(20);
     expect(details.tuning?.applied).toBe(false);
     expect(details.tuning?.reason).toContain('Insufficient history samples');
+  });
+
+  it('emits structured regression alerts when enabled and thresholds are exceeded', async () => {
+    deps.eventLog.logQualityEvent(
+      taskId,
+      'quality.gate',
+      'qa',
+      'history-alert-baseline',
+      {
+        scope: 'minor',
+        metrics: {
+          coveragePct: 95,
+          lintWarnings: 0,
+          maxCyclomatic: 8,
+        },
+      },
+    );
+
+    const task = deps.taskRepo.getById(taskId)!;
+    deps.taskRepo.update(
+      taskId,
+      {
+        metadata: {
+          ...task.metadata,
+          dev_result: {
+            metrics: {
+              coverage: 82,
+              lint_clean: true,
+            },
+            red_green_refactor_log: ['red', 'green'],
+          },
+          complexity: {
+            avg: 8,
+            max: 14,
+            files: 3,
+          },
+        },
+      },
+      task.rev,
+      NOW,
+    );
+
+    const tool = qualityGateToolDef(deps);
+    const result = await tool.execute('gate-5', {
+      taskId,
+      agentId: 'qa',
+      alerts: {
+        enabled: true,
+        thresholds: {
+          coverageDropPct: 5,
+          complexityRise: 3,
+        },
+        noise: {
+          cooldownEvents: 5,
+        },
+      },
+    });
+
+    const details = result.details as {
+      output: {
+        alerts: Array<{
+          metric: string;
+          baseline: number;
+          observed: number;
+          delta: number;
+          threshold: number;
+        }>;
+      };
+      alerting: {
+        baseline: { coveragePct?: number; maxCyclomatic?: number } | null;
+        emittedKeys: string[];
+      } | null;
+    };
+
+    expect(details.output.alerts).toHaveLength(2);
+    expect(details.output.alerts.some((alert) => alert.metric === 'coverageDropPct')).toBe(true);
+    expect(details.output.alerts.some((alert) => alert.metric === 'complexityRise')).toBe(true);
+    expect(details.alerting?.baseline?.coveragePct).toBe(95);
+    expect(details.alerting?.baseline?.maxCyclomatic).toBe(8);
+    expect(details.alerting?.emittedKeys).toHaveLength(2);
+
+    const qualityEvents = deps.eventLog
+      .getHistory(taskId)
+      .filter((event) => event.eventType === 'quality.gate');
+    const lastEvent = qualityEvents[qualityEvents.length - 1];
+    const alerting = lastEvent.payload.alerting as {
+      alerts?: unknown[];
+      emittedKeys?: unknown[];
+    };
+    expect(alerting.alerts).toHaveLength(2);
+    expect(alerting.emittedKeys).toHaveLength(2);
   });
 });

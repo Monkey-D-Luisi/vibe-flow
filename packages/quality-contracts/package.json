@@ -37,6 +37,10 @@
       "types": "./src/gate/auto-tune.ts",
       "default": "./src/gate/auto-tune.ts"
     },
+    "./gate/alerts": {
+      "types": "./src/gate/alerts.ts",
+      "default": "./src/gate/alerts.ts"
+    },
     "./gate/sources": {
       "types": "./src/gate/sources.ts",
       "default": "./src/gate/sources.ts"

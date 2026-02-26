@@ -32,6 +32,30 @@ const QualityGateAutoTuneBoundsMapSchema = Type.Object(
   { additionalProperties: false },
 );
 
+const QualityGateAlertThresholds = Type.Object(
+  {
+    coverageDropPct: Type.Optional(Type.Number({ minimum: 0 })),
+    complexityRise: Type.Optional(Type.Number({ minimum: 0 })),
+  },
+  { additionalProperties: false },
+);
+
+const QualityGateAlertNoise = Type.Object(
+  {
+    cooldownEvents: Type.Optional(Type.Integer({ minimum: 1, maximum: 500 })),
+  },
+  { additionalProperties: false },
+);
+
+export const QualityGateAlerts = Type.Object(
+  {
+    enabled: Type.Optional(Type.Boolean()),
+    thresholds: Type.Optional(QualityGateAlertThresholds),
+    noise: Type.Optional(QualityGateAlertNoise),
+  },
+  { additionalProperties: false },
+);
+
 export const QualityGateAutoTune = Type.Object(
   {
     enabled: Type.Optional(Type.Boolean()),
@@ -63,8 +87,10 @@ export const QualityGateParams = Type.Object({
   scope: Type.Optional(ScopeSchema),
   policy: Type.Optional(QualityGatePolicyOverrides),
   autoTune: Type.Optional(QualityGateAutoTune),
+  alerts: Type.Optional(QualityGateAlerts),
 });
 
 export type QualityGateParams = Static<typeof QualityGateParams>;
 export type QualityGatePolicyOverrides = Static<typeof QualityGatePolicyOverrides>;
 export type QualityGateAutoTune = Static<typeof QualityGateAutoTune>;
+export type QualityGateAlerts = Static<typeof QualityGateAlerts>;

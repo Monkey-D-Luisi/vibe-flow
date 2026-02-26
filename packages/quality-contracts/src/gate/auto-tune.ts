@@ -11,6 +11,7 @@ export interface GatePolicyHistorySample {
   readonly maxCyclomatic?: number;
   readonly scope?: string;
   readonly timestamp?: string;
+  readonly alertKeys?: readonly string[];
 }
 
 export interface GateAutoTuneBounds {

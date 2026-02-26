@@ -114,4 +114,104 @@ describe('quality.gate_enforce auto-tune', () => {
     expect(result.policy.complexityMaxCyclomatic).toBe(11.5);
     expect(result.result.verdict).toBe('pass');
   });
+
+  it('emits regression alerts when configured deltas are exceeded', async () => {
+    const result = await gateEnforceTool({
+      scope: 'minor',
+      metrics: {
+        coveragePct: 82,
+        lintErrors: 0,
+        lintWarnings: 2,
+        maxCyclomatic: 14,
+        testsExist: true,
+        testsPassed: true,
+        rgrCount: 1,
+      },
+      history: [
+        {
+          coveragePct: 95,
+          lintWarnings: 0,
+          maxCyclomatic: 8,
+          scope: 'minor',
+          timestamp: '2026-02-26T10:00:00.000Z',
+        },
+      ],
+      alerts: {
+        enabled: true,
+        thresholds: {
+          coverageDropPct: 5,
+          complexityRise: 3,
+        },
+      },
+    });
+
+    expect(result.alerting?.alerts).toHaveLength(2);
+    expect(result.alerting?.alerts.some((alert) => alert.metric === 'coverageDropPct')).toBe(true);
+    expect(result.alerting?.alerts.some((alert) => alert.metric === 'complexityRise')).toBe(true);
+    expect(result.alerting?.emittedKeys).toHaveLength(2);
+  });
+
+  it('suppresses repeated identical alert keys within cooldown window', async () => {
+    const baselineResult = await gateEnforceTool({
+      scope: 'minor',
+      metrics: {
+        coveragePct: 90,
+        lintErrors: 0,
+        lintWarnings: 0,
+        maxCyclomatic: 10,
+        testsExist: true,
+        testsPassed: true,
+        rgrCount: 0,
+      },
+      history: [
+        {
+          coveragePct: 90,
+          lintWarnings: 0,
+          maxCyclomatic: 10,
+          scope: 'minor',
+          timestamp: '2026-02-26T10:00:00.000Z',
+        },
+      ],
+      alerts: {
+        enabled: true,
+        thresholds: {
+          coverageDropPct: 0,
+          complexityRise: 0,
+        },
+      },
+    });
+
+    const dedupedResult = await gateEnforceTool({
+      scope: 'minor',
+      metrics: {
+        coveragePct: 90,
+        lintErrors: 0,
+        lintWarnings: 0,
+        maxCyclomatic: 10,
+        testsExist: true,
+        testsPassed: true,
+        rgrCount: 0,
+      },
+      history: [
+        {
+          coveragePct: 90,
+          lintWarnings: 0,
+          maxCyclomatic: 10,
+          scope: 'minor',
+          timestamp: '2026-02-26T10:05:00.000Z',
+          alertKeys: baselineResult.alerting?.emittedKeys ?? [],
+        },
+      ],
+      alerts: {
+        enabled: true,
+        thresholds: {
+          coverageDropPct: 0,
+          complexityRise: 0,
+        },
+      },
+    });
+
+    expect(dedupedResult.alerting?.alerts).toHaveLength(0);
+    expect(dedupedResult.alerting?.suppressed).toHaveLength(2);
+  });
 });

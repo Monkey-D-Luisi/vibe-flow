@@ -355,12 +355,15 @@ This document lists every registered tool from
 
 ### `quality.gate`
 
-- Parameters: `taskId`, `agentId`, optional `scope`, `policy`, `autoTune`
+- Parameters: `taskId`, `agentId`, optional `scope`, `policy`, `autoTune`, `alerts`
 - `autoTune` (optional) fields: `enabled`, `historyWindow`, `minSamples`,
   `smoothingFactor`, `maxDeltas`, `bounds`
-- Returns: `{ task, output, effectivePolicy, tuning }`
+- `alerts` (optional) fields: `enabled`, `thresholds.coverageDropPct`,
+  `thresholds.complexityRise`, `noise.cooldownEvents`
+- Returns: `{ task, output, effectivePolicy, tuning, alerting }`
 - Persists gate verdict in `task.metadata.quality.gate`
-- Emits `quality.gate` events with metric snapshots and optional tuning summary
+- Emits `quality.gate` events with metric snapshots, optional tuning summary,
+  and optional alerting summary (`alerts`, `suppressed`, `emittedKeys`)
 
 ```json
 {
@@ -377,6 +380,16 @@ This document lists every registered tool from
         "coverageMinPct": 4,
         "lintMaxWarnings": 6,
         "complexityMaxCyclomatic": 4
+      }
+    },
+    "alerts": {
+      "enabled": true,
+      "thresholds": {
+        "coverageDropPct": 5,
+        "complexityRise": 3
+      },
+      "noise": {
+        "cooldownEvents": 5
       }
     }
   },
@@ -404,7 +417,20 @@ This document lists every registered tool from
           "maxCyclomatic": 7
         }
       },
-      "violations": []
+      "violations": [],
+      "alerts": [
+        {
+          "key": "coverageDropPct:major:88:82:5",
+          "metric": "coverageDropPct",
+          "scope": "major",
+          "direction": "decrease",
+          "baseline": 88,
+          "observed": 82,
+          "delta": 6,
+          "threshold": 5,
+          "reason": "Coverage dropped by 6 from baseline 88 to 82 (threshold 5)"
+        }
+      ]
     },
     "effectivePolicy": {
       "coverageMinPct": 82,
@@ -427,6 +453,38 @@ This document lists every registered tool from
           "samples": 12
         }
       ]
+    },
+    "alerting": {
+      "enabled": true,
+      "evaluatedAt": "2026-02-26T10:05:00.000Z",
+      "thresholds": {
+        "coverageDropPct": 5,
+        "complexityRise": 3
+      },
+      "cooldownEvents": 5,
+      "baseline": {
+        "coveragePct": 88,
+        "maxCyclomatic": 8,
+        "scope": "major",
+        "timestamp": "2026-02-26T09:55:00.000Z"
+      },
+      "alerts": [
+        {
+          "key": "coverageDropPct:major:88:82:5",
+          "metric": "coverageDropPct",
+          "scope": "major",
+          "direction": "decrease",
+          "baseline": 88,
+          "observed": 82,
+          "delta": 6,
+          "threshold": 5,
+          "reason": "Coverage dropped by 6 from baseline 88 to 82 (threshold 5)"
+        }
+      ],
+      "emittedKeys": [
+        "coverageDropPct:major:88:82:5"
+      ],
+      "suppressed": []
     }
   }
 }

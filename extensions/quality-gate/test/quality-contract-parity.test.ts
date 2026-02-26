@@ -9,6 +9,8 @@ import { evaluateGate as evaluateGateProduct, resolvePolicy as resolvePolicyProd
 import { evaluateGate as evaluateGateQualityGate, resolvePolicy as resolvePolicyQualityGate } from '../src/gate/policy.js';
 import { autoTunePolicy as autoTunePolicyProduct } from '../../product-team/src/quality/gate-auto-tune.js';
 import { autoTunePolicy as autoTunePolicyQualityGate } from '../src/gate/auto-tune.js';
+import { evaluateRegressionAlerts as evaluateRegressionAlertsProduct } from '../../product-team/src/quality/gate-alerts.js';
+import { evaluateRegressionAlerts as evaluateRegressionAlertsQualityGate } from '../src/gate/alerts.js';
 import { DEFAULT_POLICIES as productPolicies } from '../../product-team/src/quality/types.js';
 import { DEFAULT_POLICIES as qualityGatePolicies } from '../src/gate/types.js';
 
@@ -129,5 +131,46 @@ describe('quality contract parity', () => {
     const qualityGateTuned = autoTunePolicyQualityGate(qualityGatePolicies.minor, history, config);
 
     expect(qualityGateTuned).toEqual(productTuned);
+  });
+
+  it('produces identical regression alert outputs', () => {
+    const history = [
+      {
+        coveragePct: 95,
+        maxCyclomatic: 8,
+        scope: 'minor',
+        timestamp: '2026-02-26T10:00:00.000Z',
+      },
+    ];
+    const current = {
+      coveragePct: 82,
+      maxCyclomatic: 14,
+    };
+    const config = {
+      thresholds: {
+        coverageDropPct: 5,
+        complexityRise: 3,
+      },
+      noise: {
+        cooldownEvents: 5,
+      },
+    };
+
+    const productAlerts = evaluateRegressionAlertsProduct(
+      current,
+      history,
+      'minor',
+      config,
+      '2026-02-26T10:05:00.000Z',
+    );
+    const qualityGateAlerts = evaluateRegressionAlertsQualityGate(
+      current,
+      history,
+      'minor',
+      config,
+      '2026-02-26T10:05:00.000Z',
+    );
+
+    expect(qualityGateAlerts).toEqual(productAlerts);
   });
 });
