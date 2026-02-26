@@ -5,7 +5,7 @@
 - Task: docs/tasks/0018-fix-plugin-lifecycle-listeners-and-hotspot-maintainability.md
 - Source Finding IDs: A-004, D-004
 - Branch: feat/0018-fix-plugin-lifecycle-listeners-and-hotspot-maintainability
-- Status: IN_PROGRESS
+- Status: DONE
 
 ---
 
@@ -60,6 +60,7 @@ pnpm typecheck
 - `extensions/product-team/test/index.test.ts`
 - `extensions/product-team/test/config/plugin-config.test.ts` (new)
 - `docs/roadmap.md`
+- `docs/tasks/0018-fix-plugin-lifecycle-listeners-and-hotspot-maintainability.md`
 
 ### Verification Evidence
 
@@ -74,8 +75,8 @@ pnpm typecheck
 
 ## Closure Decision
 
-- Current status: IMPLEMENTED_PENDING_STATUS_FLIP
-- Closure criteria met: NO (final task/roadmap status update still pending)
+- Current status: DONE_VERIFIED
+- Closure criteria met: YES
 - Notes: No scope drift. Residual D-004 hotspots are documented as follow-up candidates.
 
 ---
@@ -85,4 +86,4 @@ pnpm typecheck
 - [x] Source findings linked for traceability
 - [x] Commands executed and recorded
 - [x] Verification evidence attached
-- [ ] Closure decision updated to DONE_VERIFIED
+- [x] Closure decision updated to DONE_VERIFIED
