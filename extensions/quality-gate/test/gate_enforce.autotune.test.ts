@@ -68,5 +68,50 @@ describe('quality.gate_enforce auto-tune', () => {
     expect(result.policy.lintMaxWarnings).toBe(20);
     expect(result.policy.complexityMaxCyclomatic).toBe(20);
   });
-});
 
+  it('filters scoped history samples to the requested policy scope', async () => {
+    const majorHistory = Array.from({ length: 6 }, () => ({
+      coveragePct: 95,
+      lintWarnings: 1,
+      maxCyclomatic: 8,
+      scope: 'major',
+    }));
+    const patchHistory = Array.from({ length: 6 }, () => ({
+      coveragePct: 60,
+      lintWarnings: 30,
+      maxCyclomatic: 25,
+      scope: 'patch',
+    }));
+
+    const result = await gateEnforceTool({
+      scope: 'major',
+      metrics: {
+        coveragePct: 90,
+        lintErrors: 0,
+        lintWarnings: 4,
+        maxCyclomatic: 10,
+        testsExist: true,
+        testsPassed: true,
+        rgrCount: 0,
+      },
+      history: [...majorHistory, ...patchHistory],
+      autoTune: {
+        enabled: true,
+        minSamples: 5,
+        smoothingFactor: 0.5,
+        maxDeltas: {
+          coverageMinPct: 20,
+          lintMaxWarnings: 20,
+          complexityMaxCyclomatic: 20,
+        },
+      },
+    });
+
+    expect(result.tuning?.applied).toBe(true);
+    expect(result.tuning?.sampleCount).toBe(6);
+    expect(result.policy.coverageMinPct).toBe(87.5);
+    expect(result.policy.lintMaxWarnings).toBe(6);
+    expect(result.policy.complexityMaxCyclomatic).toBe(11.5);
+    expect(result.result.verdict).toBe('pass');
+  });
+});
