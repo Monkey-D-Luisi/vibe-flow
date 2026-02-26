@@ -1,0 +1,41 @@
+{
+  "name": "@openclaw/quality-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared quality parser and gate policy contracts",
+  "exports": {
+    "./parsers/types": {
+      "types": "./src/parsers/types.ts",
+      "default": "./src/parsers/types.ts"
+    },
+    "./parsers/eslint": {
+      "types": "./src/parsers/eslint.ts",
+      "default": "./src/parsers/eslint.ts"
+    },
+    "./parsers/ruff": {
+      "types": "./src/parsers/ruff.ts",
+      "default": "./src/parsers/ruff.ts"
+    },
+    "./parsers/istanbul": {
+      "types": "./src/parsers/istanbul.ts",
+      "default": "./src/parsers/istanbul.ts"
+    },
+    "./parsers/vitest": {
+      "types": "./src/parsers/vitest.ts",
+      "default": "./src/parsers/vitest.ts"
+    },
+    "./gate/types": {
+      "types": "./src/gate/types.ts",
+      "default": "./src/gate/types.ts"
+    },
+    "./gate/policy": {
+      "types": "./src/gate/policy.ts",
+      "default": "./src/gate/policy.ts"
+    },
+    "./gate/sources": {
+      "types": "./src/gate/sources.ts",
+      "default": "./src/gate/sources.ts"
+    }
+  }
+}
