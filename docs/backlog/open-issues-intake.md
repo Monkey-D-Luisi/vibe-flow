@@ -16,7 +16,7 @@ queue for AR01 remediation.
 
 | Issue | Title | Proposed Track | Current Mapping | Next Step to Activate |
 |-------|-------|----------------|-----------------|-----------------------|
-| #154 | Gate auto-tuning: adjust thresholds based on historical metrics | EP05 follow-up (quality optimization) | Task `0020` in progress (`docs/tasks/0020-gate-auto-tuning-historical-metrics.md`) | Execute implementation and verification workflow to closure. |
+| #154 | Gate auto-tuning: adjust thresholds based on historical metrics | EP05 follow-up (quality optimization) | Task `0020` DONE (`docs/tasks/0020-gate-auto-tuning-historical-metrics.md`) | Move issue to closed set and keep this intake row as completed traceability evidence. |
 | #155 | Threshold alerts: notify on coverage drops or complexity rises | EP05 follow-up (quality alerting) | Not in task specs | Define transport/channel strategy and alert policy, then create task spec. |
 | #156 | Extension scaffolding CLI for new OpenClaw plugins | DX track | Not in task specs | Create scoped task for generator CLI architecture and acceptance tests. |
 | #157 | npm publish pipeline for @openclaw/* extensions | Release engineering track | Not in task specs | Define release/versioning strategy and CI publish safeguards, then create task spec. |

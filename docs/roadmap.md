@@ -213,7 +213,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - [Task 0017: Consolidate Quality Parser and Policy Contracts](tasks/0017-consolidate-quality-parser-and-policy-contracts.md) -- DONE (Architecture lane)
 - [Task 0018: Fix Plugin Lifecycle Listeners and Hotspot Maintainability](tasks/0018-fix-plugin-lifecycle-listeners-and-hotspot-maintainability.md) -- DONE (Architecture and Development lane)
 - [Task 0019: Strengthen Quality-Gate Tests and Coverage Policy](tasks/0019-strengthen-quality-gate-tests-and-coverage-policy.md) -- DONE (Development lane)
-- [Task 0020: Gate Auto-Tuning from Historical Metrics](tasks/0020-gate-auto-tuning-historical-metrics.md) -- IN_PROGRESS (Open issues intake #154)
+- [Task 0020: Gate Auto-Tuning from Historical Metrics](tasks/0020-gate-auto-tuning-historical-metrics.md) -- DONE (Open issues intake #154)
 
 ### Epic Backlogs
 - [EP01 Backlog](backlog/EP01-openclaw-foundation.md)
