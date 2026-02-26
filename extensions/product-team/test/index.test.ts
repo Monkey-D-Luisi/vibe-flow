@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createHmac } from 'node:crypto';
 import { register } from '../src/index.js';
 import type { OpenClawPluginApi } from '../src/index.js';
+import { resetProcessShutdownHooksForTests } from '../src/lifecycle/process-shutdown.js';
 
 function createMockApi(options?: {
   pluginConfig?: Record<string, unknown>;
@@ -126,6 +127,7 @@ async function getTaskMetadata(
 
 describe('product-team plugin', () => {
   afterEach(() => {
+    resetProcessShutdownHooksForTests();
     vi.restoreAllMocks();
   });
 
@@ -136,6 +138,23 @@ describe('product-team plugin', () => {
   it('register runs without error with a mock API', () => {
     const api = createMockApi();
     expect(() => register(api)).not.toThrow();
+  });
+
+  it('does not accumulate process shutdown listeners across repeated registration', () => {
+    const baseline = {
+      exit: process.listenerCount('exit'),
+      SIGINT: process.listenerCount('SIGINT'),
+      SIGTERM: process.listenerCount('SIGTERM'),
+    };
+
+    for (let index = 0; index < 15; index += 1) {
+      const api = createMockApi();
+      register(api);
+    }
+
+    expect(process.listenerCount('exit')).toBe(baseline.exit + 1);
+    expect(process.listenerCount('SIGINT')).toBe(baseline.SIGINT + 1);
+    expect(process.listenerCount('SIGTERM')).toBe(baseline.SIGTERM + 1);
   });
 
   it('logs a message on load', () => {
