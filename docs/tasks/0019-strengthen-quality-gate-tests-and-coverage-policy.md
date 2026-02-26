@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | Audit remediation |
 | Priority | MEDIUM |
 | Scope | MAJOR |
@@ -82,12 +82,12 @@ Improve test realism and coverage policy consistency for quality tooling.
 
 ## Definition of Done
 
-- [ ] Acceptance criteria validated with command-backed evidence
-- [ ] Implementation completed with no scope drift
-- [ ] Tests added or updated and passing
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated with execution journal and closure decision
+- [x] Acceptance criteria validated with command-backed evidence
+- [x] Implementation completed with no scope drift
+- [x] Tests added or updated and passing
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated with execution journal and closure decision
 
 ---
 

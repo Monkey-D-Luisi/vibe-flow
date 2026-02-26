@@ -21,7 +21,7 @@ structured JSON contracts, and is governed by tool-policy allow-lists.
 | 3     | EP04 | GitHub Integration              | EP02         | May-Jun 2026 | DONE    |
 | 4     | EP05 | Quality & Observability         | EP02, EP03   | July 2026    | DONE    |
 | 5     | EP06 | Hardening                       | EP03, EP04   | August 2026  | DONE    |
-| 6     | AR01 | Audit Remediation Program       | EP06         | Q1 2026      | IN_PROGRESS |
+| 6     | AR01 | Audit Remediation Program       | EP06         | Q1 2026      | DONE |
 
 ---
 
@@ -212,7 +212,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - [Task 0016: Upgrade Ajv and Verify Schema Security](tasks/0016-upgrade-ajv-and-verify-schema-security.md) -- DONE (Security lane)
 - [Task 0017: Consolidate Quality Parser and Policy Contracts](tasks/0017-consolidate-quality-parser-and-policy-contracts.md) -- DONE (Architecture lane)
 - [Task 0018: Fix Plugin Lifecycle Listeners and Hotspot Maintainability](tasks/0018-fix-plugin-lifecycle-listeners-and-hotspot-maintainability.md) -- DONE (Architecture and Development lane)
-- [Task 0019: Strengthen Quality-Gate Tests and Coverage Policy](tasks/0019-strengthen-quality-gate-tests-and-coverage-policy.md) -- IN_PROGRESS (Development lane)
+- [Task 0019: Strengthen Quality-Gate Tests and Coverage Policy](tasks/0019-strengthen-quality-gate-tests-and-coverage-policy.md) -- DONE (Development lane)
 
 ### Epic Backlogs
 - [EP01 Backlog](backlog/EP01-openclaw-foundation.md)
