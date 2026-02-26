@@ -23,6 +23,9 @@ importers:
 
   extensions/product-team:
     dependencies:
+      '@openclaw/quality-contracts':
+        specifier: workspace:*
+        version: link:../../packages/quality-contracts
       '@sinclair/typebox':
         specifier: ^0.34.0
         version: 0.34.48
@@ -81,6 +84,9 @@ importers:
 
   extensions/quality-gate:
     dependencies:
+      '@openclaw/quality-contracts':
+        specifier: workspace:*
+        version: link:../../packages/quality-contracts
       ajv:
         specifier: 8.18.0
         version: 8.18.0
@@ -124,6 +130,8 @@ importers:
       vitest:
         specifier: ^2.0.5
         version: 2.1.9(@types/node@22.18.9)
+
+  packages/quality-contracts: {}
 
   packages/schemas: {}
 

@@ -13,6 +13,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@openclaw/quality-contracts": "workspace:*",
     "@sinclair/typebox": "^0.34.0",
     "ajv": "8.18.0",
     "ajv-formats": "^3.0.1",
