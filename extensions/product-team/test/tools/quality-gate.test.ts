@@ -318,4 +318,74 @@ describe('quality.gate tool', () => {
     expect(alerting.alerts).toHaveLength(2);
     expect(alerting.emittedKeys).toHaveLength(2);
   });
+
+  it('uses only same-task history when evaluating regression alerts', async () => {
+    const createTool = taskCreateToolDef(deps);
+    const otherCreated = await createTool.execute('create-other', { title: 'Other task', scope: 'minor' });
+    const otherTask = (otherCreated.details as { task: { id: string } }).task;
+
+    deps.eventLog.logQualityEvent(
+      otherTask.id,
+      'quality.gate',
+      'qa',
+      'other-task-history',
+      {
+        scope: 'minor',
+        metrics: {
+          coveragePct: 95,
+          lintWarnings: 0,
+          maxCyclomatic: 8,
+        },
+      },
+    );
+
+    const task = deps.taskRepo.getById(taskId)!;
+    deps.taskRepo.update(
+      taskId,
+      {
+        metadata: {
+          ...task.metadata,
+          dev_result: {
+            metrics: {
+              coverage: 82,
+              lint_clean: true,
+            },
+            red_green_refactor_log: ['red', 'green'],
+          },
+          complexity: {
+            avg: 8,
+            max: 14,
+            files: 3,
+          },
+        },
+      },
+      task.rev,
+      NOW,
+    );
+
+    const tool = qualityGateToolDef(deps);
+    const result = await tool.execute('gate-6', {
+      taskId,
+      agentId: 'qa',
+      alerts: {
+        enabled: true,
+        thresholds: {
+          coverageDropPct: 5,
+          complexityRise: 3,
+        },
+      },
+    });
+
+    const details = result.details as {
+      output: {
+        alerts: unknown[];
+      };
+      alerting: {
+        baseline: { coveragePct?: number; maxCyclomatic?: number } | null;
+      } | null;
+    };
+
+    expect(details.output.alerts).toHaveLength(0);
+    expect(details.alerting?.baseline).toBeNull();
+  });
 });
