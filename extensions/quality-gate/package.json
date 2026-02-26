@@ -5,6 +5,7 @@
   "description": "Quality gate extension for OpenClaw: test runner, coverage, lint, complexity, and gate enforcement",
   "scripts": {
     "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests",
     "lint": "eslint src/**/*.ts --no-cache",
     "lint:fix": "eslint src/**/*.ts --fix",
     "typecheck": "tsc --noEmit",
