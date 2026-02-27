@@ -28,8 +28,18 @@ export async function readFileSafe(path: string): Promise<string> {
 }
 
 export async function readJsonFile<T>(path: string): Promise<T> {
-  const stat = await fs.stat(path);
-  if (stat.size > MAX_JSON_FILE_BYTES) {
+  let size: number;
+  try {
+    const stat = await fs.stat(path);
+    size = stat.size;
+  } catch (error) {
+    const err = asError(error);
+    if (err.code === 'ENOENT') {
+      throw new Error(`NOT_FOUND: File not found at ${path}`);
+    }
+    throw error;
+  }
+  if (size > MAX_JSON_FILE_BYTES) {
     throw new Error(`FILE_TOO_LARGE: JSON file at ${path} exceeds ${MAX_JSON_FILE_BYTES} bytes`);
   }
   const raw = await readFileSafe(path);
@@ -77,11 +87,10 @@ export function filterByExclude(path: string, excludePatterns: string[]): boolea
     return true;
   }
 
-  for (const pattern of excludePatterns) {
+  return !excludePatterns.some((pattern) => {
     if (pattern.length > MAX_PATTERN_LENGTH) {
       throw new Error(`PATTERN_TOO_LONG: Exclude pattern exceeds ${MAX_PATTERN_LENGTH} characters`);
     }
-  }
-
-  return !excludePatterns.some((pattern) => picomatch(pattern)(path));
+    return picomatch(pattern)(path);
+  });
 }

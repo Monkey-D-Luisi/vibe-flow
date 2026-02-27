@@ -40,7 +40,7 @@ describe('readJsonFile — size guard', () => {
     const err = Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
     mockStat.mockRejectedValue(err);
 
-    await expect(readJsonFile('/data/missing.json')).rejects.toThrow('ENOENT');
+    await expect(readJsonFile('/data/missing.json')).rejects.toThrow('NOT_FOUND');
   });
 
   it('throws PARSE_ERROR for invalid JSON', async () => {
