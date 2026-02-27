@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | Audit remediation 2026-02-27 |
 | Priority | HIGH |
 | Scope | MINOR |
@@ -95,10 +95,10 @@ Practical exploitability is LOW for all findings — none of the vulnerable APIs
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Vulnerability ledger complete with 14 entries
-- [ ] CI passes
-- [ ] Walkthrough updated
+- [x] All Acceptance Criteria met
+- [x] Vulnerability ledger complete with 14 entries (S-001-01 to S-001-13 + S-002-01)
+- [x] CI passes
+- [x] Walkthrough updated
 - [ ] PR created and linked
 
 ---
