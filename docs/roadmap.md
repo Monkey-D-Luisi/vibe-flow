@@ -228,7 +228,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 2026-02-27 audit remediation queue (derived from `audits/2026-02-27-full-audit.md`):
 
 - [Task 0022: Fix Plugin Schema / Runbook Workflow Config Drift](tasks/0022-fix-plugin-schema-workflow-config-drift.md) -- DONE (HIGH, pre-existing fix verified)
-- [Task 0023: Enforce Vulnerability Exception Expiry in CI](tasks/0023-enforce-vulnerability-exception-expiry-in-ci.md) -- PENDING (HIGH)
+- [Task 0023: Enforce Vulnerability Exception Expiry in CI](tasks/0023-enforce-vulnerability-exception-expiry-in-ci.md) -- DONE (HIGH)
 - [Task 0024: Track and Remediate Transitive Dependency Vulnerabilities](tasks/0024-track-and-remediate-transitive-dependency-vulnerabilities.md) -- PENDING (HIGH)
 - [Task 0025: Security Input Validation Hardening](tasks/0025-security-input-validation-hardening.md) -- PENDING (MEDIUM)
 - [Task 0026: Consolidate exec/spawn and fs Utilities to Shared Contracts](tasks/0026-consolidate-exec-and-fs-utilities-to-shared-contracts.md) -- PENDING (MEDIUM)
