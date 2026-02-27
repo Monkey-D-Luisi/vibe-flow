@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { writeFileSync, mkdirSync } from 'fs';
-import { stat, readFile } from 'node:fs/promises';
+import { open } from 'node:fs/promises';
 import { dirname } from 'path';
 import { runTestsTool } from '../src/tools/run_tests.js';
 import { coverageReportTool, type CoverageInput } from '../src/tools/coverage_report.js';
@@ -146,11 +146,17 @@ function parseNonNegativeNumber(raw: string, flag: string): number {
 }
 
 async function readHistoryFile(path: string): Promise<GateEnforceInput['history']> {
-  const fileStat = await stat(path);
-  if (fileStat.size > MAX_JSON_FILE_BYTES) {
-    throw new Error(`FILE_TOO_LARGE: History file at ${path} exceeds ${MAX_JSON_FILE_BYTES} bytes`);
+  const fileHandle = await open(path, 'r');
+  let content: string;
+  try {
+    const fileStat = await fileHandle.stat();
+    if (fileStat.size > MAX_JSON_FILE_BYTES) {
+      throw new Error(`FILE_TOO_LARGE: History file at ${path} exceeds ${MAX_JSON_FILE_BYTES} bytes`);
+    }
+    content = await fileHandle.readFile('utf8');
+  } finally {
+    await fileHandle.close();
   }
-  const content = await readFile(path, 'utf8');
   const parsed = JSON.parse(content) as unknown;
   if (!Array.isArray(parsed)) {
     throw new Error(`History file "${path}" must contain a JSON array`);

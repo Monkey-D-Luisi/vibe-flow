@@ -94,6 +94,13 @@ describe('readJsonFile — size guard', () => {
     await expect(readJsonFile('/data/huge.json')).rejects.toThrow('FILE_TOO_LARGE');
   });
 
+  it('throws NOT_FOUND when the file does not exist', async () => {
+    const err = Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+    mockStat.mockRejectedValue(err);
+
+    await expect(readJsonFile('/data/missing.json')).rejects.toThrow('NOT_FOUND');
+  });
+
   it('throws PARSE_ERROR for invalid JSON', async () => {
     mockStat.mockResolvedValue({ size: 100 } as never);
     mockReadFile.mockResolvedValue('not json' as never);
