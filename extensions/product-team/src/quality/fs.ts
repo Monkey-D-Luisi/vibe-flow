@@ -3,6 +3,9 @@ import picomatch from 'picomatch';
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
 
+export const MAX_PATTERN_LENGTH = 500;
+export const MAX_JSON_FILE_BYTES = 50 * 1024 * 1024;
+
 export interface GlobOptions {
   readonly cwd: string;
   readonly exclude?: string[];
@@ -25,6 +28,10 @@ export async function readFileSafe(path: string): Promise<string> {
 }
 
 export async function readJsonFile<T>(path: string): Promise<T> {
+  const stat = await fs.stat(path);
+  if (stat.size > MAX_JSON_FILE_BYTES) {
+    throw new Error(`FILE_TOO_LARGE: JSON file at ${path} exceeds ${MAX_JSON_FILE_BYTES} bytes`);
+  }
   const raw = await readFileSafe(path);
   try {
     return JSON.parse(raw) as T;
@@ -40,6 +47,12 @@ export async function resolveGlobPatterns(
   const { cwd, exclude = [] } = options;
   if (patterns.length === 0) {
     return [];
+  }
+
+  for (const pattern of exclude) {
+    if (pattern.length > MAX_PATTERN_LENGTH) {
+      throw new Error(`PATTERN_TOO_LONG: Exclude pattern exceeds ${MAX_PATTERN_LENGTH} characters`);
+    }
   }
 
   const files = await fg(patterns, {
@@ -62,6 +75,12 @@ export async function resolveGlobPatterns(
 export function filterByExclude(path: string, excludePatterns: string[]): boolean {
   if (excludePatterns.length === 0) {
     return true;
+  }
+
+  for (const pattern of excludePatterns) {
+    if (pattern.length > MAX_PATTERN_LENGTH) {
+      throw new Error(`PATTERN_TOO_LONG: Exclude pattern exceeds ${MAX_PATTERN_LENGTH} characters`);
+    }
   }
 
   return !excludePatterns.some((pattern) => picomatch(pattern)(path));

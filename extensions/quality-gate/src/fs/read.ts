@@ -1,5 +1,7 @@
 import { promises as fs } from 'node:fs';
 
+export const MAX_JSON_FILE_BYTES = 50 * 1024 * 1024;
+
 function asError(error: unknown): NodeJS.ErrnoException {
   return error as NodeJS.ErrnoException;
 }
@@ -17,6 +19,10 @@ export async function readFileSafe(path: string): Promise<string> {
 }
 
 export async function readJsonFile<T>(path: string): Promise<T> {
+  const stat = await fs.stat(path);
+  if (stat.size > MAX_JSON_FILE_BYTES) {
+    throw new Error(`FILE_TOO_LARGE: JSON file at ${path} exceeds ${MAX_JSON_FILE_BYTES} bytes`);
+  }
   const raw = await readFileSafe(path);
   try {
     return JSON.parse(raw) as T;

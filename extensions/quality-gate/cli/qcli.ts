@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
-import { writeFileSync, mkdirSync, readFileSync } from 'fs';
+import { writeFileSync, mkdirSync } from 'fs';
+import { stat, readFile } from 'node:fs/promises';
 import { dirname } from 'path';
 import { runTestsTool } from '../src/tools/run_tests.js';
 import { coverageReportTool, type CoverageInput } from '../src/tools/coverage_report.js';
 import { lintTool, type LintInput, type LintEngine } from '../src/tools/lint.js';
 import { complexityTool, type ComplexityInput } from '../src/tools/complexity.js';
 import { gateEnforceTool, type GateEnforceInput } from '../src/tools/gate_enforce.js';
+import { MAX_JSON_FILE_BYTES } from '../src/fs/read.js';
 
 function ensureValue(args: string[], index: number, flag: string): string {
   const value = args[index];
@@ -143,8 +145,12 @@ function parseNonNegativeNumber(raw: string, flag: string): number {
   return parsed;
 }
 
-function readHistoryFile(path: string): GateEnforceInput['history'] {
-  const content = readFileSync(path, 'utf8');
+async function readHistoryFile(path: string): Promise<GateEnforceInput['history']> {
+  const fileStat = await stat(path);
+  if (fileStat.size > MAX_JSON_FILE_BYTES) {
+    throw new Error(`FILE_TOO_LARGE: History file at ${path} exceeds ${MAX_JSON_FILE_BYTES} bytes`);
+  }
+  const content = await readFile(path, 'utf8');
   const parsed = JSON.parse(content) as unknown;
   if (!Array.isArray(parsed)) {
     throw new Error(`History file "${path}" must contain a JSON array`);
@@ -186,7 +192,7 @@ function readHistoryFile(path: string): GateEnforceInput['history'] {
   });
 }
 
-function parseGateArgs(args: string[]): GateEnforceInput {
+async function parseGateArgs(args: string[]): Promise<GateEnforceInput> {
   const input: GateEnforceInput = {};
   for (let i = 2; i < args.length; i += 1) {
     const flag = args[i];
@@ -204,7 +210,7 @@ function parseGateArgs(args: string[]): GateEnforceInput {
         break;
       case '--history': {
         const value = ensureValue(args, ++i, '--history');
-        input.history = readHistoryFile(value);
+        input.history = await readHistoryFile(value);
         input.autoTune = { ...(input.autoTune ?? {}), enabled: true };
         break;
       }
@@ -316,7 +322,7 @@ async function main(): Promise<void> {
       writeReport('.qreport/complexity.json', result);
       process.exit(result.thresholdExceeded ? 1 : 0);
     } else if (args[1] === '--gate') {
-      const input = parseGateArgs(args);
+      const input = await parseGateArgs(args);
       const result = await gateEnforceTool(input);
       writeReport('.qreport/gate.json', result);
       if (result.result.verdict === 'fail') {

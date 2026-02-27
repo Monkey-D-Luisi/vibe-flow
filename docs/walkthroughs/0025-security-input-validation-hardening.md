@@ -5,19 +5,38 @@
 - Task: `docs/tasks/0025-security-input-validation-hardening.md`
 - Epic: Audit remediation 2026-02-27
 - Branch: `fix/0025-security-input-validation-hardening`
-- PR: _pending_
+- PR: TBD
 
 ---
 
 ## Summary
 
-_To be completed when task is implemented._
+Added two security hardening guards across both extensions:
+
+1. **Pattern length limit (S-003)**: Any glob exclude pattern longer than
+   `MAX_PATTERN_LENGTH` (500 chars) now throws `PATTERN_TOO_LONG` before
+   picomatch is invoked, preventing catastrophic ReDoS backtracking.
+
+2. **JSON file size limit (S-008)**: Any JSON file larger than
+   `MAX_JSON_FILE_BYTES` (50 MB) now throws `FILE_TOO_LARGE` before
+   `JSON.parse()` is called, preventing memory exhaustion.
 
 ---
 
 ## Context
 
-Source findings S-003 (picomatch ReDoS) and S-008 (JSON size limits) from the 2026-02-27 audit. Both are input validation gaps that could cause resource exhaustion under adversarial input.
+Source findings S-003 (picomatch ReDoS risk) and S-008 (JSON parsing without
+size limits) from the 2026-02-27 full audit.
+
+At task start:
+- `filterByExclude()` in `product-team/src/quality/fs.ts` called
+  `picomatch(pattern)(path)` with no pattern length check.
+- `resolveGlobPatterns()` in both extensions passed `exclude` patterns to
+  fast-glob/picomatch without length validation.
+- `readJsonFile()` in both extensions called `JSON.parse()` without checking
+  file size first.
+- `readHistoryFile()` in `quality-gate/cli/qcli.ts` used sync `readFileSync`
+  with no size check.
 
 ---
 
@@ -25,23 +44,54 @@ Source findings S-003 (picomatch ReDoS) and S-008 (JSON size limits) from the 20
 
 | Decision | Rationale |
 |----------|-----------|
-| MAX_PATTERN_LENGTH = 500 | Covers all reasonable glob patterns; blocks catastrophic regex |
-| MAX_JSON_FILE_BYTES = 50 MB | Covers all realistic quality reports |
+| `MAX_PATTERN_LENGTH = 500` | Task spec requirement; generous limit for real-world glob patterns |
+| `MAX_JSON_FILE_BYTES = 50 * 1024 * 1024` | Task spec requirement; covers all realistic quality report files |
+| Constants exported | AC requirement — enables testing and future configurability |
+| `fs.promises.stat()` before `JSON.parse()` | Task spec prefers async to avoid blocking the event loop |
+| Convert `readHistoryFile` to async | Required to use `fs.promises.stat()`; `parseGateArgs` made async in turn |
+| Guard in both `filterByExclude` and `resolveGlobPatterns` | Both are picomatch call sites; coverage for CLI exclude patterns and tool API patterns |
 
 ---
 
 ## Implementation Notes
 
-_To be completed when task is implemented._
+### Files modified
+
+- `extensions/product-team/src/quality/fs.ts`
+  - Added `MAX_PATTERN_LENGTH = 500` and `MAX_JSON_FILE_BYTES` exports
+  - Added pattern length guard in `filterByExclude()` (throws `PATTERN_TOO_LONG`)
+  - Added pattern length guard in `resolveGlobPatterns()` exclude loop
+  - Added `fs.promises.stat()` size check in `readJsonFile()` (throws `FILE_TOO_LARGE`)
+
+- `extensions/quality-gate/src/fs/read.ts`
+  - Added `MAX_JSON_FILE_BYTES = 50 * 1024 * 1024` export
+  - Added `fs.promises.stat()` size check in `readJsonFile()` (throws `FILE_TOO_LARGE`)
+
+- `extensions/quality-gate/src/fs/glob.ts`
+  - Added `MAX_PATTERN_LENGTH = 500` export
+  - Added pattern length guard in `resolveGlobPatterns()` exclude loop (throws `PATTERN_TOO_LONG`)
+
+- `extensions/quality-gate/cli/qcli.ts`
+  - Replaced `readFileSync` import with async `stat` + `readFile` from `node:fs/promises`
+  - Imported `MAX_JSON_FILE_BYTES` from `../src/fs/read.js`
+  - Converted `readHistoryFile()` to `async` with `stat()` size check
+  - Made `parseGateArgs()` async to `await readHistoryFile()`
+  - Updated `main()` to `await parseGateArgs()`
+
+### Files created
+
+- `extensions/quality-gate/test/fs.read.test.ts` — 5 tests for `readJsonFile` size guard
+- `extensions/quality-gate/test/fs.glob.test.ts` — 5 tests for `resolveGlobPatterns` pattern guard
+- `extensions/product-team/test/quality/fs.test.ts` — 12 tests covering both guards in product-team
 
 ---
 
 ## Commands Run
 
 ```bash
-pnpm test
-pnpm lint
-pnpm typecheck
+pnpm test       # PASS: 155 (quality-gate) + 393 (product-team) tests
+pnpm lint       # PASS: zero errors
+pnpm typecheck  # PASS: zero errors
 ```
 
 ---
@@ -50,23 +100,39 @@ pnpm typecheck
 
 | File | Action | Description |
 |------|--------|-------------|
-| `quality-gate/src/fs/glob.ts` | Modified | Add MAX_PATTERN_LENGTH check |
-| `product-team/src/quality/fs.ts` | Modified | Add MAX_PATTERN_LENGTH check |
-| `quality-gate/src/fs/read.ts` | Modified | Add MAX_JSON_FILE_BYTES check |
-| `quality-gate/cli/qcli.ts` | Modified | Add file size check for history parsing |
+| `extensions/product-team/src/quality/fs.ts` | Modified | Added MAX_PATTERN_LENGTH, MAX_JSON_FILE_BYTES, guards in filterByExclude, resolveGlobPatterns, readJsonFile |
+| `extensions/quality-gate/src/fs/read.ts` | Modified | Added MAX_JSON_FILE_BYTES, stat() size check in readJsonFile |
+| `extensions/quality-gate/src/fs/glob.ts` | Modified | Added MAX_PATTERN_LENGTH, pattern length guard in resolveGlobPatterns |
+| `extensions/quality-gate/cli/qcli.ts` | Modified | Converted readHistoryFile to async with stat size check; parseGateArgs made async |
+| `extensions/quality-gate/test/fs.read.test.ts` | Created | Unit tests for readJsonFile size guard |
+| `extensions/quality-gate/test/fs.glob.test.ts` | Created | Unit tests for resolveGlobPatterns pattern guard |
+| `extensions/product-team/test/quality/fs.test.ts` | Created | Unit tests for both guards in product-team |
+
+---
+
+## Tests
+
+| Suite | Tests | Passed | Notes |
+|-------|-------|--------|-------|
+| quality-gate | 155 | 155 | +10 new tests (fs.read + fs.glob) |
+| product-team | 393 | 393 | +12 new tests (quality/fs) |
 
 ---
 
 ## Verification Evidence
 
-- Pattern > 500 chars throws: _pending_
-- File > 50 MB throws before parse: _pending_
+- AC1: `filterByExclude([501-char pattern])` throws `PATTERN_TOO_LONG`; `resolveGlobPatterns([501-char exclude])` throws `PATTERN_TOO_LONG`
+- AC2: `readJsonFile` with `stat.size > MAX_JSON_FILE_BYTES` throws `FILE_TOO_LARGE` before `JSON.parse()`; `readHistoryFile` in qcli does the same
+- AC3: Tests cover boundary conditions (exactly at limit → pass; one over → throw) for both limits in both extensions
+- AC4: `pnpm test && pnpm lint && pnpm typecheck` — all pass
 
 ---
 
 ## Checklist
 
-- [ ] Task spec read end-to-end
-- [ ] AC1-AC4 verified
-- [ ] Quality gates passed
-- [ ] Files changed section complete
+- [x] Task spec read end-to-end
+- [x] AC1: PATTERN_TOO_LONG guard in filterByExclude and resolveGlobPatterns
+- [x] AC2: FILE_TOO_LARGE guard in readJsonFile and readHistoryFile
+- [x] AC3: Boundary tests for both limits in both extensions
+- [x] AC4: Quality gates passed
+- [x] Files changed section complete
