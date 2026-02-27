@@ -33,10 +33,10 @@
 
 ## Summary
 
-- **29 findings** total across 4 axes
-- **16 PASS** (product verification, security mitigations)
-- **13 OPEN** requiring action
-- **2 HIGH severity** open findings: CI vulnerability policy (D-005), runbook/schema drift (D-007)
+- **32 findings** total across 4 axes
+- **13 PASS** (product verification, security mitigations)
+- **19 OPEN** requiring action (D-007 verified closed in same run → 18 remaining)
+- **2 HIGH severity** open findings: CI vulnerability policy (D-005); runbook/schema drift (D-007 pre-existing DONE)
 - **6 MEDIUM severity** open findings
 - **5 LOW severity** open findings
 - Remediation roadmap: 4 Now / 6 Next / 8 Later

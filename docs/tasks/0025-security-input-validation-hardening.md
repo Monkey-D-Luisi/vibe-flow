@@ -75,7 +75,7 @@ Source findings: **S-003** (picomatch ReDoS risk) and **S-008** (JSON parsing wi
 
 1. Read `quality-gate/src/fs/glob.ts`, `quality-gate/src/fs/read.ts`, `product-team/src/quality/fs.ts`.
 2. Add `MAX_PATTERN_LENGTH = 500` constant and pre-check in all picomatch call sites.
-3. Add `MAX_JSON_FILE_BYTES = 50 * 1024 * 1024` constant and `fs.statSync()` check before `JSON.parse()` in `readJsonFile()` and CLI history parsing.
+3. Add `MAX_JSON_FILE_BYTES = 50 * 1024 * 1024` constant and async `fs.promises.stat()` check before `JSON.parse()` in `readJsonFile()` and CLI history parsing (prefer async to avoid blocking the event loop).
 4. Check picomatch latest version via `pnpm outdated | grep picomatch`; update if a patch is available.
 5. Write unit tests for both hardening measures.
 6. Run `pnpm test && pnpm lint && pnpm typecheck`.
