@@ -97,7 +97,7 @@ Source findings: **S-003** (picomatch ReDoS risk) and **S-008** (JSON parsing wi
 - [x] Lint passes with zero errors
 - [x] TypeScript compiles without errors
 - [x] Walkthrough updated
-- [ ] PR created and linked
+- [x] PR created and linked (#187)
 
 ---
 

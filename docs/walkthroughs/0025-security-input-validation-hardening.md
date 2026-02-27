@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0025-security-input-validation-hardening.md`
 - Epic: Audit remediation 2026-02-27
 - Branch: `fix/0025-security-input-validation-hardening`
-- PR: TBD
+- PR: [#187](https://github.com/Monkey-D-Luisi/vibe-flow/pull/187)
 
 ---
 
