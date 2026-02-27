@@ -225,6 +225,19 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - [EP06 Backlog](backlog/EP06-hardening.md)
 - [Open Issues Intake (Unscheduled)](backlog/open-issues-intake.md)
 
+2026-02-27 audit remediation queue (derived from `audits/2026-02-27-full-audit.md`):
+
+- [Task 0022: Fix Plugin Schema / Runbook Workflow Config Drift](tasks/0022-fix-plugin-schema-workflow-config-drift.md) -- DONE (HIGH, pre-existing fix verified)
+- [Task 0023: Enforce Vulnerability Exception Expiry in CI](tasks/0023-enforce-vulnerability-exception-expiry-in-ci.md) -- PENDING (HIGH)
+- [Task 0024: Track and Remediate Transitive Dependency Vulnerabilities](tasks/0024-track-and-remediate-transitive-dependency-vulnerabilities.md) -- PENDING (HIGH)
+- [Task 0025: Security Input Validation Hardening](tasks/0025-security-input-validation-hardening.md) -- PENDING (MEDIUM)
+- [Task 0026: Consolidate exec/spawn and fs Utilities to Shared Contracts](tasks/0026-consolidate-exec-and-fs-utilities-to-shared-contracts.md) -- PENDING (MEDIUM)
+- [Task 0027: Strengthen Behavioral Test Coverage](tasks/0027-strengthen-behavioral-test-coverage.md) -- PENDING (MEDIUM)
+- [Task 0028: Fix Coverage Thresholds and CI Enforcement](tasks/0028-fix-coverage-thresholds-and-ci-enforcement.md) -- PENDING (MEDIUM)
+- [Task 0029: Refactor Large GitHub Module Files](tasks/0029-refactor-large-github-module-files.md) -- PENDING (MEDIUM)
+- [Task 0030: Consolidate Shared Types and Schemas in Quality Contracts](tasks/0030-consolidate-shared-types-and-schemas-in-quality-contracts.md) -- PENDING (LOW)
+- [Task 0031: Add Utility Module Tests and Architectural Decision Records](tasks/0031-add-utility-module-tests-and-architectural-decision-records.md) -- PENDING (LOW)
+
 ### Architecture & Operations
 - [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)
 - [Transition Guard Evidence](transition-guard-evidence.md)
