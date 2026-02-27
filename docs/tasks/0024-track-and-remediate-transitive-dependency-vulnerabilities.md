@@ -99,7 +99,7 @@ Practical exploitability is LOW for all findings — none of the vulnerable APIs
 - [x] Vulnerability ledger complete with 14 entries (S-001-01 to S-001-13 + S-002-01)
 - [x] CI passes
 - [x] Walkthrough updated
-- [ ] PR created and linked
+- [x] PR created and linked (#186)
 
 ---
 
