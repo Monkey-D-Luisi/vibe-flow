@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0022-fix-plugin-schema-workflow-config-drift.md`
 - Epic: Audit remediation 2026-02-27
 - Branch: `fix/0022-plugin-schema-workflow-config-drift`
-- PR: _pending_
+- PR: [#184](https://github.com/Monkey-D-Luisi/vibe-flow/pull/184)
 
 ---
 

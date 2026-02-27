@@ -92,7 +92,7 @@ Per OpenClaw official plugin manifest docs (`node_modules/openclaw/docs/plugins/
 - [x] Lint passes with zero errors
 - [x] TypeScript compiles without errors
 - [x] Walkthrough updated
-- [ ] PR created and linked
+- [x] PR created and linked (#184)
 
 ---
 
