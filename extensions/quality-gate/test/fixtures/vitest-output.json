@@ -1,0 +1,43 @@
+{
+    "testResults": [
+        {
+            "name": "src/math.test.ts",
+            "status": "passed",
+            "assertionResults": [
+                {
+                    "title": "adds 1 + 2 to equal 3",
+                    "fullName": "math utility adds 1 + 2 to equal 3",
+                    "status": "passed"
+                }
+            ],
+            "startTime": 1680000000000,
+            "endTime": 1680000000500
+        },
+        {
+            "name": "src/failing.test.ts",
+            "status": "failed",
+            "assertionResults": [
+                {
+                    "title": "fails intentionally",
+                    "fullName": "failing utility fails intentionally",
+                    "status": "failed",
+                    "failureMessages": [
+                        "Expected true to be false"
+                    ]
+                }
+            ],
+            "startTime": 1680000001000,
+            "endTime": 1680000001200
+        }
+    ],
+    "numFailedTests": 1,
+    "numPassedTests": 1,
+    "numPendingTests": 0,
+    "numTotalTests": 2,
+    "numFailedTestSuites": 1,
+    "numPassedTestSuites": 1,
+    "numPendingTestSuites": 0,
+    "numTotalTestSuites": 2,
+    "startTime": 1680000000000,
+    "success": false
+}

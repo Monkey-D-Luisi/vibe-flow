@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm audit:*)",
+      "Bash(done)",
+      "Bash(xargs wc -l)",
+      "Bash(find:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(git:*)",
+      "Bash(pnpm:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh api:*)",
+      "Bash(gh run:*)",
+      "Bash(Set-Content:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}
