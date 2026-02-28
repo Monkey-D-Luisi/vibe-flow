@@ -6,11 +6,12 @@ import {
   QualityComplexityParams,
   type QualityComplexityParams as QualityComplexityParamsType,
 } from '../schemas/quality-complexity.schema.js';
-import { assertPathContained } from '../exec/spawn.js';
+import { assertPathContained } from '@openclaw/quality-contracts/exec/spawn';
 import { analyzeWithEscomplex } from '../quality/complexity/escomplex.js';
 import { analyzeWithTsMorph } from '../quality/complexity/tsmorph.js';
 import type { FileComplexity } from '../quality/complexity/types.js';
-import { resolveGlobPatterns, readFileSafe } from '../quality/fs.js';
+import { resolveGlobPatterns } from '@openclaw/quality-contracts/fs/glob';
+import { readFileSafe } from '@openclaw/quality-contracts/fs/read';
 import {
   beginQualityExecution,
   getTaskOrThrow,
@@ -120,9 +121,9 @@ export function qualityComplexityToolDef(deps: ToolDeps): ToolDef {
 
       const project = engine === 'tsmorph'
         ? new Project({
-            skipFileDependencyResolution: true,
-            useInMemoryFileSystem: false,
-          })
+          skipFileDependencyResolution: true,
+          useInMemoryFileSystem: false,
+        })
         : null;
       const escomplexAnalyzer = escomplex as unknown as EscomplexLike;
 
@@ -132,13 +133,13 @@ export function qualityComplexityToolDef(deps: ToolDeps): ToolDef {
           const source = await readFileSafe(filePath);
           const report = engine === 'tsmorph'
             ? analyzeWithTsMorph(
-                project!.createSourceFile(filePath, source, { overwrite: true }) as unknown as Parameters<typeof analyzeWithTsMorph>[0],
-              )
+              project!.createSourceFile(filePath, source, { overwrite: true }) as unknown as Parameters<typeof analyzeWithTsMorph>[0],
+            )
             : analyzeWithEscomplex(
-                source,
-                filePath,
-                (src) => escomplexAnalyzer.analyzeModule(src) as Parameters<typeof analyzeWithEscomplex>[2] extends (s: string, o?: Record<string, unknown>) => infer R ? R : never,
-              );
+              source,
+              filePath,
+              (src) => escomplexAnalyzer.analyzeModule(src) as Parameters<typeof analyzeWithEscomplex>[2] extends (s: string, o?: Record<string, unknown>) => infer R ? R : never,
+            );
           outputFiles.push(toComplexityFile(filePath, report, cwd));
         } catch {
           failed.push(filePath.replace(/\\/g, '/'));

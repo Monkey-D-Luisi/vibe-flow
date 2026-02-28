@@ -4,8 +4,9 @@ import {
   type QualityCoverageParams as QualityCoverageParamsType,
 } from '../schemas/quality-coverage.schema.js';
 import { parseCoverageSummary, parseLcov, computeLcovSummary } from '../quality/parsers/istanbul.js';
-import { assertPathContained } from '../exec/spawn.js';
-import { filterByExclude, readFileSafe } from '../quality/fs.js';
+import { assertPathContained } from '@openclaw/quality-contracts/exec/spawn';
+import { filterByExclude } from '@openclaw/quality-contracts/fs/glob';
+import { readFileSafe } from '@openclaw/quality-contracts/fs/read';
 import {
   beginQualityExecution,
   getTaskOrThrow,

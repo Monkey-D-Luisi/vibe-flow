@@ -131,7 +131,21 @@ importers:
         specifier: ^2.0.5
         version: 2.1.9(@types/node@22.18.9)
 
-  packages/quality-contracts: {}
+  packages/quality-contracts:
+    dependencies:
+      fast-glob:
+        specifier: ^3.3.2
+        version: 3.3.3
+      picomatch:
+        specifier: 2.3.1
+        version: 2.3.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.5.4
+        version: 22.18.9
+      '@types/picomatch':
+        specifier: ^3.0.2
+        version: 3.0.2
 
   packages/schemas: {}
 
@@ -1884,6 +1898,9 @@ packages:
 
   '@types/node@25.3.0':
     resolution: {integrity: sha512-4K3bqJpXpqfg2XKGK9bpDTc6xO/xoUP/RBWS7AtRMug6zZFaRekiLzjVtAoZMquxoAbzBvy5nxQ7veS5eYzf8A==}
+
+  '@types/picomatch@3.0.2':
+    resolution: {integrity: sha512-n0i8TD3UDB7paoMMxA3Y65vUncFJXjcUf7lQY7YyKGl6031FNjfsLs6pdLFCy2GNFxItPJG8GvvpbZc2skH7WA==}
 
   '@types/qs@6.14.0':
     resolution: {integrity: sha512-eOunJqu0K1923aExK6y8p6fsihYEn/BYuQ4g0CxAAgFc4b/ZLN4CrsRZ55srTdqoiLzU2B2evC+apEIxprEzkQ==}
@@ -6780,6 +6797,8 @@ snapshots:
   '@types/node@25.3.0':
     dependencies:
       undici-types: 7.18.2
+
+  '@types/picomatch@3.0.2': {}
 
   '@types/qs@6.14.0': {}
 

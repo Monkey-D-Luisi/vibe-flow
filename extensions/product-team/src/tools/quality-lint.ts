@@ -3,7 +3,7 @@ import {
   QualityLintParams,
   type QualityLintParams as QualityLintParamsType,
 } from '../schemas/quality-lint.schema.js';
-import { assertSafeCommand, parseCommand, safeSpawn } from '../exec/spawn.js';
+import { assertSafeCommand, parseCommand, safeSpawn } from '@openclaw/quality-contracts/exec/spawn';
 import { parseEslintOutput, summarizeEslint } from '../quality/parsers/eslint.js';
 import { parseRuffOutput, summarizeRuff } from '../quality/parsers/ruff.js';
 import type { NormalizedLintFileReport } from '../quality/parsers/types.js';

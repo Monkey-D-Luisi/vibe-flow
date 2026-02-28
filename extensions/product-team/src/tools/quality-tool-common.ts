@@ -4,7 +4,7 @@ import { TaskNotFoundError } from '../domain/errors.js';
 import { createCorrelatedLogger } from '../logging/correlated-logger.js';
 import type { TaskRecord } from '../domain/task-record.js';
 import type { ToolDeps } from './index.js';
-import { assertPathContained } from '../exec/spawn.js';
+import { assertPathContained } from '@openclaw/quality-contracts/exec/spawn';
 
 interface MinimalLogger {
   readonly info: (message: string) => void;
@@ -13,7 +13,7 @@ interface MinimalLogger {
   readonly debug?: (message: string) => void;
 }
 
-const noop = () => {};
+const noop = () => { };
 
 function fallbackLogger(): MinimalLogger {
   return {

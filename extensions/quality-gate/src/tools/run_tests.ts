@@ -4,7 +4,7 @@
  * Runs test suite and reports results.
  */
 
-import { safeSpawn, assertSafeCommand, parseCommand } from '../exec/spawn.js';
+import { safeSpawn, assertSafeCommand, parseCommand } from '@openclaw/quality-contracts/exec/spawn';
 import { parseVitestOutput, type VitestSummary } from '../parsers/vitest.js';
 
 const DEFAULT_COMMAND = 'pnpm vitest run --reporter=json';

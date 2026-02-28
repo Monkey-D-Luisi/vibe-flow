@@ -44,6 +44,26 @@
     "./gate/sources": {
       "types": "./src/gate/sources.ts",
       "default": "./src/gate/sources.ts"
+    },
+    "./exec/spawn": {
+      "types": "./src/exec/spawn.ts",
+      "default": "./src/exec/spawn.ts"
+    },
+    "./fs/glob": {
+      "types": "./src/fs/glob.ts",
+      "default": "./src/fs/glob.ts"
+    },
+    "./fs/read": {
+      "types": "./src/fs/read.ts",
+      "default": "./src/fs/read.ts"
     }
+  },
+  "dependencies": {
+    "fast-glob": "^3.3.2",
+    "picomatch": "2.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "@types/picomatch": "^3.0.2"
   }
 }
