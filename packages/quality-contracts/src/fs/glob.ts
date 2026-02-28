@@ -46,10 +46,11 @@ export function filterByExclude(path: string, excludePatterns: string[]): boolea
         return true;
     }
 
-    return !excludePatterns.some((pattern) => {
+    for (const pattern of excludePatterns) {
         if (pattern.length > MAX_PATTERN_LENGTH) {
             throw new Error(`PATTERN_TOO_LONG: Exclude pattern exceeds ${MAX_PATTERN_LENGTH} characters`);
         }
-        return picomatch(pattern)(path);
-    });
+    }
+
+    return !excludePatterns.some((pattern) => picomatch(pattern)(path));
 }
