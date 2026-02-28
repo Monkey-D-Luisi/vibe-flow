@@ -2,16 +2,15 @@ import { promises as fs } from 'node:fs';
 
 export const MAX_JSON_FILE_BYTES = 50 * 1024 * 1024;
 
-function asError(error: unknown): NodeJS.ErrnoException {
-    return error as NodeJS.ErrnoException;
+function isErrnoException(e: unknown): e is NodeJS.ErrnoException {
+    return e instanceof Error && 'code' in e;
 }
 
 export async function readFileSafe(path: string): Promise<string> {
     try {
         return await fs.readFile(path, 'utf8');
     } catch (error) {
-        const err = asError(error);
-        if (err.code === 'ENOENT') {
+        if (isErrnoException(error) && error.code === 'ENOENT') {
             throw new Error(`NOT_FOUND: File not found at ${path}`);
         }
         throw error;
@@ -24,8 +23,7 @@ export async function readJsonFile<T>(path: string): Promise<T> {
         const stat = await fs.stat(path);
         size = stat.size;
     } catch (error) {
-        const err = asError(error);
-        if (err.code === 'ENOENT') {
+        if (isErrnoException(error) && error.code === 'ENOENT') {
             throw new Error(`NOT_FOUND: File not found at ${path}`);
         }
         throw error;
