@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { safeSpawn, assertSafeCommand, assertPathContained, parseCommand } from '@openclaw/quality-contracts/exec/spawn';
+import { safeSpawn, assertSafeCommand, assertPathContained, parseCommand } from '../../src/exec/spawn.js';
 
 const isWindows = process.platform === 'win32';
 

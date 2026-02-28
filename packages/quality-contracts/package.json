@@ -64,6 +64,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.5.4",
-    "@types/picomatch": "^3.0.2"
+    "@types/picomatch": "^3.0.2",
+    "@vitest/coverage-v8": "^4.0.18",
+    "vitest": "^4.0.18"
   }
 }

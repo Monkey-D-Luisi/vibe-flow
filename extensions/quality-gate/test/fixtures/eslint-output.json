@@ -1,0 +1,46 @@
+[
+    {
+        "filePath": "/app/src/index.ts",
+        "messages": [
+            {
+                "ruleId": "no-unused-vars",
+                "severity": 1,
+                "message": "'foo' is assigned a value but never used.",
+                "line": 10,
+                "column": 5,
+                "nodeType": "Identifier",
+                "messageId": "unusedVar",
+                "endLine": 10,
+                "endColumn": 8
+            },
+            {
+                "ruleId": "semi",
+                "severity": 2,
+                "message": "Missing semicolon.",
+                "line": 12,
+                "column": 15,
+                "nodeType": "ExpressionStatement",
+                "messageId": "missingSemi",
+                "endLine": 12,
+                "endColumn": 16
+            }
+        ],
+        "suppressedMessages": [],
+        "errorCount": 1,
+        "fatalErrorCount": 0,
+        "warningCount": 1,
+        "fixableErrorCount": 1,
+        "fixableWarningCount": 0,
+        "source": "const foo = 42\nconsole.log('test')"
+    },
+    {
+        "filePath": "/app/src/utils.ts",
+        "messages": [],
+        "suppressedMessages": [],
+        "errorCount": 0,
+        "fatalErrorCount": 0,
+        "warningCount": 0,
+        "fixableErrorCount": 0,
+        "fixableWarningCount": 0
+    }
+]
