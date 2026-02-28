@@ -4,7 +4,7 @@
  * Runs linters and reports violations.
  */
 
-import { safeSpawn, assertSafeCommand, parseCommand } from '../exec/spawn.js';
+import { safeSpawn, assertSafeCommand, parseCommand } from '@openclaw/quality-contracts/exec/spawn';
 import { parseEslintOutput, summarizeEslint } from '../parsers/eslint.js';
 import { parseRuffOutput, summarizeRuff } from '../parsers/ruff.js';
 import type { NormalizedLintFileReport } from '../parsers/types.js';

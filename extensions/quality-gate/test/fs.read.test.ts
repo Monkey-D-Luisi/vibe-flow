@@ -8,7 +8,7 @@ vi.mock('node:fs', () => ({
 }));
 
 import { promises as fsp } from 'node:fs';
-import { readJsonFile, MAX_JSON_FILE_BYTES } from '../src/fs/read.js';
+import { readJsonFile, MAX_JSON_FILE_BYTES } from '@openclaw/quality-contracts/fs/read';
 
 const mockStat = vi.mocked(fsp.stat);
 const mockReadFile = vi.mocked(fsp.readFile);

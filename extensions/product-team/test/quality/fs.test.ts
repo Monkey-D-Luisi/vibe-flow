@@ -15,10 +15,12 @@ import { promises as fsp } from 'node:fs';
 import {
   filterByExclude,
   resolveGlobPatterns,
-  readJsonFile,
   MAX_PATTERN_LENGTH,
+} from '@openclaw/quality-contracts/fs/glob';
+import {
+  readJsonFile,
   MAX_JSON_FILE_BYTES,
-} from '../../src/quality/fs.js';
+} from '@openclaw/quality-contracts/fs/read';
 
 const mockStat = vi.mocked(fsp.stat);
 const mockReadFile = vi.mocked(fsp.readFile);

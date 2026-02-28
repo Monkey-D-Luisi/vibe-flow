@@ -4,7 +4,7 @@ import {
   type QualityTestsParams as QualityTestsParamsType,
 } from '../schemas/quality-tests.schema.js';
 import { parseVitestOutput } from '../quality/parsers/vitest.js';
-import { assertSafeCommand, parseCommand, safeSpawn } from '../exec/spawn.js';
+import { assertSafeCommand, parseCommand, safeSpawn } from '@openclaw/quality-contracts/exec/spawn';
 import {
   beginQualityExecution,
   getTaskOrThrow,

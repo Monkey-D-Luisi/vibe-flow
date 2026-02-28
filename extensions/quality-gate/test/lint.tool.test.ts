@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SpawnResult } from '../src/exec/spawn.js';
-import * as spawnModule from '../src/exec/spawn.js';
+import type { SpawnResult } from '@openclaw/quality-contracts/exec/spawn';
+import * as spawnModule from '@openclaw/quality-contracts/exec/spawn';
 import { lintTool } from '../src/tools/lint.js';
 
 function createSpawnResult(overrides: Partial<SpawnResult> = {}): SpawnResult {

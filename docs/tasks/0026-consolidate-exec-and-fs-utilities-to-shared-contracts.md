@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | Audit remediation 2026-02-27 |
 | Priority | MEDIUM |
 | Scope | MAJOR |

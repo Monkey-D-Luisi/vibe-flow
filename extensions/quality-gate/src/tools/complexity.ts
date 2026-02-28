@@ -4,10 +4,10 @@
  * Measures cyclomatic complexity of TypeScript source files.
  */
 
-import { resolveGlobPatterns } from '../fs/glob.js';
-import { readFileSafe } from '../fs/read.js';
+import { resolveGlobPatterns } from '@openclaw/quality-contracts/fs/glob';
+import { readFileSafe } from '@openclaw/quality-contracts/fs/read';
 import { resolve } from 'node:path';
-import { assertPathContained } from '../exec/spawn.js';
+import { assertPathContained } from '@openclaw/quality-contracts/exec/spawn';
 import type { ComplexitySummary, FunctionComplexity, FileComplexity } from '../complexity/types.js';
 import { DEFAULT_THRESHOLDS } from '../complexity/types.js';
 

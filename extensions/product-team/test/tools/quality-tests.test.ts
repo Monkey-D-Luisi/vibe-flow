@@ -12,15 +12,15 @@ import type { ToolDeps } from '../../src/tools/index.js';
 import { taskCreateToolDef } from '../../src/tools/task-create.js';
 import { qualityTestsToolDef } from '../../src/tools/quality-tests.js';
 
-vi.mock('../../src/exec/spawn.js', async () => {
-  const actual = await vi.importActual<typeof import('../../src/exec/spawn.js')>('../../src/exec/spawn.js');
+vi.mock('@openclaw/quality-contracts/exec/spawn', async () => {
+  const actual = await vi.importActual<typeof import('@openclaw/quality-contracts/exec/spawn')>('@openclaw/quality-contracts/exec/spawn');
   return {
     ...actual,
     safeSpawn: vi.fn(),
   };
 });
 
-import { safeSpawn } from '../../src/exec/spawn.js';
+import { safeSpawn } from '@openclaw/quality-contracts/exec/spawn';
 
 const NOW = '2026-02-25T10:00:00.000Z';
 

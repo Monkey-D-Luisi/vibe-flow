@@ -4,7 +4,7 @@ vi.mock('fast-glob', () => ({
   default: vi.fn().mockResolvedValue([]),
 }));
 
-import { resolveGlobPatterns, MAX_PATTERN_LENGTH } from '../src/fs/glob.js';
+import { resolveGlobPatterns, MAX_PATTERN_LENGTH } from '@openclaw/quality-contracts/fs/glob';
 
 describe('resolveGlobPatterns — pattern length guard', () => {
   beforeEach(() => {

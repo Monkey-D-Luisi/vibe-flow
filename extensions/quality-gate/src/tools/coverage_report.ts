@@ -4,9 +4,9 @@
  * Parses and reports test coverage from Istanbul/nyc output.
  */
 
-import { readFileSafe } from '../fs/read.js';
+import { readFileSafe } from '@openclaw/quality-contracts/fs/read';
 import { resolve } from 'node:path';
-import { assertPathContained } from '../exec/spawn.js';
+import { assertPathContained } from '@openclaw/quality-contracts/exec/spawn';
 import {
   parseCoverageSummary,
   parseLcov,

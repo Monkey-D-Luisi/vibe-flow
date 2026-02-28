@@ -8,7 +8,7 @@ import { coverageReportTool, type CoverageInput } from '../src/tools/coverage_re
 import { lintTool, type LintInput, type LintEngine } from '../src/tools/lint.js';
 import { complexityTool, type ComplexityInput } from '../src/tools/complexity.js';
 import { gateEnforceTool, type GateEnforceInput } from '../src/tools/gate_enforce.js';
-import { MAX_JSON_FILE_BYTES } from '../src/fs/read.js';
+import { MAX_JSON_FILE_BYTES } from '@openclaw/quality-contracts/fs/read';
 
 function ensureValue(args: string[], index: number, flag: string): string {
   const value = args[index];
