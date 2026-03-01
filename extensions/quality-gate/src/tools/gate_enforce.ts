@@ -1,5 +1,5 @@
 /**
- * Tool: quality.gate_enforce
+ * Tool: qgate.gate
  *
  * Evaluates quality gate policy against collected metrics.
  * Determines pass/fail/warn verdict for workflow transitions.
@@ -169,7 +169,7 @@ export async function gateEnforceTool(input: GateEnforceInput): Promise<GateEnfo
  * Tool definition for registration.
  */
 export const gateEnforceToolDef = {
-  name: 'quality.gate_enforce',
+  name: 'qgate.gate',
   description: 'Evaluate quality gate policy against collected metrics and return pass/fail/warn verdict',
   parameters: {
     type: 'object',

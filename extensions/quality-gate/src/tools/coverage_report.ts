@@ -1,5 +1,5 @@
 /**
- * Tool: quality.coverage
+ * Tool: qgate.coverage
  *
  * Parses and reports test coverage from Istanbul/nyc output.
  */
@@ -140,7 +140,7 @@ export async function coverageReportTool(input: CoverageInput): Promise<Coverage
  * Tool definition for registration.
  */
 export const coverageReportToolDef = {
-  name: 'quality.coverage',
+  name: 'qgate.coverage',
   description: 'Parse and report test coverage from Istanbul/nyc coverage output',
   parameters: {
     type: 'object',

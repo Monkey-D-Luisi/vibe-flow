@@ -1,5 +1,5 @@
 /**
- * Tool: quality.run_tests
+ * Tool: qgate.tests
  *
  * Runs test suite and reports results.
  */
@@ -92,7 +92,7 @@ export async function runTestsTool(input: RunTestsInput): Promise<RunTestsOutput
  * Tool definition for registration.
  */
 export const runTestsToolDef = {
-  name: 'quality.run_tests',
+  name: 'qgate.tests',
   description: 'Run test suite and report results in structured format',
   parameters: {
     type: 'object',
