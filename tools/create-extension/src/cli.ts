@@ -4,7 +4,7 @@ import { generateExtension } from './generator.js';
 
 function printUsage(): void {
   process.stderr.write(
-    'Usage: create-extension <name> [--force]\n' +
+    'Usage: pnpm create:extension <name> [--force]\n' +
       '  name     Kebab-case extension name (e.g. my-plugin)\n' +
       '  --force  Overwrite existing directory\n',
   );
@@ -26,7 +26,8 @@ export function main(argv: string[] = process.argv.slice(2)): void {
     generateExtension({ name, targetDir, force });
     process.stdout.write(`Created extensions/${name}\n`);
   } catch (err) {
-    process.stderr.write(`Error: ${(err as Error).message}\n`);
+    const message = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`Error: ${message}\n`);
     process.exit(1);
   }
 }

@@ -52,6 +52,7 @@ export function generateExtension({ name, targetDir, force = false }: GenerateOp
   writeFileSync(join(targetDir, 'tsconfig.json'), renderTsconfig());
   writeFileSync(join(targetDir, '.eslintrc.cjs'), renderEslintrc());
   writeFileSync(join(targetDir, 'vitest.config.ts'), renderVitestConfig());
+  writeFileSync(join(targetDir, 'openclaw.plugin.json'), renderPluginJson(name));
   writeFileSync(join(targetDir, 'src', 'index.ts'), renderSrcIndex(name));
   writeFileSync(join(targetDir, 'test', 'index.test.ts'), renderTestIndex(name));
   writeFileSync(join(targetDir, 'README.md'), renderReadme(name));
@@ -168,6 +169,19 @@ export default defineConfig({
     },
   },
 });\n`;
+}
+
+function renderPluginJson(name: string): string {
+  return JSON.stringify(
+    {
+      id: name,
+      name,
+      version: '0.1.0',
+      description: `OpenClaw extension: ${name}`,
+    },
+    null,
+    2,
+  );
 }
 
 function renderSrcIndex(name: string): string {
