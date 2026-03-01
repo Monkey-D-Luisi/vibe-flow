@@ -236,7 +236,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - [Task 0028: Fix Coverage Thresholds and CI Enforcement](tasks/0028-fix-coverage-thresholds-and-ci-enforcement.md) -- DONE (MEDIUM)
 - [Task 0029: Refactor Large GitHub Module Files](tasks/0029-refactor-large-github-module-files.md) -- DONE (MEDIUM)
 - [Task 0030: Consolidate Shared Types and Schemas in Quality Contracts](tasks/0030-consolidate-shared-types-and-schemas-in-quality-contracts.md) -- DONE (LOW)
-- [Task 0031: Add Utility Module Tests and Architectural Decision Records](tasks/0031-add-utility-module-tests-and-architectural-decision-records.md) -- PENDING (LOW)
+- [Task 0031: Add Utility Module Tests and Architectural Decision Records](tasks/0031-add-utility-module-tests-and-architectural-decision-records.md) -- DONE (LOW)
 
 ### Architecture & Operations
 - [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)
