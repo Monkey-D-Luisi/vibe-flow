@@ -30,7 +30,7 @@ interface TsMorphNode {
 }
 
 interface TsMorphFunctionNode extends TsMorphNode {
-  getName?(): string;
+  getName?(): string | undefined;
   getStartLineNumber(): number;
   getEndLineNumber(): number;
   getParameters?(): TsMorphNode[];
