@@ -40,9 +40,13 @@ is a forward-looking DX improvement — not a remediation item.
 | HTML anchor marker `<!-- quality-gate-report -->` | Stable, invisible identifier that survives comment edits; first line of body used as selector |
 | Minimal permissions (`pull-requests: write`, `contents: read`) | Principle of least privilege; no admin or write-to-code access needed |
 | `continue-on-error: true` on all metric steps | Ensures the comment is always posted even when a gate fails, giving full feedback |
-| Individual step `outcome` as gate signals | `pnpm q:gate` does not read `.qreport/*.json` artifacts at runtime (metrics are injected via deps); individual command exit codes are the reliable signals |
+| Individual step `outcome` as gate signals | `q:gate` step removed in CR-0197 (it always fails in CI because it reads metrics from injected deps, not from `.qreport/*.json`); individual command exit codes are the reliable signals |
 | Coverage tests run before `pnpm q:coverage` | `q:coverage` only reads existing coverage files; test:coverage for each package must run first |
 | Gate verdict step uses `if: always()` | Ensures the final exit code is set even if earlier steps failed |
+| Coverage is advisory (⚠️, not ❌) | `q:coverage` exits 0 regardless of threshold — enforcement requires future CLI work; see AC3 in task spec |
+| `concurrency: cancel-in-progress: true` | Newer pushes render older reports stale; cancel prevents duplicate comments from racing runs |
+| Fork PR guard on comment step | `GITHUB_TOKEN` is read-only on fork PRs; skipping the upsert prevents a 403 from hard-failing the job |
+| `--paginate` on `gh api` comment search | Ensures all comments are searched; without it only the first 30 are returned |
 
 ---
 
@@ -53,21 +57,20 @@ is a forward-looking DX improvement — not a remediation item.
 The workflow has four logical phases:
 
 1. **Setup** — checkout, pnpm/node setup, install, rebuild native modules (same pattern as `ci.yml`).
-2. **Metric collection** — seven steps with `continue-on-error: true` so all data is captured regardless of individual failures:
+2. **Metric collection** — six steps with `continue-on-error: true` so all data is captured regardless of individual failures:
    - `pnpm q:tests` → `.qreport/tests.json`
    - `pnpm --filter @openclaw/quality-gate test:coverage && pnpm --filter @openclaw/plugin-product-team test:coverage` → coverage files
-   - `pnpm q:coverage` → `.qreport/coverage.json` (reads coverage files from previous step)
+   - `pnpm q:coverage` → `.qreport/coverage.json` (reads coverage files from previous step; advisory only — exits 0)
    - `pnpm q:lint` → `.qreport/lint.json`
    - `pnpm q:complexity` → `.qreport/complexity.json`
-   - `pnpm q:gate` → `.qreport/gate.json`
    - `pnpm verify:vuln-policy` → stdout captured to `/tmp/vuln-output.txt`; exit code to `$GITHUB_OUTPUT`
-3. **PR comment** — parses `.qreport/*.json` with `jq`, builds a Markdown table, upserts via `gh api`.
-4. **Gate verdict** — sets workflow exit code non-zero if tests, lint, or vulnerability policy failed.
+3. **PR comment** — parses `.qreport/*.json` with `jq`, builds a Markdown table, upserts via `gh api`. Skipped on fork PRs.
+4. **Gate verdict** — sets workflow exit code non-zero if tests, lint, complexity, or vulnerability policy failed.
 
 ### Comment upsert logic
 
 ```bash
-EXISTING_ID=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+EXISTING_ID=$(gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" \
   --jq '.[] | select(.body | startswith("<!-- quality-gate-report -->")) | .id' \
   | head -1)
 if [ -n "$EXISTING_ID" ]; then
@@ -95,7 +98,13 @@ consumed by `pnpm q:lint`, `pnpm q:complexity`, and `pnpm q:gate`.
 To use `quality-gate` as a merge-blocking required status check:
 1. Navigate to **Settings → Branches → Branch protection rules** for `main`.
 2. Enable **Require status checks to pass before merging**.
-3. Add `quality-gate` (the job name from this workflow) as a required check.
+3. Add `quality-gate` as a required check. The check context is `Quality Gate / quality-gate` (workflow name / job name).
+
+### Runner prerequisites
+
+The comment-upsert step requires `jq` and `gh` CLI. Both are pre-installed on `ubuntu-latest`.
+If `vars.RUNNER_LABEL` points to a self-hosted runner, ensure `jq` and `gh` are installed,
+or add installation steps at the start of the job.
 
 ---
 
