@@ -7,8 +7,8 @@ import {
   type QualityComplexityParams as QualityComplexityParamsType,
 } from '../schemas/quality-complexity.schema.js';
 import { assertPathContained } from '@openclaw/quality-contracts/exec/spawn';
-import { analyzeWithEscomplex } from '../quality/complexity/escomplex.js';
-import { analyzeWithTsMorph } from '../quality/complexity/tsmorph.js';
+import { analyzeWithEscomplex } from '@openclaw/quality-contracts/complexity/escomplex';
+import { analyzeWithTsMorph } from '@openclaw/quality-contracts/complexity/tsmorph';
 import type { FileComplexity } from '@openclaw/quality-contracts/complexity/types';
 import { resolveGlobPatterns } from '@openclaw/quality-contracts/fs/glob';
 import { readFileSafe } from '@openclaw/quality-contracts/fs/read';

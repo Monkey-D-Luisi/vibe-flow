@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "description": "Shared quality parser and gate policy contracts",
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
   "exports": {
     "./parsers/types": {
       "types": "./src/parsers/types.ts",
@@ -60,6 +65,14 @@
     "./complexity/types": {
       "types": "./src/complexity/types.ts",
       "default": "./src/complexity/types.ts"
+    },
+    "./complexity/escomplex": {
+      "types": "./src/complexity/escomplex.ts",
+      "default": "./src/complexity/escomplex.ts"
+    },
+    "./complexity/tsmorph": {
+      "types": "./src/complexity/tsmorph.ts",
+      "default": "./src/complexity/tsmorph.ts"
     },
     "./validate/tools": {
       "types": "./src/validate/tools.ts",
