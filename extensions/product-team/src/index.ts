@@ -193,7 +193,9 @@ export function register(api: OpenClawPluginApi): void {
     Array.isArray(rawAgents)
       ? rawAgents.filter(
           (a): a is { id: string; name: string; model?: { primary?: string } } =>
-            typeof a === 'object' && a !== null && typeof (a as Record<string, unknown>)['id'] === 'string',
+            typeof a === 'object' && a !== null &&
+            typeof (a as Record<string, unknown>)['id'] === 'string' &&
+            typeof (a as Record<string, unknown>)['name'] === 'string',
         )
       : [];
   const rawDecisions = (
@@ -335,7 +337,7 @@ export function register(api: OpenClawPluginApi): void {
     api.logger.info(`registered CI webhook route at ${githubConfig.ciFeedback.routePath}`);
   }
 
-  api.logger.info(`registered ${tools.length} task/workflow/quality/vcs tools`);
+  api.logger.info(`registered ${tools.length} task/workflow/quality/vcs/messaging/decision/pipeline tools`);
   // EP03: workflow.step.run, workflow.state.get
   // EP04: vcs_branch_create, vcs_pr_create, vcs_pr_update, vcs_label_sync
   // EP05: quality_coverage, quality_lint, quality_complexity

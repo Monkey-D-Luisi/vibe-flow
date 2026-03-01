@@ -54,16 +54,47 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
         taskRef?: string;
       }>(DecisionEvaluateParams, params);
 
-      const policyCfg = deps.decisionConfig?.policies as Record<string, DecisionPolicy> | undefined;
-      const policy = policyCfg?.[input.category] ?? DEFAULT_POLICIES[input.category] ?? DEFAULT_POLICIES['technical'];
+      const rawPolicies = deps.decisionConfig?.policies as unknown;
+      let policy: DecisionPolicy = DEFAULT_POLICIES[input.category] ?? DEFAULT_POLICIES['technical'];
+      if (rawPolicies && typeof rawPolicies === 'object') {
+        const candidate = (rawPolicies as Record<string, unknown>)[input.category];
+        if (candidate && typeof candidate === 'object') {
+          const action = (candidate as { action?: unknown }).action;
+          if (action === 'auto' || action === 'escalate' || action === 'pause' || action === 'retry') {
+            policy = { ...(candidate as Record<string, unknown>), action } as DecisionPolicy;
+          }
+        }
+      }
 
       // Circuit breaker: check decision count for this task
       if (input.taskRef) {
-        const count = deps.db.prepare(
+        const countRow = deps.db.prepare(
           `SELECT COUNT(*) as cnt FROM ${DECISIONS_TABLE} WHERE task_ref = ? AND agent_id = ?`,
-        ).get(input.taskRef, 'calling-agent') as { cnt: number } | undefined;
-        if (count && count.cnt >= 5) {
+        ).get(input.taskRef, 'calling-agent');
+        const cnt =
+          typeof countRow === 'object' && countRow !== null &&
+          typeof (countRow as Record<string, unknown>)['cnt'] === 'number'
+            ? (countRow as { cnt: number }).cnt
+            : 0;
+        if (cnt >= 5) {
+          const cbId = deps.generateId();
+          const cbNow = deps.now();
+          deps.db.prepare(`
+            INSERT INTO ${DECISIONS_TABLE} (id, task_ref, agent_id, category, question, options, decision, reasoning, escalated, approver, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 1, ?, ?)
+          `).run(
+            cbId,
+            input.taskRef,
+            'calling-agent',
+            input.category,
+            input.question,
+            JSON.stringify(input.options),
+            'Circuit breaker: max decisions per agent per task reached. Escalating.',
+            'tech-lead',
+            cbNow,
+          );
           const result = {
+            decisionId: cbId,
             decision: null,
             reasoning: 'Circuit breaker: max decisions per agent per task reached. Escalating.',
             escalated: true,

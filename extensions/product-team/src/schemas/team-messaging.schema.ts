@@ -10,10 +10,12 @@ export const TeamMessageParams = Type.Object({
     Type.Literal('urgent'),
   ])),
   taskRef: Type.Optional(Type.String({ description: 'Related task ID' })),
+  from: Type.Optional(Type.String({ minLength: 1, description: 'Sender agent ID' })),
 });
 export type TeamMessageParams = Static<typeof TeamMessageParams>;
 
 export const TeamInboxParams = Type.Object({
+  agentId: Type.String({ minLength: 1, description: 'Agent ID whose inbox to read' }),
   unreadOnly: Type.Optional(Type.Boolean({ description: 'Only return unread messages' })),
   limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100, description: 'Max messages to return' })),
 });
@@ -32,5 +34,6 @@ export const TeamAssignParams = Type.Object({
   taskId: Type.String({ minLength: 1, description: 'Task to assign' }),
   agentId: Type.String({ minLength: 1, description: 'Agent to assign to' }),
   message: Type.Optional(Type.String({ maxLength: 500, description: 'Assignment message' })),
+  fromAgent: Type.Optional(Type.String({ minLength: 1, description: 'Agent performing the assignment' })),
 });
 export type TeamAssignParams = Static<typeof TeamAssignParams>;
