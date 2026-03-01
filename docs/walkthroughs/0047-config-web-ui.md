@@ -11,13 +11,13 @@ gateway WebSocket methods (`team.config.get`, `team.config.update`,
 `team.decisions.list`) and serves a placeholder dashboard at `/team`. Full UI
 implementation (agents page, projects page, pipeline kanban, settings panel) is
 deferred to a follow-up task; the current scaffold establishes the extension
-structure, API surface, and static asset delivery via `registerHttpHandler`.
+structure, API surface, and static asset delivery via `registerHttpRoute`.
 
 ## Changes
 
 - `extensions/team-ui/package.json`: New extension package with openclaw plugin metadata
-- `extensions/team-ui/openclaw.plugin.json`: Plugin manifest declaring gateway methods and HTTP routes
-- `extensions/team-ui/tsconfig.json`: TypeScript config extending the root monorepo settings
+- `extensions/team-ui/openclaw.plugin.json`: Plugin manifest defining extension metadata and `configSchema` for the team UI
+- `extensions/team-ui/tsconfig.json`: TypeScript config for the `team-ui` extension
 - `extensions/team-ui/src/index.ts`: Plugin entry point registering all 12 gateway WebSocket methods and the `/team` HTTP handler
 - `extensions/team-ui/src/handlers/config-handlers.ts`: Handler implementations for `team.config.get` and `team.config.update`
 - `extensions/team-ui/src/handlers/agent-handlers.ts`: Handler implementations for `team.agents.list` and `team.agents.update`

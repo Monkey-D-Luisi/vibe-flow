@@ -1,5 +1,5 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
-import { handleConfigGet, handleConfigUpdate } from './handlers/config-handlers.js';
+import { createConfigGetHandler, handleConfigUpdate } from './handlers/config-handlers.js';
 import { handleAgentsList, handleAgentsUpdate } from './handlers/agent-handlers.js';
 import {
   handleProjectsList,
@@ -14,6 +14,8 @@ import {
   handleDecisionsList,
 } from './handlers/pipeline-handlers.js';
 
+const BASE_PATH = '/team';
+
 export default {
   id: 'team-ui',
   name: 'Team Configuration UI',
@@ -21,12 +23,22 @@ export default {
 
   register(api: OpenClawPluginApi) {
     const logger = api.logger;
-    const cfg = api.pluginConfig as Record<string, unknown>;
-    const basePath = String(cfg?.['basePath'] ?? '/team');
+    const cfg = (typeof api.pluginConfig === 'object' && api.pluginConfig !== null)
+      ? (api.pluginConfig as Record<string, unknown>)
+      : {};
+    const basePath = (typeof cfg['basePath'] === 'string' && cfg['basePath'].trim())
+      ? cfg['basePath'].trim()
+      : BASE_PATH;
+
+    if (basePath !== BASE_PATH) {
+      logger.warn(
+        `team-ui: custom basePath "${basePath}" configured but dashboard HTML uses fixed ${BASE_PATH} nav links; subpaths may not resolve correctly`,
+      );
+    }
 
     // ── Gateway WebSocket Methods ──
 
-    api.registerGatewayMethod('team.config.get', handleConfigGet);
+    api.registerGatewayMethod('team.config.get', createConfigGetHandler(basePath));
     api.registerGatewayMethod('team.config.update', handleConfigUpdate);
     api.registerGatewayMethod('team.agents.list', handleAgentsList);
     api.registerGatewayMethod('team.agents.update', handleAgentsUpdate);
@@ -43,7 +55,12 @@ export default {
 
     api.registerHttpRoute({
       path: basePath,
-      handler(_req, res) {
+      handler(req, res) {
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+          res.writeHead(405, { Allow: 'GET, HEAD' });
+          res.end();
+          return;
+        }
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(DASHBOARD_HTML);
       },
@@ -89,10 +106,10 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
     <h1>Product Team Dashboard</h1>
     <nav>
       <a href="/team">Dashboard</a>
-      <a href="/team/agents">Agents</a>
-      <a href="/team/pipeline">Pipeline</a>
-      <a href="/team/projects">Projects</a>
-      <a href="/team/settings">Settings</a>
+      <a href="/team#agents">Agents</a>
+      <a href="/team#pipeline">Pipeline</a>
+      <a href="/team#projects">Projects</a>
+      <a href="/team#settings">Settings</a>
     </nav>
   </header>
   <main>
@@ -115,7 +132,7 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
       <div class="card">
         <div class="label">Providers</div>
         <div class="value" id="providerCount">3</div>
-        <div class="sub">OpenAI · Anthropic · Google</div>
+        <div class="sub">OpenAI &middot; Anthropic &middot; Google</div>
       </div>
     </div>
 
@@ -142,8 +159,9 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
 
   <script type="module">
     async function callMethod(method, params = {}) {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
       return new Promise((resolve) => {
-        const ws = new WebSocket(\`ws://\${location.host}\`);
+        const ws = new WebSocket(\`\${protocol}//\${location.host}\`);
         ws.onopen = () => ws.send(JSON.stringify({ method, params, id: 1 }));
         ws.onmessage = (e) => { resolve(JSON.parse(e.data)); ws.close(); };
         ws.onerror = () => resolve(null);
@@ -153,25 +171,40 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
     async function loadAgents() {
       const result = await callMethod('team.agents.list');
       const tbody = document.getElementById('agentBody');
-      if (!result?.payload?.agents?.length) return;
-      tbody.innerHTML = result.payload.agents.map(a => \`
-        <tr>
-          <td>\${a.name}</td>
-          <td><span class="model-tag">\${a.model}</span></td>
-          <td><span class="status-idle">\${a.status}</span></td>
-          <td>$\${(a.costToday ?? 0).toFixed(4)}</td>
-        </tr>\`).join('');
+      if (!result?.payload?.agents?.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:#6b7280;text-align:center;padding:20px">No agents found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = '';
+      for (const a of result.payload.agents) {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = a.name;
+
+        const modelCell = row.insertCell();
+        const modelTag = document.createElement('span');
+        modelTag.className = 'model-tag';
+        modelTag.textContent = a.model;
+        modelCell.appendChild(modelTag);
+
+        const statusCell = row.insertCell();
+        const statusTag = document.createElement('span');
+        statusTag.className = 'status-idle';
+        statusTag.textContent = a.status;
+        statusCell.appendChild(statusTag);
+
+        row.insertCell().textContent = '$' + (a.costToday ?? 0).toFixed(4);
+      }
     }
 
     async function loadCosts() {
       const result = await callMethod('team.costs.summary');
       if (result?.payload) {
-        document.getElementById('costToday').textContent = \`$\${(result.payload.totalToday ?? 0).toFixed(2)}\`;
+        document.getElementById('costToday').textContent = '$' + (result.payload.totalToday ?? 0).toFixed(2);
       }
     }
 
-    loadAgents().catch(() => {});
-    loadCosts().catch(() => {});
+    loadAgents().catch(err => console.error('Failed to load agents:', err));
+    loadCosts().catch(err => console.error('Failed to load costs:', err));
   </script>
 </body>
 </html>`;

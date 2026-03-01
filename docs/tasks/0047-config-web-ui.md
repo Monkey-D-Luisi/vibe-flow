@@ -85,7 +85,7 @@ or custom HTTP routes for static assets):
 
 Package the UI as static HTML/JS/CSS:
 - Build with a lightweight framework (vanilla TS or Preact for size)
-- Serve from the plugin via `registerHttpHandler`
+- Serve from the plugin via `registerHttpRoute`
 - Assets in `extensions/team-ui/dist/`
 - Hot-reload-friendly during development
 
@@ -99,16 +99,16 @@ Use the gateway's WebSocket protocol to push:
 
 ## Acceptance Criteria
 
-- [ ] Dashboard page loads at `http://localhost:28789/team`
-- [ ] Agent list shows all 10 agents with correct models
-- [ ] Agent model can be changed via UI and takes effect on next run
-- [ ] Projects can be added and removed via UI
-- [ ] Pipeline kanban shows active tasks in correct stages
-- [ ] Settings page saves changes to gateway config
-- [ ] Real-time updates arrive via WebSocket (no manual refresh)
-- [ ] Cost summary shows per-agent and per-provider breakdown
-- [ ] Decision audit trail is viewable per task
-- [ ] UI works on Chrome, Firefox, Edge (desktop)
+- [x] Dashboard page loads at `http://localhost:28789/team`
+- [x] Agent list shows all 10 agents with correct models
+- [ ] Agent model can be changed via UI and takes effect on next run *(deferred — scaffold only)*
+- [ ] Projects can be added and removed via UI *(deferred — scaffold only)*
+- [ ] Pipeline kanban shows active tasks in correct stages *(deferred — scaffold only)*
+- [ ] Settings page saves changes to gateway config *(deferred — scaffold only)*
+- [ ] Real-time updates arrive via WebSocket (no manual refresh) *(deferred — scaffold only)*
+- [x] Cost summary shows per-agent and per-provider breakdown
+- [ ] Decision audit trail is viewable per task *(deferred — scaffold only)*
+- [ ] UI works on Chrome, Firefox, Edge (desktop) *(manual verification pending)*
 
 ## Testing Plan
 
