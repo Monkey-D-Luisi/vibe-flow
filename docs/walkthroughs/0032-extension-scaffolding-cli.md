@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0032-extension-scaffolding-cli.md`
 - Epic: EP07 — DX & Platform Ops
 - Branch: `feat/0032-extension-scaffolding-cli`
-- PR: _pending_
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/195
 - Source Issue: GitHub #156
 
 ---
