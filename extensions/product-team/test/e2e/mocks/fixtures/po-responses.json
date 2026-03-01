@@ -1,0 +1,13 @@
+{
+  "REFINEMENT": [
+    {
+      "stories": [
+        { "id": "US-001", "title": "As a user, I can see collaborators' cursors in real-time", "points": 5 },
+        { "id": "US-002", "title": "As a user, I can see live edits from collaborators", "points": 8 },
+        { "id": "US-003", "title": "As a user, I receive conflict resolution prompts", "points": 3 }
+      ],
+      "agentId": "po",
+      "stage": "DECOMPOSITION"
+    }
+  ]
+}

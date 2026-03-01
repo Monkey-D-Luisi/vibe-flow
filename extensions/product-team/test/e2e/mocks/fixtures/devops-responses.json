@@ -1,0 +1,12 @@
+{
+  "SHIPPING": [
+    {
+      "prNumber": 101,
+      "branchCreated": "feat/canvas-realtime-collab",
+      "prUrl": "https://github.com/owner/repo/pull/101",
+      "labels": ["feature", "EP08"],
+      "agentId": "devops",
+      "stage": "DONE"
+    }
+  ]
+}

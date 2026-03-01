@@ -1,0 +1,21 @@
+{
+  "DECOMPOSITION": [
+    {
+      "tasks": [
+        { "id": "T-001", "title": "Implement WebSocket server for canvas sync", "assignee": "back-1", "effort": "M" },
+        { "id": "T-002", "title": "Build cursor tracking UI component", "assignee": "front-1", "effort": "S" },
+        { "id": "T-003", "title": "Add conflict resolution logic", "assignee": "back-1", "effort": "M" }
+      ],
+      "agentId": "tech-lead",
+      "stage": "DESIGN"
+    }
+  ],
+  "REVIEW": [
+    {
+      "approved": true,
+      "comments": "Implementation looks solid. Tests cover the main scenarios.",
+      "agentId": "tech-lead",
+      "stage": "SHIPPING"
+    }
+  ]
+}
