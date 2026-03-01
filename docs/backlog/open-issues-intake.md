@@ -4,7 +4,7 @@
 |-------|-------|
 | Source | GitHub Project board + open issue triage |
 | Updated | 2026-03-01 |
-| Status | PLANNED (not in active task queue) |
+| Status | ALL ITEMS ADDRESSED (2026-03-01) |
 
 ## Purpose
 
@@ -20,7 +20,7 @@ queue for AR01 remediation.
 | #155 | Threshold alerts: notify on coverage drops or complexity rises | EP05 follow-up (quality alerting) | Task `0021` DONE (`docs/tasks/0021-threshold-alerts-notify-on-coverage-drops-or-complexity-rises.md`) | **CLOSED** — GitHub issue closed 2026-03-01. Traceability retained. |
 | #156 | Extension scaffolding CLI for new OpenClaw plugins | DX track | Task `0032` PENDING (`docs/tasks/0032-extension-scaffolding-cli.md`) | **ACTIVATED** — Task spec created 2026-03-01. Added to roadmap under EP07. |
 | #157 | npm publish pipeline for @openclaw/* extensions | Release engineering track | Task `0033` PENDING (`docs/tasks/0033-npm-publish-pipeline.md`) | **ACTIVATED** — Task spec created 2026-03-01. Added to roadmap under EP07. |
-| #158 | CI: quality gate workflow for pull requests | CI/Quality track | Partially related to `0015` but not fully covered | Decide if it belongs under AR01 or post-AR backlog, then create explicit task spec for PR quality-gate workflow and comment upsert behavior. |
+| #158 | CI: quality gate workflow for pull requests | CI/Quality track | Task `0034` PENDING (`docs/tasks/0034-ci-quality-gate-workflow-for-prs.md`) | **ACTIVATED** — Task spec created 2026-03-01. Placed under EP07 (not AR01). Added to roadmap. |
 
 ## Activation policy
 

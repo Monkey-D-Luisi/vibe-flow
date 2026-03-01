@@ -259,6 +259,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 - [Task 0032: Extension Scaffolding CLI for New OpenClaw Plugins](tasks/0032-extension-scaffolding-cli.md) -- PENDING (DX, GitHub #156)
 - [Task 0033: npm Publish Pipeline for @openclaw/* Extensions](tasks/0033-npm-publish-pipeline.md) -- PENDING (Release engineering, GitHub #157)
+- [Task 0034: CI Quality Gate Workflow for Pull Requests](tasks/0034-ci-quality-gate-workflow-for-prs.md) -- PENDING (CI/Quality, GitHub #158)
 
 ### Architecture & Operations
 - [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)
