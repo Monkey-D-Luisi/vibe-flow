@@ -1,0 +1,14 @@
+{
+  "DESIGN": [
+    {
+      "designId": "DES-001",
+      "components": [
+        { "name": "CollaborationCanvas", "type": "React component" },
+        { "name": "CursorLayer", "type": "SVG overlay" }
+      ],
+      "stitchUrl": "http://localhost:4000/preview/stitch-1",
+      "agentId": "designer",
+      "stage": "IMPLEMENTATION"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "IDEA": [
+    {
+      "roadmapItem": {
+        "title": "Add real-time collaboration to canvas",
+        "priority": "HIGH",
+        "estimatedEffort": "L",
+        "rationale": "Users need to collaborate on designs simultaneously"
+      },
+      "agentId": "pm",
+      "stage": "ROADMAP"
+    }
+  ],
+  "ROADMAP": [
+    {
+      "roadmapItemId": "RM-001",
+      "title": "Add real-time collaboration to canvas",
+      "ready": true,
+      "agentId": "pm",
+      "stage": "REFINEMENT"
+    }
+  ]
+}

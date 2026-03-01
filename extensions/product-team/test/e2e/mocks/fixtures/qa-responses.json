@@ -1,0 +1,25 @@
+{
+  "QA": [
+    {
+      "passed": true,
+      "coverage": 87.4,
+      "coverageThreshold": 80,
+      "testsRun": 47,
+      "testsFailed": 0,
+      "agentId": "qa",
+      "stage": "REVIEW"
+    }
+  ],
+  "QA_FAIL": [
+    {
+      "passed": false,
+      "coverage": 62.1,
+      "coverageThreshold": 80,
+      "testsRun": 47,
+      "testsFailed": 3,
+      "failureReason": "Coverage below threshold",
+      "agentId": "qa",
+      "stage": "IMPLEMENTATION"
+    }
+  ]
+}
