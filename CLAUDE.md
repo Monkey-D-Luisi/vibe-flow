@@ -20,13 +20,19 @@ Monorepo of extensions, skills, and quality tooling for [OpenClaw](https://openc
 - `extensions/quality-gate/` - Standalone quality gate engine/CLI for local and CI quality runs
 - `skills/adr/` - ADR management skill
 - `skills/architecture-design/` - Architecture design workflow skill
+- `skills/backend-dev/` - Backend development skill
 - `skills/code-review/` - Code review workflow skill
+- `skills/devops/` - DevOps and infrastructure skill
+- `skills/frontend-dev/` - Frontend development skill
 - `skills/github-automation/` - GitHub automation workflow skill
 - `skills/patterns/` - Architecture patterns skill
+- `skills/product-owner/` - Product owner workflow skill
 - `skills/qa-testing/` - QA/testing workflow skill
 - `skills/requirements-grooming/` - Requirements grooming workflow skill
 - `skills/tdd-implementation/` - TDD implementation workflow skill
-- `packages/schemas/` - Shared JSON Schemas for quality tools
+- `skills/tech-lead/` - Tech lead workflow skill
+- `skills/ui-designer/` - UI design workflow skill
+- `packages/quality-contracts/` - Shared parsers, gate policy, complexity analysis, and validation contracts
 
 ## Commands
 
@@ -61,6 +67,56 @@ pnpm q:coverage
 pnpm q:lint
 pnpm q:complexity
 ```
+
+## Registered Tools
+
+### product-team extension (quality.* / task.* / workflow.* / vcs.* / project.* / team.* / decision.* / pipeline.*)
+
+| Tool | Purpose |
+|------|---------|
+| `task.create` | Create a new task record |
+| `task.get` | Fetch a task by ID |
+| `task.search` | Search tasks by status, assignee, etc. |
+| `task.update` | Update task fields |
+| `task.transition` | Transition task to next workflow state |
+| `workflow.step.run` | Run a workflow step |
+| `workflow.state.get` | Get current workflow state |
+| `workflow.events.query` | Query workflow event log |
+| `quality.tests` | Run test suite (task-lifecycle-aware) |
+| `quality.coverage` | Parse and report test coverage |
+| `quality.lint` | Run linter and report violations |
+| `quality.complexity` | Measure cyclomatic complexity (AST-based, task-lifecycle-aware) |
+| `quality.gate` | Evaluate quality gate policy |
+| `vcs.branch.create` | Create a VCS branch |
+| `vcs.pr.create` | Create a pull request |
+| `vcs.pr.update` | Update an existing pull request |
+| `vcs.label.sync` | Sync PR labels |
+| `project.list` | List registered projects |
+| `project.switch` | Switch active project context |
+| `project.register` | Register a new project workspace |
+| `team.message` | Post a message to a team channel |
+| `team.inbox` | Read team inbox messages |
+| `team.reply` | Reply to a team message |
+| `team.status` | Update team member status |
+| `team.assign` | Assign work to a team member |
+| `decision.evaluate` | Evaluate a decision via the decision engine |
+| `decision.log` | Log a decision record |
+| `pipeline.start` | Start a pipeline |
+| `pipeline.status` | Get pipeline status |
+| `pipeline.retry` | Retry a failed pipeline step |
+| `pipeline.skip` | Skip a pipeline step |
+
+### quality-gate extension (qgate.* — standalone, stateless, no task lifecycle)
+
+| Tool | Purpose |
+|------|---------|
+| `qgate.complexity` | Measure complexity via regex heuristic (fast CLI scans) |
+| `qgate.lint` | Run linter and report violations |
+| `qgate.tests` | Run test suite standalone |
+| `qgate.coverage` | Parse and report test coverage |
+| `qgate.gate` | Evaluate quality gate policy |
+
+> **Note:** `qgate.*` and `quality.*` tools serve different purposes. `quality.*` tools integrate with the task lifecycle. `qgate.*` tools are stateless and work without a task context. Do not load both extensions simultaneously.
 
 ## Conventions
 
