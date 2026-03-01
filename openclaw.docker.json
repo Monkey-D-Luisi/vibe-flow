@@ -407,7 +407,7 @@
         "name": "DevOps Engineer",
         "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
-        "skills": ["github-automation"],
+        "skills": ["devops", "github-automation"],
         "tools": {
           "allow": [
             "vcs.branch.create", "vcs.pr.create", "vcs.pr.update",
