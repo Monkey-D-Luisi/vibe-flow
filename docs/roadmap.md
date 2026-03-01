@@ -294,7 +294,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 - [Task 0035: Docker Deployment Configuration](tasks/0035-docker-deployment-config.md) -- DONE (EP08, 8A)
 - [Task 0036: Multi-Model Provider Configuration](tasks/0036-multi-model-provider-config.md) -- DONE (EP08, 8A)
-- [Task 0037: Telegram Channel Integration Plugin](tasks/0037-telegram-channel-integration.md) -- PENDING (EP08, 8A)
+- [Task 0037: Telegram Channel Integration Plugin](tasks/0037-telegram-channel-integration.md) -- DONE (EP08, 8A)
 - [Task 0038: Expanded Agent Roster with Per-Agent Model Routing](tasks/0038-agent-roster-model-routing.md) -- PENDING (EP08, 8A)
 
 ### Phase 8B: Design & Multi-Project
