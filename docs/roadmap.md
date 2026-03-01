@@ -301,7 +301,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 - [Task 0039: Stitch MCP Bridge Plugin](tasks/0039-stitch-mcp-bridge.md) -- DONE (EP08, 8B)
 - [Task 0040: Multi-Project Workspace Manager](tasks/0040-multi-project-workspace.md) -- DONE (EP08, 8B)
-- [Task 0041: New Skills for Expanded Roles](tasks/0041-new-role-skills.md) -- PENDING (EP08, 8B)
+- [Task 0041: New Skills for Expanded Roles](tasks/0041-new-role-skills.md) -- DONE (EP08, 8B)
 
 ### Phase 8C: Autonomous Orchestration
 
