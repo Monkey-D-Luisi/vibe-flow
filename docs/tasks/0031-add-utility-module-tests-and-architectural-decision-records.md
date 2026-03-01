@@ -104,7 +104,7 @@ Source findings: **D-003** (LOW) and **D-009** (LOW).
 - [x] Lint passes with zero errors
 - [x] TypeScript compiles without errors
 - [x] Walkthrough updated
-- [ ] PR created and linked
+- [x] PR created and linked
 
 ---
 

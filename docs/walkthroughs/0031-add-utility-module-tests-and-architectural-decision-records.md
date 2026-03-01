@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0031-add-utility-module-tests-and-architectural-decision-records.md`
 - Epic: Audit remediation 2026-02-27
 - Branch: `docs/0031-utility-tests-and-adrs`
-- PR: _pending_
+- PR: [#193](https://github.com/Monkey-D-Luisi/vibe-flow/pull/193)
 
 ---
 
