@@ -248,7 +248,7 @@
         "id": "pm",
         "name": "Product Manager",
         "default": true,
-        "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
+        "model": { "primary": "openai-codex/gpt-5.2", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["requirements-grooming"],
         "tools": {
@@ -265,7 +265,7 @@
       {
         "id": "tech-lead",
         "name": "Tech Lead",
-        "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
+        "model": { "primary": "anthropic/claude-opus-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["tech-lead", "architecture-design", "code-review", "adr"],
         "tools": {
@@ -283,7 +283,7 @@
       {
         "id": "po",
         "name": "Product Owner",
-        "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
+        "model": { "primary": "openai-codex/gpt-4.1", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["product-owner", "requirements-grooming"],
         "tools": {
@@ -298,7 +298,7 @@
       {
         "id": "designer",
         "name": "UI/UX Designer",
-        "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
+        "model": { "primary": "openai-codex/gpt-4o", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["ui-designer"],
         "tools": {

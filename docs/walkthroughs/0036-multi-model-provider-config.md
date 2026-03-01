@@ -56,6 +56,9 @@ Updated `.env.docker.example`:
 }
 ```
 
+Per-agent overrides implemented in Task 0038: PM→gpt-5.2, TL→opus-4-6,
+PO→gpt-4.1, Designer→gpt-4o.
+
 ### D4: Provider health check route
 Updated `extensions/model-router/src/provider-health.ts`:
 - Now checks 4 providers: anthropic, openai-codex, github-copilot,
@@ -91,7 +94,7 @@ pnpm test        # pending verification
   Telegram channel, response prefix, agent model chains, native telegram plugin
 - `.env.docker.example` — updated for auth-profile model, removed unused keys
 - `extensions/model-router/src/provider-health.ts` — updated provider list
-  (5 providers instead of 3)
+  (4 providers instead of 3)
 - `extensions/model-router/src/index.ts` — updated comments for auth-profile model
 - `docs/tasks/0036-multi-model-provider-config.md` — updated context, deliverables,
   acceptance criteria, technical notes
@@ -100,4 +103,4 @@ pnpm test        # pending verification
 ## Follow-ups
 - Run `openclaw auth login` for each provider on first deployment
 - Verify exact model IDs against provider APIs at deployment time
-- Consider adding per-agent model differentiation in Task 0038 if needed
+- Per-agent model differentiation implemented in Task 0038

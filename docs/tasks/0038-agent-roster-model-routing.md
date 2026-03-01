@@ -18,16 +18,29 @@ configured primary model with fallback chain.
 
 ## Context
 
-The current `openclaw.docker.json` defines 10 agents sharing the default model
-fallback chain (`anthropic/claude-sonnet-4-6` → `openai-codex/gpt-5.2` →
-`github-copilot/gpt-4o`). Auth is managed via OpenClaw's native auth-profiles
-system: Anthropic (token), OpenAI-Codex (OAuth), GitHub Copilot (token).
+The `openclaw.docker.json` defines 10 agents with per-agent model
+differentiation. Each role gets the primary model best suited to its cognitive
+profile, with appropriate fallbacks. Auth is managed via OpenClaw's native
+auth-profiles system: Anthropic (token), OpenAI-Codex (OAuth), GitHub Copilot
+(token).
 
-The working agent at `~/.openclaw` demonstrates this pattern: a single default
-`{ primary, fallbacks }` chain that all agents share, with the runtime
-automatically handling provider auth (token refresh for OAuth, proxy token
-rotation for Copilot). Per-agent model differentiation is optional and can
-be added later as provider subscriptions evolve.
+The default fallback chain (`anthropic/claude-sonnet-4-6` → `openai-codex/gpt-5.2`
+→ `github-copilot/gpt-4o`) applies to agents without explicit overrides. Agents
+with specialized needs override the primary model while keeping cross-provider
+fallbacks for resilience.
+
+**Per-agent model assignments:**
+
+| Agent       | Primary Model                | Rationale                          |
+|-------------|------------------------------|------------------------------------|
+| `pm`        | `openai-codex/gpt-5.2`      | Strategic planning, language-heavy  |
+| `tech-lead` | `anthropic/claude-opus-4-6`  | Architecture, deep reasoning       |
+| `po`        | `openai-codex/gpt-4.1`      | Balanced, product decisions        |
+| `designer`  | `openai-codex/gpt-4o`       | Visual reasoning, UI patterns      |
+| `back-*`    | `anthropic/claude-sonnet-4-6`| Code generation (default chain)    |
+| `front-*`   | `anthropic/claude-sonnet-4-6`| Code generation (default chain)    |
+| `qa`        | `anthropic/claude-sonnet-4-6`| Test analysis (default chain)      |
+| `devops`    | `anthropic/claude-sonnet-4-6`| Infra/automation (default chain)   |
 
 ## Deliverables
 
@@ -55,7 +68,7 @@ be added later as provider subscriptions evolve.
         "id": "pm",
         "name": "Product Manager",
         "default": true,
-        "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
+        "model": { "primary": "openai-codex/gpt-5.2", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["requirements-grooming"],
         "tools": {
@@ -72,7 +85,7 @@ be added later as provider subscriptions evolve.
       {
         "id": "tech-lead",
         "name": "Tech Lead",
-        "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
+        "model": { "primary": "anthropic/claude-opus-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["tech-lead", "architecture-design", "code-review", "adr"],
         "tools": {
@@ -90,7 +103,7 @@ be added later as provider subscriptions evolve.
       {
         "id": "po",
         "name": "Product Owner",
-        "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
+        "model": { "primary": "openai-codex/gpt-4.1", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["product-owner", "requirements-grooming"],
         "tools": {
@@ -105,7 +118,7 @@ be added later as provider subscriptions evolve.
       {
         "id": "designer",
         "name": "UI/UX Designer",
-        "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
+        "model": { "primary": "openai-codex/gpt-4o", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["ui-designer"],
         "tools": {
@@ -228,11 +241,6 @@ for static per-agent model assignment.
 The hook is reserved for future dynamic routing logic (cost optimization,
 task complexity scoring, provider fail-over based on real-time health).
 
-**Note:** Since all agents currently share the same fallback chain (matching
-the working agent), the `before_model_resolve` hook adds no value yet. When
-per-agent differentiation is needed (e.g., Opus for Tech Lead, GPT-5.x for
-PM), add `model` overrides to individual agent entries in the config.
-
 ### D3: Agent Binding Configuration
 
 Route Telegram group messages to the `pm` agent by default:
@@ -257,8 +265,9 @@ dashboard can break down spend per role.
 
 ## Acceptance Criteria
 
-- [ ] All 10 agents defined in gateway config with correct fallback chain
+- [ ] All 10 agents defined in gateway config with per-agent model assignments
 - [ ] Default model: `anthropic/claude-sonnet-4-6` with fallbacks `openai-codex/gpt-5.2`, `github-copilot/gpt-4o`
+- [ ] Per-agent overrides: PM→gpt-5.2, TL→opus-4-6, PO→gpt-4.1, Designer→gpt-4o
 - [ ] Auth profiles configured: anthropic (token), openai-codex (oauth), github-copilot (token)
 - [ ] Fallback activates when primary model returns error/timeout
 - [ ] Tool allow-lists enforce role boundaries (agent denied if calling unauthorized tool)
