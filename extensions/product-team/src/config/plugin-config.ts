@@ -123,3 +123,19 @@ export function resolveConcurrencyConfig(
     maxTotalLeases: asPositiveInteger(concurrency?.maxTotalLeases) ?? 10,
   };
 }
+
+export interface ProjectConfig {
+  projects: Array<Record<string, unknown>>;
+  activeProject: string;
+}
+
+export function resolveProjectConfig(
+  pluginConfig: Record<string, unknown> | undefined,
+): ProjectConfig {
+  const raw = pluginConfig?.projects;
+  const projects: Array<Record<string, unknown>> = Array.isArray(raw)
+    ? raw.filter((p): p is Record<string, unknown> => typeof p === 'object' && p !== null && !Array.isArray(p))
+    : [];
+  const activeProject = asNonEmptyString(pluginConfig?.activeProject) ?? (projects[0] ? String(projects[0]['id'] ?? '') : '');
+  return { projects, activeProject };
+}
