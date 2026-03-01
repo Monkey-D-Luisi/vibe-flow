@@ -7,9 +7,11 @@ ui-designer, frontend-dev, backend-dev, devops.
 ## Decisions
 - **One skill per role**: Each SKILL.md defines a single agent persona with
   clear responsibilities, output schemas, and quality standards.
-- **Output schemas**: tech-lead and product-owner get new schemas. frontend-dev
+- **Output schemas**: tech-lead uses existing `architecture_plan` and
+  `review_result` schemas; product-owner uses existing `po_brief`. frontend-dev
   and backend-dev inherit `dev_result` from tdd-implementation. devops has no
-  unique output schema (uses VCS tools directly).
+  unique output schema (uses VCS tools directly). Introducing additional schema
+  keys would require follow-up changes in the product-team orchestrator.
 - **Stitch workflow in ui-designer**: The designer skill enforces `GEMINI_3_PRO`
   model for all Stitch calls, matching saas-template conventions.
 - **TDD mandatory for devs**: Both frontend and backend skills mandate the

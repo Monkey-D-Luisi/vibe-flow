@@ -13,9 +13,11 @@ version control operations, CI/CD pipelines, and deployment workflows.
 
 ### 1. Branch Management
 - Create feature branches from the project's default branch
-- Use naming convention: `feat/<description>` or `fix/<description>`
+- Use naming convention enforced by `vcs.branch.create`: `task/<taskId>-<slug>`
+  (e.g. `task/1234-fix-ci-timeout`); branch must start with `task/` and the
+  slug should be a short, kebab-case summary of the work
 - Use `vcs.branch.create` with idempotency to avoid duplicates
-- One branch per task (or per story if tasks are small)
+- One branch per task, with each branch tied to a specific task ID
 
 ### 2. Pull Request Creation
 - Open PRs using `vcs.pr.create` after dev + QA + review pass

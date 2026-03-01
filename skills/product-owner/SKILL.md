@@ -39,12 +39,23 @@ execution capability.
 
 ## Output Schema
 
-### product_owner_brief
+### po_brief (orchestrator-validated)
+```json
+{
+  "title": "Epic or sprint title",
+  "acceptance_criteria": ["Story X accepted", "All criteria met"],
+  "scope": "major | minor | patch",
+  "done_if": ["All stories accepted by QA", "PO sign-off complete"]
+}
+```
+
+### Story breakdown (additional context, not an orchestrator schemaKey)
 ```json
 {
   "epicTitle": "string",
   "stories": [
     {
+      "id": "string",
       "title": "string",
       "userStory": "As a [role], I want [feature], so that [benefit]",
       "acceptanceCriteria": [
@@ -59,7 +70,7 @@ execution capability.
   "scopeDecisions": [
     { "item": "string", "decision": "in | deferred", "rationale": "string" }
   ],
-  "priorityOrder": ["storyTitle"]
+  "priorityOrder": ["storyId"]
 }
 ```
 
