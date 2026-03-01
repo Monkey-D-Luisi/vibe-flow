@@ -1,0 +1,229 @@
+name: Quality Gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, ready_for_review]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  quality-gate:
+    name: Quality gate
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
+    steps:
+      # --- Setup ---
+
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rebuild native modules
+        working-directory: extensions/product-team
+        run: node -e "const c=require('child_process'),p=require('path');const pkg=p.dirname(require.resolve('better-sqlite3/package.json'));console.log('Rebuilding better-sqlite3 at',pkg);c.execSync('npm run install',{cwd:pkg,stdio:'inherit'});"
+
+      # --- Quality metric collection ---
+
+      - name: Run tests
+        id: tests
+        run: pnpm q:tests
+        continue-on-error: true
+
+      - name: Generate coverage data
+        run: |
+          pnpm --filter @openclaw/quality-gate test:coverage || true
+          pnpm --filter @openclaw/plugin-product-team test:coverage || true
+
+      - name: Collect coverage report
+        id: coverage
+        run: pnpm q:coverage
+        continue-on-error: true
+
+      - name: Lint gate
+        id: lint
+        run: pnpm q:lint
+        continue-on-error: true
+
+      - name: Complexity gate
+        id: complexity
+        run: pnpm q:complexity
+        continue-on-error: true
+
+      - name: Full gate enforcement
+        id: gate
+        run: pnpm q:gate
+        continue-on-error: true
+
+      - name: Vulnerability policy
+        id: vuln
+        run: |
+          set +e
+          pnpm verify:vuln-policy > /tmp/vuln-output.txt 2>&1
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+
+      # --- PR comment report ---
+
+      - name: Build and upsert quality report comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+          LINT_OUTCOME: ${{ steps.lint.outcome }}
+          COMPLEXITY_OUTCOME: ${{ steps.complexity.outcome }}
+          COVERAGE_OUTCOME: ${{ steps.coverage.outcome }}
+          VULN_EXIT: ${{ steps.vuln.outputs.exit_code }}
+        run: |
+          QREPORT="extensions/quality-gate/.qreport"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          REPO="${{ github.repository }}"
+          SHA="${{ github.sha }}"
+          RUN_URL="https://github.com/${REPO}/actions/runs/${{ github.run_id }}"
+          SHORT_SHA="${SHA:0:7}"
+
+          # Safe fallback for vuln exit code
+          VULN_EXIT="${VULN_EXIT:-1}"
+
+          # ---- Tests ----
+          if [ -f "$QREPORT/tests.json" ]; then
+            TESTS_PASSED=$(jq -r 'if .summary then (.summary.passed | tostring) else "N/A" end' "$QREPORT/tests.json")
+            TESTS_FAILED=$(jq -r 'if .summary then (.summary.failed | tostring) else "N/A" end' "$QREPORT/tests.json")
+          else
+            TESTS_PASSED="N/A"
+            TESTS_FAILED="N/A"
+          fi
+          if [ "$TESTS_OUTCOME" = "success" ]; then TESTS_ICON="✅"; else TESTS_ICON="❌"; fi
+          TESTS_DETAIL="Passed: ${TESTS_PASSED}, Failed: ${TESTS_FAILED}"
+
+          # ---- Coverage ----
+          if [ -f "$QREPORT/coverage.json" ]; then
+            LINE_PCT=$(jq -r '.linePct // "N/A"' "$QREPORT/coverage.json")
+            BRANCH_PCT=$(jq -r '.branchPct // "N/A"' "$QREPORT/coverage.json")
+            COV_DETAIL="Lines: ${LINE_PCT}%, Branches: ${BRANCH_PCT}%"
+          else
+            COV_DETAIL="No coverage data"
+          fi
+          if [ "$COVERAGE_OUTCOME" = "success" ]; then COV_ICON="✅"; else COV_ICON="⚠️"; fi
+
+          # ---- Lint ----
+          if [ -f "$QREPORT/lint.json" ]; then
+            LINT_ERRORS=$(jq -r '.totalErrors' "$QREPORT/lint.json")
+            LINT_WARNINGS=$(jq -r '.totalWarnings' "$QREPORT/lint.json")
+            LINT_DETAIL="Errors: ${LINT_ERRORS}, Warnings: ${LINT_WARNINGS}"
+          else
+            LINT_DETAIL="No lint data"
+          fi
+          if [ "$LINT_OUTCOME" = "success" ]; then LINT_ICON="✅"; else LINT_ICON="❌"; fi
+
+          # ---- Complexity ----
+          if [ -f "$QREPORT/complexity.json" ]; then
+            MAX_CC=$(jq -r '.summary.maxCyclomatic' "$QREPORT/complexity.json")
+            HOTSPOTS=$(jq -r '.hotspotCount' "$QREPORT/complexity.json")
+            CC_DETAIL="Max cyclomatic: ${MAX_CC}, Hotspots: ${HOTSPOTS}"
+          else
+            CC_DETAIL="No complexity data"
+          fi
+          if [ "$COMPLEXITY_OUTCOME" = "success" ]; then CC_ICON="✅"; else CC_ICON="❌"; fi
+
+          # ---- Vulnerability policy ----
+          VULN_OUTPUT=$(cat /tmp/vuln-output.txt 2>/dev/null || echo "(no output)")
+          if [ "$VULN_EXIT" = "0" ]; then
+            VULN_ICON="✅"
+            VULN_DETAIL="PASS"
+          else
+            VULN_ICON="❌"
+            VULN_DETAIL="FAIL"
+          fi
+
+          # ---- Overall verdict ----
+          GATE_FAILED=0
+          [ "$TESTS_OUTCOME" = "failure" ] && GATE_FAILED=1
+          [ "$LINT_OUTCOME" = "failure" ] && GATE_FAILED=1
+          [ "$VULN_EXIT" != "0" ] && GATE_FAILED=1
+          if [ "$GATE_FAILED" = "1" ]; then
+            VERDICT_ICON="❌"
+            VERDICT_TEXT="FAIL"
+          else
+            VERDICT_ICON="✅"
+            VERDICT_TEXT="PASS"
+          fi
+
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
+
+          # ---- Build report markdown ----
+          {
+            printf '<!-- quality-gate-report -->\n'
+            printf '## %s Quality Gate — %s\n\n' "$VERDICT_ICON" "$VERDICT_TEXT"
+            printf '| Check | Status | Details |\n'
+            printf '|-------|--------|---------|\n'
+            printf '| Tests | %s | %s |\n' "$TESTS_ICON" "$TESTS_DETAIL"
+            printf '| Coverage | %s | %s |\n' "$COV_ICON" "$COV_DETAIL"
+            printf '| Lint | %s | %s |\n' "$LINT_ICON" "$LINT_DETAIL"
+            printf '| Complexity | %s | %s |\n' "$CC_ICON" "$CC_DETAIL"
+            printf '| Vulnerability Policy | %s | %s |\n' "$VULN_ICON" "$VULN_DETAIL"
+            printf '\n'
+            printf '<details><summary>Vulnerability policy output</summary>\n\n'
+            printf '```\n'
+            printf '%s\n' "$VULN_OUTPUT"
+            printf '```\n\n'
+            printf '</details>\n\n'
+            printf '_Commit: `%s` · [CI run](%s) · %s_\n' "$SHORT_SHA" "$RUN_URL" "$TIMESTAMP"
+          } > /tmp/qg-report.md
+
+          # ---- Upsert PR comment ----
+          EXISTING_ID=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select(.body | startswith("<!-- quality-gate-report -->")) | .id' \
+            | head -1)
+
+          if [ -n "$EXISTING_ID" ]; then
+            gh api "repos/${REPO}/issues/comments/${EXISTING_ID}" \
+              --method PATCH \
+              --field body=@/tmp/qg-report.md
+          else
+            gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+              --method POST \
+              --field body=@/tmp/qg-report.md
+          fi
+
+      # --- Gate verdict (must come last; sets workflow exit code) ---
+
+      - name: Gate verdict
+        if: always()
+        env:
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+          LINT_OUTCOME: ${{ steps.lint.outcome }}
+          VULN_EXIT: ${{ steps.vuln.outputs.exit_code }}
+        run: |
+          VULN_EXIT="${VULN_EXIT:-1}"
+          FAILED=0
+
+          if [ "$TESTS_OUTCOME" = "failure" ]; then
+            echo "::error::Tests gate failed"
+            FAILED=1
+          fi
+          if [ "$LINT_OUTCOME" = "failure" ]; then
+            echo "::error::Lint gate failed (lint errors detected)"
+            FAILED=1
+          fi
+          if [ "$VULN_EXIT" != "0" ]; then
+            echo "::error::Vulnerability policy gate failed"
+            FAILED=1
+          fi
+
+          if [ "$FAILED" = "1" ]; then
+            echo "Quality gate FAILED"
+            exit 1
+          fi
+          echo "Quality gate PASSED"
