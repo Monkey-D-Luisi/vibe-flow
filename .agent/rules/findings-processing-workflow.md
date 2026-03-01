@@ -9,17 +9,34 @@
 
 ## Execution Contract
 
+- **Implement every resolvable finding in code** before writing artifacts.
 - Process every finding without omission.
 - Preserve source finding IDs for traceability.
 - Generate deterministic task/walkthrough artifacts.
 - No finding is closed without command-backed verification and linked walkthrough evidence.
 
+## Implementation-First Mandate
+
+For each finding, execute in order:
+
+1. **Implement** — apply the fix in source code, config, or docs. Do not create planning artifacts first.
+2. **Verify** — run the relevant command(s) (`pnpm typecheck`, `pnpm lint`, `pnpm test`, etc.) to confirm the fix.
+3. **Commit** — one commit per finding or per theme group. Use `fix(<finding-id>): <description>` format.
+4. **Document** — write the task + walkthrough files recording what was done.
+
+Acceptable blockers (skip implementation, go directly to BLOCKED artifacts):
+- Requires infra access outside the repository (e.g., runner relocation, branch protection settings).
+- Requires 3rd-party upstream release (e.g., transitive vulnerability in locked dependency).
+- Genuine ambiguity that cannot be resolved without human input — use questionnaire tool first.
+
 ## Processing Rules
 
 1. `MUST_FIX` or `HIGH` findings:
+   - implement fully, commit individually.
    - create one task + one walkthrough per finding.
 2. `SHOULD_FIX` or `LOW` findings:
    - group by implementation theme.
+   - implement together, commit per theme group.
    - create shared task + walkthrough pairs per theme.
 3. Keep explicit mapping from source finding IDs to generated artifacts.
 
