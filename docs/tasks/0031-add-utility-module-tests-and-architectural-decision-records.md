@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | Audit remediation 2026-02-27 |
 | Priority | LOW |
 | Scope | MINOR |
@@ -62,10 +62,10 @@ Source findings: **D-003** (LOW) and **D-009** (LOW).
 
 ## Acceptance Criteria
 
-- [ ] AC1: `test/tools/quality-metadata.test.ts` exists with ≥ 7 test cases (one per exported function).
-- [ ] AC2: `test/quality/fs.test.ts` exists with ≥ 5 test cases.
-- [ ] AC3: `docs/adr/ADR-002-sqlite-persistence.md`, `ADR-003-separate-quality-gate-extension.md`, and `ADR-004-spawn-utility-separation.md` exist and follow the template.
-- [ ] AC4: `pnpm test`, `pnpm lint`, `pnpm typecheck` all pass.
+- [x] AC1: `test/tools/quality-metadata.test.ts` exists with ≥ 7 test cases (one per exported function).
+- [x] AC2: `test/quality/fs.test.ts` exists with ≥ 5 test cases.
+- [x] AC3: `docs/adr/ADR-002-sqlite-persistence.md`, `ADR-003-separate-quality-gate-extension.md`, and `ADR-004-spawn-utility-separation.md` exist and follow the template.
+- [x] AC4: `pnpm test`, `pnpm lint`, `pnpm typecheck` all pass.
 
 ---
 
@@ -98,12 +98,12 @@ Source findings: **D-003** (LOW) and **D-009** (LOW).
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Tests written and passing
-- [ ] 3 ADRs created
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated
+- [x] All Acceptance Criteria met
+- [x] Tests written and passing
+- [x] 3 ADRs created
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated
 - [ ] PR created and linked
 
 ---
