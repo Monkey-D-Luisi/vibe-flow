@@ -1,5 +1,4 @@
-import { asRecord } from './pr-bot-labels.js';
-import { extractMetadataLabels, toLabelInput } from './pr-bot-labels.js';
+import { asRecord, asString, extractMetadataLabels, toLabelInput } from './pr-bot-labels.js';
 import { resolveReviewers } from './pr-bot-reviewers.js';
 import { buildStatusComment, resolveTaskLink } from './pr-bot-comments.js';
 import type {
@@ -10,10 +9,6 @@ import type {
   PrCreateResult,
 } from './pr-bot-types.js';
 
-function asString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
-}
-
 function toPrCreateResult(value: unknown): PrCreateResult | null {
   const root = asRecord(value);
   if (!root) {
@@ -23,11 +18,14 @@ function toPrCreateResult(value: unknown): PrCreateResult | null {
   const details = asRecord(root.details);
   const source = details ?? root;
   const numberValue = source.number;
-  const prNumber = typeof numberValue === 'number'
-    ? numberValue
-    : typeof numberValue === 'string'
-      ? /^\d+$/.test(numberValue.trim()) ? Number(numberValue.trim()) : Number.NaN
-      : Number.NaN;
+  let prNumber: number;
+  if (typeof numberValue === 'number') {
+    prNumber = numberValue;
+  } else if (typeof numberValue === 'string' && /^\d+$/.test(numberValue.trim())) {
+    prNumber = Number(numberValue.trim());
+  } else {
+    prNumber = Number.NaN;
+  }
 
   if (!Number.isInteger(prNumber) || prNumber <= 0) {
     return null;

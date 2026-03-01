@@ -2,6 +2,8 @@ import { StaleRevisionError } from '../domain/errors.js';
 import type { NormalizedGithubCiEvent } from './ci-feedback-utils.js';
 import type { CiFeedbackDeps, RecordValue } from './ci-feedback-types.js';
 
+const MAX_CI_HISTORY_ENTRIES = 20;
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     return value as Record<string, unknown>;
@@ -33,7 +35,7 @@ export function mergeCiMetadata(
     ? existingCi.history.filter((item): item is RecordValue => asRecord(item) !== null)
     : [];
   const nextHistory = [
-    ...existingHistory.slice(-19),
+    ...existingHistory.slice(-(MAX_CI_HISTORY_ENTRIES - 1)),
     {
       deliveryId,
       eventName: event.eventName,
