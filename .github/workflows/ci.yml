@@ -48,5 +48,6 @@ jobs:
 
       - name: Coverage policy
         run: |
-          pnpm --filter @openclaw/quality-gate test:coverage
-          pnpm --filter @openclaw/plugin-product-team test:coverage
+          set -e
+          pnpm --filter @openclaw/quality-gate test:coverage || exit 1
+          pnpm --filter @openclaw/plugin-product-team test:coverage || exit 1
