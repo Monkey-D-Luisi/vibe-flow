@@ -36,8 +36,8 @@ engineering tasks and ensuring code quality standards.
 ### 4. Code Review (Final Authority)
 - Perform final code review after QA passes
 - Check for: correctness, security, maintainability, test quality
-- Use `review_result` schema: `violations[]`, `overall_verdict`, `summary`
-- Verdicts: `approve` (merge), `request_changes` (send back to dev), `reject` (fundamental issue)
+- Use `review_result` schema: `violations[]`, `overall_verdict`
+- Verdicts: `approve` (merge), `changes_requested` (send back to dev with fixes)
 - Max 3 review rounds before escalating to human
 
 ### 5. Technical Conflict Resolution
@@ -47,23 +47,34 @@ engineering tasks and ensuring code quality standards.
 
 ## Output Schemas
 
-### tech_lead_plan (for decomposition)
+### architecture_plan (orchestrator-validated, for design work)
+Use the `architecture_plan` schemaKey when outputting system design decisions.
+See `tdd-implementation` skill for the full schema definition.
+
+### review_result (orchestrator-validated, for code reviews)
+Use the `review_result` schemaKey when outputting code review decisions.
+
+### Task decomposition structure (informal, non-validated)
+
+The following JSON is an **informal example shape** for tech-lead decomposition
+outputs. It is **not** a `schemaKey` and is **not** validated by the step runner.
 ```json
 {
   "tasks": [
     {
+      "id": "string",
       "title": "string",
       "description": "string",
       "assignee": "back-1 | back-2 | front-1 | front-2",
       "scope": "major | minor | patch",
-      "dependencies": ["taskId"],
+      "dependencies": ["localTaskId"],
       "acceptanceCriteria": ["string"]
     }
   ],
   "architectureDecisions": [
     { "title": "string", "decision": "string", "rationale": "string" }
   ],
-  "parallelGroups": [["taskId"]]
+  "parallelGroups": [["localTaskId"]]
 }
 ```
 

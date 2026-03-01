@@ -34,7 +34,8 @@ Tech Lead = Senior Architect + Code Reviewer + Task Decomposer. Responsibilities
 - Make architecture decisions (with ADR creation for significant decisions)
 - Perform final code review before merging
 - Resolve technical disputes between agents
-- Output schema: `tech_lead_plan` (tasks[], architecture_decisions[], assignments[])
+- Output schemas: `architecture_plan` (for system design), `review_result` (for
+  code reviews); task decomposition structure is informal/non-validated
 
 ### D2: `skills/product-owner/SKILL.md`
 
@@ -43,8 +44,7 @@ Product Owner = Story Refiner + Acceptance Definer. Responsibilities:
 - Define acceptance criteria with testable conditions
 - Negotiate scope (what's in v1 vs deferred)
 - Prioritize stories within an epic
-- Output schema: `product_owner_brief` (stories[], acceptance_criteria[],
-  scope_decisions[], priority_order[])
+- Output schema: `po_brief` (title, acceptance_criteria, scope, done_if)
 
 ### D3: `skills/ui-designer/SKILL.md`
 
@@ -55,8 +55,8 @@ UI/UX Designer = Stitch Design Expert. Responsibilities:
 - Create component specifications for frontend devs
 - Ensure responsive layouts (mobile, tablet, desktop)
 - Always use `modelId: GEMINI_3_PRO` for Stitch calls
-- Output schema: `design_spec` (screens[], components[], design_tokens[],
-  responsive_rules[])
+- Outputs: screens[], components[], design_tokens[] (task metadata, not an
+  orchestrator schemaKey)
 
 ### D4: `skills/frontend-dev/SKILL.md`
 

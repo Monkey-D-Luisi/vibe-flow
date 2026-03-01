@@ -53,14 +53,12 @@ Inherits `dev_result` from tdd-implementation:
   "diff_summary": "string",
   "metrics": {
     "coverage": 85.5,
-    "lint_clean": true,
-    "tests_passed": 12,
-    "tests_failed": 0
+    "lint_clean": true
   },
   "red_green_refactor_log": [
-    { "phase": "red", "test": "string", "result": "fail" },
-    { "phase": "green", "code": "string", "result": "pass" },
-    { "phase": "refactor", "changes": "string" }
+    "red: <test-name> — FAIL",
+    "green: <implementation summary> — PASS",
+    "refactor: <cleanup description>"
   ]
 }
 ```

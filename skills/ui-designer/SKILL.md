@@ -47,7 +47,10 @@ designs using Google Stitch before any frontend code is written.
 
 ## Output Schema
 
-### design_spec
+### design_spec (metadata, not an orchestrator schemaKey)
+
+The following is an **informal output shape** for ui-designer. It is not
+validated by the product-team step runner; treat it as task metadata.
 ```json
 {
   "screens": [
@@ -63,7 +66,7 @@ designs using Google Stitch before any frontend code is written.
       "name": "string",
       "type": "button | input | card | modal | nav | list | form",
       "variants": ["default", "hover", "active", "disabled"],
-      "props": { "key": "description" }
+      "props": { "<propName>": "<propType or description>" }
     }
   ],
   "designTokens": {
