@@ -1,0 +1,29 @@
+{
+  "name": "@openclaw/plugin-team-ui",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Configuration web UI for the autonomous product team: agent management, pipeline dashboard, project settings",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/**/*.ts --no-cache",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "openclaw": "2026.2.22-2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^8.57.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "openclaw": {
+    "extensions": ["./src/index.ts"]
+  }
+}

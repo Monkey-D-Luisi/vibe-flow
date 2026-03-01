@@ -23,7 +23,7 @@ structured JSON contracts, and is governed by tool-policy allow-lists.
 | 5     | EP06 | Hardening                       | EP03, EP04   | August 2026  | DONE    |
 | 6     | AR01 | Audit Remediation Program       | EP06         | Q1 2026      | DONE |
 | 7     | EP07 | DX & Platform Ops               | AR01         | Q2 2026      | DONE    |
-| 8     | EP08 | Autonomous Product Team         | EP07         | Q2 2026      | IN_PROGRESS |
+| 8     | EP08 | Autonomous Product Team         | EP07         | Q2 2026      | DONE    |
 
 ---
 
@@ -313,7 +313,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 - [Task 0045: End-to-End Integration Test Suite](tasks/0045-e2e-integration-tests.md) -- DONE (EP08, 8D)
 - [Task 0046: Docker Compose Production Profile](tasks/0046-docker-production-profile.md) -- DONE (EP08, 8D)
-- [Task 0047: Configuration Web UI Extension](tasks/0047-config-web-ui.md) -- PENDING (EP08, 8D)
+- [Task 0047: Configuration Web UI Extension](tasks/0047-config-web-ui.md) -- DONE (EP08, 8D)
 
 ### Architecture & Operations
 - [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)

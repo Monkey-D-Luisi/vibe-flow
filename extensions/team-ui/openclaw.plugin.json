@@ -1,0 +1,17 @@
+{
+  "id": "team-ui",
+  "name": "Team Configuration UI",
+  "version": "0.1.0",
+  "description": "Configuration web UI for the autonomous product team: agent management, pipeline dashboard, project settings",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "basePath": {
+        "type": "string",
+        "description": "Base URL path for the team dashboard",
+        "default": "/team"
+      }
+    }
+  }
+}
