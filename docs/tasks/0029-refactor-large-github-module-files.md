@@ -96,7 +96,7 @@ Both files have good test coverage at the integration level (pr-bot.test.ts, ci-
 - [x] Lint passes with zero errors
 - [x] TypeScript compiles without errors
 - [x] Walkthrough updated
-- [ ] PR created and linked
+- [x] PR created and linked
 
 ---
 

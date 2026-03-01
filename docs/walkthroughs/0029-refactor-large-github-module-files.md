@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0029-refactor-large-github-module-files.md`
 - Epic: Audit remediation 2026-02-27
 - Branch: `feat/0029-refactor-large-github-module-files`
-- PR: _pending_
+- PR: [#191](https://github.com/Monkey-D-Luisi/vibe-flow/pull/191)
 
 ---
 
