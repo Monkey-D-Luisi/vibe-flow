@@ -56,6 +56,14 @@ describe('E2E: Multi-Project — tasks isolated by projectId', () => {
 
     // Each task has its own ID
     expect(alphaTaskId).not.toBe(betaTaskId);
+
+    // Each task carries the correct projectId in metadata
+    const alphaTask = harness.deps.taskRepo.getById(alphaTaskId) as { metadata?: Record<string, unknown> } | null;
+    const betaTask = harness.deps.taskRepo.getById(betaTaskId) as { metadata?: Record<string, unknown> } | null;
+    expect(alphaTask).not.toBeNull();
+    expect(alphaTask?.metadata?.projectId).toBe('project-alpha');
+    expect(betaTask).not.toBeNull();
+    expect(betaTask?.metadata?.projectId).toBe('project-beta');
   });
 
   it('messages between project-alpha agents do not appear in project-beta inboxes', async () => {

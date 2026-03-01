@@ -87,7 +87,7 @@ describe('E2E: Design Skip — backend-only task bypasses DESIGN stage', () => {
     advanceToStage(taskId, 'ROADMAP');
     advanceToStage(taskId, 'REFINEMENT');
 
-    // Skip DECOMPOSITION (single-task fix, no decomposition needed)
+    // Skip REFINEMENT (single-task fix, scope is already well-defined, no further refinement needed)
     const skipDecomp = await tools.pipelineSkip.execute(nextCallId(), {
       taskId,
       stage: 'REFINEMENT',
