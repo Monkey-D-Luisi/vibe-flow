@@ -261,15 +261,18 @@ Route Telegram group messages to the `pm` agent by default:
 
 ### D4: Telemetry Labels
 
-Each agent should include its role in cost tracking labels, so the cost
-dashboard can break down spend per role.
+Per-agent cost tracking is satisfied natively by OpenClaw. The `agents.list[]`
+entries in `openclaw*.json` do not require a `telemetry.labels` field — cost
+and token usage are automatically attributed to each `agentId` in the runtime
+cost dashboard. The agent `id` values (`pm`, `tech-lead`, `po`, etc.) serve as
+the cost-breakdown labels out of the box.
 
 ## Acceptance Criteria
 
 - [x] All 10 agents defined in gateway config with per-agent model assignments
 - [x] Default model: `anthropic/claude-sonnet-4-6` with fallbacks `openai-codex/gpt-5.2`, `github-copilot/gpt-4o`
 - [x] Per-agent overrides: PM→gpt-5.2, TL→opus-4-6, PO→gpt-4.1, Designer→gpt-4o
-- [x] Auth profiles configured: anthropic (token), openai-codex (oauth), github-copilot (token)
+- [x] Auth profiles configured: anthropic (token), openai-codex (OAuth), github-copilot (token)
 - [x] Fallback activates when primary model returns error/timeout
 - [x] Tool allow-lists enforce role boundaries (agent denied if calling unauthorized tool)
 - [x] PM agent receives messages from Telegram group (routing binding)
