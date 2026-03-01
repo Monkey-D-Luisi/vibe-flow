@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0030-consolidate-shared-types-and-schemas-in-quality-contracts.md`
 - Epic: Audit remediation 2026-02-27
 - Branch: `feat/0030-consolidate-shared-types-and-schemas-quality-contracts`
-- PR: _pending_
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/192
 
 ---
 
