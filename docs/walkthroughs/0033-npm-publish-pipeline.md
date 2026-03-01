@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0033-npm-publish-pipeline.md`
 - Epic: EP07 — DX & Platform Ops
 - Branch: `feat/0033-npm-publish-pipeline`
-- PR: _pending_
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/196
 - Source Issue: GitHub #157
 
 ---
