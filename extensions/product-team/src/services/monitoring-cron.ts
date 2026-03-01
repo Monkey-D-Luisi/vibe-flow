@@ -25,10 +25,7 @@ const ACTIVITY_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 const COST_INTERVAL_MS = 24 * 60 * 60 * 1000; // 1 day
 
 function resolveTelegramConfig(deps: MonitoringCronDeps): TelegramConfig | null {
-  const token =
-    process.env['TELEGRAM_BOT_TOKEN'] ??
-    process.env['TELEGRAM_BOT_TOKEN_FILE'] ??
-    '';
+  const token = process.env['TELEGRAM_BOT_TOKEN'] ?? '';
   const chatId = deps.telegramChatId ?? process.env['TELEGRAM_CHAT_ID'] ?? '';
   if (!token.trim() || !chatId.trim()) {
     return null;
@@ -112,21 +109,21 @@ export class MonitoringCron {
     this.timers.push(
       setInterval(() => {
         void this.runHealthCheck();
-      }, HEALTH_INTERVAL_MS),
+      }, HEALTH_INTERVAL_MS).unref(),
     );
 
     // Every hour: agent activity summary
     this.timers.push(
       setInterval(() => {
         void this.runActivitySummary();
-      }, ACTIVITY_INTERVAL_MS),
+      }, ACTIVITY_INTERVAL_MS).unref(),
     );
 
     // Every day: cost summary
     this.timers.push(
       setInterval(() => {
         void this.runCostSummary();
-      }, COST_INTERVAL_MS),
+      }, COST_INTERVAL_MS).unref(),
     );
 
     this.deps.logger.info('monitoring-cron: started');

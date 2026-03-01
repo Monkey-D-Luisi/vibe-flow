@@ -28,12 +28,10 @@ services:
       - "com.openclaw.env=production"
     environment:
       - NODE_ENV=production
-      - ANTHROPIC_API_KEY_FILE=/run/secrets/anthropic_api_key
-      - OPENAI_API_KEY_FILE=/run/secrets/openai_api_key
-      - GOOGLE_AI_API_KEY_FILE=/run/secrets/google_ai_api_key
-      - TELEGRAM_BOT_TOKEN_FILE=/run/secrets/telegram_bot_token
-      - STITCH_API_KEY_FILE=/run/secrets/stitch_api_key
-      - GITHUB_TOKEN_FILE=/run/secrets/github_token
+      # Docker secrets are mounted as files at /run/secrets/<name>.
+      # The application reads ANTHROPIC_API_KEY, OPENAI_API_KEY, etc. from env vars.
+      # Use an entrypoint wrapper (e.g. scripts/load-secrets.sh) that reads the
+      # secret files and exports them, or continue using .env.docker for env vars.
     secrets:
       - anthropic_api_key
       - openai_api_key
@@ -42,7 +40,7 @@ services:
       - stitch_api_key
       - github_token
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:28789/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test: ["CMD", "curl", "-f", "http://localhost:28789/health"]
       interval: 30s
       timeout: 10s
       retries: 3

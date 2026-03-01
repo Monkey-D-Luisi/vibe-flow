@@ -28,12 +28,18 @@ if [ -n "$VOLUME_PATH" ] && [ -d "$VOLUME_PATH" ]; then
   echo "[backup] Backing up data volume to $BACKUP_FILE"
   tar -czf "$BACKUP_FILE" -C "$VOLUME_PATH" . 2>/dev/null || echo "[backup] Warning: could not tar data volume directly"
 else
-  # Fallback: copy from container
+  # Fallback: copy from container using --entrypoint to bypass the default ENTRYPOINT
   BACKUP_FILE="$BACKUP_DIR/openclaw-data-$TIMESTAMP.tar.gz"
   echo "[backup] Copying data from container volume..."
-  docker compose -f "$COMPOSE_FILE" run --rm -v "$BACKUP_DIR:/backup" "$SERVICE" \
-    tar -czf "/backup/openclaw-data-$TIMESTAMP.tar.gz" -C /app/data . 2>/dev/null || \
+  docker compose -f "$COMPOSE_FILE" run --rm --entrypoint tar -v "$BACKUP_DIR:/backup" "$SERVICE" \
+    -czf "/backup/openclaw-data-$TIMESTAMP.tar.gz" -C /app/data . 2>/dev/null || \
     echo "[backup] Warning: could not backup data volume"
+fi
+
+# Verify backup archive was created before proceeding
+if [ ! -f "$BACKUP_FILE" ]; then
+  echo "[backup] Error: backup archive was not created" >&2
+  exit 1
 fi
 
 # 3. Restart the container
@@ -42,6 +48,8 @@ docker compose -f "$COMPOSE_FILE" start "$SERVICE"
 
 # 4. Rotate old backups (keep last MAX_BACKUPS)
 echo "[backup] Rotating backups (keeping last $MAX_BACKUPS)..."
-ls -t "$BACKUP_DIR"/openclaw-data-*.tar.gz 2>/dev/null | tail -n +$((MAX_BACKUPS + 1)) | xargs -r rm -f
+if compgen -G "$BACKUP_DIR/openclaw-data-*.tar.gz" > /dev/null 2>&1; then
+  ls -t "$BACKUP_DIR"/openclaw-data-*.tar.gz | tail -n +$((MAX_BACKUPS + 1)) | xargs -r rm -f
+fi
 
 echo "[backup] Done. Backup at: $BACKUP_FILE"
