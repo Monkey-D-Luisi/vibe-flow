@@ -3,7 +3,7 @@
 | Field       | Value                                                |
 |-------------|------------------------------------------------------|
 | Epic        | EP07                                                 |
-| Status      | PENDING                                              |
+| Status      | DONE                                                 |
 | Priority    | P2                                                   |
 | Phase       | 7 -- DX & Platform Ops                               |
 | Target      | Q2 2026                                              |
