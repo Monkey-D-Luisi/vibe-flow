@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0028-fix-coverage-thresholds-and-ci-enforcement.md`
 - Epic: Audit remediation 2026-02-27
 - Branch: `fix/0028-fix-coverage-thresholds-and-ci-enforcement`
-- PR: _pending_
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/190
 
 ---
 
