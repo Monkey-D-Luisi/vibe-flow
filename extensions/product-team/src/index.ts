@@ -41,8 +41,10 @@ import {
 import {
   resolveConcurrencyConfig,
   resolveGithubConfig,
+  resolveProjectConfig,
 } from './config/plugin-config.js';
 import { registerProcessShutdownHooks } from './lifecycle/process-shutdown.js';
+import { initializeWorkspaces } from './services/workspace-init.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 export { resolveConcurrencyConfig } from './config/plugin-config.js';
@@ -113,6 +115,12 @@ export function register(api: OpenClawPluginApi): void {
   const validate = createValidator();
   const transitionGuardConfig = resolveTransitionGuardConfig(pluginConfig?.workflow);
   const concurrencyConfig = resolveConcurrencyConfig(pluginConfig);
+  const projectConfig = resolveProjectConfig(pluginConfig);
+
+  // Initialize project workspaces asynchronously (clone or fetch on boot)
+  initializeWorkspaces(projectConfig, api.logger).catch((err: unknown) => {
+    api.logger.warn(`workspace-init failed: ${String(err)}`);
+  });
   const eventLog = new EventLog(eventRepo, generateId, now);
   const leaseManager = new LeaseManager(leaseRepo, eventLog, now, undefined, concurrencyConfig);
   const githubConfig = resolveGithubConfig(pluginConfig);
@@ -194,6 +202,7 @@ export function register(api: OpenClawPluginApi): void {
     leaseManager,
     logger: api.logger,
     workspaceDir,
+    projectConfig,
     vcs: {
       requestRepo,
       branchService,

@@ -81,6 +81,9 @@ import { vcsPrCreateToolDef } from './vcs-pr-create.js';
 import { vcsPrUpdateToolDef } from './vcs-pr-update.js';
 import { vcsLabelSyncToolDef } from './vcs-label-sync.js';
 import { withCostTracking } from './cost-tracking.js';
+import { projectListToolDef } from './project-list.js';
+import { projectSwitchToolDef } from './project-switch.js';
+import { projectRegisterToolDef } from './project-register.js';
 
 export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
   const toolDefs = [
@@ -101,6 +104,9 @@ export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
     vcsPrCreateToolDef(deps),
     vcsPrUpdateToolDef(deps),
     vcsLabelSyncToolDef(deps),
+    projectListToolDef(deps),
+    projectSwitchToolDef(deps),
+    projectRegisterToolDef(deps),
   ];
 
   return toolDefs.map((tool) => withCostTracking(tool, deps));

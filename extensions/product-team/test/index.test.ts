@@ -163,10 +163,10 @@ describe('product-team plugin', () => {
     expect(api.logger.info).toHaveBeenCalledWith('product-team plugin loaded');
   });
 
-  it('registers exactly 17 task/workflow/quality/vcs tools', () => {
+  it('registers exactly 20 task/workflow/quality/vcs tools', () => {
     const api = createMockApi();
     register(api);
-    expect(api.registerTool).toHaveBeenCalledTimes(17);
+    expect(api.registerTool).toHaveBeenCalledTimes(20);
   });
 
   it('registers tools with expected names', () => {
@@ -195,13 +195,16 @@ describe('product-team plugin', () => {
     expect(toolNames).toContain('vcs.pr.create');
     expect(toolNames).toContain('vcs.pr.update');
     expect(toolNames).toContain('vcs.label.sync');
+    expect(toolNames).toContain('project.list');
+    expect(toolNames).toContain('project.switch');
+    expect(toolNames).toContain('project.register');
   });
 
   it('logs tool registration count', () => {
     const api = createMockApi();
     register(api);
     expect(api.logger.info).toHaveBeenCalledWith(
-      'registered 17 task/workflow/quality/vcs tools',
+      'registered 20 task/workflow/quality/vcs tools',
     );
   });
 
