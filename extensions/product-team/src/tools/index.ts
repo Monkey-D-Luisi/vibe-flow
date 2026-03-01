@@ -34,6 +34,16 @@ export interface ToolDeps {
   };
   logger?: ToolLogger;
   workspaceDir?: string;
+  projectConfig?: {
+    projects?: Array<Record<string, unknown>>;
+    activeProject?: string;
+  };
+  agentConfig?: Array<{ id: string; name: string; model?: { primary?: string } }>;
+  decisionConfig?: {
+    policies?: Record<string, unknown>;
+    timeoutMs?: number;
+    humanApprovalTimeout?: number;
+  };
   vcs?: {
     requestRepo: SqliteRequestRepository;
     branchService: BranchService;

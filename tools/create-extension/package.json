@@ -1,0 +1,22 @@
+{
+  "name": "@openclaw/create-extension",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "CLI scaffolding tool for new OpenClaw extension packages",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/**/*.ts test/**/*.ts --no-cache",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^8.57.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
