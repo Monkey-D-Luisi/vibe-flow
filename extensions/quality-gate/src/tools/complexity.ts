@@ -1,5 +1,5 @@
 /**
- * Tool: quality.complexity
+ * Tool: qgate.complexity
  *
  * Measures cyclomatic complexity of TypeScript source files.
  */
@@ -206,7 +206,7 @@ export async function complexityTool(input: ComplexityInput): Promise<Complexity
  * Tool definition for registration.
  */
 export const complexityToolDef = {
-  name: 'quality.complexity',
+  name: 'qgate.complexity',
   description: 'Measure cyclomatic complexity of TypeScript source files and identify hotspots',
   parameters: {
     type: 'object',

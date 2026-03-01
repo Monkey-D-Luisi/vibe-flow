@@ -1,5 +1,5 @@
 /**
- * Tool: quality.lint
+ * Tool: qgate.lint
  *
  * Runs linters and reports violations.
  */
@@ -126,7 +126,7 @@ export async function lintTool(input: LintInput): Promise<LintOutput> {
  * Tool definition for registration.
  */
 export const lintToolDef = {
-  name: 'quality.lint',
+  name: 'qgate.lint',
   description: 'Run linter (ESLint or Ruff) and report violations in normalized format',
   parameters: {
     type: 'object',
