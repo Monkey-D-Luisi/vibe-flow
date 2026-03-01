@@ -187,6 +187,30 @@ export function register(api: OpenClawPluginApi): void {
     config: githubConfig.ciFeedback,
   });
 
+  // Resolve agent and decision configs for EP08 tools
+  const rawAgents = pluginConfig?.agents;
+  const agentConfig: Array<{ id: string; name: string; model?: { primary?: string } }> =
+    Array.isArray(rawAgents)
+      ? rawAgents.filter(
+          (a): a is { id: string; name: string; model?: { primary?: string } } =>
+            typeof a === 'object' && a !== null && typeof (a as Record<string, unknown>)['id'] === 'string',
+        )
+      : [];
+  const rawDecisions = (
+    typeof pluginConfig?.decisions === 'object' && pluginConfig.decisions !== null
+      ? pluginConfig.decisions
+      : {}
+  ) as Record<string, unknown>;
+  const decisionConfig = {
+    policies: typeof rawDecisions['policies'] === 'object' && rawDecisions['policies'] !== null
+      ? rawDecisions['policies'] as Record<string, unknown>
+      : undefined,
+    timeoutMs: typeof rawDecisions['timeoutMs'] === 'number' ? rawDecisions['timeoutMs'] : undefined,
+    humanApprovalTimeout: typeof rawDecisions['humanApprovalTimeout'] === 'number'
+      ? rawDecisions['humanApprovalTimeout']
+      : undefined,
+  };
+
   // Register EP02 tools
   const deps = {
     db,
@@ -203,6 +227,8 @@ export function register(api: OpenClawPluginApi): void {
     logger: api.logger,
     workspaceDir,
     projectConfig,
+    agentConfig,
+    decisionConfig,
     vcs: {
       requestRepo,
       branchService,

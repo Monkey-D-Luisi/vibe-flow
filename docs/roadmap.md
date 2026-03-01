@@ -305,9 +305,9 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 ### Phase 8C: Autonomous Orchestration
 
-- [Task 0042: Team Orchestrator — Roadmap-to-Task Pipeline](tasks/0042-team-orchestrator-pipeline.md) -- PENDING (EP08, 8C)
-- [Task 0043: Inter-Agent Messaging System](tasks/0043-inter-agent-messaging.md) -- PENDING (EP08, 8C)
-- [Task 0044: Autonomous Decision Engine](tasks/0044-autonomous-decision-engine.md) -- PENDING (EP08, 8C)
+- [Task 0042: Team Orchestrator — Roadmap-to-Task Pipeline](tasks/0042-team-orchestrator-pipeline.md) -- DONE (EP08, 8C)
+- [Task 0043: Inter-Agent Messaging System](tasks/0043-inter-agent-messaging.md) -- DONE (EP08, 8C)
+- [Task 0044: Autonomous Decision Engine](tasks/0044-autonomous-decision-engine.md) -- DONE (EP08, 8C)
 
 ### Phase 8D: Integration Testing & Hardening
 

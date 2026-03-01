@@ -84,6 +84,9 @@ import { withCostTracking } from './cost-tracking.js';
 import { projectListToolDef } from './project-list.js';
 import { projectSwitchToolDef } from './project-switch.js';
 import { projectRegisterToolDef } from './project-register.js';
+import { teamMessageToolDef, teamInboxToolDef, teamReplyToolDef, teamStatusToolDef, teamAssignToolDef } from './team-messaging.js';
+import { decisionEvaluateToolDef, decisionLogToolDef } from './decision-engine.js';
+import { pipelineStartToolDef, pipelineStatusToolDef, pipelineRetryToolDef, pipelineSkipToolDef } from './pipeline.js';
 
 export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
   const toolDefs = [
@@ -107,6 +110,17 @@ export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
     projectListToolDef(deps),
     projectSwitchToolDef(deps),
     projectRegisterToolDef(deps),
+    teamMessageToolDef(deps),
+    teamInboxToolDef(deps),
+    teamReplyToolDef(deps),
+    teamStatusToolDef(deps),
+    teamAssignToolDef(deps),
+    decisionEvaluateToolDef(deps),
+    decisionLogToolDef(deps),
+    pipelineStartToolDef(deps),
+    pipelineStatusToolDef(deps),
+    pipelineRetryToolDef(deps),
+    pipelineSkipToolDef(deps),
   ];
 
   return toolDefs.map((tool) => withCostTracking(tool, deps));
