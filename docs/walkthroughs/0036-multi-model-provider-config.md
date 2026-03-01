@@ -84,9 +84,9 @@ Also enabled the native `telegram` plugin in `plugins.entries`.
 
 ## Commands Run
 ```bash
-pnpm typecheck   # pending verification
-pnpm lint        # pending verification
-pnpm test        # pending verification
+pnpm typecheck   # clean
+pnpm lint        # clean
+pnpm test        # 614 tests passing
 ```
 
 ## Files Changed

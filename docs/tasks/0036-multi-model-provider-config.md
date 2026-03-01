@@ -134,7 +134,7 @@ provider's API and reports status. Used by the Telegram health monitor.
 - OpenAI-Codex uses OAuth (JWT + refresh token from auth.openai.com). The
   runtime handles automatic token refresh when the JWT expires.
 - GitHub Copilot uses a user token (`ghu_...`) plus a rotating proxy token
-  managed by the `copilot-proxy` extension.
+  managed by the OpenClaw runtime.
 - `OPENAI_API_KEY` env var is used ONLY for audio transcription
   (gpt-4o-mini-transcribe via the `openai-whisper-api` skill), not for LLM
   completions.

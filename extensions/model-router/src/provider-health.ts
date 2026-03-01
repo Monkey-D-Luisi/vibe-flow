@@ -33,23 +33,18 @@ export const PROVIDERS: ReadonlyArray<{
   {
     id: 'openai-codex',
     // OpenAI Codex provider — authenticated via OAuth (JWT stored in auth-profiles.json).
-    // Health check uses the models endpoint; auth token is managed by the runtime,
-    // so we only verify reachability here.
+    // Health check only verifies reachability (even a 401 confirms the endpoint is live).
+    // Auth token is managed by the runtime, not via env vars.
     url: 'https://api.openai.com/v1/models',
-    authHeaders: (): Record<string, string> => {
-      const key = process.env['OPENAI_API_KEY'];
-      return key ? { Authorization: `Bearer ${key}` } : {};
-    },
+    authHeaders: (): Record<string, string> => ({}),
   },
   {
     id: 'github-copilot',
     // GitHub Copilot provider — uses GitHub user token for the Copilot proxy API.
-    // Auth is managed by the runtime via auth-profiles.json; we check reachability.
+    // Health check only verifies reachability; auth is managed by the runtime
+    // via auth-profiles.json (ghu_... token), not via GITHUB_TOKEN env var.
     url: 'https://api.individual.githubcopilot.com',
-    authHeaders: (): Record<string, string> => {
-      const token = process.env['GITHUB_TOKEN'];
-      return token ? { Authorization: `Bearer ${token}` } : {};
-    },
+    authHeaders: (): Record<string, string> => ({}),
   },
   {
     id: 'openai-transcription',
