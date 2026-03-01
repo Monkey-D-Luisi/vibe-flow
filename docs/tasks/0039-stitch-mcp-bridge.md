@@ -48,10 +48,13 @@ extensions/stitch-bridge/
 │   │   └── design-list.ts      # List designs in project
 │   └── storage/
 │       └── design-store.ts     # Save/load designs from workspace
-└── tests/
+└── test/
     ├── stitch-client.test.ts
     └── tools/
-        └── design-generate.test.ts
+        ├── design-generate.test.ts
+        ├── design-edit.test.ts
+        ├── design-get.test.ts
+        └── design-list.test.ts
 ```
 
 ### D2: Tool Definitions
@@ -115,8 +118,8 @@ HTTP client that:
 - [x] `design.edit` modifies an existing design via Stitch
 - [x] `design.get` reads a saved design from disk
 - [x] `design.list` returns all designs in the workspace
-- [x] Only the `designer` agent has access to `design.generate` and `design.edit`
-- [x] `front-1` and `front-2` can read designs (`design.get`, `design.list`)
+- [ ] Only the `designer` agent has access to `design.generate` and `design.edit` _(deferred — enforced at platform layer, Task 0040)_
+- [ ] `front-1` and `front-2` can read designs (`design.get`, `design.list`) _(deferred — enforced at platform layer, Task 0040)_
 - [x] API key is read from environment (not hardcoded)
 - [x] Stitch client retries transient failures
 - [x] Designs persist in workspace volume across container restarts

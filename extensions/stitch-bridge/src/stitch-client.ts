@@ -61,7 +61,7 @@ export async function callStitchMcp(
 
     const body: StitchJsonRpcRequest = {
       jsonrpc: '2.0',
-      id: `stitch-${Date.now()}`,
+      id: `stitch-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       method,
       params,
     };
