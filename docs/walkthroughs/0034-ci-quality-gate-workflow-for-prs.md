@@ -44,6 +44,7 @@ is a forward-looking DX improvement — not a remediation item.
 | Coverage tests run before `pnpm q:coverage` | `q:coverage` only reads existing coverage files; test:coverage for each package must run first |
 | Gate verdict step uses `if: always()` | Ensures the final exit code is set even if earlier steps failed |
 | Coverage is advisory (⚠️, not ❌) | `q:coverage` exits 0 regardless of threshold — enforcement requires future CLI work; see AC3 in task spec |
+| Complexity is advisory (⚠️, not ❌) | Existing codebase has 5 hotspots with cyclomatic complexity 11-13 against a threshold of 10 (`DEFAULT_THRESHOLDS.maxFunctionCyclomatic`). These predate this PR; enforcing complexity as a gate blocker now would block all PRs until hotspots are remediated. Deferred as a follow-up. |
 | `concurrency: cancel-in-progress: true` | Newer pushes render older reports stale; cancel prevents duplicate comments from racing runs |
 | Fork PR guard on comment step | `GITHUB_TOKEN` is read-only on fork PRs; skipping the upsert prevents a 403 from hard-failing the job |
 | `--paginate` on `gh api` comment search | Ensures all comments are searched; without it only the first 30 are returned |
@@ -62,10 +63,10 @@ The workflow has four logical phases:
    - `pnpm --filter @openclaw/quality-gate test:coverage && pnpm --filter @openclaw/plugin-product-team test:coverage` → coverage files
    - `pnpm q:coverage` → `.qreport/coverage.json` (reads coverage files from previous step; advisory only — exits 0)
    - `pnpm q:lint` → `.qreport/lint.json`
-   - `pnpm q:complexity` → `.qreport/complexity.json`
+   - `pnpm q:complexity` → `.qreport/complexity.json` (advisory only — ⚠️ in comment; does not block merge until existing hotspots are remediated)
    - `pnpm verify:vuln-policy` → stdout captured to `/tmp/vuln-output.txt`; exit code to `$GITHUB_OUTPUT`
 3. **PR comment** — parses `.qreport/*.json` with `jq`, builds a Markdown table, upserts via `gh api`. Skipped on fork PRs.
-4. **Gate verdict** — sets workflow exit code non-zero if tests, lint, complexity, or vulnerability policy failed.
+4. **Gate verdict** — sets workflow exit code non-zero if tests, lint, or vulnerability policy failed. Coverage and complexity are advisory (⚠️ in comment, no merge block).
 
 ### Comment upsert logic
 

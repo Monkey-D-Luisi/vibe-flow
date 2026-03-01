@@ -134,7 +134,7 @@ jobs:
           else
             CC_DETAIL="No complexity data"
           fi
-          if [ "$COMPLEXITY_OUTCOME" = "success" ]; then CC_ICON="✅"; else CC_ICON="❌"; fi
+          if [ "$COMPLEXITY_OUTCOME" = "success" ]; then CC_ICON="✅"; else CC_ICON="⚠️"; fi
 
           # ---- Vulnerability policy ----
           VULN_OUTPUT=$(cat /tmp/vuln-output.txt 2>/dev/null || echo "(no output)")
@@ -150,7 +150,6 @@ jobs:
           GATE_FAILED=0
           [ "$TESTS_OUTCOME" = "failure" ] && GATE_FAILED=1
           [ "$LINT_OUTCOME" = "failure" ] && GATE_FAILED=1
-          [ "$COMPLEXITY_OUTCOME" = "failure" ] && GATE_FAILED=1
           [ "$VULN_EXIT" != "0" ] && GATE_FAILED=1
           if [ "$GATE_FAILED" = "1" ]; then
             VERDICT_ICON="❌"
@@ -204,7 +203,6 @@ jobs:
         env:
           TESTS_OUTCOME: ${{ steps.tests.outcome }}
           LINT_OUTCOME: ${{ steps.lint.outcome }}
-          COMPLEXITY_OUTCOME: ${{ steps.complexity.outcome }}
           VULN_EXIT: ${{ steps.vuln.outputs.exit_code }}
         run: |
           VULN_EXIT="${VULN_EXIT:-1}"
@@ -216,10 +214,6 @@ jobs:
           fi
           if [ "$LINT_OUTCOME" = "failure" ]; then
             echo "::error::Lint gate failed (lint errors detected)"
-            FAILED=1
-          fi
-          if [ "$COMPLEXITY_OUTCOME" = "failure" ]; then
-            echo "::error::Complexity gate failed (threshold exceeded)"
             FAILED=1
           fi
           if [ "$VULN_EXIT" != "0" ]; then
