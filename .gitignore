@@ -24,6 +24,10 @@ yarn-error.log*
 .env
 .env.*
 !.env.example
+!.env.docker.example
+
+# Docker secrets (mounted at runtime, never committed)
+secrets/
 
 # OS / Editor
 .DS_Store

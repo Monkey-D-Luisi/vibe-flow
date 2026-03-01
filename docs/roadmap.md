@@ -23,6 +23,7 @@ structured JSON contracts, and is governed by tool-policy allow-lists.
 | 5     | EP06 | Hardening                       | EP03, EP04   | August 2026  | DONE    |
 | 6     | AR01 | Audit Remediation Program       | EP06         | Q1 2026      | DONE |
 | 7     | EP07 | DX & Platform Ops               | AR01         | Q2 2026      | DONE    |
+| 8     | EP08 | Autonomous Product Team         | EP07         | Q2 2026      | IN_PROGRESS |
 
 ---
 
@@ -162,7 +163,32 @@ Key deliverables:
 
 ---
 
-## Dependency Graph
+## Phase 8: Autonomous Product Team (Q2 2026)
+
+### EP08 -- Autonomous Product Team
+
+Deploy a fully autonomous product team of 10 AI agents running inside an
+OpenClaw gateway in Docker, with per-agent model routing, Stitch MCP
+integration, Telegram channel for human oversight, a web UI for configuration,
+and multi-project support.
+
+Key deliverables:
+
+- Docker deployment isolated from existing WSL gateway (port 28789)
+- Multi-model provider config (OpenAI, Anthropic, Google AI)
+- Telegram channel integration plugin
+- Expanded 10-agent roster with per-agent model routing
+- Stitch MCP bridge for designer agent
+- Multi-project workspace manager
+- New role skills (tech-lead, po, designer, backend-dev, frontend-dev, devops)
+- Team orchestrator pipeline (roadmap → PR)
+- Inter-agent messaging system
+- Autonomous decision engine
+- End-to-end integration test suite
+- Docker Compose production profile
+- Configuration web UI extension
+
+---
 
 ```mermaid
 graph TD
@@ -176,6 +202,7 @@ graph TD
   EP06 --> EP04
   AR01[AR01: Audit Remediation Program] --> EP06
   EP07[EP07: DX & Platform Ops] --> AR01
+  EP08[EP08: Autonomous Product Team] --> EP07
 ```
 
 ---
@@ -260,6 +287,33 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - [Task 0032: Extension Scaffolding CLI for New OpenClaw Plugins](tasks/0032-extension-scaffolding-cli.md) -- DONE (DX, GitHub #156)
 - [Task 0033: npm Publish Pipeline for @openclaw/* Extensions](tasks/0033-npm-publish-pipeline.md) -- DONE (Release engineering, GitHub #157)
 - [Task 0034: CI Quality Gate Workflow for Pull Requests](tasks/0034-ci-quality-gate-workflow-for-prs.md) -- DONE (CI/Quality, GitHub #158)
+
+2026-03-01 EP08 — Autonomous Product Team:
+
+### Phase 8A: Infrastructure
+
+- [Task 0035: Docker Deployment Configuration](tasks/0035-docker-deployment-config.md) -- DONE (EP08, 8A)
+- [Task 0036: Multi-Model Provider Configuration](tasks/0036-multi-model-provider-config.md) -- PENDING (EP08, 8A)
+- [Task 0037: Telegram Channel Integration Plugin](tasks/0037-telegram-channel-integration.md) -- PENDING (EP08, 8A)
+- [Task 0038: Expanded Agent Roster with Per-Agent Model Routing](tasks/0038-agent-roster-model-routing.md) -- PENDING (EP08, 8A)
+
+### Phase 8B: Design & Multi-Project
+
+- [Task 0039: Stitch MCP Bridge Plugin](tasks/0039-stitch-mcp-bridge.md) -- PENDING (EP08, 8B)
+- [Task 0040: Multi-Project Workspace Manager](tasks/0040-multi-project-workspace.md) -- PENDING (EP08, 8B)
+- [Task 0041: New Skills for Expanded Roles](tasks/0041-new-role-skills.md) -- PENDING (EP08, 8B)
+
+### Phase 8C: Autonomous Orchestration
+
+- [Task 0042: Team Orchestrator — Roadmap-to-Task Pipeline](tasks/0042-team-orchestrator-pipeline.md) -- PENDING (EP08, 8C)
+- [Task 0043: Inter-Agent Messaging System](tasks/0043-inter-agent-messaging.md) -- PENDING (EP08, 8C)
+- [Task 0044: Autonomous Decision Engine](tasks/0044-autonomous-decision-engine.md) -- PENDING (EP08, 8C)
+
+### Phase 8D: Integration Testing & Hardening
+
+- [Task 0045: End-to-End Integration Test Suite](tasks/0045-e2e-integration-tests.md) -- PENDING (EP08, 8D)
+- [Task 0046: Docker Compose Production Profile](tasks/0046-docker-production-profile.md) -- PENDING (EP08, 8D)
+- [Task 0047: Configuration Web UI Extension](tasks/0047-config-web-ui.md) -- PENDING (EP08, 8D)
 
 ### Architecture & Operations
 - [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)

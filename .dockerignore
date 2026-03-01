@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Git
+.git/
+.github/
+.gitignore
+
+# Data (persisted via Docker volumes, not in image)
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Secrets (mounted at runtime, never baked into image)
+secrets/
+.env
+.env.*
+!.env.docker.example
+
+# Development / CI
+.claude/
+.agent/
+docs/
+coverage/
+.qreport/
+.eslintcache
+*.tsbuildinfo
+.turbo/
+.cache/
+.jest-cache/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Misc
+actions-runner/
+*.tmp
+*.temp
+~$*
