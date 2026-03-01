@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | EP07 — DX & Platform Ops |
 | Priority | MEDIUM |
 | Scope | MAJOR |
@@ -67,12 +67,12 @@ for stable baseline. Complements Task 0032 which scaffolds new publishable exten
 
 ## Acceptance Criteria
 
-- [ ] AC1: Pushing a tag matching `v[0-9]+\.[0-9]+\.[0-9]+` triggers `release.yml` and publishes all workspace packages whose `package.json` version does not already exist on the npm registry.
-- [ ] AC2: Dry-run step is a required gate — publish step cannot run if dry-run fails.
-- [ ] AC3: `npm publish` uses `--provenance` flag for attestation.
-- [ ] AC4: `CHANGELOG.md` is updated automatically from conventional commits before publish.
-- [ ] AC5: `docs/release-strategy.md` documents versioning conventions, tagging, and rollback.
-- [ ] AC6: Workflow exits non-zero if tests, lint, or typecheck fail; publish does not proceed.
+- [x] AC1: Pushing a tag matching `v[0-9]+\.[0-9]+\.[0-9]+` triggers `release.yml` and publishes all workspace packages whose `package.json` version does not already exist on the npm registry.
+- [x] AC2: Dry-run step is a required gate — publish step cannot run if dry-run fails.
+- [x] AC3: `npm publish` uses `--provenance` flag for attestation.
+- [x] AC4: `CHANGELOG.md` is updated automatically from conventional commits before publish.
+- [x] AC5: `docs/release-strategy.md` documents versioning conventions, tagging, and rollback.
+- [x] AC6: Workflow exits non-zero if tests, lint, or typecheck fail; publish does not proceed.
 
 ---
 
@@ -112,10 +112,10 @@ for stable baseline. Complements Task 0032 which scaffolds new publishable exten
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated
+- [x] All Acceptance Criteria met
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated
 - [ ] Code reviewed (if applicable)
 - [ ] PR created and linked
 
