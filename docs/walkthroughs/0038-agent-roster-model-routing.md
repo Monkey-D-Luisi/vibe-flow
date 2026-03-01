@@ -62,12 +62,12 @@ Agent roster with model assignments:
 
 ## D4 — Telemetry Labels: Native Coverage
 
-Per-agent cost tracking (D4) is satisfied natively by OpenClaw. The
-`AgentConfig` type does not support a `telemetry.labels` static field —
-cost and token usage are automatically attributed to each `agentId` in the
-runtime cost dashboard. No additional configuration is needed; the agent
-`id` values (`pm`, `tech-lead`, `po`, etc.) serve as the cost-breakdown
-labels out of the box.
+Per-agent cost tracking (D4) is satisfied natively by OpenClaw. The agent
+configuration surface (the `agents.list[]` entries in `openclaw*.json`) does
+not include a `telemetry.labels` static field — cost and token usage are
+automatically attributed to each `agentId` in the runtime cost dashboard. No
+additional configuration is needed; the agent `id` values (`pm`, `tech-lead`,
+`po`, etc.) serve as the cost-breakdown labels out of the box.
 
 ## Follow-ups
 - Task 0041: Skills for new roles (tech-lead, product-owner, ui-designer,
