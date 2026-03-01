@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | Audit remediation 2026-02-27 |
 | Priority | MEDIUM |
 | Scope | MAJOR |
@@ -55,10 +55,10 @@ Both files have good test coverage at the integration level (pr-bot.test.ts, ci-
 
 ## Acceptance Criteria
 
-- [ ] AC1: `pr-bot.ts` is replaced by 3+ smaller files, none exceeding 200 lines.
-- [ ] AC2: `ci-feedback.ts` is replaced by 3+ smaller files, none exceeding 200 lines.
-- [ ] AC3: All existing GitHub module tests pass unchanged.
-- [ ] AC4: `pnpm test`, `pnpm lint`, `pnpm typecheck` all pass.
+- [x] AC1: `pr-bot.ts` is replaced by 3+ smaller files, none exceeding 200 lines.
+- [x] AC2: `ci-feedback.ts` is replaced by 3+ smaller files, none exceeding 200 lines.
+- [x] AC3: All existing GitHub module tests pass unchanged.
+- [x] AC4: `pnpm test`, `pnpm lint`, `pnpm typecheck` all pass.
 
 ---
 
@@ -90,12 +90,12 @@ Both files have good test coverage at the integration level (pr-bot.test.ts, ci-
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] All existing tests still pass
-- [ ] No file in the refactored set exceeds 200 lines
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated
+- [x] All Acceptance Criteria met
+- [x] All existing tests still pass
+- [x] No file in the refactored set exceeds 200 lines
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated
 - [ ] PR created and linked
 
 ---
