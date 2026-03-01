@@ -92,11 +92,7 @@
     "load": {
       "paths": [
         "./extensions/product-team",
-        "./extensions/quality-gate",
-        "./extensions/telegram-notifier",
-        "./extensions/stitch-bridge",
-        "./extensions/model-router",
-        "./extensions/team-ui"
+        "./extensions/quality-gate"
       ]
     },
     "entries": {
@@ -118,7 +114,7 @@
               }
             },
             "ciFeedback": {
-              "enabled": true,
+              "enabled": false,
               "routePath": "/webhooks/github/ci",
               "webhookSecret": "${GITHUB_WEBHOOK_SECRET:-}",
               "commentOnPr": true,

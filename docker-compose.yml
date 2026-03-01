@@ -17,7 +17,7 @@ services:
       dockerfile: Dockerfile
     container_name: openclaw-product-team
     ports:
-      - "28789:28789"
+      - "127.0.0.1:28789:28789"
     volumes:
       - openclaw-data:/app/data
       - openclaw-workspaces:/workspaces

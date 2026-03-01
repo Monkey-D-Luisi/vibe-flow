@@ -3,7 +3,7 @@
 | Field       | Value                                                    |
 |-------------|----------------------------------------------------------|
 | Epic        | EP08                                                     |
-| Status      | PENDING                                                  |
+| Status      | IN_PROGRESS                                              |
 | Priority    | P0                                                       |
 | Phase       | 8 -- Autonomous Product Team                             |
 | Target      | Q2 2026                                                  |

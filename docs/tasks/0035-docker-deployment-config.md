@@ -42,14 +42,11 @@ services:
   gateway:
     build: .
     ports:
-      - "28789:28789"
+      - "127.0.0.1:28789:28789"
     volumes:
       - openclaw-data:/app/data          # SQLite DB persistence
       - openclaw-workspaces:/workspaces  # Project git clones
-      - ./secrets:/app/secrets:ro        # API keys, tokens (read-only)
     environment:
-      - OPENCLAW_GATEWAY_PORT=28789
-      - OPENCLAW_GATEWAY_BIND=0.0.0.0
       - NODE_ENV=production
     env_file:
       - .env.docker
