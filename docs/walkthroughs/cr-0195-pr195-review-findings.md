@@ -24,6 +24,7 @@ all SHOULD_FIX items from Gemini, Copilot, and Codex automated reviewers.
 | `branches` threshold aligned to 75 (matches generated template) | `tools/create-extension/vitest.config.ts` |
 | Typecheck note clarified in walkthrough | `docs/walkthroughs/0032-extension-scaffolding-cli.md` |
 | Added `openclaw.plugin.json` to scaffold output + test coverage | `tools/create-extension/src/generator.ts`, `test/generator.test.ts` |
+| Added S-003 exception entries (13 paths) for model-router transitive vulns discovered as pre-existing CI failure | `docs/security-vulnerability-exception-ledger.md` |
 
 ## Skipped / Rationale
 
@@ -55,3 +56,4 @@ pnpm --filter @openclaw/create-extension typecheck    # clean
 | `docs/walkthroughs/0032-extension-scaffolding-cli.md` | Modified | Fix typecheck note; update summary and files table |
 | `docs/tasks/cr-0195-pr195-review-findings.md` | Created | CR task doc |
 | `docs/walkthroughs/cr-0195-pr195-review-findings.md` | Created | This file |
+| `docs/security-vulnerability-exception-ledger.md` | Modified | Add S-003-01..13 for model-router transitive vuln paths |
