@@ -16,6 +16,7 @@ queue for AR01 remediation.
 
 | Issue | Title | Proposed Track | Current Mapping | Next Step to Activate |
 |-------|-------|----------------|-----------------|-----------------------|
+| #144 | 4.4 CI webhook feedback | EP04 GitHub Integration | Task `0009` DONE (`docs/tasks/0009-ci-webhook-feedback.md`) | **CLOSED** — PR #169 merged 2026-02-25. GitHub issue closed 2026-03-01. Traceability retained. |
 | #154 | Gate auto-tuning: adjust thresholds based on historical metrics | EP05 follow-up (quality optimization) | Task `0020` DONE (`docs/tasks/0020-gate-auto-tuning-historical-metrics.md`) | **CLOSED** — GitHub issue closed 2026-03-01. Traceability retained. |
 | #155 | Threshold alerts: notify on coverage drops or complexity rises | EP05 follow-up (quality alerting) | Task `0021` DONE (`docs/tasks/0021-threshold-alerts-notify-on-coverage-drops-or-complexity-rises.md`) | **CLOSED** — GitHub issue closed 2026-03-01. Traceability retained. |
 | #156 | Extension scaffolding CLI for new OpenClaw plugins | DX track | Task `0032` PENDING (`docs/tasks/0032-extension-scaffolding-cli.md`) | **ACTIVATED** — Task spec created 2026-03-01. Added to roadmap under EP07. |
