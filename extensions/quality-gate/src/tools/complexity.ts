@@ -1,7 +1,18 @@
 /**
  * Tool: qgate.complexity
  *
- * Measures cyclomatic complexity of TypeScript source files.
+ * Measures cyclomatic complexity of TypeScript source files using
+ * regex-based heuristics. This is the standalone CLI-optimised variant
+ * with no external AST dependencies.
+ *
+ * ALGORITHM NOTE: This tool uses a lightweight regex heuristic
+ * (countCyclomaticSimple) rather than a full AST parse. It counts
+ * decision-point keywords (if, for, while, &&, ||, ??) directly in
+ * source text and will produce different (typically lower) numbers than
+ * the AST-based quality.complexity tool in the product-team extension.
+ * Use product-team's quality.complexity for accurate per-function AST
+ * analysis; use this tool for fast CLI/CI scans where approximate
+ * complexity trends are sufficient.
  */
 
 import { resolveGlobPatterns } from '@openclaw/quality-contracts/fs/glob';
@@ -207,7 +218,7 @@ export async function complexityTool(input: ComplexityInput): Promise<Complexity
  */
 export const complexityToolDef = {
   name: 'qgate.complexity',
-  description: 'Measure cyclomatic complexity of TypeScript source files and identify hotspots',
+  description: 'Measure cyclomatic complexity of TypeScript source files using regex heuristics (fast, approximate). For AST-accurate per-function metrics use quality.complexity from product-team.',
   parameters: {
     type: 'object',
     properties: {
