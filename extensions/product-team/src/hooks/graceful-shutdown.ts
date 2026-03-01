@@ -15,7 +15,8 @@ export interface GracefulShutdownDeps {
 }
 
 /**
- * Flush the event log and save in-progress agent state before shutdown.
+ * Coordinate a graceful shutdown by stopping the monitoring cron, expiring
+ * active leases, and checkpointing the database WAL.
  * Returns a cleanup function that should be passed to registerProcessShutdownHooks.
  */
 export function createGracefulShutdown(deps: GracefulShutdownDeps): () => void {

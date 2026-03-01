@@ -116,6 +116,17 @@ export function register(api: OpenClawPluginApi): void {
   const eventLog = new EventLog(eventRepo, generateId, now);
   const leaseManager = new LeaseManager(leaseRepo, eventLog, now, undefined, concurrencyConfig);
 
+  // Shared event-log health probe used by both monitoring cron and /health handler.
+  // Queries event_log directly so it can fail independently of the generic DB check.
+  const eventLogWritable = (): boolean => {
+    try {
+      db.prepare('SELECT 1 FROM event_log LIMIT 1').get();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   // Start monitoring cron (posts health/activity/cost to Telegram on schedule)
   const telegramChatId =
     typeof pluginConfig?.telegramChatId === 'string' ? pluginConfig.telegramChatId : undefined;
@@ -123,14 +134,7 @@ export function register(api: OpenClawPluginApi): void {
     healthCheckDeps: {
       db,
       pluginConfig,
-      eventLogWritable: () => {
-        try {
-          db.prepare('SELECT 1').get();
-          return true;
-        } catch {
-          return false;
-        }
-      },
+      eventLogWritable,
     },
     eventRepo,
     logger: api.logger,
@@ -281,14 +285,7 @@ export function register(api: OpenClawPluginApi): void {
     handler: createHealthCheckHandler({
       db,
       pluginConfig,
-      eventLogWritable: () => {
-        try {
-          db.prepare('SELECT 1').get();
-          return true;
-        } catch {
-          return false;
-        }
-      },
+      eventLogWritable,
     }),
   });
   api.logger.info('registered GET /health endpoint');

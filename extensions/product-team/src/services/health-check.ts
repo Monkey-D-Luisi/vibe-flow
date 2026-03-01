@@ -29,9 +29,6 @@ function isLlmProviderConfigured(pluginConfig: Record<string, unknown> | undefin
     'ANTHROPIC_API_KEY',
     'OPENAI_API_KEY',
     'GOOGLE_AI_API_KEY',
-    'ANTHROPIC_API_KEY_FILE',
-    'OPENAI_API_KEY_FILE',
-    'GOOGLE_AI_API_KEY_FILE',
   ];
   for (const key of envKeys) {
     const val = process.env[key];
@@ -48,7 +45,7 @@ function isLlmProviderConfigured(pluginConfig: Record<string, unknown> | undefin
 }
 
 function isTelegramConfigured(): boolean {
-  const token = process.env['TELEGRAM_BOT_TOKEN'] ?? process.env['TELEGRAM_BOT_TOKEN_FILE'];
+  const token = process.env['TELEGRAM_BOT_TOKEN'];
   return typeof token === 'string' && token.trim().length > 0;
 }
 
@@ -83,27 +80,8 @@ export function createHealthCheckHandler(
   deps: HealthCheckDeps,
 ): (req: IncomingMessage, res: ServerResponse) => void {
   return (_req, res) => {
-    const dbOk = checkDatabase(deps.db);
-    const eventLogOk = checkEventLog(deps.eventLogWritable);
-    const llmOk = isLlmProviderConfigured(deps.pluginConfig);
-    const telegramOk = isTelegramConfigured();
-
-    const checks: HealthCheckResult['checks'] = {
-      gateway: true,
-      database: dbOk,
-      llmProvider: llmOk,
-      telegram: telegramOk,
-      eventLog: eventLogOk,
-    };
-    const status = computeStatus(checks);
-
-    const result: HealthCheckResult = {
-      status,
-      checks,
-      timestamp: new Date().toISOString(),
-    };
-
-    const statusCode = status === 'down' ? 503 : 200;
+    const result = getHealthStatus(deps);
+    const statusCode = result.status === 'down' ? 503 : 200;
     res.statusCode = statusCode;
     res.setHeader('content-type', 'application/json; charset=utf-8');
     res.end(JSON.stringify(result));
