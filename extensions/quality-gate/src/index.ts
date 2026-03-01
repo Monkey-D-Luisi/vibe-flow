@@ -7,7 +7,7 @@
  * Compatible with OpenClawPluginApi from 'openclaw/plugin-sdk'.
  */
 
-import { getAllToolDefs } from './src/tools/index.js';
+import { getAllToolDefs } from './tools/index.js';
 
 export default {
   id: 'quality-gate',
