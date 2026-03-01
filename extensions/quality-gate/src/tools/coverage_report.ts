@@ -5,6 +5,10 @@
  */
 
 import { readFileSafe } from '@openclaw/quality-contracts/fs/read';
+import {
+  assertOptionalString,
+  assertOptionalStringEnum,
+} from '@openclaw/quality-contracts/validate/tools';
 import { resolve } from 'node:path';
 import { assertPathContained } from '@openclaw/quality-contracts/exec/spawn';
 import {
@@ -165,6 +169,10 @@ export const coverageReportToolDef = {
     additionalProperties: false,
   },
   execute: async (_id: string, params: Record<string, unknown>) => {
+    assertOptionalString(params['summaryPath'], 'summaryPath');
+    assertOptionalString(params['lcovPath'], 'lcovPath');
+    assertOptionalString(params['cwd'], 'cwd');
+    assertOptionalStringEnum(params['format'], 'format', ['summary', 'lcov', 'auto'] as const);
     return coverageReportTool(params as unknown as CoverageInput);
   },
 };

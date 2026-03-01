@@ -8,8 +8,13 @@ import { resolveGlobPatterns } from '@openclaw/quality-contracts/fs/glob';
 import { readFileSafe } from '@openclaw/quality-contracts/fs/read';
 import { resolve } from 'node:path';
 import { assertPathContained } from '@openclaw/quality-contracts/exec/spawn';
-import type { ComplexitySummary, FunctionComplexity, FileComplexity } from '../complexity/types.js';
-import { DEFAULT_THRESHOLDS } from '../complexity/types.js';
+import type { ComplexitySummary, FunctionComplexity, FileComplexity } from '@openclaw/quality-contracts/complexity/types';
+import {
+  assertOptionalStringArray,
+  assertOptionalString,
+  assertOptionalNumber,
+} from '@openclaw/quality-contracts/validate/tools';
+import { DEFAULT_THRESHOLDS } from '@openclaw/quality-contracts/complexity/types';
 
 const DEFAULT_GLOBS = ['src/**/*.ts', 'extensions/**/*.ts'];
 const DEFAULT_EXCLUDE = ['**/*.test.ts', '**/*.spec.ts', '**/node_modules/**', '**/dist/**'];
@@ -236,6 +241,11 @@ export const complexityToolDef = {
     additionalProperties: false,
   },
   execute: async (_id: string, params: Record<string, unknown>) => {
+    assertOptionalStringArray(params['globs'], 'globs');
+    assertOptionalStringArray(params['exclude'], 'exclude');
+    assertOptionalString(params['cwd'], 'cwd');
+    assertOptionalNumber(params['maxCyclomatic'], 'maxCyclomatic');
+    assertOptionalNumber(params['topN'], 'topN');
     return complexityTool(params as unknown as ComplexityInput);
   },
 };

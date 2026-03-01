@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | Audit remediation 2026-02-27 |
 | Priority | LOW |
 | Scope | MAJOR |
@@ -102,12 +102,12 @@ Source findings: **A-004** (LOW), **A-006** (LOW), **A-007** (LOW), **A-008** (L
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Tests written and passing
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated
-- [ ] PR created and linked
+- [x] All Acceptance Criteria met
+- [x] Tests written and passing
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated
+- [x] PR created and linked
 
 ---
 

@@ -1,5 +1,8 @@
 /**
- * Complexity analysis types.
+ * Shared complexity analysis types.
+ *
+ * These types are used by both the product-team and quality-gate extensions
+ * to represent complexity analysis results in a common format.
  */
 
 export interface FunctionComplexity {

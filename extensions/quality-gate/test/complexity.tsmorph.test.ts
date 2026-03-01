@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { analyzeWithTsMorph } from '../src/complexity/tsmorph.js';
-import type { FileComplexity } from '../src/complexity/types.js';
+import type { FileComplexity } from '@openclaw/quality-contracts/complexity/types';
 
 function createMockNode(kindName: string, children: ReturnType<typeof createMockNode>[] = [], extra?: Record<string, unknown>) {
   return {

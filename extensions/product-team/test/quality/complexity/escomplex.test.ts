@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { analyzeWithEscomplex } from '../../../src/quality/complexity/escomplex.js';
-import type { FileComplexity } from '../../../src/quality/complexity/types.js';
+import type { FileComplexity } from '@openclaw/quality-contracts/complexity/types';
 
 describe('analyzeWithEscomplex', () => {
   it('returns file complexity for a simple function', () => {
