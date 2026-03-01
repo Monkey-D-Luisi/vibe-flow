@@ -5,7 +5,7 @@
  */
 
 export function escapeMarkdownV2(text: string): string {
-  return text.replace(/([_*[\]()~`>#+\-=|{}.!])/g, '\\$1');
+  return text.replace(/([\\_*[\]()~`>#+\-=|{}.!])/g, '\\$1');
 }
 
 export function formatTaskTransition(params: Record<string, unknown>): string {
@@ -16,18 +16,19 @@ export function formatTaskTransition(params: Record<string, unknown>): string {
 }
 
 export function formatPrCreation(params: Record<string, unknown>, result: unknown): string {
-  const res = result as Record<string, unknown> | undefined;
+  const res = (result && typeof result === 'object') ? (result as Record<string, unknown>) : undefined;
   const prNumber = res?.['number'] ?? 'N/A';
   const title = String(res?.['title'] ?? params['title'] ?? 'Untitled');
   const url = String(res?.['url'] ?? '');
   if (url) {
-    return `🔀 *PR \\#${escapeMarkdownV2(String(prNumber))}* created: _${escapeMarkdownV2(title)}_ — [View](${url})`;
+    const safeUrl = url.replace(/[)\\]/g, '\\$&');
+    return `🔀 *PR \\#${escapeMarkdownV2(String(prNumber))}* created: _${escapeMarkdownV2(title)}_ — [View](${safeUrl})`;
   }
   return `🔀 *PR \\#${escapeMarkdownV2(String(prNumber))}* created: _${escapeMarkdownV2(title)}_`;
 }
 
 export function formatQualityGate(_params: Record<string, unknown>, result: unknown): string {
-  const res = result as Record<string, unknown> | undefined;
+  const res = (result && typeof result === 'object') ? (result as Record<string, unknown>) : undefined;
   const passed = res?.['pass'] === true || res?.['passed'] === true;
   const emoji = passed ? '✅' : '❌';
   const verb = passed ? 'PASSED' : 'FAILED';

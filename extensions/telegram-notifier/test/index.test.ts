@@ -18,7 +18,7 @@ function createMockApi(config: Record<string, unknown> = {}) {
     api: {
       pluginConfig: {
         groupId: '-100123456',
-        rateLimit: { maxPerMinute: 20, batchMinorEvents: true },
+        rateLimit: { maxPerMinute: 20 },
         ...config,
       },
       runtime: {} as Record<string, unknown>,

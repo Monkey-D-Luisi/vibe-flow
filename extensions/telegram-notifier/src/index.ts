@@ -19,7 +19,6 @@ interface NotifierConfig {
   groupId: string;
   rateLimit: {
     maxPerMinute: number;
-    batchMinorEvents: boolean;
   };
 }
 
@@ -33,12 +32,19 @@ const MESSAGE_QUEUE: QueuedMessage[] = [];
 let flushInterval: ReturnType<typeof setInterval> | null = null;
 
 function getConfig(api: OpenClawPluginApi): NotifierConfig {
-  const cfg = api.pluginConfig as Record<string, unknown>;
+  const cfg = (api.pluginConfig && typeof api.pluginConfig === 'object')
+    ? (api.pluginConfig as Record<string, unknown>)
+    : {};
+  const rawRateLimit = (cfg['rateLimit'] && typeof cfg['rateLimit'] === 'object')
+    ? (cfg['rateLimit'] as Record<string, unknown>)
+    : {};
+  const parsedMaxPerMinute = Number(rawRateLimit['maxPerMinute']);
   return {
-    groupId: String(cfg?.['groupId'] ?? ''),
+    groupId: String(cfg['groupId'] ?? ''),
     rateLimit: {
-      maxPerMinute: Number((cfg?.['rateLimit'] as Record<string, unknown>)?.['maxPerMinute'] ?? 20),
-      batchMinorEvents: Boolean((cfg?.['rateLimit'] as Record<string, unknown>)?.['batchMinorEvents'] ?? true),
+      maxPerMinute: Number.isFinite(parsedMaxPerMinute) && parsedMaxPerMinute > 0
+        ? parsedMaxPerMinute
+        : 20,
     },
   };
 }
@@ -112,7 +118,7 @@ export default {
         if (!ideaText) {
           return { text: 'Usage: /idea <your product idea>' };
         }
-        return { text: `Idea received: "${ideaText}". Routing to PM agent.` };
+        return { text: `Idea received: "${escapeMarkdownV2(ideaText)}". Routing to PM agent.` };
       },
     });
 
@@ -157,8 +163,10 @@ export default {
               const runtime = api.runtime;
               const sendTg = runtime?.channel?.telegram?.sendMessageTelegram;
               if (typeof sendTg === 'function') {
-                void sendTg(config.groupId, msg.text, {
+                Promise.resolve(sendTg(config.groupId, msg.text, {
                   textMode: 'markdown',
+                })).catch((err: unknown) => {
+                  logger.error(`telegram-notifier: Failed to send message: ${String(err)}`);
                 });
               }
             } catch (err) {

@@ -39,6 +39,10 @@ describe('escapeMarkdownV2', () => {
   it('escapes multiple special chars', () => {
     expect(escapeMarkdownV2('a_b*c')).toBe('a\\_b\\*c');
   });
+
+  it('escapes backslash', () => {
+    expect(escapeMarkdownV2('back\\slash')).toBe('back\\\\slash');
+  });
 });
 
 describe('formatTaskTransition', () => {

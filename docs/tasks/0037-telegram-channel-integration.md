@@ -106,8 +106,8 @@ Implement a message queue with:
 - [x] Task transition events appear in Telegram group within 5 seconds
 - [x] PR creation events include clickable GitHub link
 - [x] Quality gate results show pass/fail with metrics
-- [x] `/status` command returns formatted agent status
-- [x] `/idea` command creates a task and triggers PM agent
+- [~] `/status` command returns formatted agent status (placeholder response; full wiring in Task 0042)
+- [~] `/idea` command creates a task and triggers PM agent (placeholder response; full wiring in Task 0042)
 - [x] Rate limiter prevents Telegram API errors under high activity
 - [x] Bot only posts in the configured group (not DMs, not other groups)
 - [x] All outbound messages are logged in the event log
@@ -124,7 +124,7 @@ Implement a message queue with:
 
 - OpenClaw's built-in Telegram channel handles bot lifecycle (polling/webhook).
   This plugin builds ON TOP of that channel, not replaces it.
-- Use `api.registerHook()` for lifecycle events
+- Use `api.on(...)` for lifecycle events
 - Use `api.registerCommand()` for slash commands
 - Use `api.runtime` to access the Telegram channel's send capabilities
 - The plugin must register as a `registerService()` for its message queue
