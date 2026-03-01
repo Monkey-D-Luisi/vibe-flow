@@ -13,8 +13,9 @@ export function assertOptionalString(value: unknown, field: string): asserts val
 }
 
 export function assertOptionalNumber(value: unknown, field: string): asserts value is number | undefined {
-  if (value !== undefined && typeof value !== 'number') {
-    throw new Error(`INVALID_INPUT: ${field} must be a number, got ${typeof value}`);
+  if (value === undefined) return;
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`INVALID_INPUT: ${field} must be a finite number, got ${String(value)}`);
   }
 }
 
@@ -38,6 +39,12 @@ export function assertOptionalStringEnum<T extends string>(
 ): asserts value is T | undefined {
   if (value !== undefined && !allowed.includes(value as T)) {
     throw new Error(`INVALID_INPUT: ${field} must be one of [${allowed.join(', ')}], got ${String(value)}`);
+  }
+}
+
+export function assertOptionalArray(value: unknown, field: string): asserts value is unknown[] | undefined {
+  if (value !== undefined && !Array.isArray(value)) {
+    throw new Error(`INVALID_INPUT: ${field} must be an array`);
   }
 }
 

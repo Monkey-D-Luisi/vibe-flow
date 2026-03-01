@@ -7,11 +7,11 @@ import { describe, it, expect, vi } from 'vitest';
  * and throw with INVALID_INPUT prefix on type mismatches.
  */
 
-vi.mock('../src/fs/glob.js', () => ({
+vi.mock('@openclaw/quality-contracts/fs/glob', () => ({
   resolveGlobPatterns: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock('../src/fs/read.js', () => ({
+vi.mock('@openclaw/quality-contracts/fs/read', () => ({
   readFileSafe: vi.fn().mockResolvedValue(''),
 }));
 
@@ -48,6 +48,18 @@ describe('complexity tool input validation', () => {
       .toThrow('INVALID_INPUT');
   });
 
+  it('throws INVALID_INPUT when maxCyclomatic is NaN', async () => {
+    await expect(complexityToolDef.execute('id', { maxCyclomatic: NaN }))
+      .rejects
+      .toThrow('INVALID_INPUT');
+  });
+
+  it('throws INVALID_INPUT when maxCyclomatic is Infinity', async () => {
+    await expect(complexityToolDef.execute('id', { maxCyclomatic: Infinity }))
+      .rejects
+      .toThrow('INVALID_INPUT');
+  });
+
   it('accepts valid optional inputs without throwing', async () => {
     await expect(complexityToolDef.execute('id', {})).resolves.toBeDefined();
   });
@@ -68,6 +80,30 @@ describe('gate_enforce tool input validation', () => {
 
   it('throws INVALID_INPUT when metrics is an array', async () => {
     await expect(gateEnforceToolDef.execute('id', { metrics: [1, 2, 3] }))
+      .rejects
+      .toThrow('INVALID_INPUT');
+  });
+
+  it('throws INVALID_INPUT when history is not an array', async () => {
+    await expect(gateEnforceToolDef.execute('id', { history: 'not-an-array' }))
+      .rejects
+      .toThrow('INVALID_INPUT');
+  });
+
+  it('throws INVALID_INPUT when deps is not an object', async () => {
+    await expect(gateEnforceToolDef.execute('id', { deps: 'not-an-object' }))
+      .rejects
+      .toThrow('INVALID_INPUT');
+  });
+
+  it('throws INVALID_INPUT when autoTune is an array', async () => {
+    await expect(gateEnforceToolDef.execute('id', { autoTune: [] }))
+      .rejects
+      .toThrow('INVALID_INPUT');
+  });
+
+  it('throws INVALID_INPUT when alerts is not an object', async () => {
+    await expect(gateEnforceToolDef.execute('id', { alerts: 42 }))
       .rejects
       .toThrow('INVALID_INPUT');
   });
@@ -98,7 +134,7 @@ describe('coverage_report tool input validation', () => {
       .toThrow('INVALID_INPUT');
   });
 
-  it('accepts valid format enum values without throwing', async () => {
+  it('does not throw an input validation error for valid format enum values', async () => {
     for (const format of ['summary', 'lcov', 'auto']) {
       await expect(coverageReportToolDef.execute('id', { format }))
         .rejects
