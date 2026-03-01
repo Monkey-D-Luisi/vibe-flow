@@ -1,6 +1,6 @@
 # Roadmap -- OpenClaw Product Team Extensions
 
-> Last updated: 2026-02-26
+> Last updated: 2026-03-01
 
 ## Vision
 
@@ -22,6 +22,7 @@ structured JSON contracts, and is governed by tool-policy allow-lists.
 | 4     | EP05 | Quality & Observability         | EP02, EP03   | July 2026    | DONE    |
 | 5     | EP06 | Hardening                       | EP03, EP04   | August 2026  | DONE    |
 | 6     | AR01 | Audit Remediation Program       | EP06         | Q1 2026      | DONE |
+| 7     | EP07 | DX & Platform Ops               | AR01         | Q2 2026      | PENDING |
 
 ---
 
@@ -146,6 +147,21 @@ Execution lanes:
 
 ---
 
+## Phase 7: DX & Platform Ops (Q2 2026)
+
+### EP07 -- DX & Platform Ops
+
+Improve developer experience and operational readiness: automated extension scaffolding,
+a reproducible npm publish pipeline, and a full quality-gate feedback loop on pull requests.
+
+Key deliverables:
+
+- Extension scaffolding CLI (`pnpm create:extension <name>`)
+- npm publish pipeline for `@openclaw/*` packages with provenance and OIDC
+- CI quality gate workflow with PR comment upsert and merge-blocking status checks
+
+---
+
 ## Dependency Graph
 
 ```mermaid
@@ -159,6 +175,7 @@ graph TD
   EP06[EP06: Hardening] --> EP03
   EP06 --> EP04
   AR01[AR01: Audit Remediation Program] --> EP06
+  EP07[EP07: DX & Platform Ops] --> AR01
 ```
 
 ---
@@ -237,6 +254,10 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - [Task 0029: Refactor Large GitHub Module Files](tasks/0029-refactor-large-github-module-files.md) -- DONE (MEDIUM)
 - [Task 0030: Consolidate Shared Types and Schemas in Quality Contracts](tasks/0030-consolidate-shared-types-and-schemas-in-quality-contracts.md) -- DONE (LOW)
 - [Task 0031: Add Utility Module Tests and Architectural Decision Records](tasks/0031-add-utility-module-tests-and-architectural-decision-records.md) -- DONE (LOW)
+
+2026-03-01 open issues activation (EP07 — DX & Platform Ops):
+
+- [Task 0032: Extension Scaffolding CLI for New OpenClaw Plugins](tasks/0032-extension-scaffolding-cli.md) -- PENDING (DX, GitHub #156)
 
 ### Architecture & Operations
 - [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)
