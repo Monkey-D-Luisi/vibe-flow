@@ -63,7 +63,10 @@
       "paths": [
         "./extensions/product-team",
         "./extensions/quality-gate",
-        "./extensions/telegram-notifier"
+        "./extensions/telegram-notifier",
+        "./extensions/model-router",
+        "./extensions/stitch-bridge",
+        "./extensions/team-ui"
       ]
     },
     "entries": {

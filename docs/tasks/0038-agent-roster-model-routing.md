@@ -12,9 +12,10 @@
 ## Goal
 
 Expand the current 6-agent roster to 10 agents with differentiated roles,
-per-agent model assignments, tool allow-lists, and skill bindings. Implement
-the `before_model_resolve` hook to dynamically route each agent to its
-configured primary model with fallback chain.
+per-agent model assignments, tool allow-lists, and skill bindings, using
+static per-agent configuration (primary model plus fallback chain) for model
+routing. The `before_model_resolve` hook for dynamic routing is out of scope
+for this task and will be handled in a future change.
 
 ## Context
 
@@ -285,4 +286,4 @@ dashboard can break down spend per role.
 4. Test tool policy: have `designer` try to call `vcs.pr.create` (should be denied)
 5. Test fallback: temporarily revoke Anthropic token, verify agents fall back to openai-codex/gpt-5.2
 6. Verify Telegram routing: send message in group, confirm PM agent responds
-7. Call `GET /api/providers/health` — all 5 providers should report connected
+7. Call `GET /api/providers/health` — all 4 providers should report connected
