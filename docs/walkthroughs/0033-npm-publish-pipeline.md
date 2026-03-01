@@ -14,7 +14,7 @@
 
 Established a GitHub Actions release pipeline (`release.yml`) that publishes all
 non-private `@openclaw/*` workspace packages to the public npm registry when a
-version tag (`v[0-9]+.[0-9]+.[0-9]+`) is pushed. The pipeline enforces:
+version tag matching `v[0-9]*.[0-9]*.[0-9]*`) is pushed. The pipeline enforces:
 
 1. A full quality gate (tests, lint, typecheck, coverage) before any publish step runs.
 2. A mandatory dry-run gate (`npm publish --dry-run`) that must succeed before actual publish.

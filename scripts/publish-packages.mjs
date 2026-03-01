@@ -2,8 +2,9 @@
 /**
  * publish-packages.mjs
  *
- * Discovers all publishable workspace packages (those without "private: true")
- * and publishes them to npm. Pass --dry-run to verify packaging without
+ * Discovers all publishable @openclaw/* workspace packages (those without "private: true")
+ * and publishes them to npm using `pnpm publish` (which rewrites workspace:* dependencies
+ * to resolved versions automatically). Pass --dry-run to verify packaging without
  * actually uploading to the registry.
  *
  * Usage:
@@ -13,7 +14,7 @@
 
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 const dryRun = process.argv.includes('--dry-run');
 const workspaceDirs = ['packages', 'extensions', 'tools'];
@@ -24,15 +25,26 @@ let errors = 0;
 
 /**
  * Returns true if `name@version` already exists on the npm registry.
+ * Throws on non-404 errors (network, auth, registry) so callers can surface them.
  * @param {string} name
  * @param {string} version
  */
 function isAlreadyPublished(name, version) {
   try {
-    execSync(`npm view ${name}@${version} version`, { stdio: 'pipe' });
+    execFileSync('npm', ['view', `${name}@${version}`, 'version'], { stdio: 'pipe' });
     return true;
-  } catch {
-    return false;
+  } catch (err) {
+    const stderr = String(/** @type {any} */ (err)?.stderr ?? '');
+    if (
+      stderr.includes('E404') ||
+      stderr.includes('404 Not Found') ||
+      stderr.includes('is not in the npm registry')
+    ) {
+      // Package/version not found — treat as not yet published.
+      return false;
+    }
+    // Non-404 error (network, auth, registry issue) — surface it.
+    throw err;
   }
 }
 
@@ -58,6 +70,11 @@ for (const dir of workspaceDirs) {
       continue;
     }
 
+    // Only publish packages in the @openclaw/ scope.
+    if (!manifest.name.startsWith('@openclaw/')) {
+      continue;
+    }
+
     const { name, version } = manifest;
     const pkgDir = join(dir, entry.name);
 
@@ -67,16 +84,19 @@ for (const dir of workspaceDirs) {
       continue;
     }
 
+    // Use pnpm publish so workspace:* dependency specifiers are rewritten to resolved
+    // versions before the tarball is created. --no-git-checks bypasses the clean
+    // working-tree and committed-files checks that pnpm enforces by default in CI.
     const publishArgs = dryRun
-      ? '--dry-run --access public'
-      : '--provenance --access public';
+      ? ['--no-git-checks', '--dry-run', '--access', 'public']
+      : ['--no-git-checks', '--provenance', '--access', 'public'];
 
     console.log(`  ${dryRun ? 'dry-run' : 'publish'} ${name}@${version}`);
     try {
-      execSync(`npm publish ${publishArgs}`, { cwd: pkgDir, stdio: 'inherit' });
+      execFileSync('pnpm', ['publish', ...publishArgs], { cwd: pkgDir, stdio: 'inherit' });
       published++;
     } catch (err) {
-      console.error(`  ERROR publishing ${name}@${version}: ${err.message}`);
+      console.error(`  ERROR publishing ${name}@${version}: ${/** @type {any} */ (err).message}`);
       errors++;
     }
   }
