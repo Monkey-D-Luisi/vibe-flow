@@ -21,13 +21,12 @@ The user has:
 - An Anthropic API token (mode: token, stored in auth-profiles.json)
 - An OpenAI Codex OAuth flow (mode: oauth, JWT + refresh token via auth.openai.com)
 - A GitHub Copilot subscription (mode: token, user token for Copilot proxy API)
-- A GitHub Models endpoint (free GPT-4o via Azure inference, API key auth)
 - An OpenAI API key for audio transcription only (gpt-4o-mini-transcribe)
 
 The working agent at `~/.openclaw` uses auth-profiles managed by the OpenClaw
 runtime, not bare API keys in environment variables. Each provider has a
-distinct auth mode: token (Anthropic, GitHub Copilot), OAuth (OpenAI Codex),
-or API key (GitHub Models). The Docker instance mirrors this architecture.
+distinct auth mode: token (Anthropic, GitHub Copilot) or OAuth (OpenAI Codex).
+The Docker instance mirrors this architecture.
 
 ## Deliverables
 
@@ -100,8 +99,8 @@ All agents share the same default fallback chain, matching the working agent:
 }
 ```
 
-Per-agent overrides may be added in Task 0038 when differentiated model
-assignments are needed. For now, all agents use the same chain.
+Per-agent overrides are implemented in Task 0038 (PM→gpt-5.2, TL→opus-4-6,
+PO→gpt-4.1, Designer→gpt-4o). All providers use the auth-profiles system.
 
 ### D4: Provider Health Check
 
@@ -111,7 +110,7 @@ provider's API and reports status. Used by the Telegram health monitor.
 ## Acceptance Criteria
 
 - [x] Three auth profiles configured (anthropic:token, openai-codex:oauth, github-copilot:token)
-- [x] GitHub Models and GitHub Copilot custom providers defined in models.providers
+- [x] GitHub Copilot custom provider defined in models.providers
 - [x] Each provider authenticates via its native mode (verified by health check)
 - [x] Default fallback chain: anthropic/claude-sonnet-4-6 → openai-codex/gpt-5.2 → github-copilot/gpt-4o
 - [x] Provider health check route returns status for all providers
@@ -136,8 +135,6 @@ provider's API and reports status. Used by the Telegram health monitor.
   runtime handles automatic token refresh when the JWT expires.
 - GitHub Copilot uses a user token (`ghu_...`) plus a rotating proxy token
   managed by the `copilot-proxy` extension.
-- GitHub Models provides free GPT-4o via Azure inference; configured directly
-  in `models.providers` with an API key (no auth profile needed).
 - `OPENAI_API_KEY` env var is used ONLY for audio transcription
   (gpt-4o-mini-transcribe via the `openai-whisper-api` skill), not for LLM
   completions.

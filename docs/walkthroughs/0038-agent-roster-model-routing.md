@@ -1,16 +1,21 @@
 # Walkthrough 0038 -- Expanded Agent Roster with Per-Agent Model Routing
 
 ## Goal (restated)
-Expand the 6-agent roster to 10 agents with unified model fallback chain
-(matching the working agent), differentiated tool allow-lists, and skill
-bindings.
+Expand the 6-agent roster to 10 agents with per-agent model differentiation,
+differentiated tool allow-lists, and skill bindings. Each role gets the
+primary model best suited to its cognitive profile.
 
 ## Decisions
-- **Unified fallback chain**: All agents share the same model chain:
-  `anthropic/claude-sonnet-4-6` → `openai-codex/gpt-5.2` → `github-copilot/gpt-4o`.
-  This matches the working agent at `~/.openclaw` which uses a single default
-  chain for all operations. Per-agent differentiation (e.g., Opus for Tech Lead)
-  can be added later when provider subscriptions evolve.
+- **Per-agent model differentiation**: Each agent gets a primary model tailored
+  to its role, with cross-provider fallbacks for resilience:
+  - PM → `openai-codex/gpt-5.2` (strategic planning, language-heavy)
+  - Tech Lead → `anthropic/claude-opus-4-6` (architecture, deep reasoning)
+  - PO → `openai-codex/gpt-4.1` (balanced, product decisions)
+  - Designer → `openai-codex/gpt-4o` (visual reasoning, UI patterns)
+  - Devs/QA/DevOps → `anthropic/claude-sonnet-4-6` (code generation, default chain)
+- **Default fallback chain**: `anthropic/claude-sonnet-4-6` →
+  `openai-codex/gpt-5.2` → `github-copilot/gpt-4o`. Agents that don't override
+  inherit this chain. Agents with overrides specify their own fallback order.
 - **Model routing via native config**: OpenClaw's `agents.list[].model` field
   already supports `{ primary, fallbacks }` natively. No custom
   `before_model_resolve` hook plugin needed — the model-router plugin is
@@ -32,16 +37,16 @@ bindings.
 The 10-agent roster was embedded in `openclaw.docker.json` (created in Task 0035)
 under the `agents.list` key. Each agent has:
 - Unique ID and human-readable name
-- Primary model with fallback chain (same for all: sonnet-4-6 → gpt-5.2 → gpt-4o)
+- Per-agent primary model with role-appropriate fallbacks
 - Workspace path
 - Skill references
 - Tool allow-list
 
-Agent roster:
-1. `pm` — Product Manager (Sonnet 4-6 → Codex gpt-5.2 → Copilot gpt-4o)
-2. `tech-lead` — Tech Lead (Sonnet 4-6 → Codex gpt-5.2 → Copilot gpt-4o)
-3. `po` — Product Owner (Sonnet 4-6 → Codex gpt-5.2 → Copilot gpt-4o)
-4. `designer` — UI/UX Designer (Sonnet 4-6 → Codex gpt-5.2 → Copilot gpt-4o)
+Agent roster with model assignments:
+1. `pm` — Product Manager (`openai-codex/gpt-5.2` → Sonnet 4-6 → Copilot gpt-4o)
+2. `tech-lead` — Tech Lead (`anthropic/claude-opus-4-6` → Codex gpt-5.2 → Copilot gpt-4o)
+3. `po` — Product Owner (`openai-codex/gpt-4.1` → Sonnet 4-6 → Copilot gpt-4o)
+4. `designer` — UI/UX Designer (`openai-codex/gpt-4o` → Sonnet 4-6 → Copilot gpt-4o)
 5. `back-1` — Senior Backend Dev (Sonnet 4-6 → Codex gpt-5.2 → Copilot gpt-4o)
 6. `back-2` — Junior Backend Dev (Sonnet 4-6 → Codex gpt-5.2 → Copilot gpt-4o)
 7. `front-1` — Senior Frontend Dev (Sonnet 4-6 → Codex gpt-5.2 → Copilot gpt-4o)
@@ -50,14 +55,13 @@ Agent roster:
 10. `devops` — DevOps Engineer (Sonnet 4-6 → Codex gpt-5.2 → Copilot gpt-4o)
 
 ## Files Changed
-- `openclaw.docker.json` — Full 10-agent roster under `agents.list`, unified
-  fallback chain for all agents
-- `docs/tasks/0038-agent-roster-model-routing.md` — Updated context, agent
-  configs, D2 model router notes, acceptance criteria, testing plan
+- `openclaw.docker.json` — Full 10-agent roster under `agents.list`, per-agent
+  model differentiation for PM, Tech Lead, PO, and Designer
+- `docs/tasks/0038-agent-roster-model-routing.md` — Updated context, per-agent
+  model table, D1 agent configs, D2 model router notes, acceptance criteria
 
 ## Follow-ups
 - Task 0041: Skills for new roles (tech-lead, product-owner, ui-designer,
   frontend-dev, backend-dev, devops)
 - Validate tool allow-lists once new tools are implemented
-- Consider per-agent model differentiation when provider subscriptions evolve
-  (e.g., Opus for Tech Lead, GPT-5.x for PM)
+- Adjust per-agent model assignments as provider subscriptions evolve
