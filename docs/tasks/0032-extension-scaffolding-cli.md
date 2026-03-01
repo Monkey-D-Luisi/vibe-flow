@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | EP07 — DX & Platform Ops |
 | Priority | MEDIUM |
 | Scope | MAJOR |
@@ -63,11 +63,11 @@ Relates to GitHub issue #156 (`docs/backlog/open-issues-intake.md`). Depends on 
 
 ## Acceptance Criteria
 
-- [ ] AC1: `pnpm create:extension my-plugin` creates `extensions/my-plugin/` with all required files.
-- [ ] AC2: Generated `package.json` uses correct scope (`@openclaw/my-plugin`) and ESM settings.
-- [ ] AC3: `pnpm typecheck` passes in the generated extension without modification.
-- [ ] AC4: Running on an existing dir without `--force` exits non-zero with a descriptive message.
-- [ ] AC5: Unit tests cover generator, name validation, and overwrite guard (>= 80% coverage).
+- [x] AC1: `pnpm create:extension my-plugin` creates `extensions/my-plugin/` with all required files.
+- [x] AC2: Generated `package.json` uses correct scope (`@openclaw/my-plugin`) and ESM settings.
+- [x] AC3: `pnpm typecheck` passes in the generated extension without modification.
+- [x] AC4: Running on an existing dir without `--force` exits non-zero with a descriptive message.
+- [x] AC5: Unit tests cover generator, name validation, and overwrite guard (>= 80% coverage).
 
 ---
 
@@ -100,12 +100,12 @@ Relates to GitHub issue #156 (`docs/backlog/open-issues-intake.md`). Depends on 
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Tests written and passing
-- [ ] Coverage meets threshold (>= 80% major)
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated
+- [x] All Acceptance Criteria met
+- [x] Tests written and passing
+- [x] Coverage meets threshold (>= 80% major)
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated
 - [ ] Code reviewed (if applicable)
 - [ ] PR created and linked
 
