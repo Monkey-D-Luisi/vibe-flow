@@ -15,8 +15,11 @@
 _Pending implementation. Task spec activated from open-issues-intake.md on 2026-03-01._
 
 This task will create a GitHub Actions release workflow that publishes all `@openclaw/*`
-packages to npm on version-tag push, using OIDC authentication and provenance attestation,
-with a mandatory dry-run gate and documented rollback procedure.
+packages to npm when a repo-level version tag (`v[0-9]+\.[0-9]+\.[0-9]+`) is pushed.
+Each package carries its own independent `version` field; the workflow identifies
+publishable packages by comparing each package's version against the npm registry rather
+than assuming all packages have the same version. Uses OIDC authentication and provenance
+attestation, with a mandatory dry-run gate and documented rollback procedure.
 
 ---
 

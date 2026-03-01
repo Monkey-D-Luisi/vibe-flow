@@ -38,7 +38,7 @@ for stable baseline. Complements Task 0032 which scaffolds new publishable exten
 
 ### In Scope
 
-- GitHub Actions workflow `.github/workflows/release.yml` triggered on tags `v*.*.*`
+- GitHub Actions workflow `.github/workflows/release.yml` triggered on tags matching `v[0-9]+\.[0-9]+\.[0-9]+`
 - Per-package publish with `npm publish --access public` for scoped packages
 - Mandatory dry-run step (`npm publish --dry-run`) prior to actual publish
 - npm provenance attestation (`--provenance`) via GitHub OIDC
@@ -67,7 +67,7 @@ for stable baseline. Complements Task 0032 which scaffolds new publishable exten
 
 ## Acceptance Criteria
 
-- [ ] AC1: Pushing tag `v1.0.0` triggers `release.yml` and publishes all changed packages.
+- [ ] AC1: Pushing a tag matching `v[0-9]+\.[0-9]+\.[0-9]+` triggers `release.yml` and publishes all workspace packages whose `package.json` version does not already exist on the npm registry.
 - [ ] AC2: Dry-run step is a required gate — publish step cannot run if dry-run fails.
 - [ ] AC3: `npm publish` uses `--provenance` flag for attestation.
 - [ ] AC4: `CHANGELOG.md` is updated automatically from conventional commits before publish.

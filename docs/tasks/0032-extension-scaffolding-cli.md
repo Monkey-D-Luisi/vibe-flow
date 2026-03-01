@@ -39,7 +39,7 @@ Relates to GitHub issue #156 (`docs/backlog/open-issues-intake.md`). Depends on 
 ### In Scope
 
 - CLI command (`pnpm create:extension <name>`) generating a new package under `extensions/<name>/`
-- Generated scaffold: `package.json`, `tsconfig.json`, `.eslintrc.cjs`, `vitest.config.ts`, `src/index.ts`, `src/__tests__/index.test.ts`, `README.md`
+- Generated scaffold: `package.json`, `tsconfig.json`, `.eslintrc.cjs`, `vitest.config.ts`, `src/index.ts`, `test/index.test.ts`, `README.md`
 - Unit tests covering generator logic and name validation
 - Integration test verifying the generated scaffold compiles cleanly
 
@@ -53,7 +53,7 @@ Relates to GitHub issue #156 (`docs/backlog/open-issues-intake.md`). Depends on 
 
 ## Requirements
 
-1. Generator must accept a `<name>` argument and validate it is a valid npm package name.
+1. Generator must accept a `<name>` argument and validate it is a kebab-case extension name (e.g. `my-plugin`). Validation: lowercase letters, digits, and hyphens only; no leading/trailing hyphens; no reserved names (e.g. `node_modules`, `src`).
 2. All generated files must conform to current project conventions (ESM, TypeScript strict, Vitest).
 3. Generator must refuse to overwrite an existing directory without `--force` flag.
 4. The generation action must be idempotent when `--force` is used.
@@ -85,7 +85,7 @@ Relates to GitHub issue #156 (`docs/backlog/open-issues-intake.md`). Depends on 
 3. Implement file generation using template literals for each output file type.
 4. Add overwrite guard — fail fast if target dir exists and `--force` not passed.
 5. Wire up as `pnpm create:extension` script in root `package.json`.
-6. Write unit tests in `tools/create-extension/src/__tests__/generator.test.ts`.
+6. Write unit tests in `tools/create-extension/test/generator.test.ts`.
 7. Write integration test that runs the CLI in a temp directory and verifies output compiles.
 
 ---
