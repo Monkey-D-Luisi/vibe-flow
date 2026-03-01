@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | Audit remediation 2026-02-27 |
 | Priority | MEDIUM |
 | Scope | MINOR |
@@ -59,10 +59,10 @@ Source findings: **D-004** (MEDIUM) and **D-006** (MEDIUM).
 
 ## Acceptance Criteria
 
-- [ ] AC1: `extensions/product-team/vitest.config.ts` has `lines: 85` (or adjusted value ≤ current actual).
-- [ ] AC2: `extensions/quality-gate/vitest.config.ts` has `lines: 50` (or adjusted value ≤ current actual).
-- [ ] AC3: A simulated threshold failure (e.g., temporarily lowering actual coverage) causes CI step to exit non-zero.
-- [ ] AC4: `pnpm test`, `pnpm lint`, `pnpm typecheck` all pass with new thresholds.
+- [x] AC1: `extensions/product-team/vitest.config.ts` has `lines: 85` (or adjusted value ≤ current actual).
+- [x] AC2: `extensions/quality-gate/vitest.config.ts` has `lines: 50` (or adjusted value ≤ current actual).
+- [x] AC3: A simulated threshold failure (e.g., temporarily lowering actual coverage) causes CI step to exit non-zero.
+- [x] AC4: `pnpm test`, `pnpm lint`, `pnpm typecheck` all pass with new thresholds.
 
 ---
 
@@ -93,12 +93,12 @@ Source findings: **D-004** (MEDIUM) and **D-006** (MEDIUM).
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Coverage thresholds updated and passing
-- [ ] CI workflow correctly fails on threshold miss
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated
+- [x] All Acceptance Criteria met
+- [x] Coverage thresholds updated and passing
+- [x] CI workflow correctly fails on threshold miss
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated
 - [ ] PR created and linked
 
 ---
