@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { analyzeWithEscomplex } from '../src/complexity/escomplex.js';
+import { analyzeWithEscomplex } from '@openclaw/quality-contracts/complexity/escomplex';
 import type { FileComplexity } from '@openclaw/quality-contracts/complexity/types';
 
 describe('analyzeWithEscomplex', () => {
