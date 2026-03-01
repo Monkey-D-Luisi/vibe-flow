@@ -124,8 +124,19 @@ export function resolveConcurrencyConfig(
   };
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  repo: string;
+  workspace: string;
+  defaultBranch?: string;
+  stitch?: { projectId: string | null };
+  quality?: { coverageMajor?: number; coverageMinor?: number; maxComplexity?: number };
+  [key: string]: unknown;
+}
+
 export interface ProjectConfig {
-  projects: Array<Record<string, unknown>>;
+  projects: Project[];
   activeProject: string;
 }
 
@@ -133,9 +144,15 @@ export function resolveProjectConfig(
   pluginConfig: Record<string, unknown> | undefined,
 ): ProjectConfig {
   const raw = pluginConfig?.projects;
-  const projects: Array<Record<string, unknown>> = Array.isArray(raw)
-    ? raw.filter((p): p is Record<string, unknown> => typeof p === 'object' && p !== null && !Array.isArray(p))
+  const projects: Project[] = Array.isArray(raw)
+    ? raw.filter((p): p is Project => {
+        if (typeof p !== 'object' || p === null || Array.isArray(p)) return false;
+        const rec = p as Record<string, unknown>;
+        return typeof rec['id'] === 'string' && rec['id'].length > 0
+          && typeof rec['repo'] === 'string'
+          && typeof rec['workspace'] === 'string';
+      })
     : [];
-  const activeProject = asNonEmptyString(pluginConfig?.activeProject) ?? (projects[0] ? String(projects[0]['id'] ?? '') : '');
+  const activeProject = asNonEmptyString(pluginConfig?.activeProject) ?? (projects[0]?.id ?? '');
   return { projects, activeProject };
 }

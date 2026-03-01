@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { ToolDeps } from '../../src/tools/index.js';
 import { createValidator } from '../../src/schemas/validator.js';
 import { projectListToolDef } from '../../src/tools/project-list.js';
@@ -131,6 +131,33 @@ describe('project.register', () => {
 
     expect(projectConfig.projects[0]?.['workspace']).toBe('/workspaces/auto');
   });
+
+  it('returns registered: false for invalid project id', async () => {
+    const projectConfig = {
+      projects: [],
+      activeProject: '',
+    };
+    const deps = makeDeps({ projectConfig });
+    const tool = projectRegisterToolDef(deps);
+
+    const result = await tool.execute('id-8a', { id: '../../etc', name: 'Evil', repo: 'owner/evil' });
+    const details = result.details as { registered: boolean; reason: string };
+
+    expect(details.registered).toBe(false);
+    expect(details.reason).toMatch(/Invalid project id/);
+  });
+
+  it('returns registered: false when no project registry is available', async () => {
+    const deps = makeDeps({ projectConfig: undefined });
+    const tool = projectRegisterToolDef(deps);
+
+    const result = await tool.execute('id-8b', { id: 'valid', name: 'Valid', repo: 'owner/valid' });
+    const details = result.details as { registered: boolean; reason: string };
+
+    expect(details.registered).toBe(false);
+    expect(details.reason).toMatch(/No project registry/);
+  });
+
 });
 
 describe('project.list content', () => {
