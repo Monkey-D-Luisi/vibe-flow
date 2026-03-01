@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
-// Thresholds reflect actual measured coverage (87.51% lines, 95.13% statements,
-// 79.21% functions, ~80% branches) with a safety buffer below actual.
+// Thresholds reflect actual measured coverage (lines/statements: 89.79%,
+// functions: 96.33%, branches: 79.6%) with a safety buffer below actual.
 // Target trajectory: raise by 5 points each quarter as coverage grows.
 const COVERAGE_THRESHOLDS = {
   statements: 85,
