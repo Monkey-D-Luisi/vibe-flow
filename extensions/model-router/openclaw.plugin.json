@@ -1,0 +1,16 @@
+{
+  "id": "model-router",
+  "name": "Model Router",
+  "version": "0.1.0",
+  "description": "Dynamic model routing for per-agent LLM assignments with fallback chains and provider health monitoring",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "healthCheckSecret": {
+        "type": "string",
+        "description": "Bearer token required to access GET /api/providers/health. If omitted the endpoint is unauthenticated (suitable for internal/Docker networks only)."
+      }
+    }
+  }
+}

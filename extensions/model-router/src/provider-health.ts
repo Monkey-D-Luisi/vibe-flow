@@ -13,7 +13,7 @@ type HealthResponse = {
   providers: Record<string, ProviderStatus>;
 };
 
-const PROVIDERS: ReadonlyArray<{
+export const PROVIDERS: ReadonlyArray<{
   id: string;
   url: string;
   authHeaders: () => Record<string, string>;
@@ -28,15 +28,20 @@ const PROVIDERS: ReadonlyArray<{
   },
   {
     id: 'anthropic',
-    url: 'https://api.anthropic.com',
+    // Use the models list endpoint — returns 401 without auth, 200 with valid key.
+    // Both outcomes confirm the server is reachable.
+    url: 'https://api.anthropic.com/v1/models',
     authHeaders: (): Record<string, string> => {
       const key = process.env['ANTHROPIC_API_KEY'];
-      return key ? { 'x-api-key': key } : {};
+      return key
+        ? { 'x-api-key': key, 'anthropic-version': '2023-06-01' }
+        : { 'anthropic-version': '2023-06-01' };
     },
   },
   {
     id: 'google',
-    url: 'https://generativelanguage.googleapis.com',
+    // Use the models list endpoint — returns 400/401 without auth, 200 with valid key.
+    url: 'https://generativelanguage.googleapis.com/v1beta/models',
     authHeaders: (): Record<string, string> => {
       const key = process.env['GOOGLE_AI_API_KEY'];
       return key ? { 'x-goog-api-key': key } : {};
@@ -46,57 +51,96 @@ const PROVIDERS: ReadonlyArray<{
 
 const TIMEOUT_MS = 5000;
 
-function checkProvider(
+export function checkProvider(
   url: string,
   authHeaders: Record<string, string>,
 ): Promise<ProviderStatus> {
   return new Promise(resolve => {
     const start = Date.now();
-    const { hostname, pathname } = new URL(url);
+    const { hostname, pathname, search } = new URL(url);
+    let settled = false;
+
+    const done = (result: ProviderStatus): void => {
+      if (!settled) {
+        settled = true;
+        resolve(result);
+      }
+    };
+
     const req = https.request(
       {
         hostname,
-        path: pathname,
+        path: pathname + search,
         method: 'HEAD',
         headers: authHeaders,
         timeout: TIMEOUT_MS,
       },
       (res: IncomingMessage) => {
         res.resume();
-        resolve({ connected: true, latencyMs: Date.now() - start });
+        const status = res.statusCode ?? 0;
+        // 5xx means the server is up but degraded; treat as not connected.
+        // 2xx, 3xx, and 4xx (auth/notfound) mean the server is reachable.
+        const connected = status < 500;
+        done({ connected, latencyMs: Date.now() - start });
       },
     );
+
     req.on('timeout', () => {
       req.destroy();
-      resolve({ connected: false, latencyMs: Date.now() - start, error: 'timeout' });
+      done({ connected: false, latencyMs: Date.now() - start, error: 'timeout' });
     });
+
     req.on('error', (err: Error) => {
-      resolve({ connected: false, latencyMs: Date.now() - start, error: err.message });
+      done({ connected: false, latencyMs: Date.now() - start, error: err.message });
     });
+
     req.end();
   });
 }
 
-function writeJson(res: ServerResponse, statusCode: number, body: HealthResponse | Record<string, unknown>): void {
+function writeJson(
+  req: IncomingMessage,
+  res: ServerResponse,
+  statusCode: number,
+  body: HealthResponse | Record<string, unknown>,
+): void {
   res.statusCode = statusCode;
   res.setHeader('content-type', 'application/json; charset=utf-8');
-  res.end(JSON.stringify(body));
+  // HEAD responses MUST NOT include a message body (RFC 9110 §9.3.2).
+  if (req.method === 'HEAD') {
+    res.end();
+  } else {
+    res.end(JSON.stringify(body));
+  }
 }
 
-export function registerProviderHealthRoute(api: OpenClawPluginApi): void {
+export function registerProviderHealthRoute(
+  api: OpenClawPluginApi,
+  checkFn: typeof checkProvider = checkProvider,
+): void {
   api.registerHttpRoute({
     path: '/api/providers/health',
     handler: async (req: IncomingMessage, res: ServerResponse) => {
       if (req.method !== 'GET' && req.method !== 'HEAD') {
-        writeJson(res, 405, { ok: false, error: 'method_not_allowed' });
+        writeJson(req, res, 405, { ok: false, error: 'method_not_allowed' });
         return;
+      }
+
+      // Optional bearer-token auth: if HEALTH_CHECK_SECRET is set, enforce it.
+      const secret = process.env['HEALTH_CHECK_SECRET'];
+      if (secret) {
+        const auth = (req.headers as Record<string, string>)['authorization'] ?? '';
+        if (auth !== `Bearer ${secret}`) {
+          writeJson(req, res, 401, { ok: false, error: 'unauthorized' });
+          return;
+        }
       }
 
       try {
         const results = await Promise.all(
           PROVIDERS.map(async p => ({
             id: p.id,
-            status: await checkProvider(p.url, p.authHeaders()),
+            status: await checkFn(p.url, p.authHeaders()),
           })),
         );
 
@@ -107,9 +151,9 @@ export function registerProviderHealthRoute(api: OpenClawPluginApi): void {
 
         const allConnected = results.every(r => r.status.connected);
         const httpStatus = allConnected ? 200 : 207;
-        writeJson(res, httpStatus, { ok: allConnected, providers });
+        writeJson(req, res, httpStatus, { ok: allConnected, providers });
       } catch (error: unknown) {
-        writeJson(res, 500, { ok: false, error: String(error) });
+        writeJson(req, res, 500, { ok: false, error: String(error) });
       }
     },
   });
