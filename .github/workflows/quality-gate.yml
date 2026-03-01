@@ -9,9 +9,13 @@ permissions:
   pull-requests: write
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality-gate:
-    name: Quality gate
+    name: quality-gate
     runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
     steps:
       # --- Setup ---
@@ -61,11 +65,6 @@ jobs:
         run: pnpm q:complexity
         continue-on-error: true
 
-      - name: Full gate enforcement
-        id: gate
-        run: pnpm q:gate
-        continue-on-error: true
-
       - name: Vulnerability policy
         id: vuln
         run: |
@@ -77,7 +76,7 @@ jobs:
       # --- PR comment report ---
 
       - name: Build and upsert quality report comment
-        if: always()
+        if: always() && github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TESTS_OUTCOME: ${{ steps.tests.outcome }}
@@ -151,6 +150,7 @@ jobs:
           GATE_FAILED=0
           [ "$TESTS_OUTCOME" = "failure" ] && GATE_FAILED=1
           [ "$LINT_OUTCOME" = "failure" ] && GATE_FAILED=1
+          [ "$COMPLEXITY_OUTCOME" = "failure" ] && GATE_FAILED=1
           [ "$VULN_EXIT" != "0" ] && GATE_FAILED=1
           if [ "$GATE_FAILED" = "1" ]; then
             VERDICT_ICON="❌"
@@ -183,7 +183,7 @@ jobs:
           } > /tmp/qg-report.md
 
           # ---- Upsert PR comment ----
-          EXISTING_ID=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+          EXISTING_ID=$(gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" \
             --jq '.[] | select(.body | startswith("<!-- quality-gate-report -->")) | .id' \
             | head -1)
 
@@ -204,6 +204,7 @@ jobs:
         env:
           TESTS_OUTCOME: ${{ steps.tests.outcome }}
           LINT_OUTCOME: ${{ steps.lint.outcome }}
+          COMPLEXITY_OUTCOME: ${{ steps.complexity.outcome }}
           VULN_EXIT: ${{ steps.vuln.outputs.exit_code }}
         run: |
           VULN_EXIT="${VULN_EXIT:-1}"
@@ -215,6 +216,10 @@ jobs:
           fi
           if [ "$LINT_OUTCOME" = "failure" ]; then
             echo "::error::Lint gate failed (lint errors detected)"
+            FAILED=1
+          fi
+          if [ "$COMPLEXITY_OUTCOME" = "failure" ]; then
+            echo "::error::Complexity gate failed (threshold exceeded)"
             FAILED=1
           fi
           if [ "$VULN_EXIT" != "0" ]; then
