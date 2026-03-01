@@ -45,6 +45,9 @@ import {
 } from './config/plugin-config.js';
 import { registerProcessShutdownHooks } from './lifecycle/process-shutdown.js';
 import { initializeWorkspaces } from './services/workspace-init.js';
+import { createHealthCheckHandler } from './services/health-check.js';
+import { MonitoringCron } from './services/monitoring-cron.js';
+import { createGracefulShutdown } from './hooks/graceful-shutdown.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 export { resolveConcurrencyConfig } from './config/plugin-config.js';
@@ -89,17 +92,6 @@ export function register(api: OpenClawPluginApi): void {
   const db = createDatabase(resolvedPath);
   runMigrations(db);
 
-  // Close database on process exit to flush WAL
-  const closeDb = () => {
-    try {
-      db.close();
-      api.logger.info('database closed');
-    } catch (error: unknown) {
-      api.logger.warn(`failed to close database during shutdown: ${String(error)}`);
-    }
-  };
-  registerProcessShutdownHooks(closeDb);
-
   api.logger.info(`database initialized at ${resolvedPath}`);
 
   // Create repositories
@@ -123,6 +115,45 @@ export function register(api: OpenClawPluginApi): void {
   });
   const eventLog = new EventLog(eventRepo, generateId, now);
   const leaseManager = new LeaseManager(leaseRepo, eventLog, now, undefined, concurrencyConfig);
+
+  // Start monitoring cron (posts health/activity/cost to Telegram on schedule)
+  const telegramChatId =
+    typeof pluginConfig?.telegramChatId === 'string' ? pluginConfig.telegramChatId : undefined;
+  const monitoringCron = new MonitoringCron({
+    healthCheckDeps: {
+      db,
+      pluginConfig,
+      eventLogWritable: () => {
+        try {
+          db.prepare('SELECT 1').get();
+          return true;
+        } catch {
+          return false;
+        }
+      },
+    },
+    eventRepo,
+    logger: api.logger,
+    telegramChatId,
+  });
+  monitoringCron.start();
+
+  // Register graceful shutdown: release leases, WAL checkpoint, close DB, stop cron
+  const gracefulShutdown = createGracefulShutdown({
+    db,
+    leaseRepo,
+    logger: api.logger,
+    stopMonitoringCron: () => monitoringCron.stop(),
+  });
+  registerProcessShutdownHooks(() => {
+    gracefulShutdown();
+    try {
+      db.close();
+      api.logger.info('database closed');
+    } catch (err: unknown) {
+      api.logger.warn(`failed to close database during shutdown: ${String(err)}`);
+    }
+  });
   const githubConfig = resolveGithubConfig(pluginConfig);
   const ghClient = new GhClient({
     owner: githubConfig.owner,
@@ -243,6 +274,24 @@ export function register(api: OpenClawPluginApi): void {
   for (const tool of tools) {
     api.registerTool(tool);
   }
+
+  // Register production health check endpoint: GET /health
+  api.registerHttpRoute({
+    path: '/health',
+    handler: createHealthCheckHandler({
+      db,
+      pluginConfig,
+      eventLogWritable: () => {
+        try {
+          db.prepare('SELECT 1').get();
+          return true;
+        } catch {
+          return false;
+        }
+      },
+    }),
+  });
+  api.logger.info('registered GET /health endpoint');
 
   if (githubConfig.prBot.enabled) {
     api.on('after_tool_call', async (event, ctx) => {
