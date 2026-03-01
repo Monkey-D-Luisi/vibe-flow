@@ -33,11 +33,7 @@ function getFixtures(agentRole: string): Record<string, unknown[]> | null {
   const fileName = ROLE_FIXTURE_FILES[agentRole];
   if (!fileName) return null;
   if (!_fixtureCache.has(agentRole)) {
-    try {
-      _fixtureCache.set(agentRole, loadFixture(fileName));
-    } catch {
-      return null;
-    }
+    _fixtureCache.set(agentRole, loadFixture(fileName));
   }
   return _fixtureCache.get(agentRole) ?? null;
 }

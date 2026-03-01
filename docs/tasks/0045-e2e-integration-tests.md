@@ -27,7 +27,7 @@ pipeline mechanics to be tested without actual LLM calls.
 ### D1: Mock Provider Infrastructure
 
 ```
-tests/e2e/
+extensions/product-team/test/e2e/
 ├── mocks/
 │   ├── llm-provider.ts         # Mock LLM that returns role-appropriate responses
 │   ├── stitch-mcp.ts           # Mock Stitch MCP endpoint
@@ -87,11 +87,15 @@ tests/e2e/
 
 Add E2E test script to root `package.json`:
 ```json
-"test:e2e": "pnpm vitest run tests/e2e/"
+"test:e2e": "pnpm --filter @openclaw/plugin-product-team test:e2e"
 ```
 
-E2E tests run in CI alongside unit tests but are tagged for optional skip
-(`vitest --tag e2e`) since they're slower.
+And to `extensions/product-team/package.json`:
+```json
+"test:e2e": "vitest run --config vitest.config.ts test/e2e/"
+```
+
+E2E tests run in CI alongside unit tests via `pnpm test:e2e`.
 
 ## Acceptance Criteria
 

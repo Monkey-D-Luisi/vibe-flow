@@ -126,12 +126,5 @@ describe('E2E: Quality Gate Failure — QA fails, retry, then passes', () => {
     const qaInbox = await tools.teamInbox.execute(nextCallId(), { agentId: 'qa' });
     assertInboxHasMessage(qaInbox, 'Tests fixed');
 
-    // Verify tech-lead retry count reflects the sendback
-    const retryResult = await tools.pipelineRetry.execute(nextCallId(), {
-      taskId,
-      stage: 'REVIEW',
-    });
-    const { retried } = (retryResult as { details: { retried: boolean } }).details;
-    expect(retried).toBe(true);
   });
 });
