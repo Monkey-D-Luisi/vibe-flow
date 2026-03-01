@@ -1,0 +1,40 @@
+# ─────────────────────────────────────────────────────────────
+# OpenClaw Autonomous Product Team — Docker Compose
+# ─────────────────────────────────────────────────────────────
+# Usage:
+#   docker compose build
+#   docker compose up -d
+#   docker compose logs -f gateway
+#
+# Gateway UI: http://localhost:28789/
+# Existing WSL OpenClaw stays on :18789 (no collision)
+# ─────────────────────────────────────────────────────────────
+
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: openclaw-product-team
+    ports:
+      - "28789:28789"
+    volumes:
+      - openclaw-data:/app/data
+      - openclaw-workspaces:/workspaces
+    env_file:
+      - .env.docker
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:28789/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  openclaw-data:
+    driver: local
+  openclaw-workspaces:
+    driver: local
