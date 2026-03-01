@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Product Team Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e5e7eb; min-height: 100vh; }
+    header { background: #1a1a24; border-bottom: 1px solid #2d2d3d; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 1.2rem; font-weight: 600; color: #a5b4fc; }
+    nav { display: flex; gap: 8px; margin-left: auto; }
+    nav a { color: #9ca3af; text-decoration: none; font-size: 0.85rem; padding: 4px 10px; border-radius: 6px; }
+    nav a:hover { background: #2d2d3d; color: #e5e7eb; }
+    main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .card { background: #1a1a24; border: 1px solid #2d2d3d; border-radius: 10px; padding: 20px; }
+    .card .label { font-size: 0.78rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .card .value { font-size: 2rem; font-weight: 700; color: #a5b4fc; }
+    .card .sub { font-size: 0.8rem; color: #6b7280; margin-top: 4px; }
+    h2 { font-size: 1rem; font-weight: 600; color: #d1d5db; margin-bottom: 14px; }
+    table { width: 100%; border-collapse: collapse; background: #1a1a24; border: 1px solid #2d2d3d; border-radius: 10px; overflow: hidden; }
+    th { text-align: left; padding: 10px 14px; font-size: 0.78rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #2d2d3d; }
+    td { padding: 10px 14px; font-size: 0.88rem; border-bottom: 1px solid #1e1e2c; }
+    tr:last-child td { border-bottom: none; }
+    .status-idle { color: #4ade80; }
+    .model-tag { background: #2d2d3d; color: #9ca3af; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; font-family: monospace; }
+    .notice { background: #1a1a24; border: 1px solid #2d2d3d; border-radius: 10px; padding: 20px; color: #6b7280; font-size: 0.88rem; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Product Team Dashboard</h1>
+    <nav>
+      <a href="/team">Dashboard</a>
+      <a href="/team/agents">Agents</a>
+      <a href="/team/pipeline">Pipeline</a>
+      <a href="/team/projects">Projects</a>
+      <a href="/team/settings">Settings</a>
+    </nav>
+  </header>
+  <main>
+    <div class="cards">
+      <div class="card">
+        <div class="label">Active Tasks</div>
+        <div class="value" id="activeTasks">0</div>
+        <div class="sub">across pipeline stages</div>
+      </div>
+      <div class="card">
+        <div class="label">Agents Working</div>
+        <div class="value" id="agentsWorking">0</div>
+        <div class="sub">out of 10 agents</div>
+      </div>
+      <div class="card">
+        <div class="label">Cost Today</div>
+        <div class="value" id="costToday">$0.00</div>
+        <div class="sub">vs budget</div>
+      </div>
+      <div class="card">
+        <div class="label">Providers</div>
+        <div class="value">3</div>
+        <div class="sub">OpenAI · Anthropic · Google</div>
+      </div>
+    </div>
+
+    <h2>Agent Roster</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Agent</th>
+          <th>Model</th>
+          <th>Status</th>
+          <th>Cost Today</th>
+        </tr>
+      </thead>
+      <tbody id="agentBody">
+        <tr><td colspan="4" style="color:#6b7280;text-align:center;padding:20px">Loading agents...</td></tr>
+      </tbody>
+    </table>
+
+    <div class="notice">
+      Full dashboard UI (pipeline kanban, project management, settings panel, real-time WebSocket feed) is deferred to a follow-up task.
+      All 12 gateway methods are registered and ready.
+    </div>
+  </main>
+</body>
+</html>
