@@ -86,6 +86,7 @@ describe('generateExtension', () => {
       'tsconfig.json',
       '.eslintrc.cjs',
       'vitest.config.ts',
+      'openclaw.plugin.json',
       join('src', 'index.ts'),
       join('test', 'index.test.ts'),
       'README.md',
@@ -115,6 +116,17 @@ describe('generateExtension', () => {
     expect(scripts.lint).toContain('eslint');
     expect(scripts.typecheck).toBe('tsc --noEmit');
     expect(scripts.build).toBe('tsc');
+  });
+
+  it('generates openclaw.plugin.json with correct id and name', () => {
+    generateExtension({ name: 'my-plugin', targetDir });
+    const manifest = JSON.parse(
+      readFileSync(join(targetDir, 'openclaw.plugin.json'), 'utf8'),
+    ) as Record<string, unknown>;
+
+    expect(manifest.id).toBe('my-plugin');
+    expect(manifest.name).toBe('my-plugin');
+    expect(manifest.version).toBe('0.1.0');
   });
 
   it('generates src/index.ts with plugin name', () => {

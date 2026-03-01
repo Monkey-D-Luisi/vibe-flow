@@ -14,8 +14,8 @@
 
 Created `tools/create-extension/` — a Node.js CLI generator that scaffolds new
 OpenClaw extension packages at `extensions/<name>/` with all required boilerplate:
-`package.json`, `tsconfig.json`, `.eslintrc.cjs`, `vitest.config.ts`, `src/index.ts`,
-`test/index.test.ts`, and `README.md`.
+`package.json`, `tsconfig.json`, `.eslintrc.cjs`, `vitest.config.ts`,
+`openclaw.plugin.json`, `src/index.ts`, `test/index.test.ts`, and `README.md`.
 
 The tool is available via `pnpm create:extension <name>` from the workspace root and
 uses only Node.js built-ins (`fs`, `path`) — no external generator libraries.
@@ -83,10 +83,10 @@ pnpm test                                             # 423 tests pass (all work
 pnpm lint                                             # clean (all workspaces)
 ```
 
-Note: `pnpm typecheck` reports pre-existing errors in untracked EP08 files
-(`extensions/product-team/src/tools/{decision-engine,pipeline,project-*,team-messaging}.ts`).
-These files are untracked (`??`) and pre-date this task. The `tools/create-extension`
-package typechecks cleanly in isolation.
+Note: untracked EP08 files in `extensions/product-team/src/tools/` referenced
+properties not yet declared in `ToolDeps`. This PR adds the optional `projectConfig`,
+`agentConfig`, and `decisionConfig` fields to `ToolDeps` in `index.ts`, making
+`pnpm typecheck` clean across all packages.
 
 ---
 
@@ -98,7 +98,7 @@ package typechecks cleanly in isolation.
 | `tools/create-extension/tsconfig.json` | Created | TypeScript config matching extension conventions |
 | `tools/create-extension/.eslintrc.cjs` | Created | ESLint config matching extension conventions |
 | `tools/create-extension/vitest.config.ts` | Created | Vitest config with 80/75/80/80 thresholds |
-| `tools/create-extension/src/generator.ts` | Created | `validateName`, `generateExtension`, and 7 template renderers |
+| `tools/create-extension/src/generator.ts` | Created | `validateName`, `generateExtension`, and 8 template renderers (incl. `openclaw.plugin.json`) |
 | `tools/create-extension/src/cli.ts` | Created | CLI entry: arg parsing, calls generator, exits on error |
 | `tools/create-extension/test/generator.test.ts` | Created | 20 unit + integration tests |
 | `pnpm-workspace.yaml` | Modified | Added `tools/*` to workspace packages |
