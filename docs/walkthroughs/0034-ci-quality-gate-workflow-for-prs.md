@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0034-ci-quality-gate-workflow-for-prs.md`
 - Epic: EP07 — DX & Platform Ops
 - Branch: `feat/0034-ci-quality-gate-workflow-for-prs`
-- PR: _pending_
+- PR: [#197](https://github.com/Monkey-D-Luisi/vibe-flow/pull/197)
 - Source Issue: GitHub #158
 - Related Task: `0015` (vulnerability CI gating — partial coverage)
 
