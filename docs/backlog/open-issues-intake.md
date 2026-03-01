@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Source | GitHub Project board + open issue triage |
-| Updated | 2026-02-25 |
+| Updated | 2026-03-01 |
 | Status | PLANNED (not in active task queue) |
 
 ## Purpose
@@ -16,7 +16,7 @@ queue for AR01 remediation.
 
 | Issue | Title | Proposed Track | Current Mapping | Next Step to Activate |
 |-------|-------|----------------|-----------------|-----------------------|
-| #154 | Gate auto-tuning: adjust thresholds based on historical metrics | EP05 follow-up (quality optimization) | Task `0020` DONE (`docs/tasks/0020-gate-auto-tuning-historical-metrics.md`) | Move issue to closed set and keep this intake row as completed traceability evidence. |
+| #154 | Gate auto-tuning: adjust thresholds based on historical metrics | EP05 follow-up (quality optimization) | Task `0020` DONE (`docs/tasks/0020-gate-auto-tuning-historical-metrics.md`) | **CLOSED** — GitHub issue closed 2026-03-01. Traceability retained. |
 | #155 | Threshold alerts: notify on coverage drops or complexity rises | EP05 follow-up (quality alerting) | Task `0021` DONE (`docs/tasks/0021-threshold-alerts-notify-on-coverage-drops-or-complexity-rises.md`) | Move issue to closed set and keep this intake row as completed traceability evidence. |
 | #156 | Extension scaffolding CLI for new OpenClaw plugins | DX track | Not in task specs | Create scoped task for generator CLI architecture and acceptance tests. |
 | #157 | npm publish pipeline for @openclaw/* extensions | Release engineering track | Not in task specs | Define release/versioning strategy and CI publish safeguards, then create task spec. |
