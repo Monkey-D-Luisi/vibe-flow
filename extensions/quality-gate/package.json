@@ -2,6 +2,7 @@
   "name": "@openclaw/quality-gate",
   "version": "0.1.0",
   "type": "module",
+  "main": "./src/index.ts",
   "description": "Quality gate extension for OpenClaw: test runner, coverage, lint, complexity, and gate enforcement",
   "scripts": {
     "test": "vitest run --passWithNoTests",
@@ -24,15 +25,15 @@
     "@types/node": "^22.5.4",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
-    "@vitest/coverage-v8": "^2.0.5",
+    "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^8.57.0",
     "tsx": "^4.16.0",
-    "typescript": "^5.6.2",
-    "vitest": "^2.0.5"
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
   },
   "openclaw": {
     "extensions": [
-      "./index.ts"
+      "./src/index.ts"
     ]
   }
 }
