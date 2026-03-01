@@ -19,14 +19,6 @@ export const PROVIDERS: ReadonlyArray<{
   authHeaders: () => Record<string, string>;
 }> = [
   {
-    id: 'openai',
-    url: 'https://api.openai.com/v1/models',
-    authHeaders: (): Record<string, string> => {
-      const key = process.env['OPENAI_API_KEY'];
-      return key ? { Authorization: `Bearer ${key}` } : {};
-    },
-  },
-  {
     id: 'anthropic',
     // Use the models list endpoint — returns 401 without auth, 200 with valid key.
     // Both outcomes confirm the server is reachable.
@@ -39,12 +31,33 @@ export const PROVIDERS: ReadonlyArray<{
     },
   },
   {
-    id: 'google',
-    // Use the models list endpoint — returns 400/401 without auth, 200 with valid key.
-    url: 'https://generativelanguage.googleapis.com/v1beta/models',
+    id: 'openai-codex',
+    // OpenAI Codex provider — authenticated via OAuth (JWT stored in auth-profiles.json).
+    // Health check uses the models endpoint; auth token is managed by the runtime,
+    // so we only verify reachability here.
+    url: 'https://api.openai.com/v1/models',
     authHeaders: (): Record<string, string> => {
-      const key = process.env['GOOGLE_AI_API_KEY'];
-      return key ? { 'x-goog-api-key': key } : {};
+      const key = process.env['OPENAI_API_KEY'];
+      return key ? { Authorization: `Bearer ${key}` } : {};
+    },
+  },
+  {
+    id: 'github-copilot',
+    // GitHub Copilot provider — uses GitHub user token for the Copilot proxy API.
+    // Auth is managed by the runtime via auth-profiles.json; we check reachability.
+    url: 'https://api.individual.githubcopilot.com',
+    authHeaders: (): Record<string, string> => {
+      const token = process.env['GITHUB_TOKEN'];
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    },
+  },
+  {
+    id: 'openai-transcription',
+    // OpenAI direct API — used only for audio transcription (gpt-4o-mini-transcribe).
+    url: 'https://api.openai.com/v1/models',
+    authHeaders: (): Record<string, string> => {
+      const key = process.env['OPENAI_API_KEY'];
+      return key ? { Authorization: `Bearer ${key}` } : {};
     },
   },
 ];
