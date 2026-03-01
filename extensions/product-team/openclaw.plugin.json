@@ -4,12 +4,20 @@
   "version": "0.1.0",
   "description": "Task engine and workflow tools for a multi-agent product development team",
   "skills": [
-    "../../skills/requirements-grooming",
+    "../../skills/adr",
     "../../skills/architecture-design",
-    "../../skills/tdd-implementation",
+    "../../skills/backend-dev",
     "../../skills/code-review",
+    "../../skills/devops",
+    "../../skills/frontend-dev",
+    "../../skills/github-automation",
+    "../../skills/patterns",
+    "../../skills/product-owner",
     "../../skills/qa-testing",
-    "../../skills/github-automation"
+    "../../skills/requirements-grooming",
+    "../../skills/tdd-implementation",
+    "../../skills/tech-lead",
+    "../../skills/ui-designer"
   ],
   "configSchema": {
     "type": "object",
