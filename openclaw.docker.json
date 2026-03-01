@@ -92,7 +92,8 @@
     "load": {
       "paths": [
         "./extensions/product-team",
-        "./extensions/quality-gate"
+        "./extensions/quality-gate",
+        "./extensions/telegram-notifier"
       ]
     },
     "entries": {
