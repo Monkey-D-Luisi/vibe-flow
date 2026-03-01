@@ -1,0 +1,23 @@
+{
+  "id": "telegram-notifier",
+  "name": "Telegram Team Notifier",
+  "version": "0.1.0",
+  "description": "Bridges agent lifecycle events to a Telegram group; accepts human commands for team control",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "groupId": {
+        "type": "string",
+        "description": "Telegram group/chat ID to post notifications"
+      },
+      "rateLimit": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "maxPerMinute": { "type": "integer", "minimum": 1, "default": 20 }
+        }
+      }
+    }
+  }
+}

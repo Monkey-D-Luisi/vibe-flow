@@ -8,7 +8,7 @@ and accepts human commands for team control.
 - **Built on native Telegram channel**: OpenClaw has first-class Telegram support
   via grammy. The plugin uses lifecycle hooks and commands, not a standalone bot.
 - **Rate-limited message queue**: A background service flushes messages at
-  ~1/3sec to stay within Telegram's 30 msg/min/group limit.
+  ~3sec to stay within Telegram's 30 msg/min/group limit.
 - **Plugin commands**: Used `api.registerCommand()` for `/status`, `/idea`,
   `/health`, `/budget`. These bypass the LLM agent and return directly.
 - **MarkdownV2 formatting**: Telegram's strictest markdown mode for consistent
