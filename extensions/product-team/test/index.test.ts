@@ -163,10 +163,10 @@ describe('product-team plugin', () => {
     expect(api.logger.info).toHaveBeenCalledWith('product-team plugin loaded');
   });
 
-  it('registers exactly 20 task/workflow/quality/vcs tools', () => {
+  it('registers exactly 31 task/workflow/quality/vcs/messaging/decision/pipeline tools', () => {
     const api = createMockApi();
     register(api);
-    expect(api.registerTool).toHaveBeenCalledTimes(20);
+    expect(api.registerTool).toHaveBeenCalledTimes(31);
   });
 
   it('registers tools with expected names', () => {
@@ -198,13 +198,24 @@ describe('product-team plugin', () => {
     expect(toolNames).toContain('project.list');
     expect(toolNames).toContain('project.switch');
     expect(toolNames).toContain('project.register');
+    expect(toolNames).toContain('team.message');
+    expect(toolNames).toContain('team.inbox');
+    expect(toolNames).toContain('team.reply');
+    expect(toolNames).toContain('team.status');
+    expect(toolNames).toContain('team.assign');
+    expect(toolNames).toContain('decision.evaluate');
+    expect(toolNames).toContain('decision.log');
+    expect(toolNames).toContain('pipeline.start');
+    expect(toolNames).toContain('pipeline.status');
+    expect(toolNames).toContain('pipeline.retry');
+    expect(toolNames).toContain('pipeline.skip');
   });
 
   it('logs tool registration count', () => {
     const api = createMockApi();
     register(api);
     expect(api.logger.info).toHaveBeenCalledWith(
-      'registered 20 task/workflow/quality/vcs tools',
+      'registered 31 task/workflow/quality/vcs tools',
     );
   });
 
