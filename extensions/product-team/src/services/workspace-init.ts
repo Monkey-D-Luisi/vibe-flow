@@ -7,8 +7,12 @@ interface Logger {
   readonly warn: (message: string) => void;
 }
 
+// Only GitHub.com HTTPS clone URLs are supported.
 const SAFE_REPO_RE = /^[\w.-]+\/[\w.-]+$/;
 const SAFE_PATH_RE = /^[^;&|`$(){}!<>"'\\~\n\r]+$/;
+const PATH_TRAVERSAL_RE = /(?:^|\/)\.\.(?:\/|$)/;
+
+const GIT_TIMEOUT_MS = 60_000;
 
 function validateRepo(repo: string): void {
   if (!SAFE_REPO_RE.test(repo)) {
@@ -20,14 +24,23 @@ function validatePath(workspacePath: string): void {
   if (!SAFE_PATH_RE.test(workspacePath)) {
     throw new Error(`workspace-init: unsafe workspace path: "${workspacePath}"`);
   }
+  if (PATH_TRAVERSAL_RE.test(workspacePath)) {
+    throw new Error(`workspace-init: path traversal not allowed in workspace path: "${workspacePath}"`);
+  }
 }
 
 function runGit(args: string[], cwd?: string): Promise<{ exitCode: number; stderr: string }> {
   return new Promise((resolve) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      controller.abort();
+    }, GIT_TIMEOUT_MS);
+
     const child = spawn('git', args, {
       cwd,
       stdio: ['ignore', 'ignore', 'pipe'],
       shell: false,
+      signal: controller.signal,
     });
 
     let stderr = '';
@@ -36,11 +49,17 @@ function runGit(args: string[], cwd?: string): Promise<{ exitCode: number; stder
     });
 
     child.on('close', (code) => {
+      clearTimeout(timer);
       resolve({ exitCode: code ?? -1, stderr });
     });
 
-    child.on('error', (err) => {
-      resolve({ exitCode: -1, stderr: err.message });
+    child.on('error', (err: NodeJS.ErrnoException) => {
+      clearTimeout(timer);
+      if (controller.signal.aborted) {
+        resolve({ exitCode: -1, stderr: 'git operation timed out' });
+      } else {
+        resolve({ exitCode: -1, stderr: err.message });
+      }
     });
   });
 }

@@ -6,9 +6,9 @@ Extended the product-team plugin with multi-project workspace support, allowing
 agents to register, list, and switch between project workspaces. Three new tools
 (`project.list`, `project.switch`, `project.register`) manage a project registry
 backed by the `projects` section in `openclaw.docker.json`. On gateway startup
-each registered workspace is initialized (git clone or fetch). Switching projects
-updates the active context for all downstream tools (quality thresholds, VCS
-owner/repo, Stitch project ID, task filtering).
+each registered workspace is initialized (git clone or fetch). Switching projects updates only the in-memory `projectConfig.activeProject` field;
+wiring this context into quality, VCS, design tools, and task tagging is deferred
+follow-up work (see Deferred Items below).
 
 ## Changes
 
