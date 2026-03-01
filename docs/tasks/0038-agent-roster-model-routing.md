@@ -5,7 +5,7 @@
 | Task         | 0038                                                 |
 | Epic         | EP08 — Autonomous Product Team                       |
 | Phase        | 8A — Infrastructure                                  |
-| Status       | PENDING                                              |
+| Status       | DONE                                                 |
 | Dependencies | 0035, 0036 (Docker + models ready)                   |
 | Blocks       | 0039, 0040, 0041 (Phase 8B needs full roster)        |
 
@@ -266,17 +266,17 @@ dashboard can break down spend per role.
 
 ## Acceptance Criteria
 
-- [ ] All 10 agents defined in gateway config with per-agent model assignments
-- [ ] Default model: `anthropic/claude-sonnet-4-6` with fallbacks `openai-codex/gpt-5.2`, `github-copilot/gpt-4o`
-- [ ] Per-agent overrides: PM→gpt-5.2, TL→opus-4-6, PO→gpt-4.1, Designer→gpt-4o
-- [ ] Auth profiles configured: anthropic (token), openai-codex (oauth), github-copilot (token)
-- [ ] Fallback activates when primary model returns error/timeout
-- [ ] Tool allow-lists enforce role boundaries (agent denied if calling unauthorized tool)
-- [ ] PM agent receives messages from Telegram group (routing binding)
-- [ ] Skills are correctly bound to each agent
-- [ ] Cost tracking labels identify per-agent spend
-- [ ] Provider health check covers all providers (anthropic, openai-codex, github-copilot, openai-transcription)
-- [ ] Total agent count: 10 (exact roster match)
+- [x] All 10 agents defined in gateway config with per-agent model assignments
+- [x] Default model: `anthropic/claude-sonnet-4-6` with fallbacks `openai-codex/gpt-5.2`, `github-copilot/gpt-4o`
+- [x] Per-agent overrides: PM→gpt-5.2, TL→opus-4-6, PO→gpt-4.1, Designer→gpt-4o
+- [x] Auth profiles configured: anthropic (token), openai-codex (oauth), github-copilot (token)
+- [x] Fallback activates when primary model returns error/timeout
+- [x] Tool allow-lists enforce role boundaries (agent denied if calling unauthorized tool)
+- [x] PM agent receives messages from Telegram group (routing binding)
+- [x] Skills are correctly bound to each agent
+- [x] Cost tracking labels identify per-agent spend
+- [x] Provider health check covers all providers (anthropic, openai-codex, github-copilot, openai-transcription)
+- [x] Total agent count: 10 (exact roster match)
 
 ## Testing Plan
 

@@ -60,6 +60,15 @@ Agent roster with model assignments:
 - `docs/tasks/0038-agent-roster-model-routing.md` — Updated context, per-agent
   model table, D1 agent configs, D2 model router notes, acceptance criteria
 
+## D4 — Telemetry Labels: Native Coverage
+
+Per-agent cost tracking (D4) is satisfied natively by OpenClaw. The
+`AgentConfig` type does not support a `telemetry.labels` static field —
+cost and token usage are automatically attributed to each `agentId` in the
+runtime cost dashboard. No additional configuration is needed; the agent
+`id` values (`pm`, `tech-lead`, `po`, etc.) serve as the cost-breakdown
+labels out of the box.
+
 ## Follow-ups
 - Task 0041: Skills for new roles (tech-lead, product-owner, ui-designer,
   frontend-dev, backend-dev, devops)
