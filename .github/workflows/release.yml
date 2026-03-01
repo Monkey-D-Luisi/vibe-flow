@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  quality-gate:
+    name: Quality gate
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rebuild native modules
+        working-directory: extensions/product-team
+        run: node -e "const c=require('child_process'),p=require('path');const pkg=p.dirname(require.resolve('better-sqlite3/package.json'));console.log('Rebuilding better-sqlite3 at',pkg);c.execSync('npm run install',{cwd:pkg,stdio:'inherit'});"
+
+      - name: Security audit policy gate
+        run: pnpm verify:vuln-policy
+
+      - name: Validate tool allow-lists
+        run: pnpm tsx scripts/validate-allowlists.ts
+
+      - name: Verify root quality-gate command surface
+        run: pnpm verify:q-surface
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Coverage policy
+        run: |
+          set -e
+          pnpm --filter @openclaw/quality-gate test:coverage || exit 1
+          pnpm --filter @openclaw/plugin-product-team test:coverage || exit 1
+
+  publish:
+    name: Publish to npm
+    needs: quality-gate
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate CHANGELOG.md
+        run: pnpm changelog
+
+      - name: Dry-run publish (verify all packages can be published)
+        run: node scripts/publish-packages.mjs --dry-run
+
+      - name: Publish to npm with provenance
+        run: node scripts/publish-packages.mjs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

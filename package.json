@@ -16,11 +16,13 @@
     "q:lint": "pnpm --filter @openclaw/quality-gate q:cli run --lint",
     "q:complexity": "pnpm --filter @openclaw/quality-gate q:cli run --complexity",
     "verify:q-surface": "tsx scripts/verify-root-quality-gate-command-surface.ts",
-    "verify:vuln-policy": "tsx scripts/enforce-ci-vulnerability-policy.ts"
+    "verify:vuln-policy": "tsx scripts/enforce-ci-vulnerability-policy.ts",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
+    "conventional-changelog-cli": "^5.0.0",
     "husky": "^9.1.7",
     "tsx": "^4.16.0"
   }
