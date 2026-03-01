@@ -11,9 +11,9 @@
 
 ## Goal
 
-Configure the OpenClaw gateway with four LLM providers (OpenAI, Anthropic,
-Google, GitHub Copilot) and define the model catalog with fallback chains that
-each agent role will use.
+Configure the OpenClaw gateway with three LLM providers (OpenAI, Anthropic,
+Google) and define the model catalog with fallback chains that each agent role
+will use.
 
 ## Context
 
@@ -142,7 +142,7 @@ provider's API and reports status. Used by the Telegram health monitor.
 
 ## Acceptance Criteria
 
-- [x] All four providers are configured in `openclaw.docker.json`
+- [x] All three providers (OpenAI, Anthropic, Google) are configured in `openclaw.docker.json`
 - [x] Each provider authenticates successfully (verified by health check)
 - [x] Model definitions include correct API type, costs, and context windows
 - [x] Fallback chains are defined for every agent
