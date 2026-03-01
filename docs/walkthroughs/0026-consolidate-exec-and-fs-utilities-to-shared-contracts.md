@@ -1,76 +1,54 @@
-# Walkthrough: 0026 -- Consolidate exec/spawn and fs Utilities to Shared Contracts
-
-## Task Reference
-
-- Task: `docs/tasks/0026-consolidate-exec-and-fs-utilities-to-shared-contracts.md`
-- Epic: Audit remediation 2026-02-27
-- Branch: `feat/0026-consolidate-exec-fs-utilities-to-shared-contracts`
-- PR: _pending_
-
----
+# Walkthrough — 0026: Consolidate exec/spawn and fs Utilities
 
 ## Summary
 
-_To be completed when task is implemented._
+Extracted duplicated `exec/spawn.ts` and file-system utilities from both
+`extensions/product-team` and `extensions/quality-gate` into the shared
+`@openclaw/quality-contracts` package.
 
----
+## Key Changes
 
-## Context
+### New modules in `packages/quality-contracts/`
 
-Source findings A-003 (spawn utility 99%+ duplicated) and A-002 (fs utilities ~95% duplicated) from the 2026-02-27 audit. Security-critical spawn logic duplicated in both extensions means security patches must be applied in two places.
+| Module | Exports |
+|--------|---------|
+| `src/exec/spawn.ts` | `safeSpawn`, `assertSafeCommand`, `assertPathContained`, `parseCommand`, `SpawnResult` |
+| `src/fs/glob.ts` | `resolveGlobPatterns`, `filterByExclude`, `MAX_PATTERN_LENGTH`, `GlobOptions` |
+| `src/fs/read.ts` | `readFileSafe`, `readJsonFile`, `MAX_JSON_FILE_BYTES` |
 
----
+### Updated `package.json` (`@openclaw/quality-contracts`)
 
-## Decisions
+- Added exports: `./exec/spawn`, `./fs/glob`, `./fs/read`
+- Added dependencies: `fast-glob`, `picomatch`
+- Added devDependencies: `@types/node`, `@types/picomatch`
 
-| Decision | Rationale |
-|----------|-----------|
-| Extract to quality-contracts | Already the shared package for both extensions |
-| Keep github/spawn.ts separate | Intentionally different constraints (gh only, 1 MB buffer, env isolation) |
+### Import redirections
 
----
+- **product-team**: 5 source files + 3 test files updated
+- **quality-gate**: 4 source files + 4 test files + 1 CLI file updated
 
-## Implementation Notes
+### Deleted files
 
-_To be completed when task is implemented._
+- `extensions/product-team/src/exec/spawn.ts`
+- `extensions/product-team/src/quality/fs.ts`
+- `extensions/quality-gate/src/exec/spawn.ts`
+- `extensions/quality-gate/src/fs/glob.ts`
+- `extensions/quality-gate/src/fs/read.ts`
 
----
-
-## Commands Run
+## How to Run
 
 ```bash
-pnpm test
-pnpm lint
-pnpm typecheck
-pnpm build
+pnpm install
+pnpm test        # 394 tests pass
+pnpm typecheck   # clean across all 4 projects
+pnpm lint        # clean
 ```
 
----
+## Notable Decisions
 
-## Files Changed
-
-| File | Action | Description |
-|------|--------|-------------|
-| `packages/quality-contracts/src/exec/spawn.ts` | Created | Consolidated spawn utility |
-| `packages/quality-contracts/src/fs/glob.ts` | Created | Consolidated glob utility |
-| `packages/quality-contracts/src/fs/read.ts` | Created | Consolidated read utility |
-| `product-team/src/exec/spawn.ts` | Deleted | Replaced by shared contracts |
-| `quality-gate/src/exec/spawn.ts` | Deleted | Replaced by shared contracts |
-| Multiple import files | Modified | Updated to point to shared location |
-
----
-
-## Verification Evidence
-
-- No `product-team/src/exec/spawn.ts` exists: _pending_
-- No `quality-gate/src/exec/spawn.ts` exists: _pending_
-- All existing spawn tests pass: _pending_
-
----
-
-## Checklist
-
-- [ ] Task spec read end-to-end
-- [ ] AC1-AC5 verified
-- [ ] Quality gates passed
-- [ ] Files changed section complete
+- `github/spawn.ts` in product-team intentionally **excluded** — it has a
+  different purpose (GitHub CLI), different allowlist, and `shell: false`.
+- `filterByExclude` (previously only in product-team) placed in shared
+  `fs/glob.ts` since it uses `picomatch` and logically groups with globbing.
+- `@types/picomatch` added as devDependency in quality-contracts to satisfy
+  strict typecheck (`noImplicitAny`).
