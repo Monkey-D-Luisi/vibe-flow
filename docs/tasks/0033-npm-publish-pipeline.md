@@ -116,8 +116,8 @@ for stable baseline. Complements Task 0032 which scaffolds new publishable exten
 - [x] Lint passes with zero errors
 - [x] TypeScript compiles without errors
 - [x] Walkthrough updated
-- [ ] Code reviewed (if applicable)
-- [ ] PR created and linked
+- [x] Code reviewed (if applicable)
+- [x] PR created and linked
 
 ---
 
