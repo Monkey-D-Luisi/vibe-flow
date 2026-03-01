@@ -29,6 +29,25 @@ async function ensureDesignDir(workspace: string, designDir: string): Promise<st
   return dir;
 }
 
+/** Sanitize screenName to prevent path traversal. */
+function sanitizeScreenName(raw: string): string {
+  const name = basename(raw);
+  if (!name || name === '.' || name === '..') {
+    throw new Error(`Invalid screenName: "${raw}"`);
+  }
+  return name;
+}
+
+/** Extract html string from Stitch result, throwing if absent or wrong type. */
+function extractHtml(result: unknown): string {
+  const obj = result as Record<string, unknown>;
+  const html = obj?.['html'];
+  if (typeof html !== 'string' || !html) {
+    throw new Error('Stitch MCP response missing html field');
+  }
+  return html;
+}
+
 export default {
   id: 'stitch-bridge',
   name: 'Stitch MCP Bridge',
@@ -55,7 +74,7 @@ export default {
       },
       async execute(_toolCallId: string, params: Record<string, unknown>) {
         const projectId = String(params['projectId'] ?? config.defaultProjectId);
-        const screenName = String(params['screenName']);
+        const screenName = sanitizeScreenName(String(params['screenName']));
         const description = String(params['description']);
         const modelId = String(params['modelId'] ?? config.defaultModel);
 
@@ -65,7 +84,7 @@ export default {
           modelId,
         });
 
-        const html = String((result as Record<string, unknown>)?.['html'] ?? result);
+        const html = extractHtml(result);
         const workspace = String(params['workspace'] ?? '/workspaces/active');
         const dir = await ensureDesignDir(workspace, config.designDir);
         const filePath = join(dir, `${screenName}.html`);
@@ -103,7 +122,7 @@ export default {
       async execute(_toolCallId: string, params: Record<string, unknown>) {
         const projectId = String(params['projectId'] ?? config.defaultProjectId);
         const screenId = String(params['screenId']);
-        const screenName = String(params['screenName'] ?? screenId);
+        const screenName = sanitizeScreenName(String(params['screenName'] ?? screenId));
         const editPrompt = String(params['editPrompt']);
 
         const result = await callStitchMcp(config, 'edit_screens', {
@@ -112,7 +131,7 @@ export default {
           prompt: editPrompt,
         });
 
-        const html = String((result as Record<string, unknown>)?.['html'] ?? result);
+        const html = extractHtml(result);
         const workspace = String(params['workspace'] ?? '/workspaces/active');
         const dir = await ensureDesignDir(workspace, config.designDir);
         const filePath = join(dir, `${screenName}.html`);
@@ -141,7 +160,7 @@ export default {
         required: ['screenName'],
       },
       async execute(_toolCallId: string, params: Record<string, unknown>) {
-        const screenName = String(params['screenName']);
+        const screenName = sanitizeScreenName(String(params['screenName']));
         const workspace = String(params['workspace'] ?? '/workspaces/active');
         const filePath = join(workspace, config.designDir, `${screenName}.html`);
 
@@ -170,12 +189,16 @@ export default {
         let files: string[];
         try {
           files = await readdir(dir);
-        } catch {
-          const output = { designs: [] as unknown[] };
-          return {
-            content: [{ type: 'text' as const, text: JSON.stringify(output, null, 2) }],
-            details: output,
-          };
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+            const output = { designs: [] as unknown[] };
+            return {
+              content: [{ type: 'text' as const, text: JSON.stringify(output, null, 2) }],
+              details: output,
+            };
+          }
+          logger.warn(`stitch-bridge: design.list readdir failed: ${String(err)}`);
+          throw err;
         }
 
         const designs = [];

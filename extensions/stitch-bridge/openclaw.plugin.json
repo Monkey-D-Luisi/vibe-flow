@@ -1,0 +1,17 @@
+{
+  "id": "stitch-bridge",
+  "name": "Stitch MCP Bridge",
+  "version": "0.1.0",
+  "description": "Proxy Google Stitch design tools for the designer agent",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "endpoint": { "type": "string", "default": "https://stitch.googleapis.com/mcp" },
+      "defaultProjectId": { "type": "string" },
+      "defaultModel": { "type": "string", "default": "GEMINI_3_PRO" },
+      "timeoutMs": { "type": "number", "default": 60000 },
+      "designDir": { "type": "string", "default": ".stitch-html" }
+    }
+  }
+}
