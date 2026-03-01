@@ -215,7 +215,7 @@ describe('product-team plugin', () => {
     const api = createMockApi();
     register(api);
     expect(api.logger.info).toHaveBeenCalledWith(
-      'registered 31 task/workflow/quality/vcs tools',
+      'registered 31 task/workflow/quality/vcs/messaging/decision/pipeline tools',
     );
   });
 

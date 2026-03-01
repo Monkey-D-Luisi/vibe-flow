@@ -41,6 +41,7 @@ export function teamMessageToolDef(deps: ToolDeps): ToolDef {
         body: string;
         priority?: 'low' | 'normal' | 'urgent';
         taskRef?: string;
+        from?: string;
       }>(TeamMessageParams, params);
 
       const id = deps.generateId();
@@ -50,7 +51,7 @@ export function teamMessageToolDef(deps: ToolDeps): ToolDef {
       deps.db.prepare(`
         INSERT INTO ${MESSAGES_TABLE} (id, from_agent, to_agent, subject, body, priority, task_ref, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(id, 'calling-agent', input.to, input.subject, input.body, priority, input.taskRef ?? null, now);
+      `).run(id, input.from ?? 'anonymous', input.to, input.subject, input.body, priority, input.taskRef ?? null, now);
 
       deps.logger?.info(`team.message: ${id} → ${input.to} [${priority}] "${input.subject}"`);
 
@@ -71,17 +72,17 @@ export function teamInboxToolDef(deps: ToolDeps): ToolDef {
     parameters: TeamInboxParams,
     execute: async (_toolCallId, params) => {
       ensureMessagesTable(deps);
-      const input = deps.validate<{ unreadOnly?: boolean; limit?: number }>(TeamInboxParams, params);
+      const input = deps.validate<{ agentId: string; unreadOnly?: boolean; limit?: number }>(TeamInboxParams, params);
       const limit = input.limit ?? 50;
       const whereClause = input.unreadOnly ? 'AND read = 0' : '';
 
       const rows = deps.db.prepare(`
         SELECT id, from_agent, to_agent, subject, body, priority, task_ref, reply_to, read, created_at
         FROM ${MESSAGES_TABLE}
-        WHERE 1=1 ${whereClause}
+        WHERE to_agent = ? ${whereClause}
         ORDER BY created_at DESC
         LIMIT ?
-      `).all(limit) as Array<{
+      `).all(input.agentId, limit) as Array<{
         id: string;
         from_agent: string;
         to_agent: string;
@@ -126,7 +127,7 @@ export function teamReplyToolDef(deps: ToolDeps): ToolDef {
       ensureMessagesTable(deps);
       const input = deps.validate<{ messageId: string; body: string }>(TeamReplyParams, params);
 
-      const original = deps.db.prepare(`SELECT * FROM ${MESSAGES_TABLE} WHERE id = ?`).get(input.messageId) as {
+      const original = deps.db.prepare(`SELECT id, from_agent, to_agent, subject, task_ref FROM ${MESSAGES_TABLE} WHERE id = ?`).get(input.messageId) as {
         from_agent: string;
         to_agent: string;
         subject: string;
@@ -192,7 +193,7 @@ export function teamAssignToolDef(deps: ToolDeps): ToolDef {
     description: 'Assign a task to a specific agent (used by Tech Lead)',
     parameters: TeamAssignParams,
     execute: async (_toolCallId, params) => {
-      const input = deps.validate<{ taskId: string; agentId: string; message?: string }>(TeamAssignParams, params);
+      const input = deps.validate<{ taskId: string; agentId: string; message?: string; fromAgent?: string }>(TeamAssignParams, params);
 
       const task = deps.taskRepo.getById(input.taskId);
       if (!task) {
@@ -212,8 +213,8 @@ export function teamAssignToolDef(deps: ToolDeps): ToolDef {
         const msgId = deps.generateId();
         deps.db.prepare(`
           INSERT INTO ${MESSAGES_TABLE} (id, from_agent, to_agent, subject, body, priority, task_ref, created_at)
-          VALUES (?, 'tech-lead', ?, ?, ?, 'normal', ?, ?)
-        `).run(msgId, input.agentId, `Task Assignment: ${task.title}`, input.message, input.taskId, deps.now());
+          VALUES (?, ?, ?, ?, ?, 'normal', ?, ?)
+        `).run(msgId, input.fromAgent ?? 'tech-lead', input.agentId, `Task Assignment: ${task.title}`, input.message, input.taskId, deps.now());
       }
 
       const result = { assigned: true, taskId: input.taskId, agentId: input.agentId };

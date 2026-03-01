@@ -139,7 +139,7 @@ describe('team messaging tools', () => {
   describe('team.inbox', () => {
     it('returns empty inbox when no messages exist', async () => {
       const tool = teamInboxToolDef(deps);
-      const result = await tool.execute('call-1', {});
+      const result = await tool.execute('call-1', { agentId: 'back-1' });
       const details = result.details as { messages: unknown[]; count: number };
       expect(details.messages).toEqual([]);
       expect(details.count).toBe(0);
@@ -151,7 +151,7 @@ describe('team messaging tools', () => {
       await msgTool.execute('send-2', { to: 'back-1', subject: 'S2', body: 'B2' });
 
       const inboxTool = teamInboxToolDef(deps);
-      const result = await inboxTool.execute('call-1', {});
+      const result = await inboxTool.execute('call-1', { agentId: 'back-1' });
       const details = result.details as { messages: unknown[]; count: number };
       expect(details.count).toBe(2);
     });
@@ -164,7 +164,7 @@ describe('team messaging tools', () => {
       db.prepare('UPDATE agent_messages SET read = 1 WHERE subject = ?').run('Unread');
 
       const inboxTool = teamInboxToolDef(deps);
-      const result = await inboxTool.execute('call-1', { unreadOnly: true });
+      const result = await inboxTool.execute('call-1', { agentId: 'back-1', unreadOnly: true });
       const details = result.details as { messages: unknown[]; count: number };
       expect(details.count).toBe(0);
     });
@@ -176,9 +176,24 @@ describe('team messaging tools', () => {
       }
 
       const inboxTool = teamInboxToolDef(deps);
-      const result = await inboxTool.execute('call-1', { limit: 3 });
+      const result = await inboxTool.execute('call-1', { agentId: 'agent', limit: 3 });
       const details = result.details as { messages: unknown[]; count: number };
       expect(details.count).toBe(3);
+    });
+
+    it('only returns messages addressed to the specified agentId (cross-agent isolation)', async () => {
+      const msgTool = teamMessageToolDef(deps);
+      await msgTool.execute('send-1', { to: 'pm', subject: 'For PM', body: 'PM only' });
+      await msgTool.execute('send-2', { to: 'tech-lead', subject: 'For TL', body: 'TL only' });
+
+      const inboxTool = teamInboxToolDef(deps);
+      const pmResult = await inboxTool.execute('call-1', { agentId: 'pm' });
+      const pmDetails = pmResult.details as { messages: unknown[]; count: number };
+      expect(pmDetails.count).toBe(1);
+
+      const tlResult = await inboxTool.execute('call-2', { agentId: 'tech-lead' });
+      const tlDetails = tlResult.details as { messages: unknown[]; count: number };
+      expect(tlDetails.count).toBe(1);
     });
   });
 

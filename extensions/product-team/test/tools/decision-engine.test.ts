@@ -179,9 +179,16 @@ describe('decision engine tools', () => {
         options: OPTIONS,
         taskRef,
       });
-      const details = result.details as { escalated: boolean; approver: string };
+      const details = result.details as { decisionId: string; escalated: boolean; approver: string };
+      expect(details.decisionId).toBeTruthy();
       expect(details.escalated).toBe(true);
       expect(details.approver).toBe('tech-lead');
+
+      // Circuit-breaker decision must be persisted in audit trail
+      const rows = db.prepare('SELECT * FROM agent_decisions WHERE task_ref = ?').all(taskRef) as Array<{ escalated: number }>;
+      expect(rows).toHaveLength(6);
+      const cbRow = rows[5];
+      expect(cbRow.escalated).toBe(1);
     });
 
     it('persists a decision record in agent_decisions table', async () => {

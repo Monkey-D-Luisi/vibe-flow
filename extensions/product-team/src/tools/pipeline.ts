@@ -9,7 +9,7 @@ const PIPELINE_STAGES = [
 
 type PipelineStage = typeof PIPELINE_STAGES[number];
 
-const STAGE_OWNERS: Record<string, string> = {
+const STAGE_OWNERS: Record<PipelineStage, string> = {
   IDEA: 'pm',
   ROADMAP: 'pm',
   REFINEMENT: 'po',
@@ -154,12 +154,20 @@ export function pipelineRetryToolDef(deps: ToolDeps): ToolDef {
       const currentStage = String(meta?.pipelineStage ?? 'IDEA');
       const retryStage = input.stage ?? currentStage;
 
+      if (!PIPELINE_STAGES.includes(retryStage as PipelineStage)) {
+        const result = { retried: false, reason: `Invalid stage "${retryStage}". Must be one of: ${PIPELINE_STAGES.join(', ')}` };
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+          details: result,
+        };
+      }
+
       deps.taskRepo.update(input.taskId, {
         metadata: {
           ...(meta ?? {}),
           pipelineStage: retryStage,
-          pipelineOwner: STAGE_OWNERS[retryStage] ?? 'system',
-          retryCount: ((meta?.retryCount as number) ?? 0) + 1,
+          pipelineOwner: STAGE_OWNERS[retryStage as PipelineStage] ?? 'system',
+          retryCount: (typeof meta?.retryCount === 'number' ? meta.retryCount : 0) + 1,
         },
       }, task.rev, deps.now());
 
@@ -193,6 +201,15 @@ export function pipelineSkipToolDef(deps: ToolDeps): ToolDef {
       }
 
       const meta = task.metadata as Record<string, unknown> | undefined;
+
+      if (!PIPELINE_STAGES.includes(input.stage as PipelineStage)) {
+        const result = { skipped: false, reason: `Invalid stage "${input.stage}". Must be one of: ${PIPELINE_STAGES.join(', ')}` };
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+          details: result,
+        };
+      }
+
       const nextStage = getNextStage(input.stage);
 
       if (!nextStage) {
