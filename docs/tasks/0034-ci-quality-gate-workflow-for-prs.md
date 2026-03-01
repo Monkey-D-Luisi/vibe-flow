@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | EP07 — DX & Platform Ops |
 | Priority | HIGH |
 | Scope | MINOR |
@@ -109,12 +109,12 @@ AR01 is DONE and this is a forward-looking DX improvement rather than a remediat
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated
-- [ ] Code reviewed (if applicable)
-- [ ] PR created and linked
+- [x] All Acceptance Criteria met
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated
+- [x] Code reviewed (if applicable)
+- [x] PR created and linked
 
 ---
 

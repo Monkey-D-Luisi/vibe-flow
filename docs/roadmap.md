@@ -22,7 +22,7 @@ structured JSON contracts, and is governed by tool-policy allow-lists.
 | 4     | EP05 | Quality & Observability         | EP02, EP03   | July 2026    | DONE    |
 | 5     | EP06 | Hardening                       | EP03, EP04   | August 2026  | DONE    |
 | 6     | AR01 | Audit Remediation Program       | EP06         | Q1 2026      | DONE |
-| 7     | EP07 | DX & Platform Ops               | AR01         | Q2 2026      | PENDING |
+| 7     | EP07 | DX & Platform Ops               | AR01         | Q2 2026      | DONE    |
 
 ---
 
@@ -259,7 +259,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 - [Task 0032: Extension Scaffolding CLI for New OpenClaw Plugins](tasks/0032-extension-scaffolding-cli.md) -- DONE (DX, GitHub #156)
 - [Task 0033: npm Publish Pipeline for @openclaw/* Extensions](tasks/0033-npm-publish-pipeline.md) -- DONE (Release engineering, GitHub #157)
-- [Task 0034: CI Quality Gate Workflow for Pull Requests](tasks/0034-ci-quality-gate-workflow-for-prs.md) -- IN_PROGRESS (CI/Quality, GitHub #158)
+- [Task 0034: CI Quality Gate Workflow for Pull Requests](tasks/0034-ci-quality-gate-workflow-for-prs.md) -- DONE (CI/Quality, GitHub #158)
 
 ### Architecture & Operations
 - [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)
