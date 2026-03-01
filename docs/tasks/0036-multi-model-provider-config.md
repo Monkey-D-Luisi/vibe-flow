@@ -18,122 +18,90 @@ will use.
 ## Context
 
 The user has:
-- API keys for OpenAI, Anthropic, and Google AI
-- GitHub Copilot subscription (free models like GPT 4.1 via Copilot proxy)
-- An existing OpenClaw instance using Claude OAuth + GPT OAuth + Copilot fallback
+- An Anthropic API token (mode: token, stored in auth-profiles.json)
+- An OpenAI Codex OAuth flow (mode: oauth, JWT + refresh token via auth.openai.com)
+- A GitHub Copilot subscription (mode: token, user token for Copilot proxy API)
+- A GitHub Models endpoint (free GPT-4o via Azure inference, API key auth)
+- An OpenAI API key for audio transcription only (gpt-4o-mini-transcribe)
 
-The Docker instance needs its own provider configuration. Authentication method
-will be determined during implementation (API keys preferred for Docker
-simplicity; OAuth possible if the SDK supports headless OAuth flows).
+The working agent at `~/.openclaw` uses auth-profiles managed by the OpenClaw
+runtime, not bare API keys in environment variables. Each provider has a
+distinct auth mode: token (Anthropic, GitHub Copilot), OAuth (OpenAI Codex),
+or API key (GitHub Models). The Docker instance mirrors this architecture.
 
 ## Deliverables
 
-### D1: Provider Configuration Block
+### D1: Auth Profiles and Provider Configuration
 
-Add to `openclaw.docker.json` the `models.providers` section:
+Add to `openclaw.docker.json` the auth profiles and model providers sections,
+matching the working agent architecture:
 
 ```jsonc
 {
+  "auth": {
+    "profiles": {
+      "anthropic:default": { "provider": "anthropic", "mode": "token" },
+      "openai-codex:default": { "provider": "openai-codex", "mode": "oauth" },
+      "github-copilot:github": { "provider": "github-copilot", "mode": "token" }
+    }
+  },
   "models": {
     "mode": "merge",
     "providers": {
-      "openai": {
-        "baseUrl": "https://api.openai.com/v1",
-        "auth": "api-key",
-        "models": [
-          {
-            "id": "openai/gpt-5.3",
-            "name": "GPT 5.3",
-            "api": "openai-responses",
-            "reasoning": true,
-            "input": ["text", "image"],
-            "cost": { "input": 2.0, "output": 8.0, "cacheRead": 0.5, "cacheWrite": 2.0 },
-            "contextWindow": 256000,
-            "maxTokens": 32768
-          },
-          {
-            "id": "openai/gpt-4.1",
-            "name": "GPT 4.1",
-            "api": "openai-responses",
-            "reasoning": false,
-            "input": ["text", "image"],
-            "cost": { "input": 1.0, "output": 4.0, "cacheRead": 0.25, "cacheWrite": 1.0 },
-            "contextWindow": 1048576,
-            "maxTokens": 32768
-          }
-        ]
-      },
-      "anthropic": {
-        "baseUrl": "https://api.anthropic.com",
-        "auth": "api-key",
-        "models": [
-          {
-            "id": "anthropic/claude-opus-4.6",
-            "name": "Claude Opus 4.6",
-            "api": "anthropic-messages",
-            "reasoning": true,
-            "input": ["text", "image"],
-            "cost": { "input": 15.0, "output": 75.0, "cacheRead": 1.5, "cacheWrite": 18.75 },
-            "contextWindow": 200000,
-            "maxTokens": 32000
-          },
-          {
-            "id": "anthropic/claude-sonnet-4.6",
-            "name": "Claude Sonnet 4.6",
-            "api": "anthropic-messages",
-            "reasoning": true,
-            "input": ["text", "image"],
-            "cost": { "input": 3.0, "output": 15.0, "cacheRead": 0.3, "cacheWrite": 3.75 },
-            "contextWindow": 200000,
-            "maxTokens": 16000
-          }
-        ]
-      },
-      "google": {
-        "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
-        "auth": "api-key",
-        "models": [
-          {
-            "id": "google/gemini-3-pro",
-            "name": "Gemini 3 Pro",
-            "api": "google-generative-ai",
-            "reasoning": true,
-            "input": ["text", "image"],
-            "cost": { "input": 1.25, "output": 10.0, "cacheRead": 0.315, "cacheWrite": 1.25 },
-            "contextWindow": 1000000,
-            "maxTokens": 65536
-          }
-        ]
+      "github-copilot": {
+        "baseUrl": "https://api.individual.githubcopilot.com",
+        "models": []
       }
     }
   }
 }
 ```
 
-### D2: Environment Variable Mapping
+**Auth modes per provider:**
+- `anthropic:default` — API token stored in `auth-profiles.json`
+- `openai-codex:default` — OAuth JWT + refresh token (auto-renewed by runtime)
+- `github-copilot:github` — GitHub user token + rotating proxy token
+
+### D2: Environment Variables and Auth
 
 ```env
 # .env.docker
+# OpenAI API key — ONLY for audio transcription (gpt-4o-mini-transcribe)
 OPENAI_API_KEY=<placeholder>
-ANTHROPIC_API_KEY=<placeholder>
-GOOGLE_AI_API_KEY=<placeholder>
+# GitHub token — for VCS and Copilot health checks
 GITHUB_TOKEN=<placeholder>
 ```
 
-### D3: Model Assignment Table (input for Task 0038)
+**Note:** LLM provider credentials (Anthropic token, OpenAI-Codex OAuth,
+GitHub Copilot token) are managed via `openclaw auth login <provider>` and
+stored in `agents/<id>/agent/auth-profiles.json`, NOT in environment variables.
+Run the auth setup commands before first use.
 
-| Agent ID    | Primary Model               | Fallback 1                    | Fallback 2       |
-|-------------|-----------------------------|-------------------------------|------------------|
-| `pm`        | `openai/gpt-5.3`            | `anthropic/claude-opus-4.6`   | `openai/gpt-4.1` |
-| `tech-lead` | `anthropic/claude-opus-4.6`  | `openai/gpt-5.3`             | —                |
-| `po`        | `openai/gpt-4.1`            | `google/gemini-3-pro`         | —                |
-| `designer`  | `google/gemini-3-pro`        | `openai/gpt-4.1`             | —                |
-| `back-1`    | `anthropic/claude-sonnet-4.6`| `openai/gpt-4.1`             | —                |
-| `back-2`    | `anthropic/claude-sonnet-4.6`| `openai/gpt-4.1`             | —                |
-| `front-1`   | `anthropic/claude-sonnet-4.6`| `openai/gpt-4.1`             | —                |
-| `front-2`   | `anthropic/claude-sonnet-4.6`| `openai/gpt-4.1`             | —                |
-| `qa`        | `anthropic/claude-sonnet-4.6`| `openai/gpt-4.1`             | —                |
-| `devops`    | `anthropic/claude-sonnet-4.6`| `openai/gpt-4.1`             | —                |
+### D3: Default Model Fallback Chain (input for Task 0038)
+
+All agents share the same default fallback chain, matching the working agent:
+
+| Provider           | Model                        | Auth Mode | Role                    |
+|--------------------|------------------------------|-----------|-------------------------|
+| `anthropic`        | `claude-sonnet-4-6` (primary)| token     | Default for all agents  |
+| `openai-codex`     | `gpt-5.2` (fallback 1)      | oauth     | First fallback          |
+| `github-copilot`   | `gpt-4o` (fallback 2)       | token     | Last-resort fallback    |
+
+```jsonc
+{
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/claude-sonnet-4-6",
+        "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"]
+      }
+    }
+  }
+}
+```
+
+Per-agent overrides may be added in Task 0038 when differentiated model
+assignments are needed. For now, all agents use the same chain.
 
 ### D4: Provider Health Check
 
@@ -142,12 +110,13 @@ provider's API and reports status. Used by the Telegram health monitor.
 
 ## Acceptance Criteria
 
-- [x] All three providers (OpenAI, Anthropic, Google) are configured in `openclaw.docker.json`
-- [x] Each provider authenticates successfully (verified by health check)
-- [x] Model definitions include correct API type, costs, and context windows
-- [x] Fallback chains are defined for every agent
+- [x] Three auth profiles configured (anthropic:token, openai-codex:oauth, github-copilot:token)
+- [x] GitHub Models and GitHub Copilot custom providers defined in models.providers
+- [x] Each provider authenticates via its native mode (verified by health check)
+- [x] Default fallback chain: anthropic/claude-sonnet-4-6 → openai-codex/gpt-5.2 → github-copilot/gpt-4o
 - [x] Provider health check route returns status for all providers
-- [x] API keys are read from environment variables (never hardcoded)
+- [x] Audio transcription configured (openai/gpt-4o-mini-transcribe via OPENAI_API_KEY)
+- [x] Auth credentials managed via auth-profiles.json (not hardcoded env vars)
 - [x] Cost tracking from EP06 still works with the new providers
 
 ## Testing Plan
@@ -160,9 +129,17 @@ provider's API and reports status. Used by the Telegram health monitor.
 
 ## Technical Notes
 
-- The exact model IDs (gpt-5.3, opus-4.6, gemini-3-pro) may differ from what
-  the API providers expose. Verify against latest API docs during implementation.
-- For OAuth-based auth: the `before_model_resolve` hook or provider plugin can
-  handle token refresh. API keys are simpler for Docker; defer OAuth to follow-up.
-- Cost figures in the model definitions are per million tokens. Verify against
-  current pricing at implementation time.
+- Auth is managed via OpenClaw's native auth-profiles system, not bare env vars.
+  Run `openclaw auth login anthropic`, `openclaw auth login openai-codex`,
+  `openclaw auth login github-copilot` to set up each profile.
+- OpenAI-Codex uses OAuth (JWT + refresh token from auth.openai.com). The
+  runtime handles automatic token refresh when the JWT expires.
+- GitHub Copilot uses a user token (`ghu_...`) plus a rotating proxy token
+  managed by the `copilot-proxy` extension.
+- GitHub Models provides free GPT-4o via Azure inference; configured directly
+  in `models.providers` with an API key (no auth profile needed).
+- `OPENAI_API_KEY` env var is used ONLY for audio transcription
+  (gpt-4o-mini-transcribe via the `openai-whisper-api` skill), not for LLM
+  completions.
+- The `messages.responsePrefix: "[{provider}/{model}]\n\n"` config makes it
+  visible in Telegram which model actually responded.

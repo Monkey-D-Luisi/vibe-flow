@@ -1,91 +1,103 @@
 # Walkthrough 0036 -- Multi-Model Provider Configuration
 
 ## Goal (restated)
-Configure the OpenClaw gateway with three LLM providers (OpenAI, Anthropic,
-Google) and define the model catalog with fallback chains per agent role.
-Register the `/api/providers/health` HTTP route for Telegram health monitoring.
+Configure the OpenClaw gateway with LLM providers using the same auth-profile
+architecture as the working agent. Set up the provider health check endpoint
+and audio transcription.
 
 ## Decisions
-- **API key auth (not OAuth)**: Simpler for Docker containers. OAuth requires
-  an interactive browser flow which does not work in headless containers. API
-  keys are injected via environment variables.
-- **No GitHub Copilot provider**: Copilot requires interactive OAuth and is
-  designed for IDE integration, not headless containers. GPT-4.1 via direct
-  OpenAI API is used instead for the PO role.
-- **Cost figures**: Approximate per-million-token costs at time of planning.
-  Verify against current pricing before first production deployment.
-- **Fallback chains**: Every agent has at least one fallback. PM and Tech Lead
-  have two fallbacks each due to their critical pipeline positions.
-- **Health check placement**: Registered inside `model-router` plugin (not
-  `product-team`) because it is about provider connectivity, not task
-  orchestration. HEAD requests used to avoid side effects and token consumption.
+- **Mixed auth (not API-key-only)**: The working agent at `~/.openclaw` uses
+  three distinct auth modes: Anthropic (token), OpenAI-Codex (OAuth with JWT +
+  refresh token), and GitHub Copilot (user token + rotating proxy token). The
+  Docker instance mirrors this architecture rather than simplifying to API keys.
+- **Auth profiles**: Credentials are managed via `auth.profiles` in
+  `openclaw.docker.json` and the runtime's `auth-profiles.json` file, not via
+  environment variables. `openclaw auth login <provider>` sets each one up.
+- **No Google AI provider**: Removed the Google/Gemini provider from the initial
+  config since the working agent doesn't use it. Can be added later if needed.
+- **OpenAI API key for transcription only**: `OPENAI_API_KEY` env var is used
+  exclusively for the `gpt-4o-mini-transcribe` audio transcription model, not
+  for LLM completions (those go via openai-codex OAuth).
+- **Response prefix**: Added `messages.responsePrefix: "[{provider}/{model}]\n\n"`
+  so Telegram messages show which model responded.
+- **Health check placement**: Registered inside `model-router` plugin. Now
+  checks 4 providers: anthropic, openai-codex, github-copilot,
+  openai-transcription.
 - **207 on partial failure**: If any provider is unreachable the route returns
   HTTP 207 (Multi-Status) so callers can distinguish "all ok" (200) from
   "partially degraded" (207) without masking failures with 500.
 
 ## Implementation
 
-### D1 + D3: Provider config and agent model assignments
-Already present in `openclaw.docker.json` (added in Task 0035).
+### D1: Auth profiles and model providers
+Added to `openclaw.docker.json`:
+- `auth.profiles` section with three profiles matching the working agent
+- `models.providers` with `github-copilot` (Copilot proxy) custom provider
+- `tools.media.audio` config for `gpt-4o-mini-transcribe` transcription
+- `messages.responsePrefix` and `messages.ackReactionScope`
 
-Three providers:
-1. **OpenAI** — GPT 5.3 (PM), GPT 4.1 (PO, fallback for all)
-2. **Anthropic** — Opus 4.6 (Tech Lead), Sonnet 4.6 (all devs/QA/DevOps)
-3. **Google** — Gemini 3 Pro (Designer)
+Three auth profiles:
+1. **anthropic:default** — mode: token (API key stored in auth-profiles.json)
+2. **openai-codex:default** — mode: oauth (JWT + refresh token from auth.openai.com)
+3. **github-copilot:github** — mode: token (GitHub user token for Copilot proxy)
 
-Model assignment table (primary → fallbacks):
+### D2: Environment variables
+Updated `.env.docker.example`:
+- `OPENAI_API_KEY` — only for audio transcription
+- `GITHUB_TOKEN` — for VCS and health checks
+- Removed `ANTHROPIC_API_KEY` and `GOOGLE_AI_API_KEY` (auth is via profiles)
+- Added `HEALTH_CHECK_SECRET` (optional)
 
-| Agent     | Primary               | Fallbacks              |
-|-----------|-----------------------|------------------------|
-| pm        | openai/gpt-5.3        | opus-4.6, gpt-4.1      |
-| tech-lead | anthropic/opus-4.6    | gpt-5.3                |
-| po        | openai/gpt-4.1        | gemini-3-pro           |
-| designer  | google/gemini-3-pro   | gpt-4.1                |
-| back-*    | anthropic/sonnet-4.6  | gpt-4.1                |
-| front-*   | anthropic/sonnet-4.6  | gpt-4.1                |
-| qa        | anthropic/sonnet-4.6  | gpt-4.1                |
-| devops    | anthropic/sonnet-4.6  | gpt-4.1                |
-
-### D2: Environment variable mapping
-Already present in `.env.docker.example` (added in Task 0035):
-- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_AI_API_KEY`, `GITHUB_TOKEN`
+### D3: Default fallback chain
+```json
+{
+  "primary": "anthropic/claude-sonnet-4-6",
+  "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"]
+}
+```
 
 ### D4: Provider health check route
-Added `GET /api/providers/health` to the `model-router` plugin:
+Updated `extensions/model-router/src/provider-health.ts`:
+- Now checks 4 providers: anthropic, openai-codex, github-copilot,
+  openai-transcription
+- GitHub Copilot health check hits `api.individual.githubcopilot.com`
+- Comments updated to explain each provider's auth mode
 
-- `extensions/model-router/src/provider-health.ts` — `registerProviderHealthRoute`
-  makes concurrent HEAD requests to each provider's base URL (5 s timeout),
-  reads API keys from env vars, returns JSON:
-  ```json
-  {
-    "ok": true,
-    "providers": {
-      "openai":     { "connected": true, "latencyMs": 120 },
-      "anthropic":  { "connected": true, "latencyMs": 45  },
-      "google":     { "connected": true, "latencyMs": 88  }
-    }
+### Telegram channel config
+Updated to match working agent's native structure:
+```json
+{
+  "telegram": {
+    "enabled": true,
+    "botToken": "${TELEGRAM_BOT_TOKEN}",
+    "dmPolicy": "pairing",
+    "groupPolicy": "allowlist",
+    "streamMode": "partial"
   }
-  ```
-- `extensions/model-router/src/index.ts` — calls `registerProviderHealthRoute(api)`
-  on plugin load.
-- `extensions/model-router/test/provider-health.test.ts` — unit tests covering
-  route registration path and 405 rejection for non-GET/HEAD verbs.
+}
+```
+
+Also enabled the native `telegram` plugin in `plugins.entries`.
 
 ## Commands Run
 ```bash
-pnpm typecheck   # all 9 packages clean
-pnpm lint        # all 9 packages clean
-pnpm test        # 405 tests passing (2 new in model-router)
+pnpm typecheck   # pending verification
+pnpm lint        # pending verification
+pnpm test        # pending verification
 ```
 
 ## Files Changed
-- `extensions/model-router/src/provider-health.ts` — new, health check route
-- `extensions/model-router/src/index.ts` — import + call registerProviderHealthRoute
-- `extensions/model-router/test/provider-health.test.ts` — new, 2 unit tests
-- `docs/tasks/0036-multi-model-provider-config.md` — Status → DONE
+- `openclaw.docker.json` — auth profiles, model providers, audio config,
+  Telegram channel, response prefix, agent model chains, native telegram plugin
+- `.env.docker.example` — updated for auth-profile model, removed unused keys
+- `extensions/model-router/src/provider-health.ts` — updated provider list
+  (5 providers instead of 3)
+- `extensions/model-router/src/index.ts` — updated comments for auth-profile model
+- `docs/tasks/0036-multi-model-provider-config.md` — updated context, deliverables,
+  acceptance criteria, technical notes
 - `docs/walkthroughs/0036-multi-model-provider-config.md` — this file
-- `docs/roadmap.md` — 0036 PENDING → DONE
 
 ## Follow-ups
+- Run `openclaw auth login` for each provider on first deployment
 - Verify exact model IDs against provider APIs at deployment time
-- Update cost figures once confirmed with current pricing pages
+- Consider adding per-agent model differentiation in Task 0038 if needed
