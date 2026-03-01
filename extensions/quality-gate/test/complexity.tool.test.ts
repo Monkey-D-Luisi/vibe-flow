@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { ComplexitySummary } from '../src/complexity/types.js';
+import type { ComplexitySummary } from '@openclaw/quality-contracts/complexity/types';
 
 /**
  * Tests for the complexity tool (src/tools/complexity.ts).

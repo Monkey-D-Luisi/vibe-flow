@@ -11,6 +11,10 @@
  */
 
 import { evaluateGate, resolvePolicy, type GateMetrics } from '../gate/policy.js';
+import {
+  assertOptionalStringEnum,
+  assertOptionalObject,
+} from '@openclaw/quality-contracts/validate/tools';
 import { collectGateMetrics, type GateSourceDeps } from '../gate/sources.js';
 import { DEFAULT_POLICIES, type GatePolicy, type GateResult } from '../gate/types.js';
 import {
@@ -301,6 +305,9 @@ export const gateEnforceToolDef = {
     additionalProperties: false,
   },
   execute: async (_id: string, params: Record<string, unknown>) => {
+    assertOptionalStringEnum(params['scope'], 'scope', ['major', 'minor', 'patch', 'default'] as const);
+    assertOptionalObject(params['policy'], 'policy');
+    assertOptionalObject(params['metrics'], 'metrics');
     return gateEnforceTool(params as unknown as GateEnforceInput);
   },
 };

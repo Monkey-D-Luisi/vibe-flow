@@ -9,7 +9,7 @@ import {
 import { assertPathContained } from '@openclaw/quality-contracts/exec/spawn';
 import { analyzeWithEscomplex } from '../quality/complexity/escomplex.js';
 import { analyzeWithTsMorph } from '../quality/complexity/tsmorph.js';
-import type { FileComplexity } from '../quality/complexity/types.js';
+import type { FileComplexity } from '@openclaw/quality-contracts/complexity/types';
 import { resolveGlobPatterns } from '@openclaw/quality-contracts/fs/glob';
 import { readFileSafe } from '@openclaw/quality-contracts/fs/read';
 import {

@@ -56,6 +56,14 @@
     "./fs/read": {
       "types": "./src/fs/read.ts",
       "default": "./src/fs/read.ts"
+    },
+    "./complexity/types": {
+      "types": "./src/complexity/types.ts",
+      "default": "./src/complexity/types.ts"
+    },
+    "./validate/tools": {
+      "types": "./src/validate/tools.ts",
+      "default": "./src/validate/tools.ts"
     }
   },
   "dependencies": {
