@@ -5,7 +5,7 @@
  * in the TypeScript AST.
  */
 
-import type { FileComplexity, FunctionComplexity } from '@openclaw/quality-contracts/complexity/types';
+import type { FileComplexity, FunctionComplexity } from './types.js';
 
 /** Decision-point node kinds that increment cyclomatic complexity. */
 const DECISION_KINDS = new Set([

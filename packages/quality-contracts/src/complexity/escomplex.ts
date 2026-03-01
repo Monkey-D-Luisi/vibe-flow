@@ -5,7 +5,7 @@
  * for JavaScript/TypeScript source files.
  */
 
-import type { FileComplexity, FunctionComplexity } from '@openclaw/quality-contracts/complexity/types';
+import type { FileComplexity, FunctionComplexity } from './types.js';
 
 interface EscomplexFunctionReport {
   name: string;
