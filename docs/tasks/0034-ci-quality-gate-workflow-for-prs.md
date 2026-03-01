@@ -41,7 +41,7 @@ AR01 is DONE and this is a forward-looking DX improvement rather than a remediat
 ### In Scope
 
 - GitHub Actions workflow `.github/workflows/quality-gate.yml` triggered on `pull_request` events targeting `main`
-- Runs `pnpm q:gate`, `pnpm q:tests`, `pnpm q:coverage`, `pnpm q:lint`, `pnpm q:complexity`
+- Runs `pnpm q:tests`, `pnpm q:coverage`, `pnpm q:lint`, `pnpm q:complexity` (metrics collection), then `pnpm q:gate` (reads collected artifacts to evaluate thresholds), then `pnpm verify:vuln-policy` (separate vulnerability policy check)
 - Posts a formatted Markdown quality report as a PR comment
 - Upsert behavior: updates an existing quality-gate comment instead of creating duplicates (identified by HTML anchor marker)
 - Workflow exits non-zero if any gate threshold is breached
@@ -62,7 +62,7 @@ AR01 is DONE and this is a forward-looking DX improvement rather than a remediat
 2. Gate thresholds must be read from existing project config — no hardcoded values.
 3. Comment upsert must use a unique HTML anchor marker to identify the bot comment.
 4. Failed gate must produce a non-zero workflow exit code; branch protection can use this as a required check.
-5. The comment must include: coverage %, complexity score, lint error count, vulnerability summary, and overall PASS/FAIL verdict.
+5. The comment must include: coverage %, complexity score, lint error count, vulnerability policy result (`pnpm verify:vuln-policy`), and overall PASS/FAIL verdict.
 6. The workflow must have minimal permissions: `pull-requests: write`, `contents: read`.
 
 ---
@@ -88,7 +88,7 @@ AR01 is DONE and this is a forward-looking DX improvement rather than a remediat
 ## Implementation Steps
 
 1. Create `.github/workflows/quality-gate.yml` with `pull_request` trigger targeting `main`.
-2. Add steps: checkout, pnpm install, run `pnpm q:gate && pnpm q:tests && pnpm q:coverage && pnpm q:lint && pnpm q:complexity`.
+2. Add steps: checkout, pnpm install, run metric-collecting commands (`pnpm q:tests && pnpm q:coverage && pnpm q:lint && pnpm q:complexity`), then `pnpm q:gate` (reads collected artifacts), then `pnpm verify:vuln-policy`.
 3. Capture exit codes and key metrics into workflow outputs / env vars.
 4. Implement comment upsert using `gh pr comment` with a `<!-- quality-gate-report -->` HTML anchor:
    - Check if a comment with the anchor exists via `gh pr view --json comments`.
