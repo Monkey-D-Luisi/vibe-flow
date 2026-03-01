@@ -1,0 +1,64 @@
+# docker-compose.prod.yml -- Production-hardened overlay for the autonomous product team
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Adds: resource limits, log rotation, Docker secrets, restart policies,
+#        and monitoring labels.
+
+services:
+  gateway:
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          cpus: '2.0'
+          memory: 4G
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    labels:
+      - "com.openclaw.role=gateway"
+      - "com.openclaw.project=product-team"
+      - "com.openclaw.env=production"
+    environment:
+      - NODE_ENV=production
+      - ANTHROPIC_API_KEY_FILE=/run/secrets/anthropic_api_key
+      - OPENAI_API_KEY_FILE=/run/secrets/openai_api_key
+      - GOOGLE_AI_API_KEY_FILE=/run/secrets/google_ai_api_key
+      - TELEGRAM_BOT_TOKEN_FILE=/run/secrets/telegram_bot_token
+      - STITCH_API_KEY_FILE=/run/secrets/stitch_api_key
+      - GITHUB_TOKEN_FILE=/run/secrets/github_token
+    secrets:
+      - anthropic_api_key
+      - openai_api_key
+      - google_ai_api_key
+      - telegram_bot_token
+      - stitch_api_key
+      - github_token
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:28789/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    stop_grace_period: 30s
+
+secrets:
+  anthropic_api_key:
+    file: ./secrets/anthropic_api_key.txt
+  openai_api_key:
+    file: ./secrets/openai_api_key.txt
+  google_ai_api_key:
+    file: ./secrets/google_ai_api_key.txt
+  telegram_bot_token:
+    file: ./secrets/telegram_bot_token.txt
+  stitch_api_key:
+    file: ./secrets/stitch_api_key.txt
+  github_token:
+    file: ./secrets/github_token.txt

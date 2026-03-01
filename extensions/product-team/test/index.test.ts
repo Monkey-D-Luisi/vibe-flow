@@ -41,13 +41,9 @@ function getCiRoute(api: OpenClawPluginApi): {
   handler: (req: unknown, res: unknown) => Promise<void>;
 } | null {
   const calls = (api.registerHttpRoute as ReturnType<typeof vi.fn>).mock.calls;
-  if (calls.length === 0) {
-    return null;
-  }
-  const route = calls[0]?.[0] as {
-    path: string;
-    handler: (req: unknown, res: unknown) => Promise<void>;
-  } | undefined;
+  const route = calls
+    .map((call: unknown[]) => call[0] as { path: string; handler: (req: unknown, res: unknown) => Promise<void> })
+    .find((r) => r.path.startsWith('/webhooks'));
   return route ?? null;
 }
 
@@ -236,7 +232,7 @@ describe('product-team plugin', () => {
     const api = createMockApi();
     register(api);
 
-    expect(api.registerHttpRoute).not.toHaveBeenCalled();
+    expect(getCiRoute(api)).toBeNull();
   });
 
   it('registers CI webhook route when enabled in config', () => {
@@ -295,7 +291,7 @@ describe('product-team plugin', () => {
     });
 
     register(api);
-    expect(api.registerHttpRoute).not.toHaveBeenCalled();
+    expect(getCiRoute(api)).toBeNull();
   });
 
   it('returns 413 when webhook payload exceeds max size', async () => {

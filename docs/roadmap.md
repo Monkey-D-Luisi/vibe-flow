@@ -312,7 +312,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 ### Phase 8D: Integration Testing & Hardening
 
 - [Task 0045: End-to-End Integration Test Suite](tasks/0045-e2e-integration-tests.md) -- DONE (EP08, 8D)
-- [Task 0046: Docker Compose Production Profile](tasks/0046-docker-production-profile.md) -- PENDING (EP08, 8D)
+- [Task 0046: Docker Compose Production Profile](tasks/0046-docker-production-profile.md) -- DONE (EP08, 8D)
 - [Task 0047: Configuration Web UI Extension](tasks/0047-config-web-ui.md) -- PENDING (EP08, 8D)
 
 ### Architecture & Operations
