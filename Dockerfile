@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm globally
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.18.1 --activate
 
 WORKDIR /app
 
@@ -67,4 +67,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD curl -f http://localhost:28789/health || exit 1
 
 # Start via local node_modules binary
-ENTRYPOINT ["npx", "openclaw"]
+ENTRYPOINT ["pnpm", "exec", "openclaw", "gateway", "start"]
