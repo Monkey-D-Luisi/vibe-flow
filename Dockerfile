@@ -37,6 +37,7 @@ COPY packages/ packages/
 COPY tools/ tools/
 COPY skills/ skills/
 COPY scripts/ scripts/
+COPY .agent/agents/ .agent/agents/
 COPY openclaw.docker.json openclaw.json
 
 # ── Install dependencies (hoisted for cross-platform compatibility) ──
