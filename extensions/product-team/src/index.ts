@@ -277,7 +277,7 @@ export function register(api: OpenClawPluginApi): void {
     api.logger.info('registered PR-Bot after_tool_call hook');
   }
 
-  // Decision escalation hook: log escalation events for observability
+  // Decision escalation hook: auto-inject system directive to spawn the target subagent
   api.on('after_tool_call', (event, ctx) => {
     if (event.toolName !== 'decision_evaluate') return;
     if (event.error) return;
@@ -295,11 +295,78 @@ export function register(api: OpenClawPluginApi): void {
         `decision-escalation: Decision ${decisionId} escalated to ${approver} by agent ${ctx.agentId ?? 'unknown'}` +
         (nextAction ? ` — nextAction: spawn_subagent(${String(nextAction['agentId'])})` : ''),
       );
+
+      // Inject a system event into the calling agent's session to ensure
+      // it spawns the target subagent. The LLM cannot ignore system events.
+      if (nextAction && ctx.sessionKey && approver !== 'human') {
+        const agentId = String(nextAction['agentId'] ?? approver);
+        const task = String(nextAction['task'] ?? `Review escalated decision ${decisionId}`);
+        try {
+          api.runtime.system.enqueueSystemEvent(
+            `<system-directive priority="critical">\n` +
+            `MANDATORY ACTION: Decision ${decisionId} was escalated to ${agentId}.\n` +
+            `You MUST now call the sessions_spawn tool to spawn agent "${agentId}" with this task:\n` +
+            `"${task}"\n` +
+            `Use: sessions_spawn({ agentId: "${agentId}", task: ${JSON.stringify(task)}, mode: "run" })\n` +
+            `Do NOT skip this step. Do NOT use team_message instead. The agent will auto-reply when done.\n` +
+            `</system-directive>`,
+            { sessionKey: ctx.sessionKey },
+          );
+          api.logger.info(
+            `decision-escalation: injected system directive for ${ctx.agentId ?? 'unknown'}` +
+            ` to spawn ${agentId} (session: ${ctx.sessionKey})`,
+          );
+        } catch (sysErr: unknown) {
+          api.logger.warn(`decision-escalation: enqueueSystemEvent failed: ${String(sysErr)}`);
+        }
+      }
     } catch (err: unknown) {
       api.logger.warn(`decision-escalation hook failed: ${String(err)}`);
     }
   });
   api.logger.info('registered decision-escalation after_tool_call hook');
+
+  // Team message hook: when an agent sends a message to another agent,
+  // inject a system directive to spawn the target agent so the message is processed.
+  // This prevents the "fire and forget" problem where team_message writes to SQLite
+  // but nobody wakes the target agent.
+  api.on('after_tool_call', (event, ctx) => {
+    if (event.toolName !== 'team_message') return;
+    if (event.error) return;
+    try {
+      const details = (event.result && typeof event.result === 'object')
+        ? (event.result as Record<string, unknown>)['details'] ?? event.result
+        : null;
+      if (!details || typeof details !== 'object') return;
+      const d = details as Record<string, unknown>;
+      if (d['delivered'] !== true) return;
+      const toAgent = String(event.params?.['to'] ?? '');
+      const messageId = String(d['messageId'] ?? '');
+      const subject = String(event.params?.['subject'] ?? 'your message');
+      if (!toAgent || !ctx.sessionKey) return;
+
+      // Check if the target agent is in the config (exists in the team)
+      const targetExists = agentConfig.some(a => a.id === toAgent);
+      if (!targetExists) return;
+
+      api.runtime.system.enqueueSystemEvent(
+        `<system-directive priority="high">\n` +
+        `Your team_message to "${toAgent}" (ID: ${messageId}) was delivered to their inbox, ` +
+        `but agents cannot read their inbox autonomously. ` +
+        `You MUST now spawn "${toAgent}" so they can process the message.\n` +
+        `Use: sessions_spawn({ agentId: "${toAgent}", task: "Read your team inbox with team_inbox and respond to: ${subject.replace(/"/g, "'")}", mode: "run" })\n` +
+        `</system-directive>`,
+        { sessionKey: ctx.sessionKey },
+      );
+      api.logger.info(
+        `team-message-hook: injected spawn directive for ${toAgent} ` +
+        `(caller: ${ctx.agentId ?? 'unknown'}, session: ${ctx.sessionKey})`,
+      );
+    } catch (err: unknown) {
+      api.logger.warn(`team-message-hook failed: ${String(err)}`);
+    }
+  });
+  api.logger.info('registered team-message spawn after_tool_call hook');
 
   api.logger.info(`registered ${tools.length} task/workflow/quality/vcs/messaging/decision/pipeline tools`);
   // EP03: workflow.step.run, workflow.state.get
