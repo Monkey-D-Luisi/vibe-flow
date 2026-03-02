@@ -40,5 +40,18 @@ if [ ! -f "$AUTH_FILE" ]; then
   echo ""
 fi
 
+# Sync agent instruction files (CLAUDE.md) to workspace directories.
+# agentDir paths in openclaw.json are relative to each agent's workspace.
+# The source files live in /app/.agent/agents/ (from the Docker build),
+# but agents resolve agentDir against their workspace (/workspaces/active).
+WORKSPACES=("/workspaces/active" "/workspaces/vibe-flow" "/workspaces/saas-template")
+for ws in "${WORKSPACES[@]}"; do
+  if [ -d "$ws" ] && [ -d /app/.agent/agents ]; then
+    mkdir -p "$ws/.agent/agents"
+    cp -r /app/.agent/agents/* "$ws/.agent/agents/" 2>/dev/null || true
+    echo "[entrypoint] Synced agent instruction files to $ws/.agent/agents/"
+  fi
+done
+
 # Start gateway in foreground
 exec pnpm exec openclaw gateway run --port 28789 --verbose
