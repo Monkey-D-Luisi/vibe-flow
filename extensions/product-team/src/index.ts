@@ -247,6 +247,9 @@ export function register(api: OpenClawPluginApi): void {
   const tools = getAllToolDefs(deps);
 
   for (const tool of tools) {
+    // OpenAI-compatible providers reject dots in tool names (pattern: ^[a-zA-Z0-9_-]+$).
+    // Convert dots to underscores so tools work across all providers.
+    tool.name = tool.name.replace(/\./g, '_');
     api.registerTool(tool);
   }
 

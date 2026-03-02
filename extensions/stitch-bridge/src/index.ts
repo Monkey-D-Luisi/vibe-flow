@@ -59,7 +59,7 @@ export default {
 
     // ── design.generate ──
     api.registerTool({
-      name: 'design.generate',
+      name: 'design_generate',
       label: 'Generate Design',
       description: 'Generate a UI screen design via Google Stitch',
       parameters: {
@@ -106,7 +106,7 @@ export default {
 
     // ── design.edit ──
     api.registerTool({
-      name: 'design.edit',
+      name: 'design_edit',
       label: 'Edit Design',
       description: 'Edit an existing Stitch screen design',
       parameters: {
@@ -149,7 +149,7 @@ export default {
 
     // ── design.get ──
     api.registerTool({
-      name: 'design.get',
+      name: 'design_get',
       label: 'Get Design',
       description: 'Read a saved Stitch design from the workspace',
       parameters: {
@@ -175,7 +175,7 @@ export default {
 
     // ── design.list ──
     api.registerTool({
-      name: 'design.list',
+      name: 'design_list',
       label: 'List Designs',
       description: 'List all saved Stitch designs in the workspace',
       parameters: {

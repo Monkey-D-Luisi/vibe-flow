@@ -1,13 +1,15 @@
 {
   "gateway": {
+    "mode": "local",
     "port": 28789,
-    "bind": "0.0.0.0",
+    "bind": "lan",
     "controlUi": {
       "enabled": true,
       "basePath": "/"
     },
     "auth": {
-      "mode": "none"
+      "mode": "token",
+      "token": "${OPENCLAW_GATEWAY_TOKEN}"
     },
     "reload": {
       "mode": "hot"
@@ -116,7 +118,7 @@
             {
               "id": "vibe-flow",
               "name": "OpenClaw Extensions",
-              "repo": "luiss/vibe-flow",
+              "repo": "Monkey-D-Luisi/vibe-flow",
               "defaultBranch": "main",
               "workspace": "/workspaces/vibe-flow",
               "stitch": { "projectId": null },
@@ -125,7 +127,7 @@
             {
               "id": "saas-template",
               "name": "SaaS Template",
-              "repo": "luiss/saas-template",
+              "repo": "Monkey-D-Luisi/saas-template",
               "defaultBranch": "main",
               "workspace": "/workspaces/saas-template",
               "stitch": { "projectId": "16786124142182555397" },
@@ -210,9 +212,10 @@
     "telegram": {
       "enabled": true,
       "botToken": "${TELEGRAM_BOT_TOKEN}",
-      "dmPolicy": "pairing",
-      "groupPolicy": "allowlist",
-      "streamMode": "partial"
+      "dmPolicy": "open",
+      "groupPolicy": "open",
+      "allowFrom": ["*"],
+      "streaming": "partial"
     }
   },
 
@@ -222,14 +225,12 @@
     }
   },
 
-  "routing": {
-    "bindings": [
-      {
-        "agentId": "pm",
-        "match": { "channel": "telegram" }
-      }
-    ]
-  },
+  "bindings": [
+    {
+      "agentId": "pm",
+      "match": { "channel": "telegram" }
+    }
+  ],
 
   "agents": {
     "defaults": {
@@ -241,7 +242,7 @@
         ]
       },
       "sandbox": {
-        "mode": "non-main",
+        "mode": "off",
         "scope": "agent",
         "workspaceAccess": "rw"
       }
@@ -256,12 +257,12 @@
         "skills": ["requirements-grooming"],
         "tools": {
           "allow": [
-            "task.create", "task.get", "task.search", "task.update",
-            "task.transition", "workflow.events.query",
-            "project.list", "project.switch",
-            "team.assign", "team.status", "team.message",
-            "pipeline.start", "pipeline.status",
-            "decision.evaluate", "decision.log"
+            "task_create", "task_get", "task_search", "task_update",
+            "task_transition", "workflow_events_query",
+            "project_list", "project_switch",
+            "team_assign", "team_status", "team_message",
+            "pipeline_start", "pipeline_status",
+            "decision_evaluate", "decision_log"
           ]
         }
       },
@@ -273,44 +274,44 @@
         "skills": ["tech-lead", "architecture-design", "code-review", "adr"],
         "tools": {
           "allow": [
-            "task.create", "task.get", "task.search", "task.update",
-            "task.transition", "workflow.step.run", "workflow.state.get",
-            "workflow.events.query", "quality.gate",
-            "team.assign", "team.status", "team.message", "team.inbox", "team.reply",
-            "project.list", "project.switch",
-            "pipeline.status", "pipeline.retry", "pipeline.skip",
-            "decision.evaluate", "decision.log"
+            "task_create", "task_get", "task_search", "task_update",
+            "task_transition", "workflow_step_run", "workflow_state_get",
+            "workflow_events_query", "quality_gate",
+            "team_assign", "team_status", "team_message", "team_inbox", "team_reply",
+            "project_list", "project_switch",
+            "pipeline_status", "pipeline_retry", "pipeline_skip",
+            "decision_evaluate", "decision_log"
           ]
         }
       },
       {
         "id": "po",
         "name": "Product Owner",
-        "model": { "primary": "openai-codex/gpt-4.1", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
+        "model": { "primary": "github-copilot/gpt-4.1", "fallbacks": ["anthropic/claude-sonnet-4-6", "openai-codex/gpt-5.2"] },
         "workspace": "/workspaces/active",
         "skills": ["product-owner", "requirements-grooming"],
         "tools": {
           "allow": [
-            "task.create", "task.get", "task.search", "task.update",
-            "task.transition", "workflow.step.run", "workflow.state.get",
-            "team.message", "team.inbox", "team.reply", "team.status",
-            "decision.evaluate", "decision.log"
+            "task_create", "task_get", "task_search", "task_update",
+            "task_transition", "workflow_step_run", "workflow_state_get",
+            "team_message", "team_inbox", "team_reply", "team_status",
+            "decision_evaluate", "decision_log"
           ]
         }
       },
       {
         "id": "designer",
         "name": "UI/UX Designer",
-        "model": { "primary": "openai-codex/gpt-4o", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
+        "model": { "primary": "github-copilot/gpt-4o", "fallbacks": ["anthropic/claude-sonnet-4-6", "openai-codex/gpt-5.2"] },
         "workspace": "/workspaces/active",
         "skills": ["ui-designer"],
         "tools": {
           "allow": [
-            "task.get", "task.update", "task.transition",
-            "workflow.step.run", "workflow.state.get",
-            "design.generate", "design.edit", "design.get", "design.list",
-            "team.message", "team.inbox", "team.reply",
-            "decision.evaluate"
+            "task_get", "task_update", "task_transition",
+            "workflow_step_run", "workflow_state_get",
+            "design_generate", "design_edit", "design_get", "design_list",
+            "team_message", "team_inbox", "team_reply",
+            "decision_evaluate"
           ]
         }
       },
@@ -322,12 +323,12 @@
         "skills": ["backend-dev", "tdd-implementation", "patterns"],
         "tools": {
           "allow": [
-            "task.get", "task.update", "task.transition",
-            "workflow.step.run", "workflow.state.get",
-            "quality.tests", "quality.coverage", "quality.lint",
-            "quality.complexity", "quality.gate",
-            "team.message", "team.inbox", "team.reply",
-            "decision.evaluate"
+            "task_get", "task_update", "task_transition",
+            "workflow_step_run", "workflow_state_get",
+            "quality_tests", "quality_coverage", "quality_lint",
+            "quality_complexity", "quality_gate",
+            "team_message", "team_inbox", "team_reply",
+            "decision_evaluate"
           ]
         }
       },
@@ -339,12 +340,12 @@
         "skills": ["backend-dev", "tdd-implementation"],
         "tools": {
           "allow": [
-            "task.get", "task.update", "task.transition",
-            "workflow.step.run", "workflow.state.get",
-            "quality.tests", "quality.coverage", "quality.lint",
-            "quality.complexity", "quality.gate",
-            "team.message", "team.inbox", "team.reply",
-            "decision.evaluate"
+            "task_get", "task_update", "task_transition",
+            "workflow_step_run", "workflow_state_get",
+            "quality_tests", "quality_coverage", "quality_lint",
+            "quality_complexity", "quality_gate",
+            "team_message", "team_inbox", "team_reply",
+            "decision_evaluate"
           ]
         }
       },
@@ -356,13 +357,13 @@
         "skills": ["frontend-dev", "tdd-implementation"],
         "tools": {
           "allow": [
-            "task.get", "task.update", "task.transition",
-            "workflow.step.run", "workflow.state.get",
-            "quality.tests", "quality.coverage", "quality.lint",
-            "quality.complexity", "quality.gate",
-            "design.get", "design.list",
-            "team.message", "team.inbox", "team.reply",
-            "decision.evaluate"
+            "task_get", "task_update", "task_transition",
+            "workflow_step_run", "workflow_state_get",
+            "quality_tests", "quality_coverage", "quality_lint",
+            "quality_complexity", "quality_gate",
+            "design_get", "design_list",
+            "team_message", "team_inbox", "team_reply",
+            "decision_evaluate"
           ]
         }
       },
@@ -374,13 +375,13 @@
         "skills": ["frontend-dev", "tdd-implementation"],
         "tools": {
           "allow": [
-            "task.get", "task.update", "task.transition",
-            "workflow.step.run", "workflow.state.get",
-            "quality.tests", "quality.coverage", "quality.lint",
-            "quality.complexity", "quality.gate",
-            "design.get", "design.list",
-            "team.message", "team.inbox", "team.reply",
-            "decision.evaluate"
+            "task_get", "task_update", "task_transition",
+            "workflow_step_run", "workflow_state_get",
+            "quality_tests", "quality_coverage", "quality_lint",
+            "quality_complexity", "quality_gate",
+            "design_get", "design_list",
+            "team_message", "team_inbox", "team_reply",
+            "decision_evaluate"
           ]
         }
       },
@@ -392,13 +393,13 @@
         "skills": ["qa-testing"],
         "tools": {
           "allow": [
-            "task.get", "task.update", "task.transition",
-            "workflow.step.run", "workflow.state.get",
-            "quality.tests", "quality.coverage", "quality.lint",
-            "quality.complexity", "quality.gate",
-            "workflow.events.query",
-            "team.message", "team.inbox", "team.reply",
-            "decision.evaluate"
+            "task_get", "task_update", "task_transition",
+            "workflow_step_run", "workflow_state_get",
+            "quality_tests", "quality_coverage", "quality_lint",
+            "quality_complexity", "quality_gate",
+            "workflow_events_query",
+            "team_message", "team_inbox", "team_reply",
+            "decision_evaluate"
           ]
         }
       },
@@ -410,13 +411,13 @@
         "skills": ["devops", "github-automation"],
         "tools": {
           "allow": [
-            "vcs.branch.create", "vcs.pr.create", "vcs.pr.update",
-            "vcs.label.sync", "task.get", "task.search", "task.update",
-            "task.transition", "workflow.state.get", "workflow.events.query",
-            "project.list", "project.switch",
-            "team.message", "team.inbox", "team.reply",
-            "pipeline.status",
-            "decision.evaluate"
+            "vcs_branch_create", "vcs_pr_create", "vcs_pr_update",
+            "vcs_label_sync", "task_get", "task_search", "task_update",
+            "task_transition", "workflow_state_get", "workflow_events_query",
+            "project_list", "project_switch",
+            "team_message", "team_inbox", "team_reply",
+            "pipeline_status",
+            "decision_evaluate"
           ]
         }
       }

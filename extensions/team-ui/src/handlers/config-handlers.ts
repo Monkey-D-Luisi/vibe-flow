@@ -5,9 +5,9 @@ export function createConfigGetHandler(basePath: string) {
     respond(true, {
       basePath,
       providers: {
-        openai: { enabled: true },
+        'openai-codex': { enabled: true },
         anthropic: { enabled: true },
-        google: { enabled: true },
+        'github-copilot': { enabled: true },
       },
       telegram: { enabled: false },
       quality: { coverage: 80, complexity: 50 },

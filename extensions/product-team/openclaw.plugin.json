@@ -106,6 +106,45 @@
             }
           }
         }
+      },
+      "projects": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "repo": { "type": "string" },
+            "defaultBranch": { "type": "string", "default": "main" },
+            "workspace": { "type": "string" },
+            "stitch": { "type": "object" },
+            "quality": { "type": "object" }
+          },
+          "required": ["id", "name", "repo", "workspace"]
+        }
+      },
+      "activeProject": {
+        "type": "string",
+        "description": "Currently active project ID"
+      },
+      "orchestrator": {
+        "type": "object",
+        "properties": {
+          "maxParallelTasks": { "type": "integer", "minimum": 1, "default": 5 },
+          "maxRetriesPerStage": { "type": "integer", "minimum": 0, "default": 1 },
+          "stageTimeouts": { "type": "object" },
+          "autoEscalateAfterRetries": { "type": "boolean", "default": true },
+          "notifyTelegramOnStageChange": { "type": "boolean", "default": true },
+          "skipDesignForNonUITasks": { "type": "boolean", "default": true }
+        }
+      },
+      "decisions": {
+        "type": "object",
+        "properties": {
+          "policies": { "type": "object" },
+          "timeoutMs": { "type": "integer", "minimum": 1000 },
+          "humanApprovalTimeout": { "type": "integer", "minimum": 1000 }
+        }
       }
     }
   }

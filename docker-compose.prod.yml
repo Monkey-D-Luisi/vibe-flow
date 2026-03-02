@@ -29,7 +29,8 @@ services:
     environment:
       - NODE_ENV=production
       # Docker secrets are mounted as files at /run/secrets/<name>.
-      # The application reads ANTHROPIC_API_KEY, OPENAI_API_KEY, etc. from env vars.
+      # ANTHROPIC_API_KEY is a token from `claude setup-token` (not a console API key).
+      # OPENAI_API_KEY is only for audio transcription.
       # Use an entrypoint wrapper (e.g. scripts/load-secrets.sh) that reads the
       # secret files and exports them, or continue using .env.docker for env vars.
     secrets:
