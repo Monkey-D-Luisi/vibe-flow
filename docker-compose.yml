@@ -27,6 +27,8 @@ services:
     environment:
       - NODE_ENV=production
       - OPENCLAW_CONFIG=/app/openclaw.json
+      - OPENCLAW_CONFIG_PATH=/app/openclaw.json
+      - OPENCLAW_STATE_DIR=/root/.openclaw
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:28789/"]

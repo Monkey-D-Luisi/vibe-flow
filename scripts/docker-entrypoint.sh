@@ -7,6 +7,24 @@ mkdir -p /root/.openclaw/agents/main/agent /root/.openclaw/credentials
 # Copy our project config and expand environment variables
 envsubst < /app/openclaw.json > /root/.openclaw/openclaw.json
 
+# Ensure OPENCLAW_CONFIG_PATH is set for the SDK's internal loadConfig().
+# The gateway CLI uses OPENCLAW_CONFIG (--config flag), but spawnSubagentDirect()
+# reads OPENCLAW_CONFIG_PATH at runtime. Both must point to valid config.
+export OPENCLAW_CONFIG_PATH="${OPENCLAW_CONFIG_PATH:-/app/openclaw.json}"
+export OPENCLAW_STATE_DIR="${OPENCLAW_STATE_DIR:-/root/.openclaw}"
+
+echo "[entrypoint] OPENCLAW_CONFIG=$OPENCLAW_CONFIG"
+echo "[entrypoint] OPENCLAW_CONFIG_PATH=$OPENCLAW_CONFIG_PATH"
+echo "[entrypoint] OPENCLAW_STATE_DIR=$OPENCLAW_STATE_DIR"
+
+# Verify the config file is readable and contains agents
+if [ -f "$OPENCLAW_CONFIG_PATH" ]; then
+  AGENT_COUNT=$(grep -o '"id"' "$OPENCLAW_CONFIG_PATH" | wc -l || echo "0")
+  echo "[entrypoint] Config found at $OPENCLAW_CONFIG_PATH ($AGENT_COUNT agent entries)"
+else
+  echo "[entrypoint] WARNING: Config not found at $OPENCLAW_CONFIG_PATH"
+fi
+
 # Rebuild better-sqlite3 native module if not present
 if [ ! -f /app/node_modules/better-sqlite3/build/Release/better_sqlite3.node ]; then
   echo "[entrypoint] Rebuilding better-sqlite3 native module..."
@@ -54,4 +72,4 @@ for ws in "${WORKSPACES[@]}"; do
 done
 
 # Start gateway in foreground
-exec pnpm exec openclaw gateway run --port 28789 --verbose
+exec pnpm exec openclaw gateway run --port 28789 --config "$OPENCLAW_CONFIG_PATH" --verbose
