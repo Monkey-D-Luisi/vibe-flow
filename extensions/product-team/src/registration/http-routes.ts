@@ -5,22 +5,13 @@
  * and the GitHub CI feedback webhook. Extracted from index.ts (D-004).
  */
 
-import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { Logger, RouteRegistrar } from './types.js';
 import type { GithubConfig } from '../config/plugin-config.js';
 import type { CiFeedbackAutomation } from '../github/ci-feedback.js';
 import { createHealthCheckHandler, type HealthCheckDeps } from '../services/health-check.js';
 import { registerCiWebhookRoute } from './ci-webhook-route.js';
 
-interface Logger {
-  readonly info: (message: string) => void;
-  readonly warn: (message: string) => void;
-}
-
-interface RouteRegistrar {
-  registerHttpRoute: (params: {
-    path: string;
-    handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
-  }) => void;
+interface RouteRegistrarWithLogger extends RouteRegistrar {
   logger: Logger;
 }
 
@@ -34,7 +25,7 @@ export interface HttpRoutesServices {
 }
 
 export function registerHttpRoutes(
-  api: RouteRegistrar,
+  api: RouteRegistrarWithLogger,
   config: HttpRoutesConfig,
   services: HttpRoutesServices,
 ): void {

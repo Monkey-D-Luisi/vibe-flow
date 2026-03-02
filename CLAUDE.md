@@ -116,7 +116,7 @@ pnpm q:complexity
 | `qgate.coverage` | Parse and report test coverage |
 | `qgate.gate` | Evaluate quality gate policy |
 
-> **Note:** `qgate.*` and `quality.*` tools serve different purposes. `quality.*` tools integrate with the task lifecycle. `qgate.*` tools are stateless and work without a task context. Do not load both extensions simultaneously.
+> **Note:** `qgate.*` and `quality.*` tools serve different purposes. `quality.*` tools integrate with the task lifecycle. `qgate.*` tools are stateless and work without a task context. Both extensions can be loaded simultaneously — the `qgate.*` namespace prevents tool name collisions.
 
 ## Conventions
 

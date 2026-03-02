@@ -5,7 +5,8 @@
  * Extracted from index.ts to keep registration concerns modular (D-004).
  */
 
-import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { ServerResponse } from 'node:http';
+import type { Logger, RouteRegistrar } from './types.js';
 import type { GithubConfig } from '../config/plugin-config.js';
 import {
   CiFeedbackAutomation,
@@ -19,18 +20,6 @@ import {
   InvalidGithubSignatureError,
   MissingGithubSignatureError,
 } from '../github/webhook-signature.js';
-
-interface Logger {
-  readonly info: (message: string) => void;
-  readonly warn: (message: string) => void;
-}
-
-interface RouteRegistrar {
-  registerHttpRoute: (params: {
-    path: string;
-    handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
-  }) => void;
-}
 
 function asNonEmptyString(value: string | undefined): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;

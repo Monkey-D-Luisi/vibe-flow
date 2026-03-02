@@ -19,12 +19,12 @@ Create a direct test suite for the `@openclaw/quality-contracts` package coverin
 ## Acceptance Criteria
 - [x] `packages/quality-contracts/test/complexity/escomplex.test.ts` created (6 tests)
 - [x] `packages/quality-contracts/test/complexity/tsmorph.test.ts` created (8 tests)
-- [x] `packages/quality-contracts/test/fs/read.test.ts` created (6 tests)
+- [x] `packages/quality-contracts/test/fs/read.test.ts` created (4 tests)
 - [x] `packages/quality-contracts/test/validate/tools.test.ts` created (28 tests)
 - [x] `packages/quality-contracts/vitest.config.ts` added
 - [x] `packages/quality-contracts/tsconfig.json` updated to include test files
 - [x] `test` and `test:coverage` scripts added to `packages/quality-contracts/package.json`
-- [x] All 48 tests pass
+- [x] All 46 tests pass
 - [x] `pnpm typecheck` passes
 
 ## Status

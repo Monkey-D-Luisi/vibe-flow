@@ -77,9 +77,9 @@ jobs:
       - name: Generate coverage artifacts
         run: |
           set -e
-          pnpm --filter @openclaw/quality-gate test:coverage || true
-          pnpm --filter @openclaw/plugin-product-team test:coverage || true
+          pnpm --filter @openclaw/quality-gate test:coverage || exit 1
+          pnpm --filter @openclaw/plugin-product-team test:coverage || exit 1
 
       - name: Quality gate enforcement
-        run: pnpm q:gate --source artifacts --scope minor
+        run: pnpm q:gate --scope minor
 
