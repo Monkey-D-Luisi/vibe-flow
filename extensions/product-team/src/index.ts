@@ -194,16 +194,23 @@ export function register(api: OpenClawPluginApi): void {
   });
 
   // Resolve agent and decision configs for EP08 tools
-  const rawAgents = pluginConfig?.agents;
+  // Agents live at the top-level config (api.config.agents.list), NOT in pluginConfig.
+  const globalAgentsList = api.config.agents?.list;
   const agentConfig: Array<{ id: string; name: string; model?: { primary?: string } }> =
-    Array.isArray(rawAgents)
-      ? rawAgents.filter(
-          (a): a is { id: string; name: string; model?: { primary?: string } } =>
-            typeof a === 'object' && a !== null &&
-            typeof (a as Record<string, unknown>)['id'] === 'string' &&
-            typeof (a as Record<string, unknown>)['name'] === 'string',
-        )
+    Array.isArray(globalAgentsList)
+      ? globalAgentsList
+          .filter((a) => typeof a.id === 'string')
+          .map((a) => ({
+            id: a.id,
+            name: a.name ?? a.id,
+            model: typeof a.model === 'string'
+              ? { primary: a.model }
+              : typeof a.model === 'object' && a.model !== null
+                ? { primary: (a.model as { primary?: string }).primary }
+                : undefined,
+          }))
       : [];
+  api.logger.info(`loaded ${agentConfig.length} agents from global config: [${agentConfig.map(a => a.id).join(', ')}]`);
   const rawDecisions = (
     typeof pluginConfig?.decisions === 'object' && pluginConfig.decisions !== null
       ? pluginConfig.decisions
