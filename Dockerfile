@@ -6,7 +6,7 @@
 # Port 28789 (avoids collision with host OpenClaw on 18789)
 # ─────────────────────────────────────────────────────────────
 
-FROM node:22-slim AS base
+FROM node:22-slim AS builder
 
 # System dependencies: git, gh CLI, build tools for better-sqlite3, curl for healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       python3 \
       ca-certificates \
       gnupg \
+      gettext-base \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
        | gpg --dearmor -o /etc/apt/keyrings/github-cli.gpg \
@@ -29,25 +30,21 @@ RUN corepack enable && corepack prepare pnpm@10.18.1 --activate
 
 WORKDIR /app
 
-# ── Dependency layer (cached unless lock/workspace changes) ──
+# ── Copy all source ──
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY extensions/product-team/package.json extensions/product-team/
-COPY extensions/quality-gate/package.json extensions/quality-gate/
-COPY packages/schemas/package.json packages/schemas/
-COPY packages/quality-contracts/package.json packages/quality-contracts/
-
-RUN pnpm install --frozen-lockfile
-
-# Rebuild native modules for the container's architecture
-RUN pnpm rebuild better-sqlite3
-
-# ── Application layer ──
 COPY extensions/ extensions/
 COPY packages/ packages/
+COPY tools/ tools/
 COPY skills/ skills/
 COPY scripts/ scripts/
 COPY openclaw.docker.json openclaw.json
-COPY tsconfig*.json ./
+
+# ── Install dependencies (hoisted for cross-platform compatibility) ──
+RUN echo "node-linker=hoisted" > .npmrc
+RUN pnpm install --no-frozen-lockfile
+
+# Rebuild native modules for the container's architecture
+RUN npm rebuild better-sqlite3
 
 # Build all TypeScript packages
 RUN pnpm build
@@ -62,9 +59,10 @@ ENV NODE_ENV=production
 ENV OPENCLAW_CONFIG=/app/openclaw.json
 EXPOSE 28789
 
-# Health check: verify gateway responds
+# Health check: verify gateway responds (use root path, no auth needed)
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-  CMD curl -f http://localhost:28789/health || exit 1
+  CMD curl -sf http://localhost:28789/ || exit 1
 
-# Start via local node_modules binary
-ENTRYPOINT ["pnpm", "exec", "openclaw", "gateway", "start"]
+# Start gateway in foreground mode (no systemd in containers)
+RUN sed -i 's/\r$//' /app/scripts/docker-entrypoint.sh && chmod +x /app/scripts/docker-entrypoint.sh
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]

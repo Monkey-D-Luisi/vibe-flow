@@ -18,9 +18,9 @@ export function handleEventsStream({ respond }: GatewayRequestHandlerOptions): v
 export function handleProvidersStatus({ respond }: GatewayRequestHandlerOptions): void {
   respond(true, {
     providers: [
-      { id: 'openai', name: 'OpenAI', status: 'unknown' },
+      { id: 'openai-codex', name: 'OpenAI Codex', status: 'unknown' },
       { id: 'anthropic', name: 'Anthropic', status: 'unknown' },
-      { id: 'google', name: 'Google AI', status: 'unknown' },
+      { id: 'github-copilot', name: 'GitHub Copilot', status: 'unknown' },
     ],
   });
 }

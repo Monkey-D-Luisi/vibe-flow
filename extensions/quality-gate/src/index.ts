@@ -18,6 +18,8 @@ export default {
   register(api: { registerTool: (tool: unknown, opts?: Record<string, unknown>) => void }) {
     const tools = getAllToolDefs();
     for (const tool of tools) {
+      // OpenAI-compatible providers reject dots in tool names.
+      (tool as { name: string }).name = (tool as { name: string }).name.replace(/\./g, '_');
       api.registerTool(tool);
     }
   },

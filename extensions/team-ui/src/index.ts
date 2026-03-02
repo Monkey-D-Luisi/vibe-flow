@@ -1,6 +1,6 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { createConfigGetHandler, handleConfigUpdate } from './handlers/config-handlers.js';
-import { handleAgentsList, handleAgentsUpdate } from './handlers/agent-handlers.js';
+import { handleAgentsList, handleAgentsUpdate, AGENT_ROSTER } from './handlers/agent-handlers.js';
 import {
   handleProjectsList,
   handleProjectsAdd,
@@ -51,7 +51,29 @@ export default {
     api.registerGatewayMethod('team.events.stream', handleEventsStream);
     api.registerGatewayMethod('team.decisions.list', handleDecisionsList);
 
+    // ── REST API Endpoint — /team/api/agents ──
+    // Serves agent roster as JSON so the dashboard doesn't depend on WebSocket.
+
+    api.registerHttpRoute({
+      path: `${basePath}/api/agents`,
+      handler(req, res) {
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+          res.writeHead(405, { Allow: 'GET, HEAD', 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'method_not_allowed' }));
+          return;
+        }
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+        });
+        res.end(JSON.stringify({ ok: true, agents: AGENT_ROSTER }));
+      },
+    });
+
     // ── Static Asset Handler ──
+    // Server-side injects agent roster JSON into the HTML template.
+
+    const agentDataJson = JSON.stringify(AGENT_ROSTER);
 
     api.registerHttpRoute({
       path: basePath,
@@ -61,16 +83,18 @@ export default {
           res.end();
           return;
         }
+        const html = buildDashboardHtml(agentDataJson);
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(DASHBOARD_HTML);
+        res.end(html);
       },
     });
 
-    logger.info(`team-ui: registered 12 gateway methods; dashboard at ${basePath}`);
+    logger.info(`team-ui: registered 12 gateway methods, 2 HTTP routes; dashboard at ${basePath}`);
   },
 };
 
-const DASHBOARD_HTML = `<!DOCTYPE html>
+function buildDashboardHtml(agentDataJson: string): string {
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -96,6 +120,8 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
     td { padding: 10px 14px; font-size: 0.88rem; border-bottom: 1px solid #1e1e2c; }
     tr:last-child td { border-bottom: none; }
     .status-idle { color: #4ade80; }
+    .status-working { color: #facc15; }
+    .status-error { color: #f87171; }
     .model-tag { background: #2d2d3d; color: #9ca3af; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; font-family: monospace; }
     .notice { background: #1a1a24; border: 1px solid #2d2d3d; border-radius: 10px; padding: 20px; color: #6b7280; font-size: 0.88rem; margin-top: 24px; }
   </style>
@@ -132,7 +158,7 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
       <div class="card">
         <div class="label">Providers</div>
         <div class="value" id="providerCount">3</div>
-        <div class="sub">OpenAI &middot; Anthropic &middot; Google</div>
+        <div class="sub">OpenAI Codex &middot; Anthropic &middot; GitHub Copilot</div>
       </div>
     </div>
 
@@ -157,54 +183,54 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
     </div>
   </main>
 
-  <script type="module">
-    async function callMethod(method, params = {}) {
-      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      return new Promise((resolve) => {
-        const ws = new WebSocket(\`\${protocol}//\${location.host}\`);
-        ws.onopen = () => ws.send(JSON.stringify({ method, params, id: 1 }));
-        ws.onmessage = (e) => { resolve(JSON.parse(e.data)); ws.close(); };
-        ws.onerror = () => resolve(null);
-      });
-    }
+  <script>
+    // Agent data injected server-side — no WebSocket required for initial render
+    var __AGENTS__ = ${agentDataJson};
 
-    async function loadAgents() {
-      const result = await callMethod('team.agents.list');
-      const tbody = document.getElementById('agentBody');
-      if (!result?.payload?.agents?.length) {
-        tbody.innerHTML = '<tr><td colspan="4" style="color:#6b7280;text-align:center;padding:20px">No agents found.</td></tr>';
+    function renderAgents(agents) {
+      var tbody = document.getElementById('agentBody');
+      if (!agents || !agents.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:#6b7280;text-align:center;padding:20px">No agents configured.</td></tr>';
         return;
       }
+      var working = 0;
       tbody.innerHTML = '';
-      for (const a of result.payload.agents) {
-        const row = tbody.insertRow();
+      for (var i = 0; i < agents.length; i++) {
+        var a = agents[i];
+        if (a.status === 'working') working++;
+        var row = tbody.insertRow();
         row.insertCell().textContent = a.name;
 
-        const modelCell = row.insertCell();
-        const modelTag = document.createElement('span');
+        var modelCell = row.insertCell();
+        var modelTag = document.createElement('span');
         modelTag.className = 'model-tag';
         modelTag.textContent = a.model;
         modelCell.appendChild(modelTag);
 
-        const statusCell = row.insertCell();
-        const statusTag = document.createElement('span');
-        statusTag.className = 'status-idle';
+        var statusCell = row.insertCell();
+        var statusTag = document.createElement('span');
+        statusTag.className = 'status-' + a.status;
         statusTag.textContent = a.status;
         statusCell.appendChild(statusTag);
 
-        row.insertCell().textContent = '$' + (a.costToday ?? 0).toFixed(4);
+        row.insertCell().textContent = '$' + (a.costToday || 0).toFixed(4);
       }
+      document.getElementById('agentsWorking').textContent = working.toString();
     }
 
-    async function loadCosts() {
-      const result = await callMethod('team.costs.summary');
-      if (result?.payload) {
-        document.getElementById('costToday').textContent = '$' + (result.payload.totalToday ?? 0).toFixed(2);
-      }
-    }
+    // Render immediately from server-side data
+    renderAgents(__AGENTS__);
 
-    loadAgents().catch(err => console.error('Failed to load agents:', err));
-    loadCosts().catch(err => console.error('Failed to load costs:', err));
+    // Also try to refresh via REST API (for live status updates)
+    fetch('/team/api/agents')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data && data.agents && data.agents.length) {
+          renderAgents(data.agents);
+        }
+      })
+      .catch(function() { /* server-side data already rendered, ignore fetch errors */ });
   </script>
 </body>
 </html>`;
+}

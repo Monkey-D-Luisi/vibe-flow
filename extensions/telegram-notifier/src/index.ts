@@ -74,11 +74,11 @@ export default {
       const params = (event.params ?? {}) as Record<string, unknown>;
       const result = event.result;
 
-      if (toolName === 'task.transition') {
+      if (toolName === 'task_transition') {
         enqueue(formatTaskTransition(params), 'normal');
-      } else if (toolName === 'vcs.pr.create') {
+      } else if (toolName === 'vcs_pr_create') {
         enqueue(formatPrCreation(params, result), 'high');
-      } else if (toolName === 'quality.gate') {
+      } else if (toolName === 'quality_gate') {
         enqueue(formatQualityGate(params, result), 'normal');
       }
     });
@@ -101,7 +101,7 @@ export default {
     // Handler signature: (ctx: PluginCommandContext) => PluginCommandResult
 
     api.registerCommand({
-      name: 'status',
+      name: 'teamstatus',
       description: 'Report current agent status',
       acceptsArgs: true,
       handler: async (_ctx) => {
@@ -116,9 +116,9 @@ export default {
       handler: async (ctx) => {
         const ideaText = String(ctx.args ?? '').trim();
         if (!ideaText) {
-          return { text: 'Usage: /idea <your product idea>' };
+          return { text: 'Usage: /idea <your product idea>\n\nTip: You can also send a regular message \\(not a command\\) to talk directly with the PM agent\\.' };
         }
-        return { text: `Idea received: "${escapeMarkdownV2(ideaText)}". Routing to PM agent.` };
+        return { text: `Idea noted: "${escapeMarkdownV2(ideaText)}"\\.\n\nTo have the PM agent act on this, send it as a regular message \\(not a /command\\)\\. Example:\n\`@AiProductTeamBot ${escapeMarkdownV2(ideaText)}\`` };
       },
     });
 

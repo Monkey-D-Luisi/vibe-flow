@@ -20,21 +20,25 @@ services:
       - "127.0.0.1:28789:28789"
     volumes:
       - openclaw-data:/app/data
+      - openclaw-state:/root/.openclaw
       - openclaw-workspaces:/workspaces
     env_file:
       - .env.docker
     environment:
       - NODE_ENV=production
+      - OPENCLAW_CONFIG=/app/openclaw.json
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:28789/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:28789/"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 60s
 
 volumes:
   openclaw-data:
+    driver: local
+  openclaw-state:
     driver: local
   openclaw-workspaces:
     driver: local

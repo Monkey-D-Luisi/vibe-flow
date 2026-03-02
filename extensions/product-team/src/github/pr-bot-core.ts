@@ -49,7 +49,7 @@ export class PrBotAutomation {
     if (!this.deps.config.enabled) {
       return;
     }
-    if (event.toolName !== 'vcs.pr.create') {
+    if (event.toolName !== 'vcs_pr_create') {
       return;
     }
     if (event.error) {
