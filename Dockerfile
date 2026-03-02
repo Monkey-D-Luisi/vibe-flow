@@ -57,7 +57,12 @@ VOLUME ["/app/data", "/workspaces"]
 
 # ── Runtime ──
 ENV NODE_ENV=production
+# OPENCLAW_CONFIG is used by the gateway CLI (--config flag fallback).
+# OPENCLAW_CONFIG_PATH is used by the SDK's loadConfig() inside spawnSubagentDirect().
+# Both must point to the same file for consistent config resolution.
 ENV OPENCLAW_CONFIG=/app/openclaw.json
+ENV OPENCLAW_CONFIG_PATH=/app/openclaw.json
+ENV OPENCLAW_STATE_DIR=/root/.openclaw
 EXPOSE 28789
 
 # Health check: verify gateway responds (use root path, no auth needed)
