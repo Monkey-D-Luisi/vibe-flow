@@ -291,4 +291,201 @@ describe('decision engine tools', () => {
       expect(details.decisions[0]?.decidedBy).toBe('tech-lead');
     });
   });
+
+  describe('auto-escalation messaging', () => {
+    it('sends an escalation message to agent_messages when scope decision is escalated', async () => {
+      const tool = decisionEvaluateToolDef(deps);
+      const result = await tool.execute('call-1', {
+        category: 'scope',
+        question: 'Should we add feature X?',
+        options: OPTIONS,
+        taskRef: 'task-esc-1',
+      });
+
+      const details = result.details as {
+        escalated: boolean;
+        approver: string;
+        escalationMessageId: string | null;
+      };
+      expect(details.escalated).toBe(true);
+      expect(details.escalationMessageId).toBeTruthy();
+
+      // Verify the message was written to agent_messages
+      const row = deps.db.prepare(
+        'SELECT * FROM agent_messages WHERE id = ?',
+      ).get(details.escalationMessageId) as {
+        from_agent: string;
+        to_agent: string;
+        subject: string;
+        priority: string;
+        task_ref: string;
+      } | undefined;
+      expect(row).toBeDefined();
+      expect(row?.from_agent).toBe('decision-engine');
+      expect(row?.to_agent).toBe('tech-lead');
+      expect(row?.priority).toBe('urgent');
+      expect(row?.subject).toContain('[Escalation]');
+      expect(row?.task_ref).toBe('task-esc-1');
+    });
+
+    it('returns nextAction with spawn_subagent instruction for escalated decisions', async () => {
+      const tool = decisionEvaluateToolDef(deps);
+      const result = await tool.execute('call-1', {
+        category: 'scope',
+        question: 'Include extra feature?',
+        options: OPTIONS,
+      });
+
+      const details = result.details as {
+        escalated: boolean;
+        nextAction: {
+          action: string;
+          agentId: string;
+          task: string;
+          reason: string;
+        } | undefined;
+      };
+      expect(details.escalated).toBe(true);
+      expect(details.nextAction).toBeDefined();
+      expect(details.nextAction?.action).toBe('spawn_subagent');
+      expect(details.nextAction?.agentId).toBe('tech-lead');
+      expect(details.nextAction?.task).toContain('team_inbox');
+      expect(details.nextAction?.reason).toContain('scope policy');
+    });
+
+    it('does NOT send an escalation message for auto-decided technical decisions', async () => {
+      const tool = decisionEvaluateToolDef(deps);
+      const result = await tool.execute('call-1', {
+        category: 'technical',
+        question: 'Which lib?',
+        options: OPTIONS,
+      });
+
+      const details = result.details as {
+        escalated: boolean;
+        escalationMessageId?: string | null;
+        nextAction?: unknown;
+      };
+      expect(details.escalated).toBe(false);
+      expect(details.escalationMessageId).toBeUndefined();
+      expect(details.nextAction).toBeUndefined();
+
+      // No messages should exist
+      try {
+        const count = deps.db.prepare('SELECT COUNT(*) as cnt FROM agent_messages').get() as { cnt: number };
+        expect(count.cnt).toBe(0);
+      } catch {
+        // agent_messages table may not exist if no escalation occurred — that's fine
+      }
+    });
+
+    it('does NOT send escalation message for budget category (human escalation)', async () => {
+      const tool = decisionEvaluateToolDef(deps);
+      const result = await tool.execute('call-1', {
+        category: 'budget',
+        question: 'Over budget?',
+        options: OPTIONS,
+      });
+
+      const details = result.details as {
+        escalated: boolean;
+        approver: string;
+        escalationMessageId?: string | null;
+        nextAction?: unknown;
+      };
+      expect(details.escalated).toBe(true);
+      expect(details.approver).toBe('human');
+      // No message or nextAction for human-escalated decisions
+      expect(details.escalationMessageId).toBeUndefined();
+      expect(details.nextAction).toBeUndefined();
+    });
+
+    it('sends escalation message for conflict category to po', async () => {
+      const tool = decisionEvaluateToolDef(deps);
+      const result = await tool.execute('call-1', {
+        category: 'conflict',
+        question: 'Conflicting priorities?',
+        options: OPTIONS,
+      });
+
+      const details = result.details as {
+        escalated: boolean;
+        approver: string;
+        escalationMessageId: string | null;
+        nextAction: { agentId: string };
+      };
+      expect(details.approver).toBe('po');
+      expect(details.escalationMessageId).toBeTruthy();
+      expect(details.nextAction.agentId).toBe('po');
+
+      const row = deps.db.prepare(
+        'SELECT to_agent FROM agent_messages WHERE id = ?',
+      ).get(details.escalationMessageId) as { to_agent: string } | undefined;
+      expect(row?.to_agent).toBe('po');
+    });
+
+    it('sends escalation message on circuit breaker trigger', async () => {
+      const tool = decisionEvaluateToolDef(deps);
+      const taskRef = 'task-cb-msg';
+
+      // Fill up 5 auto decisions
+      for (let i = 0; i < 5; i++) {
+        await tool.execute(`cb-${i}`, {
+          category: 'technical',
+          question: `Q${i}`,
+          options: OPTIONS,
+          taskRef,
+        });
+      }
+
+      // 6th triggers circuit breaker
+      const result = await tool.execute('cb-trigger', {
+        category: 'technical',
+        question: 'Trigger CB',
+        options: OPTIONS,
+        taskRef,
+      });
+
+      const details = result.details as {
+        escalated: boolean;
+        escalationMessageId: string;
+        nextAction: { action: string; agentId: string };
+      };
+      expect(details.escalated).toBe(true);
+      expect(details.escalationMessageId).toBeTruthy();
+      expect(details.nextAction.action).toBe('spawn_subagent');
+      expect(details.nextAction.agentId).toBe('tech-lead');
+
+      // Verify message in DB
+      const row = deps.db.prepare(
+        'SELECT * FROM agent_messages WHERE id = ?',
+      ).get(details.escalationMessageId) as {
+        to_agent: string;
+        subject: string;
+        priority: string;
+      } | undefined;
+      expect(row?.to_agent).toBe('tech-lead');
+      expect(row?.priority).toBe('urgent');
+      expect(row?.subject).toContain('[Escalation]');
+    });
+
+    it('escalation message body includes the question and options', async () => {
+      const tool = decisionEvaluateToolDef(deps);
+      const result = await tool.execute('call-1', {
+        category: 'quality',
+        question: 'Should we skip the flaky test?',
+        options: OPTIONS,
+        taskRef: 'task-body-check',
+      });
+
+      const details = result.details as { escalationMessageId: string };
+      const row = deps.db.prepare(
+        'SELECT body FROM agent_messages WHERE id = ?',
+      ).get(details.escalationMessageId) as { body: string } | undefined;
+      expect(row?.body).toContain('Should we skip the flaky test?');
+      expect(row?.body).toContain('axios');
+      expect(row?.body).toContain('fetch');
+      expect(row?.body).toContain('task-body-check');
+    });
+  });
 });

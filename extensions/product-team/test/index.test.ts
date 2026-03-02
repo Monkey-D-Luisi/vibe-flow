@@ -7,12 +7,13 @@ import { resetProcessShutdownHooksForTests } from '../src/lifecycle/process-shut
 function createMockApi(options?: {
   pluginConfig?: Record<string, unknown>;
   resolvePath?: (path: string) => string;
+  config?: Partial<OpenClawPluginApi['config']>;
 }): OpenClawPluginApi {
   return {
     id: 'product-team',
     name: 'Product Team Engine',
     source: 'config',
-    config: {} as OpenClawPluginApi['config'],
+    config: (options?.config ?? {}) as OpenClawPluginApi['config'],
     pluginConfig: options?.pluginConfig ?? { dbPath: ':memory:' },
     runtime: {} as OpenClawPluginApi['runtime'],
     logger: {
@@ -691,5 +692,78 @@ describe('product-team plugin', () => {
     const details = result.details as { task: { title: string; rev: number } };
     expect(details.task.title).toBe('Created from plugin test');
     expect(details.task.rev).toBe(0);
+  });
+
+  it('populates agentConfig from global config.agents.list (not pluginConfig)', async () => {
+    const api = createMockApi({
+      config: {
+        agents: {
+          list: [
+            { id: 'pm', name: 'Product Manager', model: { primary: 'anthropic/claude-sonnet-4-6', fallbacks: [] } },
+            { id: 'tech-lead', name: 'Tech Lead', model: { primary: 'anthropic/claude-opus-4-6', fallbacks: [] } },
+            { id: 'back-1', name: 'Senior Backend Dev', model: 'anthropic/claude-sonnet-4-6' },
+          ],
+        },
+      } as Partial<OpenClawPluginApi['config']>,
+    });
+    register(api);
+
+    const statusTool = getRegisteredTool(api, 'team_status');
+    const result = await statusTool.execute('ts-1', {});
+    const details = result.details as { agents: Array<{ id: string; name: string; model: string }> };
+    expect(details.agents).toHaveLength(3);
+    expect(details.agents[0]?.id).toBe('pm');
+    expect(details.agents[0]?.name).toBe('Product Manager');
+    expect(details.agents[0]?.model).toBe('anthropic/claude-sonnet-4-6');
+    expect(details.agents[1]?.id).toBe('tech-lead');
+    expect(details.agents[2]?.id).toBe('back-1');
+    // Agents with model as string should also resolve
+    expect(details.agents[2]?.model).toBe('anthropic/claude-sonnet-4-6');
+  });
+
+  it('team_status returns empty when no agents in global config', async () => {
+    const api = createMockApi(); // config: {} — no agents
+    register(api);
+
+    const statusTool = getRegisteredTool(api, 'team_status');
+    const result = await statusTool.execute('ts-1', {});
+    const details = result.details as { agents: unknown[] };
+    expect(details.agents).toEqual([]);
+  });
+
+  it('logs agent count from global config on startup', () => {
+    const api = createMockApi({
+      config: {
+        agents: {
+          list: [
+            { id: 'pm', name: 'PM' },
+            { id: 'tech-lead', name: 'TL' },
+          ],
+        },
+      } as Partial<OpenClawPluginApi['config']>,
+    });
+    register(api);
+
+    expect(api.logger.info).toHaveBeenCalledWith(
+      'loaded 2 agents from global config: [pm, tech-lead]',
+    );
+  });
+
+  it('agent names default to id when name is not provided', async () => {
+    const api = createMockApi({
+      config: {
+        agents: {
+          list: [
+            { id: 'devops' },
+          ],
+        },
+      } as Partial<OpenClawPluginApi['config']>,
+    });
+    register(api);
+
+    const statusTool = getRegisteredTool(api, 'team_status');
+    const result = await statusTool.execute('ts-1', {});
+    const details = result.details as { agents: Array<{ id: string; name: string }> };
+    expect(details.agents[0]?.name).toBe('devops');
   });
 });
