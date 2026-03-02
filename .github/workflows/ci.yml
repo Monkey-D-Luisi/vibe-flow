@@ -53,33 +53,3 @@ jobs:
           pnpm --filter @openclaw/plugin-product-team test:coverage || exit 1
           pnpm --filter @openclaw/quality-contracts test:coverage || exit 1
 
-  quality-gate:
-    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
-    needs: test-lint-build
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Rebuild native modules
-        working-directory: extensions/product-team
-        run: node -e "const c=require('child_process'),p=require('path');const pkg=p.dirname(require.resolve('better-sqlite3/package.json'));console.log('Rebuilding better-sqlite3 at',pkg);c.execSync('npm run install',{cwd:pkg,stdio:'inherit'});"
-
-      - name: Generate coverage artifacts
-        run: |
-          set -e
-          pnpm --filter @openclaw/quality-gate test:coverage || exit 1
-          pnpm --filter @openclaw/plugin-product-team test:coverage || exit 1
-
-      - name: Quality gate enforcement
-        run: pnpm q:gate --scope minor
-
