@@ -254,13 +254,17 @@
         "default": true,
         "model": { "primary": "openai-codex/gpt-5.2", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
+        "agentDir": ".agent/agents/pm",
         "skills": ["requirements-grooming"],
+        "subagents": {
+          "allowAgents": ["tech-lead", "po", "designer", "back-1", "front-1", "qa", "devops"]
+        },
         "tools": {
           "allow": [
             "task_create", "task_get", "task_search", "task_update",
             "task_transition", "workflow_events_query",
             "project_list", "project_switch",
-            "team_assign", "team_status", "team_message",
+            "team_assign", "team_status", "team_message", "team_inbox",
             "pipeline_start", "pipeline_status",
             "decision_evaluate", "decision_log"
           ]
@@ -271,7 +275,11 @@
         "name": "Tech Lead",
         "model": { "primary": "anthropic/claude-opus-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
+        "agentDir": ".agent/agents/tech-lead",
         "skills": ["tech-lead", "architecture-design", "code-review", "adr"],
+        "subagents": {
+          "allowAgents": ["back-1", "back-2", "front-1", "designer", "qa", "devops"]
+        },
         "tools": {
           "allow": [
             "task_create", "task_get", "task_search", "task_update",

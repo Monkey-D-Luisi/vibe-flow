@@ -270,6 +270,30 @@ export function register(api: OpenClawPluginApi): void {
     api.logger.info('registered PR-Bot after_tool_call hook');
   }
 
+  // Decision escalation hook: log escalation events for observability
+  api.on('after_tool_call', (event, ctx) => {
+    if (event.toolName !== 'decision_evaluate') return;
+    if (event.error) return;
+    try {
+      const details = (event.result && typeof event.result === 'object')
+        ? (event.result as Record<string, unknown>)['details'] ?? event.result
+        : null;
+      if (!details || typeof details !== 'object') return;
+      const d = details as Record<string, unknown>;
+      if (d['escalated'] !== true) return;
+      const approver = String(d['approver'] ?? 'unknown');
+      const decisionId = String(d['decisionId'] ?? 'unknown');
+      const nextAction = d['nextAction'] as Record<string, unknown> | undefined;
+      api.logger.info(
+        `decision-escalation: Decision ${decisionId} escalated to ${approver} by agent ${ctx.agentId ?? 'unknown'}` +
+        (nextAction ? ` — nextAction: spawn_subagent(${String(nextAction['agentId'])})` : ''),
+      );
+    } catch (err: unknown) {
+      api.logger.warn(`decision-escalation hook failed: ${String(err)}`);
+    }
+  });
+  api.logger.info('registered decision-escalation after_tool_call hook');
+
   api.logger.info(`registered ${tools.length} task/workflow/quality/vcs/messaging/decision/pipeline tools`);
   // EP03: workflow.step.run, workflow.state.get
   // EP04: vcs_branch_create, vcs_pr_create, vcs_pr_update, vcs_label_sync

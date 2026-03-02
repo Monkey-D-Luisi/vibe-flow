@@ -18,6 +18,7 @@ const DEFAULT_POLICIES: Record<string, DecisionPolicy> = {
 };
 
 const DECISIONS_TABLE = 'agent_decisions';
+const MESSAGES_TABLE = 'agent_messages';
 
 function ensureDecisionsTable(deps: ToolDeps): void {
   deps.db.exec(`
@@ -35,6 +36,52 @@ function ensureDecisionsTable(deps: ToolDeps): void {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
+}
+
+function ensureMessagesTable(deps: ToolDeps): void {
+  deps.db.exec(`
+    CREATE TABLE IF NOT EXISTS ${MESSAGES_TABLE} (
+      id TEXT PRIMARY KEY,
+      from_agent TEXT NOT NULL,
+      to_agent TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      body TEXT NOT NULL,
+      priority TEXT NOT NULL DEFAULT 'normal',
+      task_ref TEXT,
+      reply_to TEXT,
+      read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (reply_to) REFERENCES ${MESSAGES_TABLE}(id)
+    )
+  `);
+}
+
+/** Send an inter-agent message for escalation (writes to the shared messages table). */
+function sendEscalationMessage(
+  deps: ToolDeps,
+  opts: { fromAgent: string; toAgent: string; decisionId: string; category: string; question: string; options: string; taskRef?: string },
+): string {
+  ensureMessagesTable(deps);
+  const msgId = deps.generateId();
+  const now = deps.now();
+  const subject = `[Escalation] ${opts.category} decision requires your input`;
+  const body = [
+    `Decision ID: ${opts.decisionId}`,
+    `Category: ${opts.category}`,
+    `Question: ${opts.question}`,
+    `Options: ${opts.options}`,
+    opts.taskRef ? `Task: ${opts.taskRef}` : '',
+    '',
+    'Please review this decision. Use team_reply to respond with your choice, or use decision_evaluate to log the final decision.',
+  ].filter(Boolean).join('\n');
+
+  deps.db.prepare(`
+    INSERT INTO ${MESSAGES_TABLE} (id, from_agent, to_agent, subject, body, priority, task_ref, created_at)
+    VALUES (?, ?, ?, ?, ?, 'urgent', ?, ?)
+  `).run(msgId, opts.fromAgent, opts.toAgent, subject, body, opts.taskRef ?? null, now);
+
+  deps.logger?.info(`decision-engine: Escalation message ${msgId} sent to ${opts.toAgent}`);
+  return msgId;
 }
 
 export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
@@ -93,12 +140,32 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
             'tech-lead',
             cbNow,
           );
-          const result = {
+
+          const cbMsgId = sendEscalationMessage(deps, {
+            fromAgent: 'decision-engine',
+            toAgent: 'tech-lead',
+            decisionId: cbId,
+            category: input.category,
+            question: input.question,
+            options: JSON.stringify(input.options, null, 2),
+            taskRef: input.taskRef,
+          });
+
+          const result: Record<string, unknown> = {
             decisionId: cbId,
             decision: null,
             reasoning: 'Circuit breaker: max decisions per agent per task reached. Escalating.',
             escalated: true,
             approver: 'tech-lead',
+            escalationMessageId: cbMsgId,
+            nextAction: {
+              action: 'spawn_subagent',
+              agentId: 'tech-lead',
+              task: `You have a pending escalated decision in your inbox (message ID: ${cbMsgId}). ` +
+                `Read it with team_inbox, then make a decision on: "${input.question}". ` +
+                `Reply using team_reply with your choice.`,
+              reason: 'Circuit breaker triggered: too many decisions on this task.',
+            },
           };
           return {
             content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -144,13 +211,41 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
 
       deps.logger?.info(`decision.evaluate: ${id} [${input.category}] escalated=${escalated} decision=${decision ?? 'pending'}`);
 
-      const result = {
+      // Auto-send escalation message to the target agent
+      let escalationMessageId: string | null = null;
+      if (escalated && approver && approver !== 'human') {
+        escalationMessageId = sendEscalationMessage(deps, {
+          fromAgent: 'decision-engine',
+          toAgent: approver,
+          decisionId: id,
+          category: input.category,
+          question: input.question,
+          options: JSON.stringify(input.options, null, 2),
+          taskRef: input.taskRef,
+        });
+      }
+
+      const result: Record<string, unknown> = {
         decisionId: id,
         decision,
         reasoning: input.reasoning ?? (escalated ? `Escalated to ${approver} per ${input.category} policy` : 'Auto-decided'),
         escalated,
         approver: approver ?? null,
       };
+
+      // Include actionable next-step for the calling agent
+      if (escalated && approver && approver !== 'human') {
+        result['escalationMessageId'] = escalationMessageId;
+        result['nextAction'] = {
+          action: 'spawn_subagent',
+          agentId: approver,
+          task: `You have a pending escalated decision in your inbox (message ID: ${escalationMessageId}). ` +
+            `Read it with team_inbox, then make a decision on: "${input.question}". ` +
+            `Reply using team_reply with your choice.`,
+          reason: `The ${input.category} policy requires ${approver} to review this decision.`,
+        };
+      }
+
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
         details: result,

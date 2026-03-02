@@ -105,7 +105,7 @@ function getRegisteredTool(api: OpenClawPluginApi, name: string): RegisteredTool
 }
 
 async function createTask(api: OpenClawPluginApi, title: string): Promise<string> {
-  const createTool = getRegisteredTool(api, 'task.create');
+  const createTool = getRegisteredTool(api, 'task_create');
   const result = await createTool.execute('create-task', { title });
   const details = result.details as { task: { id: string } };
   return details.task.id;
@@ -115,7 +115,7 @@ async function getTaskMetadata(
   api: OpenClawPluginApi,
   taskId: string,
 ): Promise<Record<string, unknown>> {
-  const getTool = getRegisteredTool(api, 'task.get');
+  const getTool = getRegisteredTool(api, 'task_get');
   const result = await getTool.execute('get-task', { id: taskId });
   const details = result.details as { task: { metadata: Record<string, unknown> } };
   return details.task.metadata;
@@ -174,37 +174,37 @@ describe('product-team plugin', () => {
       (call: unknown[]) => (call[0] as { name: string }).name,
     );
 
-    expect(toolNames).toContain('task.create');
-    expect(toolNames).toContain('task.get');
-    expect(toolNames).toContain('task.search');
-    expect(toolNames).toContain('task.update');
-    expect(toolNames).toContain('task.transition');
-    expect(toolNames).toContain('workflow.step.run');
-    expect(toolNames).toContain('workflow.state.get');
-    expect(toolNames).toContain('workflow.events.query');
-    expect(toolNames).toContain('quality.tests');
-    expect(toolNames).toContain('quality.coverage');
-    expect(toolNames).toContain('quality.lint');
-    expect(toolNames).toContain('quality.complexity');
-    expect(toolNames).toContain('quality.gate');
-    expect(toolNames).toContain('vcs.branch.create');
-    expect(toolNames).toContain('vcs.pr.create');
-    expect(toolNames).toContain('vcs.pr.update');
-    expect(toolNames).toContain('vcs.label.sync');
-    expect(toolNames).toContain('project.list');
-    expect(toolNames).toContain('project.switch');
-    expect(toolNames).toContain('project.register');
-    expect(toolNames).toContain('team.message');
-    expect(toolNames).toContain('team.inbox');
-    expect(toolNames).toContain('team.reply');
-    expect(toolNames).toContain('team.status');
-    expect(toolNames).toContain('team.assign');
-    expect(toolNames).toContain('decision.evaluate');
-    expect(toolNames).toContain('decision.log');
-    expect(toolNames).toContain('pipeline.start');
-    expect(toolNames).toContain('pipeline.status');
-    expect(toolNames).toContain('pipeline.retry');
-    expect(toolNames).toContain('pipeline.skip');
+    expect(toolNames).toContain('task_create');
+    expect(toolNames).toContain('task_get');
+    expect(toolNames).toContain('task_search');
+    expect(toolNames).toContain('task_update');
+    expect(toolNames).toContain('task_transition');
+    expect(toolNames).toContain('workflow_step_run');
+    expect(toolNames).toContain('workflow_state_get');
+    expect(toolNames).toContain('workflow_events_query');
+    expect(toolNames).toContain('quality_tests');
+    expect(toolNames).toContain('quality_coverage');
+    expect(toolNames).toContain('quality_lint');
+    expect(toolNames).toContain('quality_complexity');
+    expect(toolNames).toContain('quality_gate');
+    expect(toolNames).toContain('vcs_branch_create');
+    expect(toolNames).toContain('vcs_pr_create');
+    expect(toolNames).toContain('vcs_pr_update');
+    expect(toolNames).toContain('vcs_label_sync');
+    expect(toolNames).toContain('project_list');
+    expect(toolNames).toContain('project_switch');
+    expect(toolNames).toContain('project_register');
+    expect(toolNames).toContain('team_message');
+    expect(toolNames).toContain('team_inbox');
+    expect(toolNames).toContain('team_reply');
+    expect(toolNames).toContain('team_status');
+    expect(toolNames).toContain('team_assign');
+    expect(toolNames).toContain('decision_evaluate');
+    expect(toolNames).toContain('decision_log');
+    expect(toolNames).toContain('pipeline_start');
+    expect(toolNames).toContain('pipeline_status');
+    expect(toolNames).toContain('pipeline_retry');
+    expect(toolNames).toContain('pipeline_skip');
   });
 
   it('logs tool registration count', () => {
@@ -275,7 +275,8 @@ describe('product-team plugin', () => {
     register(api);
 
     const hookCalls = (api.on as ReturnType<typeof vi.fn>).mock.calls;
-    expect(hookCalls.some((call: unknown[]) => call[0] === 'after_tool_call')).toBe(false);
+    expect(hookCalls.some((call: unknown[]) => call[0] === 'after_tool_call')).toBe(true);
+    expect(api.logger.info).not.toHaveBeenCalledWith('registered PR-Bot after_tool_call hook');
   });
 
   it('does not register CI webhook route when disabled in config', () => {
@@ -683,7 +684,7 @@ describe('product-team plugin', () => {
     const calls = (api.registerTool as ReturnType<typeof vi.fn>).mock.calls;
     const createTool = calls
       .map((call: unknown[]) => call[0] as { name: string; execute: (toolCallId: string, params: unknown) => Promise<{ details: unknown }> })
-      .find((tool) => tool.name === 'task.create');
+      .find((tool) => tool.name === 'task_create');
     expect(createTool).toBeDefined();
 
     const result = await createTool!.execute('c1', { title: 'Created from plugin test' });

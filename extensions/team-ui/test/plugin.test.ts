@@ -26,6 +26,11 @@ function createMockApi(config: Record<string, unknown> = {}): MockApi {
   return api;
 }
 
+/** Helper to find a registered route by path */
+function findRoute(api: MockApi, path: string) {
+  return api.registeredRoutes.find((r) => r.path === path);
+}
+
 describe('team-ui plugin', () => {
   it('has correct metadata', () => {
     expect(plugin.id).toBe('team-ui');
@@ -62,14 +67,15 @@ describe('team-ui plugin', () => {
       }
     });
 
-    it('registers the /team HTTP route', () => {
-      expect(api.registerHttpRoute).toHaveBeenCalledTimes(1);
-      expect(api.registeredRoutes[0].path).toBe('/team');
+    it('registers 2 HTTP routes (API + dashboard)', () => {
+      expect(api.registerHttpRoute).toHaveBeenCalledTimes(2);
+      expect(findRoute(api, '/team/api/agents')).toBeDefined();
+      expect(findRoute(api, '/team')).toBeDefined();
     });
 
     it('logs registration message', () => {
       expect(api.logger.info).toHaveBeenCalledWith(
-        'team-ui: registered 12 gateway methods; dashboard at /team',
+        'team-ui: registered 12 gateway methods, 2 HTTP routes; dashboard at /team',
       );
     });
   });
@@ -80,31 +86,35 @@ describe('team-ui plugin', () => {
       api.pluginConfig = null as never;
       plugin.register(api as never);
 
-      expect(api.registeredRoutes[0].path).toBe('/team');
+      expect(findRoute(api, '/team')).toBeDefined();
+      expect(findRoute(api, '/team/api/agents')).toBeDefined();
     });
 
     it('uses /team as default basePath when basePath is not a string', () => {
       const api = createMockApi({ basePath: 42 });
       plugin.register(api as never);
 
-      expect(api.registeredRoutes[0].path).toBe('/team');
+      expect(findRoute(api, '/team')).toBeDefined();
+      expect(findRoute(api, '/team/api/agents')).toBeDefined();
     });
 
     it('accepts valid string basePath', () => {
       const api = createMockApi({ basePath: '/dashboard' });
       plugin.register(api as never);
 
-      expect(api.registeredRoutes[0].path).toBe('/dashboard');
+      expect(findRoute(api, '/dashboard')).toBeDefined();
+      expect(findRoute(api, '/dashboard/api/agents')).toBeDefined();
       expect(api.logger.warn).toHaveBeenCalled();
     });
   });
 
-  describe('HTTP handler', () => {
+  describe('dashboard HTTP handler (/team)', () => {
     it('returns 405 for non-GET/HEAD methods', () => {
       const api = createMockApi();
       plugin.register(api as never);
 
-      const handler = api.registeredRoutes[0].handler as (
+      const route = findRoute(api, '/team')!;
+      const handler = route.handler as (
         req: { method: string },
         res: { writeHead: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> },
       ) => void;
@@ -116,11 +126,12 @@ describe('team-ui plugin', () => {
       expect(res.end).toHaveBeenCalled();
     });
 
-    it('returns 200 with HTML for GET', () => {
+    it('returns 200 with HTML containing __AGENTS__ JSON for GET', () => {
       const api = createMockApi();
       plugin.register(api as never);
 
-      const handler = api.registeredRoutes[0].handler as (
+      const route = findRoute(api, '/team')!;
+      const handler = route.handler as (
         req: { method: string },
         res: { writeHead: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> },
       ) => void;
@@ -131,7 +142,60 @@ describe('team-ui plugin', () => {
       expect(res.writeHead).toHaveBeenCalledWith(200, {
         'Content-Type': 'text/html; charset=utf-8',
       });
-      expect(res.end).toHaveBeenCalledWith(expect.stringContaining('<!DOCTYPE html>'));
+      const html = res.end.mock.calls[0][0] as string;
+      expect(html).toContain('<!DOCTYPE html>');
+      expect(html).toContain('var __AGENTS__ =');
+      expect(html).toContain('Product Team Dashboard');
+    });
+  });
+
+  describe('REST API handler (/team/api/agents)', () => {
+    it('returns 405 for non-GET/HEAD methods', () => {
+      const api = createMockApi();
+      plugin.register(api as never);
+
+      const route = findRoute(api, '/team/api/agents')!;
+      const handler = route.handler as (
+        req: { method: string },
+        res: { writeHead: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> },
+      ) => void;
+
+      const res = { writeHead: vi.fn(), end: vi.fn() };
+      handler({ method: 'POST' }, res);
+
+      expect(res.writeHead).toHaveBeenCalledWith(405, {
+        Allow: 'GET, HEAD',
+        'Content-Type': 'application/json',
+      });
+      expect(res.end).toHaveBeenCalledWith(JSON.stringify({ error: 'method_not_allowed' }));
+    });
+
+    it('returns 200 with JSON agent roster for GET', () => {
+      const api = createMockApi();
+      plugin.register(api as never);
+
+      const route = findRoute(api, '/team/api/agents')!;
+      const handler = route.handler as (
+        req: { method: string },
+        res: { writeHead: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> },
+      ) => void;
+
+      const res = { writeHead: vi.fn(), end: vi.fn() };
+      handler({ method: 'GET' }, res);
+
+      expect(res.writeHead).toHaveBeenCalledWith(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+      });
+
+      const body = JSON.parse(res.end.mock.calls[0][0] as string);
+      expect(body.ok).toBe(true);
+      expect(body.agents).toBeInstanceOf(Array);
+      expect(body.agents.length).toBeGreaterThan(0);
+      expect(body.agents[0]).toHaveProperty('id');
+      expect(body.agents[0]).toHaveProperty('name');
+      expect(body.agents[0]).toHaveProperty('model');
+      expect(body.agents[0]).toHaveProperty('status');
     });
   });
 });

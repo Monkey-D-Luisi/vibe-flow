@@ -80,6 +80,21 @@ export default {
         enqueue(formatPrCreation(params, result), 'high');
       } else if (toolName === 'quality_gate') {
         enqueue(formatQualityGate(params, result), 'normal');
+      } else if (toolName === 'decision_evaluate') {
+        const details = (result && typeof result === 'object')
+          ? (result as Record<string, unknown>)['details'] ?? result
+          : null;
+        if (details && typeof details === 'object') {
+          const d = details as Record<string, unknown>;
+          if (d['escalated'] === true && d['approver'] && d['approver'] !== 'human') {
+            const approver = escapeMarkdownV2(String(d['approver']));
+            const decisionId = escapeMarkdownV2(String(d['decisionId'] ?? 'unknown'));
+            enqueue(
+              `⚡ Decision \`${decisionId}\` escalated to *${approver}*`,
+              'high',
+            );
+          }
+        }
       }
     });
 

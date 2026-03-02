@@ -29,7 +29,7 @@ function createEvent(
   overrides?: Partial<PrBotAfterToolCallEvent>,
 ): PrBotAfterToolCallEvent {
   return {
-    toolName: 'vcs.pr.create',
+    toolName: 'vcs_pr_create',
     params: { taskId: 'TASK-100' },
     result: { details: { number: 77, url: 'https://example/pr/77', cached: false } },
     ...overrides,
@@ -38,7 +38,7 @@ function createEvent(
 
 function createContext(overrides?: Partial<PrBotHookContext>): PrBotHookContext {
   return {
-    toolName: 'vcs.pr.create',
+    toolName: 'vcs_pr_create',
     agentId: 'infra',
     sessionKey: 'sess-1',
     ...overrides,
@@ -61,7 +61,7 @@ describe('PrBotAutomation', () => {
     taskReader.getById.mockReturnValue(createTask());
   });
 
-  it('ignores non-vcs.pr.create tool events', async () => {
+  it('ignores non-vcs_pr_create tool events', async () => {
     const bot = new PrBotAutomation({
       taskReader,
       labelService,
@@ -89,7 +89,7 @@ describe('PrBotAutomation', () => {
     expect(ghClient.commentPr).not.toHaveBeenCalled();
   });
 
-  it('skips side effects for cached vcs.pr.create results', async () => {
+  it('skips side effects for cached vcs_pr_create results', async () => {
     const bot = new PrBotAutomation({
       taskReader,
       labelService,
