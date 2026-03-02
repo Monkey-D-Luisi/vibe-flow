@@ -37,7 +37,7 @@ function makeApi(configOverrides: Record<string, unknown> = {}) {
   return { api, getTool: (name: string) => tools.get(name) };
 }
 
-describe('design.edit tool', () => {
+describe('design_edit tool', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(fsMock.mkdir).mockResolvedValue(undefined);
@@ -54,7 +54,7 @@ describe('design.edit tool', () => {
     const { api, getTool } = makeApi();
     plugin.register(api as never);
 
-    const result = await getTool('design.edit')!('call-1', {
+    const result = await getTool('design_edit')!('call-1', {
       screenId: 'scr-xyz',
       screenName: 'login',
       editPrompt: 'Add a forgot password link',
@@ -83,7 +83,7 @@ describe('design.edit tool', () => {
     const { api, getTool } = makeApi();
     plugin.register(api as never);
 
-    const result = await getTool('design.edit')!('call-2', {
+    const result = await getTool('design_edit')!('call-2', {
       screenId: 'scr-abc',
       screenName: '../../../etc/evil',
       editPrompt: 'test',
@@ -101,7 +101,7 @@ describe('design.edit tool', () => {
     plugin.register(api as never);
 
     await expect(
-      getTool('design.edit')!('call-3', { screenId: 'scr-1', editPrompt: 'test', screenName: 'login' }),
+      getTool('design_edit')!('call-3', { screenId: 'scr-1', editPrompt: 'test', screenName: 'login' }),
     ).rejects.toThrow('Stitch MCP returned 503');
   });
 });

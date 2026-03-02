@@ -37,7 +37,7 @@ function makeApi(configOverrides: Record<string, unknown> = {}) {
   return { api, getTool: (name: string) => tools.get(name) };
 }
 
-describe('design.generate tool', () => {
+describe('design_generate tool', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(fsMock.mkdir).mockResolvedValue(undefined);
@@ -55,7 +55,7 @@ describe('design.generate tool', () => {
     const { api, getTool } = makeApi();
     plugin.register(api as never);
 
-    const generate = getTool('design.generate')!;
+    const generate = getTool('design_generate')!;
     const result = await generate('call-1', {
       screenName: 'login',
       description: 'A login screen',
@@ -87,7 +87,7 @@ describe('design.generate tool', () => {
     const { api, getTool } = makeApi({ defaultProjectId: 'proj-override', defaultModel: 'GEMINI_2_PRO' });
     plugin.register(api as never);
 
-    await getTool('design.generate')!('call-2', {
+    await getTool('design_generate')!('call-2', {
       screenName: 'home',
       description: 'Home screen',
     });
@@ -105,7 +105,7 @@ describe('design.generate tool', () => {
     const { api, getTool } = makeApi();
     plugin.register(api as never);
 
-    const result = await getTool('design.generate')!('call-3', {
+    const result = await getTool('design_generate')!('call-3', {
       screenName: 'dashboard',
       description: 'Dashboard',
     }) as { content: Array<{ type: string; text: string }> };
@@ -122,7 +122,7 @@ describe('design.generate tool', () => {
     plugin.register(api as never);
 
     await expect(
-      getTool('design.generate')!('call-4', { screenName: 'err', description: 'Test' }),
+      getTool('design_generate')!('call-4', { screenName: 'err', description: 'Test' }),
     ).rejects.toThrow('Stitch MCP returned 503');
   });
 });

@@ -64,7 +64,7 @@ describe('Telegram Notifier plugin', () => {
     plugin.register(api as never);
 
     const names = commands.map((c) => c.name);
-    expect(names).toContain('status');
+    expect(names).toContain('teamstatus');
     expect(names).toContain('idea');
     expect(names).toContain('health');
     expect(names).toContain('budget');
@@ -97,10 +97,10 @@ describe('Telegram Notifier command handlers', () => {
     return cmd.handler;
   }
 
-  it('/status returns placeholder text', async () => {
+  it('/teamstatus returns placeholder text', async () => {
     const { api, commands } = createMockApi();
     plugin.register(api as never);
-    const result = await getHandler(commands, 'status')({});
+    const result = await getHandler(commands, 'teamstatus')({});
     expect(result.text).toContain('Status');
   });
 

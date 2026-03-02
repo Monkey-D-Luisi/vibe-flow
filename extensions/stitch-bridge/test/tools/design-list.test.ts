@@ -36,7 +36,7 @@ function makeApi() {
   return { api, logger, getTool: (name: string) => tools.get(name) };
 }
 
-describe('design.list tool', () => {
+describe('design_list tool', () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
@@ -52,7 +52,7 @@ describe('design.list tool', () => {
     const { api, getTool } = makeApi();
     plugin.register(api as never);
 
-    const result = await getTool('design.list')!('call-1', {}) as { details: { designs: unknown[] } };
+    const result = await getTool('design_list')!('call-1', {}) as { details: { designs: unknown[] } };
 
     expect(result.details.designs).toEqual([]);
   });
@@ -64,7 +64,7 @@ describe('design.list tool', () => {
     const { api, getTool } = makeApi();
     plugin.register(api as never);
 
-    const result = await getTool('design.list')!('call-2', {
+    const result = await getTool('design_list')!('call-2', {
       workspace: '/workspace/proj',
     }) as { details: { designs: Array<{ name: string; path: string; modifiedAt: string }> } };
 
@@ -82,7 +82,7 @@ describe('design.list tool', () => {
     const { api, logger, getTool } = makeApi();
     plugin.register(api as never);
 
-    await expect(getTool('design.list')!('call-3', {})).rejects.toThrow('EACCES');
+    await expect(getTool('design_list')!('call-3', {})).rejects.toThrow('EACCES');
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('design.list readdir failed'));
   });
 
@@ -93,7 +93,7 @@ describe('design.list tool', () => {
     const { api, getTool } = makeApi();
     plugin.register(api as never);
 
-    const result = await getTool('design.list')!('call-4', {}) as { details: { designs: unknown[] } };
+    const result = await getTool('design_list')!('call-4', {}) as { details: { designs: unknown[] } };
 
     expect(result.details.designs).toHaveLength(1);
     expect((result.details.designs[0] as { name: string }).name).toBe('home');

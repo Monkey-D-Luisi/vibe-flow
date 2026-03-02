@@ -35,7 +35,7 @@ function makeApi() {
   return { api, getTool: (name: string) => tools.get(name) };
 }
 
-describe('design.get tool', () => {
+describe('design_get tool', () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
@@ -50,7 +50,7 @@ describe('design.get tool', () => {
     const { api, getTool } = makeApi();
     plugin.register(api as never);
 
-    const result = await getTool('design.get')!('call-1', {
+    const result = await getTool('design_get')!('call-1', {
       screenName: 'login',
       workspace: '/workspace/myproject',
     }) as { details: { html: string; path: string } };
@@ -69,7 +69,7 @@ describe('design.get tool', () => {
     const { api, getTool } = makeApi();
     plugin.register(api as never);
 
-    const result = await getTool('design.get')!('call-2', {
+    const result = await getTool('design_get')!('call-2', {
       screenName: '../../../etc/passwd',
     }) as { details: { path: string } };
 
@@ -85,7 +85,7 @@ describe('design.get tool', () => {
     plugin.register(api as never);
 
     await expect(
-      getTool('design.get')!('call-3', { screenName: 'missing' }),
+      getTool('design_get')!('call-3', { screenName: 'missing' }),
     ).rejects.toThrow('ENOENT');
   });
 });

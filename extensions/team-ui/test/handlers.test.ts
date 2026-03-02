@@ -119,7 +119,7 @@ describe('pipeline-handlers', () => {
 
     expect(opts.respond).toHaveBeenCalledWith(true, expect.objectContaining({
       providers: expect.arrayContaining([
-        expect.objectContaining({ id: 'openai' }),
+        expect.objectContaining({ id: 'openai-codex' }),
       ]),
     }));
   });
