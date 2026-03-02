@@ -21,7 +21,8 @@ secrets/
 
 # Development / CI
 .claude/
-.agent/
+.agent/rules/
+.agent/templates/
 docs/
 coverage/
 .qreport/
