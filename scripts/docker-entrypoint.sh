@@ -72,4 +72,6 @@ for ws in "${WORKSPACES[@]}"; do
 done
 
 # Start gateway in foreground
-exec pnpm exec openclaw gateway run --port 28789 --config "$OPENCLAW_CONFIG_PATH" --verbose
+# Config is resolved via OPENCLAW_CONFIG_PATH env var (set above).
+# The gateway CLI does NOT accept --config; it reads the env var directly.
+exec pnpm exec openclaw gateway run --port 28789 --verbose
