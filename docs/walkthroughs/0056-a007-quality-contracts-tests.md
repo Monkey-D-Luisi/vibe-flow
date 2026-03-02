@@ -31,22 +31,22 @@ Tests cover: function declaration detection, arrow function detection, class met
 
 **Result:** 8 tests written.
 
-### Create read.test.ts (6 tests)
-Tests cover: successful JSON read, file not found error, JSON parse error, oversized file rejection (> MAX_JSON_FILE_BYTES), empty file handling, and nested object deserialization.
+### Create read.test.ts (4 tests)
+Tests cover: successful file read, file not found error, successful JSON read and parse, JSON parse error, missing file error for JSON, and MAX_JSON_FILE_BYTES constant export.
 
 **File:** `packages/quality-contracts/test/fs/read.test.ts`
 
-**Result:** 6 tests written.
+**Result:** 4 tests written.
 
 ### Create tools.test.ts (28 tests)
-Tests cover 7 assertion helper functions × ~4 cases each:
-- `assertHasName`: valid, missing, empty string, non-string
-- `assertHasDescription`: valid, missing, too short, non-string
-- `assertHasInputSchema`: valid, missing, wrong type, missing properties
-- `assertInputSchemaProperties`: valid, extra props, missing required, wrong type
-- `assertNoForbiddenPatterns`: clean, forbidden pattern match, multiple patterns, nested match
-- `assertToolCount`: exact match, too few, too many, zero
-- `assertUniqueNames`: all unique, duplicate names, case sensitivity, empty array
+Tests cover 7 `assertOptional*` helper functions × ~4 cases each:
+- `assertOptionalString`: valid, undefined, wrong type, empty string
+- `assertOptionalNumber`: valid, undefined, wrong type, NaN
+- `assertOptionalBoolean`: valid, undefined, wrong type
+- `assertOptionalArray`: valid, undefined, wrong type, empty array
+- `assertOptionalEnum`: valid, undefined, invalid value, case sensitivity
+- `assertOptionalObject`: valid, undefined, wrong type, nested validation
+- `assertOptionalStringArray`: valid, undefined, wrong type, mixed types in array
 
 **File:** `packages/quality-contracts/test/validate/tools.test.ts`
 
@@ -63,8 +63,8 @@ pnpm typecheck
 
 ## Verification Evidence
 - 4 test files created covering all public modules
-- 48 tests total: 6 + 8 + 6 + 28
-- `pnpm --filter @openclaw/quality-contracts test` → 48 passed, 0 failed
+- 46 tests total: 6 + 8 + 4 + 28
+- `pnpm --filter @openclaw/quality-contracts test` → 46 passed, 0 failed
 - `pnpm typecheck` PASS
 - Commit: 87213e3
 

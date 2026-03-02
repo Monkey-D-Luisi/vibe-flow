@@ -20,8 +20,8 @@ grep -n "function\|const.*=.*async\|route\|webhook" extensions/product-team/src/
 Extracted all CI webhook route logic into a new module:
 - **File:** `extensions/product-team/src/registration/ci-webhook-route.ts`
 - **Lines:** 117
-- **Exports:** `registerCiWebhookRoute(app, context)`
-- Contains: webhook signature verification, event routing, PR status handling, CI result processing
+- **Exports:** `registerCiWebhookRoute(api, githubConfig, ciFeedbackAutomation, logger)`
+- Contains: webhook signature verification, JSON body parsing, event routing, error handling, helper functions (asNonEmptyString, headerValue, writeJson)
 
 **Result:** Module created with all webhook logic.
 
@@ -29,8 +29,8 @@ Extracted all CI webhook route logic into a new module:
 Extracted all HTTP route registration into a new module:
 - **File:** `extensions/product-team/src/registration/http-routes.ts`
 - **Lines:** 54
-- **Exports:** `registerHttpRoutes(app, context)`
-- Contains: health check route, task status route, artifact serving route
+- **Exports:** `registerHttpRoutes(api, config, services)`
+- Contains: /health endpoint registration, delegation to CI webhook route registration
 
 **Result:** Module created.
 
@@ -42,8 +42,7 @@ import { registerCiWebhookRoute } from './registration/ci-webhook-route.js';
 import { registerHttpRoutes } from './registration/http-routes.js';
 
 // ...later in activation function:
-registerCiWebhookRoute(app, context);
-registerHttpRoutes(app, context);
+registerHttpRoutes(api, { healthCheck, githubConfig }, { ciFeedbackAutomation });
 ```
 
 **Result:** `index.ts` reduced from 397 to 281 lines (−29%).
