@@ -3,6 +3,7 @@ import {
   extractDetails,
   buildSpawnDirective,
   handleTeamMessageAutoSpawn,
+  handleTeamReplyAutoSpawn,
   handleDecisionEscalationAutoSpawn,
   registerAutoSpawnHooks,
   resetDedupCache,
@@ -401,10 +402,103 @@ describe('handleDecisionEscalationAutoSpawn', () => {
   });
 });
 
+// ── handleTeamReplyAutoSpawn ─────────────────────────────────────────────
+
+describe('handleTeamReplyAutoSpawn', () => {
+  let deps: AutoSpawnDeps;
+
+  beforeEach(() => {
+    deps = createDeps();
+    resetDedupCache();
+  });
+
+  it('does nothing for non-team_reply events', () => {
+    const event = makeEvent({ toolName: 'task_create' });
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when event has an error', () => {
+    const event = makeEvent({ toolName: 'team_reply', error: new Error('fail') });
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when replied is not true', () => {
+    const event = makeEvent({
+      toolName: 'team_reply',
+      result: { details: { replied: false } },
+    });
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when target agent is empty', () => {
+    const event = makeEvent({
+      toolName: 'team_reply',
+      result: { details: { replied: true, to: '', from: 'tech-lead', replyId: 'r-1' } },
+    });
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when target agent is not in team config', () => {
+    const event = makeEvent({
+      toolName: 'team_reply',
+      result: { details: { replied: true, to: 'unknown-agent', from: 'tech-lead', replyId: 'r-2' } },
+    });
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+  });
+
+  it('fires agent spawn with deliver option for a valid team_reply', () => {
+    const event = makeEvent({
+      toolName: 'team_reply',
+      result: { details: { replied: true, to: 'pm', from: 'tech-lead', replyId: 'r-42' } },
+    });
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+    const [agentId, message, options] = (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(agentId).toBe('pm');
+    expect(message).toContain('r-42');
+    expect(message).toContain('tech-lead');
+    expect(message).toContain('team_inbox');
+    expect(options).toEqual({ deliver: true, channel: 'telegram' });
+  });
+
+  it('deduplicates identical reply spawns', () => {
+    const event = makeEvent({
+      toolName: 'team_reply',
+      result: { details: { replied: true, to: 'pm', from: 'tech-lead', replyId: 'r-dup' } },
+    });
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+  });
+
+  it('catches and logs spawnAgent failures', () => {
+    (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new Error('spawn failed');
+    });
+
+    const event = makeEvent({
+      toolName: 'team_reply',
+      result: { details: { replied: true, to: 'pm', from: 'tech-lead', replyId: 'r-err' } },
+    });
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+
+    expect(deps.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('spawnAgent failed'),
+    );
+  });
+});
+
 // ── registerAutoSpawnHooks ──────────────────────────────────────────────────
 
 describe('registerAutoSpawnHooks', () => {
-  it('registers two after_tool_call hooks', () => {
+  it('registers three after_tool_call hooks (team_message, team_reply, decision_evaluate)', () => {
     const mockRunner = { spawnAgent: vi.fn() };
     const api = {
       logger: { info: vi.fn(), warn: vi.fn() },
@@ -414,9 +508,10 @@ describe('registerAutoSpawnHooks', () => {
     const agents = [{ id: 'pm', name: 'PM' }];
     registerAutoSpawnHooks(api, agents, mockRunner);
 
-    expect(api.on).toHaveBeenCalledTimes(2);
+    expect(api.on).toHaveBeenCalledTimes(3);
     expect((api.on as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe('after_tool_call');
     expect((api.on as ReturnType<typeof vi.fn>).mock.calls[1][0]).toBe('after_tool_call');
+    expect((api.on as ReturnType<typeof vi.fn>).mock.calls[2][0]).toBe('after_tool_call');
   });
 
   it('wraps handlers with try-catch so errors do not propagate', () => {
