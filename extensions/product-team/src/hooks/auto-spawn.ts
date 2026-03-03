@@ -27,7 +27,15 @@ export interface AutoSpawnLogger {
 
 /** Interface for triggering an agent run. */
 export interface AgentSpawnSink {
-  spawnAgent(agentId: string, message: string): void;
+  spawnAgent(agentId: string, message: string, options?: AgentSpawnOptions): void;
+}
+
+/** Options for spawning an agent. */
+export interface AgentSpawnOptions {
+  /** If true, the agent's response will be delivered to the specified channel. */
+  deliver?: boolean;
+  /** The channel to deliver the response to (e.g. "telegram"). */
+  channel?: string;
 }
 
 /** Dependencies injected into the auto-spawn hooks for testability. */
@@ -198,14 +206,15 @@ export function handleTeamReplyAutoSpawn(
 
   const message =
     `You have a new reply from "${fromAgent}" in your inbox (ID: ${replyId}). ` +
-    `Read your team inbox with team_inbox({ agentId: "${toAgent}" }) and process the response. ` +
-    `If the original sender is waiting in a chat (e.g. Telegram), relay the reply to them.`;
+    `Read your team inbox with team_inbox({ agentId: "${toAgent}" }) and relay the reply to the user.`;
 
   try {
-    deps.agentRunner.spawnAgent(toAgent, message);
+    // Pass deliver: true so the gateway sends the PM's response to Telegram
+    // (or whichever channel the agent is bound to).
+    deps.agentRunner.spawnAgent(toAgent, message, { deliver: true, channel: 'telegram' });
     deps.logger.info(
       `team-reply-hook: agent turn fired for "${toAgent}" ` +
-      `(reply: ${replyId}, from: ${fromAgent})`,
+      `(reply: ${replyId}, from: ${fromAgent}, deliver: telegram)`,
     );
   } catch (err: unknown) {
     deps.logger.warn(`team-reply-hook: spawnAgent failed: ${String(err)}`);
@@ -281,6 +290,7 @@ export function fireAgentViaGatewayWs(
   agentId: string,
   message: string,
   logger: AutoSpawnLogger,
+  options?: AgentSpawnOptions,
 ): void {
   const port = process.env['OPENCLAW_GATEWAY_PORT'] || '28789';
   const token = process.env['OPENCLAW_GATEWAY_TOKEN'] ?? '';
@@ -301,6 +311,7 @@ export function fireAgentViaGatewayWs(
     sessionKey,
     message,
     idempotencyKey: `auto-spawn:${agentId}:${Date.now()}`,
+    ...(options?.deliver ? { deliver: true, channel: options.channel } : {}),
   });
 
   const script = `
@@ -427,9 +438,9 @@ export function registerAutoSpawnHooks(
   agentRunner?: AgentSpawnSink,
 ): void {
   const runner: AgentSpawnSink = agentRunner ?? {
-    spawnAgent(agentId: string, message: string): void {
+    spawnAgent(agentId: string, message: string, options?: AgentSpawnOptions): void {
       try {
-        fireAgentViaGatewayWs(agentId, message, api.logger);
+        fireAgentViaGatewayWs(agentId, message, api.logger, options);
         api.logger.info(`auto-spawn: WS trigger fired for agent "${agentId}"`);
       } catch (err: unknown) {
         api.logger.warn(`auto-spawn: WS trigger failed for "${agentId}": ${String(err)}`);
