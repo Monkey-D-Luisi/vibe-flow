@@ -274,7 +274,7 @@
       {
         "id": "tech-lead",
         "name": "Tech Lead",
-        "model": { "primary": "openai-codex/gpt-5.2", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
+        "model": { "primary": "anthropic/claude-opus-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "agentDir": ".agent/agents/tech-lead",
         "skills": ["tech-lead", "architecture-design", "code-review", "adr"],
