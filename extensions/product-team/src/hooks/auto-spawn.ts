@@ -144,9 +144,11 @@ export function handleTeamMessageAutoSpawn(
     return;
   }
 
+  const callerAgent = String(ctx.agentId ?? 'unknown');
   const message =
-    `You have a new team message in your inbox (ID: ${messageId}) about: ${subject}. ` +
-    `Read your team inbox with team_inbox({ agentId: "${toAgent}" }) and respond.`;
+    `You have a new team message from "${callerAgent}" in your inbox (ID: ${messageId}) about: ${subject}. ` +
+    `Read your team inbox with team_inbox({ agentId: "${toAgent}" }) then reply to "${callerAgent}" ` +
+    `using team_reply({ messageId: "${messageId}", body: "<your response>" }).`;
 
   try {
     deps.agentRunner.spawnAgent(toAgent, message);
