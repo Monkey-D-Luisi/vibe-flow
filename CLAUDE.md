@@ -70,53 +70,55 @@ pnpm q:complexity
 
 ## Registered Tools
 
-### product-team extension (quality.* / task.* / workflow.* / vcs.* / project.* / team.* / decision.* / pipeline.*)
+> **Note:** Tool names are registered with dots rewritten as underscores (e.g. `task_create` not `task.create`).
+
+### product-team extension
 
 | Tool | Purpose |
 |------|---------|
-| `task.create` | Create a new task record |
-| `task.get` | Fetch a task by ID |
-| `task.search` | Search tasks by status, assignee, etc. |
-| `task.update` | Update task fields |
-| `task.transition` | Transition task to next workflow state |
-| `workflow.step.run` | Run a workflow step |
-| `workflow.state.get` | Get current workflow state |
-| `workflow.events.query` | Query workflow event log |
-| `quality.tests` | Run test suite (task-lifecycle-aware) |
-| `quality.coverage` | Parse and report test coverage |
-| `quality.lint` | Run linter and report violations |
-| `quality.complexity` | Measure cyclomatic complexity (AST-based, task-lifecycle-aware) |
-| `quality.gate` | Evaluate quality gate policy |
-| `vcs.branch.create` | Create a VCS branch |
-| `vcs.pr.create` | Create a pull request |
-| `vcs.pr.update` | Update an existing pull request |
-| `vcs.label.sync` | Sync PR labels |
-| `project.list` | List registered projects |
-| `project.switch` | Switch active project context |
-| `project.register` | Register a new project workspace |
-| `team.message` | Post a message to a team channel |
-| `team.inbox` | Read team inbox messages |
-| `team.reply` | Reply to a team message |
-| `team.status` | Update team member status |
-| `team.assign` | Assign work to a team member |
-| `decision.evaluate` | Evaluate a decision via the decision engine |
-| `decision.log` | Log a decision record |
-| `pipeline.start` | Start a pipeline |
-| `pipeline.status` | Get pipeline status |
-| `pipeline.retry` | Retry a failed pipeline step |
-| `pipeline.skip` | Skip a pipeline step |
+| `task_create` | Create a new task record |
+| `task_get` | Fetch a task by ID |
+| `task_search` | Search tasks by status, assignee, etc. |
+| `task_update` | Update task fields |
+| `task_transition` | Transition task to next workflow state |
+| `workflow_step_run` | Run a workflow step |
+| `workflow_state_get` | Get current workflow state |
+| `workflow_events_query` | Query workflow event log |
+| `quality_tests` | Run test suite (task-lifecycle-aware) |
+| `quality_coverage` | Parse and report test coverage |
+| `quality_lint` | Run linter and report violations |
+| `quality_complexity` | Measure cyclomatic complexity (AST-based, task-lifecycle-aware) |
+| `quality_gate` | Evaluate quality gate policy |
+| `vcs_branch_create` | Create a VCS branch |
+| `vcs_pr_create` | Create a pull request |
+| `vcs_pr_update` | Update an existing pull request |
+| `vcs_label_sync` | Sync PR labels |
+| `project_list` | List registered projects |
+| `project_switch` | Switch active project context |
+| `project_register` | Register a new project workspace |
+| `team_message` | Post a message to a team channel |
+| `team_inbox` | Read team inbox messages |
+| `team_reply` | Reply to a team message |
+| `team_status` | Update team member status |
+| `team_assign` | Assign work to a team member |
+| `decision_evaluate` | Evaluate a decision via the decision engine |
+| `decision_log` | Log a decision record |
+| `pipeline_start` | Start a pipeline |
+| `pipeline_status` | Get pipeline status |
+| `pipeline_retry` | Retry a failed pipeline step |
+| `pipeline_skip` | Skip a pipeline step |
 
-### quality-gate extension (qgate.* — standalone, stateless, no task lifecycle)
+### quality-gate extension (standalone, stateless, no task lifecycle)
 
 | Tool | Purpose |
 |------|---------|
-| `qgate.complexity` | Measure complexity via regex heuristic (fast CLI scans) |
-| `qgate.lint` | Run linter and report violations |
-| `qgate.tests` | Run test suite standalone |
-| `qgate.coverage` | Parse and report test coverage |
-| `qgate.gate` | Evaluate quality gate policy |
+| `qgate_complexity` | Measure complexity via regex heuristic (fast CLI scans) |
+| `qgate_lint` | Run linter and report violations |
+| `qgate_tests` | Run test suite standalone |
+| `qgate_coverage` | Parse and report test coverage |
+| `qgate_gate` | Evaluate quality gate policy |
 
-> **Note:** `qgate.*` and `quality.*` tools serve different purposes. `quality.*` tools integrate with the task lifecycle. `qgate.*` tools are stateless and work without a task context. Both extensions can be loaded simultaneously — the `qgate.*` namespace prevents tool name collisions.
+> **Note:** `qgate_*` and `quality_*` tools serve different purposes. `quality_*` tools integrate with the task lifecycle. `qgate_*` tools are stateless and work without a task context. Both extensions can be loaded simultaneously — the `qgate_*` namespace prevents tool name collisions.
 
 ## Conventions
 

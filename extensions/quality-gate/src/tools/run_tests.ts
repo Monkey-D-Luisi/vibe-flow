@@ -5,6 +5,7 @@
  */
 
 import { safeSpawn, assertSafeCommand, parseCommand } from '@openclaw/quality-contracts/exec/spawn';
+import { assertOptionalString, assertOptionalStringEnum, assertOptionalNumber } from '@openclaw/quality-contracts/validate/tools';
 import { parseVitestOutput, type VitestSummary } from '../parsers/vitest.js';
 
 const DEFAULT_COMMAND = 'pnpm vitest run --reporter=json';
@@ -121,6 +122,10 @@ export const runTestsToolDef = {
     additionalProperties: false,
   },
   execute: async (_id: string, params: Record<string, unknown>) => {
+    assertOptionalString(params['command'], 'command');
+    assertOptionalString(params['cwd'], 'cwd');
+    assertOptionalNumber(params['timeoutMs'], 'timeoutMs');
+    assertOptionalStringEnum(params['reporter'], 'reporter', ['vitest', 'raw'] as const);
     return runTestsTool(params as unknown as RunTestsInput);
   },
 };

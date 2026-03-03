@@ -24,11 +24,11 @@ describe('config-handlers', () => {
     expect(opts.respond).toHaveBeenCalledWith(true, expect.objectContaining({ basePath: '/custom' }));
   });
 
-  it('handleConfigUpdate returns updated keys', () => {
+  it('handleConfigUpdate returns not_implemented error', () => {
     const opts = createMockOptions({ foo: 1, bar: 2 });
     handleConfigUpdate(opts as never);
 
-    expect(opts.respond).toHaveBeenCalledWith(true, { ok: true, updated: ['foo', 'bar'] });
+    expect(opts.respond).toHaveBeenCalledWith(false, expect.objectContaining({ error: 'not_implemented' }));
   });
 });
 
@@ -51,11 +51,11 @@ describe('agent-handlers', () => {
     expect(opts.respond).toHaveBeenCalledWith(false, expect.objectContaining({ error: 'invalid_params' }));
   });
 
-  it('handleAgentsUpdate accepts valid id', () => {
+  it('handleAgentsUpdate returns not_implemented for valid id', () => {
     const opts = createMockOptions({ id: 'pm' });
     handleAgentsUpdate(opts as never);
 
-    expect(opts.respond).toHaveBeenCalledWith(true, { ok: true, id: 'pm' });
+    expect(opts.respond).toHaveBeenCalledWith(false, expect.objectContaining({ error: 'not_implemented' }));
   });
 });
 

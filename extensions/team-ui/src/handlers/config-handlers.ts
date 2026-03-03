@@ -16,6 +16,6 @@ export function createConfigGetHandler(basePath: string) {
   };
 }
 
-export function handleConfigUpdate({ params, respond }: GatewayRequestHandlerOptions): void {
-  respond(true, { ok: true, updated: Object.keys(params) });
+export function handleConfigUpdate({ respond }: GatewayRequestHandlerOptions): void {
+  respond(false, { error: 'not_implemented', message: 'Config updates are not yet persisted. This endpoint is read-only.' });
 }

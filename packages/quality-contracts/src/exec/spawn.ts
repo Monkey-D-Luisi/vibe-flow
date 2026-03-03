@@ -8,7 +8,7 @@ export interface SpawnOptions {
 }
 
 /** Shell metacharacters that enable command injection. */
-const SHELL_META = /[;&|`$(){}!<>"'\\~\n\r]/;
+const SHELL_META = /[;&|`$(){}!<>"'\\~%\n\r]/;
 
 /** Allowed command prefixes for spawn tools. Only these can be executed. */
 const ALLOWED_COMMAND_PREFIXES: readonly string[] = [
