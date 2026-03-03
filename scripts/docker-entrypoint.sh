@@ -4,25 +4,54 @@ set -e
 # Ensure OpenClaw config and auth directories exist
 mkdir -p /root/.openclaw/agents/main/agent /root/.openclaw/credentials
 
-# Copy our project config and expand environment variables
-envsubst < /app/openclaw.json > /root/.openclaw/openclaw.json
+# ── Config expansion ──
+# The source config at /app/openclaw.json contains shell variable placeholders
+# (e.g. ${OPENCLAW_GATEWAY_TOKEN}, ${TELEGRAM_BOT_TOKEN}) that must be expanded
+# before the SDK can use them. We expand into the SDK's default config location
+# so both the gateway CLI and spawnSubagentDirect()/loadConfig() find the same
+# fully-resolved config file.
+EXPANDED_CONFIG="/root/.openclaw/openclaw.json"
+envsubst < /app/openclaw.json > "$EXPANDED_CONFIG"
 
-# Ensure OPENCLAW_CONFIG_PATH is set for the SDK's internal loadConfig().
-# The gateway CLI uses OPENCLAW_CONFIG (--config flag), but spawnSubagentDirect()
-# reads OPENCLAW_CONFIG_PATH at runtime. Both must point to valid config.
-export OPENCLAW_CONFIG_PATH="${OPENCLAW_CONFIG_PATH:-/app/openclaw.json}"
+# Point OPENCLAW_CONFIG_PATH to the EXPANDED config (not the raw template).
+# This is critical: the SDK reads this env var in resolveConfigPath(), and if
+# it reads the unexpanded file the gateway.auth.token will be the literal
+# string "${OPENCLAW_GATEWAY_TOKEN}" instead of the actual token value.
+export OPENCLAW_CONFIG_PATH="$EXPANDED_CONFIG"
 export OPENCLAW_STATE_DIR="${OPENCLAW_STATE_DIR:-/root/.openclaw}"
 
-echo "[entrypoint] OPENCLAW_CONFIG=$OPENCLAW_CONFIG"
 echo "[entrypoint] OPENCLAW_CONFIG_PATH=$OPENCLAW_CONFIG_PATH"
 echo "[entrypoint] OPENCLAW_STATE_DIR=$OPENCLAW_STATE_DIR"
 
-# Verify the config file is readable and contains agents
-if [ -f "$OPENCLAW_CONFIG_PATH" ]; then
-  AGENT_COUNT=$(grep -o '"id"' "$OPENCLAW_CONFIG_PATH" | wc -l || echo "0")
-  echo "[entrypoint] Config found at $OPENCLAW_CONFIG_PATH ($AGENT_COUNT agent entries)"
+# ── Validate config expansion ──
+# Detect unexpanded ${...} placeholders in critical fields. If envsubst failed
+# to expand a variable (e.g. it was unset), the literal ${VAR} will remain.
+if grep -qE '\$\{[A-Z_]+\}' "$EXPANDED_CONFIG" 2>/dev/null; then
+  UNEXPANDED=$(grep -oE '\$\{[A-Z_]+\}' "$EXPANDED_CONFIG" | sort -u | tr '\n' ' ')
+  echo "[entrypoint] WARNING: Config still contains unexpanded variables: $UNEXPANDED"
+  echo "[entrypoint]          Check that these env vars are set in .env.docker"
+fi
+
+# Validate gateway token is present and not a placeholder
+if [ -z "$OPENCLAW_GATEWAY_TOKEN" ]; then
+  echo "[entrypoint] ERROR: OPENCLAW_GATEWAY_TOKEN is not set."
+  echo "[entrypoint]        The gateway requires a token when bind=lan."
+  echo "[entrypoint]        Set it in .env.docker and restart."
+  exit 1
+fi
+if echo "$OPENCLAW_GATEWAY_TOKEN" | grep -qE '^ocgw_REPLACE_ME$|^\$\{'; then
+  echo "[entrypoint] ERROR: OPENCLAW_GATEWAY_TOKEN has a placeholder value."
+  echo "[entrypoint]        Replace it with a real token in .env.docker"
+  exit 1
+fi
+
+# Verify the expanded config file is readable and contains agents
+if [ -f "$EXPANDED_CONFIG" ]; then
+  AGENT_COUNT=$(grep -o '"id"' "$EXPANDED_CONFIG" | wc -l || echo "0")
+  echo "[entrypoint] Config found at $EXPANDED_CONFIG ($AGENT_COUNT agent entries)"
 else
-  echo "[entrypoint] WARNING: Config not found at $OPENCLAW_CONFIG_PATH"
+  echo "[entrypoint] FATAL: Expanded config not found at $EXPANDED_CONFIG"
+  exit 1
 fi
 
 # Rebuild better-sqlite3 native module if not present
@@ -58,6 +87,112 @@ if [ ! -f "$AUTH_FILE" ]; then
   echo ""
 fi
 
+# ── Validate OAuth tokens (detect expired/missing tokens before they cause
+#    silent fallback to wrong models at runtime) ──
+python3 - <<'PYEOF'
+import json, os, sys, time
+
+NOW_MS = int(time.time() * 1000)
+WARN_WITHIN_MS = 3 * 24 * 60 * 60 * 1000  # warn 3 days before expiry
+
+# Check all agent auth-profiles we care about
+paths = [
+    ("/root/.openclaw/agents/main/agent/auth-profiles.json", "main"),
+    ("/root/.openclaw/agents/pm/agent/auth-profiles.json", "pm"),
+]
+
+issues = []
+for path, agent in paths:
+    if not os.path.exists(path):
+        continue
+    try:
+        d = json.load(open(path))
+        for name, prof in d.get("profiles", {}).items():
+            ptype = prof.get("type", prof.get("mode", "token"))
+            if ptype == "oauth":
+                expires = prof.get("expires", 0)
+                access  = prof.get("access", "")
+                refresh = prof.get("refresh", "")
+                if not access and not refresh:
+                    issues.append(f"  [{agent}] {name}: OAuth credentials MISSING — run: openclaw auth login {name.split(':')[0]}")
+                elif expires and expires < NOW_MS:
+                    issues.append(f"  [{agent}] {name}: OAuth token EXPIRED ({int((NOW_MS-expires)/86400000)}d ago) — run: openclaw auth login {name.split(':')[0]}")
+                elif expires and expires < (NOW_MS + WARN_WITHIN_MS):
+                    days = int((expires - NOW_MS) / 86400000)
+                    issues.append(f"  [{agent}] {name}: OAuth token expires in {days}d — renew soon: openclaw auth login {name.split(':')[0]}")
+    except Exception as e:
+        issues.append(f"  [{agent}] Could not parse {path}: {e}")
+
+if issues:
+    print("")
+    print("================================================================")
+    print(" WARNING: Provider OAuth token issues detected:")
+    print("")
+    for msg in issues:
+        print(msg)
+    print("")
+    print(" Fix: re-auth locally then copy to container:")
+    print("   openclaw configure --section model   # select openai-codex, complete OAuth")
+    print("   docker cp ~/.openclaw/agents/main/agent/auth-profiles.json \\")
+    print("     openclaw-product-team:/root/.openclaw/agents/pm/agent/auth-profiles.json")
+    print("   docker cp ~/.openclaw/agents/main/agent/auth-profiles.json \\")
+    print("     openclaw-product-team:/root/.openclaw/agents/main/agent/auth-profiles.json")
+    print("================================================================")
+    print("")
+PYEOF
+
+# ── Auto-propagate OAuth credentials ──
+# If any agent has a valid openai-codex OAuth credential and another has an
+# expired or missing one, copy the freshest credential to the stale agents.
+# This prevents silent model fallback (e.g. pm valid, main expired → anthropic).
+python3 - <<'PYEOF'
+import json, os, time, glob
+
+STATE_DIR = "/root/.openclaw/agents"
+NOW_MS = int(time.time() * 1000)
+PROVIDER = "openai-codex"
+PROFILE_ID = "openai-codex:default"
+
+# Gather all agents that have auth-profiles.json
+agent_paths = {}
+for path in glob.glob(f"{STATE_DIR}/*/agent/auth-profiles.json"):
+    agent_id = path.split("/")[-3]
+    try:
+        store = json.load(open(path))
+        agent_paths[agent_id] = (path, store)
+    except Exception:
+        pass
+
+# Find the freshest valid credential for PROVIDER
+best_expires = 0
+best_cred = None
+for agent_id, (path, store) in agent_paths.items():
+    cred = store.get("profiles", {}).get(PROFILE_ID)
+    if cred and cred.get("type") == "oauth":
+        exp = cred.get("expires", 0)
+        if exp > NOW_MS and exp > best_expires:
+            best_expires = exp
+            best_cred = cred
+
+if best_cred is None:
+    # No valid credential found — nothing to propagate
+    pass
+else:
+    exp_str = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(best_expires / 1000))
+    for agent_id, (path, store) in agent_paths.items():
+        cred = store.get("profiles", {}).get(PROFILE_ID)
+        needs_update = (
+            cred is None
+            or cred.get("type") != "oauth"
+            or cred.get("expires", 0) <= NOW_MS
+        )
+        if needs_update:
+            store.setdefault("profiles", {})[PROFILE_ID] = best_cred
+            with open(path, "w") as f:
+                json.dump(store, f, indent=2)
+            print(f"[entrypoint] Propagated fresh {PROVIDER} credential to agent '{agent_id}' (expires {exp_str})")
+PYEOF
+
 # Sync agent instruction files (CLAUDE.md) to workspace directories.
 # agentDir paths in openclaw.json are relative to each agent's workspace.
 # The source files live in /app/.agent/agents/ (from the Docker build),
@@ -74,4 +209,14 @@ done
 # Start gateway in foreground
 # Config is resolved via OPENCLAW_CONFIG_PATH env var (set above).
 # The gateway CLI does NOT accept --config; it reads the env var directly.
-exec pnpm exec openclaw gateway run --port 28789 --verbose
+# Pass --token so the gateway knows the token for dashboard URL generation.
+echo ""
+echo "================================================================"
+echo " Dashboard URL (paste in browser — token auto-stores):"
+echo ""
+echo "   http://localhost:28789/#token=${OPENCLAW_GATEWAY_TOKEN}"
+echo ""
+echo "================================================================"
+echo ""
+echo "[entrypoint] Starting gateway on port 28789..."
+exec pnpm exec openclaw gateway run --port 28789 --token "$OPENCLAW_GATEWAY_TOKEN" --verbose

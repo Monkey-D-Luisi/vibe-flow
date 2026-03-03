@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/plugin-model-router",
+  "name": "@openclaw/model-router",
   "version": "0.1.0",
   "type": "module",
   "description": "Dynamic model routing for per-agent LLM assignments with fallback chains",

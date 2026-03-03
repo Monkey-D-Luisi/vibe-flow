@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/plugin-product-team",
+  "name": "@openclaw/product-team",
   "version": "0.1.0",
   "type": "module",
   "description": "OpenClaw plugin for product-team workflow: TaskRecord lifecycle, quality gates, GitHub automation",

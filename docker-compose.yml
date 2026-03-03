@@ -26,8 +26,7 @@ services:
       - .env.docker
     environment:
       - NODE_ENV=production
-      - OPENCLAW_CONFIG=/app/openclaw.json
-      - OPENCLAW_CONFIG_PATH=/app/openclaw.json
+      - OPENCLAW_CONFIG_PATH=/root/.openclaw/openclaw.json
       - OPENCLAW_STATE_DIR=/root/.openclaw
     restart: unless-stopped
     healthcheck:

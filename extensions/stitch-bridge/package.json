@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/plugin-stitch-bridge",
+  "name": "@openclaw/stitch-bridge",
   "version": "0.1.0",
   "type": "module",
   "description": "OpenClaw plugin that proxies Google Stitch MCP design tools for the designer agent",
