@@ -23,5 +23,5 @@ export function handleAgentsUpdate({ params, respond }: GatewayRequestHandlerOpt
     respond(false, { error: 'invalid_params', message: 'agent id required' });
     return;
   }
-  respond(true, { ok: true, id });
+  respond(false, { error: 'not_implemented', message: 'Agent updates are not yet persisted. This endpoint is read-only.' });
 }

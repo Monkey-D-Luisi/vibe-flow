@@ -5,6 +5,7 @@
  */
 
 import { safeSpawn, assertSafeCommand, parseCommand } from '@openclaw/quality-contracts/exec/spawn';
+import { assertOptionalString, assertOptionalStringEnum, assertOptionalNumber } from '@openclaw/quality-contracts/validate/tools';
 import { parseEslintOutput, summarizeEslint } from '../parsers/eslint.js';
 import { parseRuffOutput, summarizeRuff } from '../parsers/ruff.js';
 import type { NormalizedLintFileReport } from '../parsers/types.js';
@@ -154,6 +155,10 @@ export const lintToolDef = {
     additionalProperties: false,
   },
   execute: async (_id: string, params: Record<string, unknown>) => {
+    assertOptionalStringEnum(params['engine'], 'engine', ['eslint', 'ruff'] as const);
+    assertOptionalString(params['command'], 'command');
+    assertOptionalString(params['cwd'], 'cwd');
+    assertOptionalNumber(params['timeoutMs'], 'timeoutMs');
     return lintTool(params as unknown as LintInput);
   },
 };

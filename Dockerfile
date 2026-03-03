@@ -42,10 +42,10 @@ COPY openclaw.docker.json openclaw.json
 
 # ── Install dependencies (hoisted for cross-platform compatibility) ──
 RUN echo "node-linker=hoisted" > .npmrc
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 # Rebuild native modules for the container's architecture
-RUN npm rebuild better-sqlite3
+RUN pnpm rebuild better-sqlite3
 
 # Build all TypeScript packages
 RUN pnpm build

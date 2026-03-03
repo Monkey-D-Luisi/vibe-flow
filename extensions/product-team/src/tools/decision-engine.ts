@@ -1,5 +1,6 @@
 import type { ToolDef, ToolDeps } from './index.js';
 import { DecisionEvaluateParams, DecisionLogParams } from '../schemas/decision.schema.js';
+import { MESSAGES_TABLE, ensureMessagesTable } from './shared-db.js';
 
 interface DecisionPolicy {
   action: 'auto' | 'escalate' | 'pause' | 'retry';
@@ -18,7 +19,6 @@ const DEFAULT_POLICIES: Record<string, DecisionPolicy> = {
 };
 
 const DECISIONS_TABLE = 'agent_decisions';
-const MESSAGES_TABLE = 'agent_messages';
 
 function ensureDecisionsTable(deps: ToolDeps): void {
   deps.db.exec(`
@@ -34,24 +34,6 @@ function ensureDecisionsTable(deps: ToolDeps): void {
       escalated INTEGER NOT NULL DEFAULT 0,
       approver TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-}
-
-function ensureMessagesTable(deps: ToolDeps): void {
-  deps.db.exec(`
-    CREATE TABLE IF NOT EXISTS ${MESSAGES_TABLE} (
-      id TEXT PRIMARY KEY,
-      from_agent TEXT NOT NULL,
-      to_agent TEXT NOT NULL,
-      subject TEXT NOT NULL,
-      body TEXT NOT NULL,
-      priority TEXT NOT NULL DEFAULT 'normal',
-      task_ref TEXT,
-      reply_to TEXT,
-      read INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      FOREIGN KEY (reply_to) REFERENCES ${MESSAGES_TABLE}(id)
     )
   `);
 }
