@@ -153,7 +153,7 @@ export function teamReplyToolDef(deps: ToolDeps): ToolDef {
       // Mark original as read
       deps.db.prepare(`UPDATE ${MESSAGES_TABLE} SET read = 1 WHERE id = ?`).run(input.messageId);
 
-      const result = { replied: true, replyId };
+      const result = { replied: true, replyId, from: original.to_agent, to: original.from_agent };
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
         details: result,

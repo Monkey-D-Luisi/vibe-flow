@@ -161,6 +161,57 @@ export function handleTeamMessageAutoSpawn(
   }
 }
 
+// ── Hook: team_reply ─────────────────────────────────────────────────────────
+
+/**
+ * Handles the after_tool_call event for team_reply.
+ *
+ * When an agent replies to a message, the recipient agent must run to process
+ * the response. This enables bidirectional reactive communication:
+ * PM sends team_message → TL auto-spawns → TL reads & replies → PM auto-spawns
+ * → PM reads TL's reply and reports to Telegram.
+ */
+export function handleTeamReplyAutoSpawn(
+  deps: AutoSpawnDeps,
+  event: { toolName: string; error?: unknown; result?: unknown; params?: Record<string, unknown> },
+  _ctx: { agentId?: string; sessionKey?: string },
+): void {
+  if (event.toolName !== 'team_reply') return;
+  if (event.error) return;
+
+  const details = extractDetails(event.result);
+  if (!details || details['replied'] !== true) return;
+
+  const toAgent = String(details['to'] ?? '');
+  const fromAgent = String(details['from'] ?? '');
+  const replyId = String(details['replyId'] ?? '');
+
+  if (!toAgent) return;
+
+  // Deduplicate
+  const dedupKey = `tr:${replyId}:${toAgent}`;
+  if (isDuplicate(dedupKey)) return;
+
+  // Only spawn agents that exist in the team config
+  const targetExists = deps.agents.some(a => a.id === toAgent);
+  if (!targetExists) return;
+
+  const message =
+    `You have a new reply from "${fromAgent}" in your inbox (ID: ${replyId}). ` +
+    `Read your team inbox with team_inbox({ agentId: "${toAgent}" }) and process the response. ` +
+    `If the original sender is waiting in a chat (e.g. Telegram), relay the reply to them.`;
+
+  try {
+    deps.agentRunner.spawnAgent(toAgent, message);
+    deps.logger.info(
+      `team-reply-hook: agent turn fired for "${toAgent}" ` +
+      `(reply: ${replyId}, from: ${fromAgent})`,
+    );
+  } catch (err: unknown) {
+    deps.logger.warn(`team-reply-hook: spawnAgent failed: ${String(err)}`);
+  }
+}
+
 // ── Hook: decision_evaluate escalation ──────────────────────────────────────
 
 /**
@@ -397,6 +448,14 @@ export function registerAutoSpawnHooks(
       handleTeamMessageAutoSpawn(deps, _event, _ctx);
     } catch (err: unknown) {
       api.logger.warn(`team-message-hook: unhandled error: ${String(err)}`);
+    }
+  });
+
+  api.on('after_tool_call', (_event, _ctx) => {
+    try {
+      handleTeamReplyAutoSpawn(deps, _event, _ctx);
+    } catch (err: unknown) {
+      api.logger.warn(`team-reply-hook: unhandled error: ${String(err)}`);
     }
   });
 
