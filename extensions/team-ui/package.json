@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/plugin-team-ui",
+  "name": "@openclaw/team-ui",
   "version": "0.1.0",
   "type": "module",
   "description": "Configuration web UI for the autonomous product team: agent management, pipeline dashboard, project settings",

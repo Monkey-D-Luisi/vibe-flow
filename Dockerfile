@@ -57,11 +57,11 @@ VOLUME ["/app/data", "/workspaces"]
 
 # ── Runtime ──
 ENV NODE_ENV=production
-# OPENCLAW_CONFIG is used by the gateway CLI (--config flag fallback).
-# OPENCLAW_CONFIG_PATH is used by the SDK's loadConfig() inside spawnSubagentDirect().
-# Both must point to the same file for consistent config resolution.
-ENV OPENCLAW_CONFIG=/app/openclaw.json
-ENV OPENCLAW_CONFIG_PATH=/app/openclaw.json
+# OPENCLAW_CONFIG_PATH is used by the SDK's loadConfig() / resolveConfigPath().
+# The entrypoint runs envsubst to expand ${...} placeholders from the template
+# config at /app/openclaw.json into the expanded config at the state dir.
+# We set it to the expanded location so the SDK always reads resolved values.
+ENV OPENCLAW_CONFIG_PATH=/root/.openclaw/openclaw.json
 ENV OPENCLAW_STATE_DIR=/root/.openclaw
 EXPOSE 28789
 

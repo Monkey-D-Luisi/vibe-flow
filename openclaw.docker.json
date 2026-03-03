@@ -63,12 +63,12 @@
   "plugins": {
     "load": {
       "paths": [
-        "./extensions/product-team",
-        "./extensions/quality-gate",
-        "./extensions/telegram-notifier",
-        "./extensions/model-router",
-        "./extensions/stitch-bridge",
-        "./extensions/team-ui"
+        "/app/extensions/product-team",
+        "/app/extensions/quality-gate",
+        "/app/extensions/telegram-notifier",
+        "/app/extensions/model-router",
+        "/app/extensions/stitch-bridge",
+        "/app/extensions/team-ui"
       ]
     },
     "entries": {
@@ -264,16 +264,17 @@
             "task_create", "task_get", "task_search", "task_update",
             "task_transition", "workflow_events_query",
             "project_list", "project_switch",
-            "team_assign", "team_status", "team_message", "team_inbox",
+            "team_assign", "team_status", "team_message", "team_inbox", "team_reply",
             "pipeline_start", "pipeline_status",
-            "decision_evaluate", "decision_log"
+            "decision_evaluate", "decision_log",
+            "sessions_spawn"
           ]
         }
       },
       {
         "id": "tech-lead",
         "name": "Tech Lead",
-        "model": { "primary": "anthropic/claude-opus-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
+        "model": { "primary": "openai-codex/gpt-5.2", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "agentDir": ".agent/agents/tech-lead",
         "skills": ["tech-lead", "architecture-design", "code-review", "adr"],
@@ -288,7 +289,8 @@
             "team_assign", "team_status", "team_message", "team_inbox", "team_reply",
             "project_list", "project_switch",
             "pipeline_status", "pipeline_retry", "pipeline_skip",
-            "decision_evaluate", "decision_log"
+            "decision_evaluate", "decision_log",
+            "sessions_spawn"
           ]
         }
       },

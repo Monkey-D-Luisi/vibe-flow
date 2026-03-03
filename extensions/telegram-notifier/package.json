@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/plugin-telegram-notifier",
+  "name": "@openclaw/telegram-notifier",
   "version": "0.1.0",
   "type": "module",
   "description": "OpenClaw plugin that bridges agent activity to a Telegram group and accepts human commands",
