@@ -48,7 +48,7 @@ jobs:
       - name: Generate coverage data
         run: |
           pnpm --filter @openclaw/quality-gate test:coverage || true
-          pnpm --filter @openclaw/plugin-product-team test:coverage || true
+          pnpm --filter @openclaw/product-team test:coverage || true
 
       - name: Collect coverage report
         id: coverage

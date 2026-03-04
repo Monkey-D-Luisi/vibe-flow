@@ -2,4 +2,4 @@
 set -e
 
 # Lint commit message to enforce Conventional Commits
-npx --no-install commitlint --edit "$1"
+pnpm exec commitlint --edit "$1"
