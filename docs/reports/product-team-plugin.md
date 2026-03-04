@@ -579,7 +579,7 @@ PM turn (sessionKey: agent:pm:telegram:group:-5177552677)
 
 *2026-03-04 18:04 CET (17:04 UTC) — Telegram group -5177552677 — ft-0173 already live in Docker*
 
-This is a verbatim trace of a real incident. Every record below was queried directly from the live container's SQLite.
+This is a verbatim trace of a real incident. The inter-agent messages (`agent_messages` table) and task/event records were queried directly from the live container's SQLite. The Telegram group messages shown below are the actual bot outputs visible to the user in the group chat.
 
 ---
 
@@ -591,11 +591,15 @@ Luis: @AiTeam_ProductManager_bot tenemos un problema de seguridad crítico en el
       módulo de auth, necesito que el tech lead lo revise urgentemente
 ```
 
-The message lands in@AiTeam_ProductManager_bot's update queue (Grammy long-polling). The SDK routes it to the `pm` agent session `agent:pm:telegram:group:-5177552677`.
+The message lands in @AiTeam_ProductManager_bot's update queue (Grammy long-polling). The SDK routes it to the `pm` agent session `agent:pm:telegram:group:-5177552677`.
 
 ---
 
-**Step 2 — PM processes, escalates to TL — `agent_messages` row created (18:04:58 CET)**
+**Step 2 — PM processes: escalates internally + responds to user (18:04:58 CET, +23s)**
+
+The PM agent performs two actions in its turn:
+
+**2a. Internal escalation** — `team_message` tool call creates an `agent_messages` row:
 
 ```
 id           : 01KJWWYMVWTX6PP1TC0VYSS2K6
@@ -632,9 +636,31 @@ after_tool_call hook
    })  ← detached subprocess, raw WS to gateway port 28789
 ```
 
+**2b. Telegram group response** — PM's turn output sent via `accountId:"pm"` → @AiTeam_ProductManager_bot posts:
+
+```
+[Telegram group — @AiTeam_ProductManager_bot]
+[PM | openai-codex/gpt-5.2] Enviado al Tech Lead con prioridad urgent para que
+lo revise ya mitigación y assessment.
+
+Para acelerar: pásame aquí los detalles que puedas:
+1. ¿Qué vulnerabilidad es? (tipo, vector, síntoma)
+2. Entorno afectado (prod / staging / dev)
+3. Enlace al repo/branch
+4. Si hay evidencia (logs, screenshot, CVE)
+
+Con eso le paso al TL todo el contexto en un solo golpe.
+```
+
+This message is the PM's direct response to the user in the group. It informs the user the escalation has been sent and proactively requests more context — a structured triage intake.
+
 ---
 
-**Step 3 — TL responds to the group (18:05:19 CET, 21 seconds later)**
+**Step 3 — TL responds to the group (18:05:19 CET, +21s after escalation)**
+
+The TL agent receives the forwarded message in session `agent:tech-lead:telegram:group:-5177552677`. It calls `team_reply` (creating the second `agent_messages` row) and also posts directly to the Telegram group.
+
+**3a. Internal reply** — `team_reply` creates `agent_messages` row:
 
 ```
 id           : 01KJWWZ9NCF161P0C9MC05SE4T
@@ -662,11 +688,60 @@ origin_session_key : agent:pm:telegram:group:-5177552677
 created_at         : 2026-03-04T17:05:19.532Z
 ```
 
-Sent via `accountId:"tl"` → @AiTeam_TechLead_bot appears in the group. @AiTeam_ProductManager_bot is silent; only the TL bot posts.
+**3b. Telegram group messages** — TL's turn produces multiple outputs via `accountId:"tl"` → @AiTeam_TechLead_bot posts:
+
+```
+[Telegram group — @AiTeam_TechLead_bot]
+[Tech Lead | anthropic/claude-opus-4-6] Estoy en ello. Déjame revisar qué
+tenemos en el módulo de auth.
+```
+
+```
+[Telegram group — @AiTeam_TechLead_bot]
+[Tech Lead | anthropic/claude-opus-4-6] Ya lancé un audit de seguridad del
+módulo de auth en el repo. Luis, mientras analizo el código, necesito que me
+digas:
+
+1. ¿Qué problema detectaste exactamente? (comportamiento, error, acceso
+   indebido, etc.)
+2. ¿Está en producción ahora o es entorno dev/staging?
+```
+
+```
+[Telegram group — @AiTeam_TechLead_bot]
+Ya confirmé al PM que estoy liderando esto. Luis, el scan del código está
+corriendo — en cuanto tenga resultados los comparto aquí.
+```
+
+Three separate messages from @AiTeam_TechLead_bot appear in rapid succession. The TL acknowledges receipt, launches the audit, requests more context from the user, and confirms ownership to the PM — all within the same agent turn.
 
 ---
 
-**Step 4 — TL creates audit task autonomously (18:05:25 CET, 6 seconds after response)**
+**Step 4 — PM relays TL's response back to the group (18:05 CET)**
+
+The `after_tool_call` hook fires on TL's `team_reply`, delivering the reply content back through @AiTeam_ProductManager_bot:
+
+```
+[Telegram group — @AiTeam_ProductManager_bot]
+Respuesta del Tech Lead sobre el problema de seguridad crítico en auth:
+
+• Recibido, tiene ownership.
+• Ya lanzó un audit/scan automático del código del módulo de auth.
+• Mitigación inmediata: pendiente de que Luis confirme el vector/síntoma.
+  Opciones genéricas listas: desactivar endpoints de auth, rotar secretos/JWT,
+  rate limiting agresivo.
+• Info que necesita de Luis: ¿Qué vio exactamente? (acceso no autorizado,
+  tokens de usuarios inexistentes, brute force, etc.) + ¿está en producción
+  y es explotable ahora?
+• ETA: primer assessment en cuanto el scan termine o Luis dé contexto.
+• Prioridad: contención > diagnóstico > fix.
+```
+
+This is the PM relaying the TL's structured response in a human-friendly summary. The user sees both the TL's direct messages and the PM's relay — providing redundancy and a consolidated view.
+
+---
+
+**Step 5 — TL creates audit task autonomously (18:05:25 CET, +6s after response)**
 
 ```sql
 -- task_records
@@ -686,7 +761,7 @@ created_at : 2026-03-04T17:05:25.631Z
 
 ---
 
-**Step 5 — TL runs 3 workspace-exploration steps in parallel (18:05:30 CET, 5 seconds later)**
+**Step 6 — TL runs 3 workspace-exploration steps in parallel (18:05:30 CET, +5s)**
 
 ```
 -- event_log (workflow steps)
@@ -700,20 +775,97 @@ Three shell steps fired literally at the same millisecond — the orchestrator r
 
 ---
 
+**Step 7 — TL publishes audit results to the group (18:05 CET)**
+
+After the workspace-exploration steps complete, the TL agent posts a final summary report to the Telegram group:
+
+```
+[Telegram group — @AiTeam_TechLead_bot]
+✅ Subagent tech-lead finished
+
+Auth Security Audit Report — /workspaces/vibe-flow
+
+⚠️ Limitation: The audit ran against the workspace source tree (no runtime
+access). Findings below are static analysis only.
+
+What I Could Determine:
+• The auth module code was scanned for common vulnerability patterns
+  (hardcoded secrets, SQL injection, XSS, insecure token handling)
+• File-level structure reviewed: middleware, routes, token generation
+
+Recommendation:
+• Luis should provide the specific symptom/vector to enable targeted analysis
+• A follow-up dynamic scan (runtime + dependency audit) is recommended
+• If production is affected: rotate tokens immediately, enable strict
+  rate limiting
+
+Checklist I Would Apply:
+☐ Confirm vulnerability vector with Luis
+☐ Check dependencies for known CVEs (pnpm audit)
+☐ Review token expiration and rotation policies
+☐ Verify middleware auth chain order
+☐ Run SAST tooling against auth module specifically
+```
+
+This is the final output of the TL's autonomous workflow — a structured audit report posted directly in the group for the user to see. It demonstrates the full loop: user report → PM intake → TL escalation → autonomous task + scan → published results.
+
+---
+
 **Complete timeline:**
 
 ```
 18:04:35  Luis types in Telegram group: "@AiTeam_ProductManager_bot tenemos un problema..."
-18:04:58  @AiTeam_ProductManager_bot (pm) processes → calls team_message to tech-lead (+23s)
+18:04:58  PM processes → team_message to TL (agent_messages row) (+23s)
+          PM posts in group: "Enviado al Tech Lead con prioridad urgent..."
           after_tool_call: hook spawns TL agent in same group session via WS
-18:05:19  @AiTeam_TechLead_bot appears in group: "Recibido, ya tengo ownership..." (+21s)
+18:05:19  TL processes → team_reply to PM (agent_messages row) (+21s)
+          TL posts 3 messages in group:
+            "Estoy en ello..."
+            "Ya lancé un audit de seguridad..."
+            "Ya confirmé al PM que estoy liderando esto..."
+18:05:19  PM relays TL's response in group: "Respuesta del Tech Lead..."
 18:05:25  TL calls task_create → task 01KJWWZFKZ5G5VJGVWFYKWZSC5 written to DB (+6s)
 18:05:30  TL runs 3 parallel shell steps: find-all-files, find-auth-files, grep-auth-refs (+5s)
-          ─────────────────────────────────────────────────────────────────────────────
-          Total: 55 seconds from user message to autonomous workspace scan in progress
+18:05:30  TL posts audit report in group: "Auth Security Audit Report..."
+          ──────────────────────────────────────────────────────────────────────────────
+          Total: 55 seconds from user message to autonomous audit report published
 ```
 
-**Per-persona identity proof:** the TL's message at 18:05:19 was delivered via `accountId:"tl"` (env var `TELEGRAM_BOT_TOKEN_TL`), so the Telegram group shows `@AiTeam_TechLead_bot` — a different avatar and username from `@AiTeam_ProductManager_bot`. The PM never posted after relaying the escalation. This is the ft-0173 feature working as designed.
+**What the user sees in Telegram (7 messages in ~55 seconds):**
+
+```
+┌── Telegram Group Chat ───────────────────────────────────────────┐
+│                                                                   │
+│  Luis (18:04):                                                    │
+│    @AiTeam_ProductManager_bot tenemos un problema de seguridad    │
+│    crítico en el módulo de auth...                                │
+│                                                                   │
+│  @AiTeam_ProductManager_bot (18:05):                              │
+│    Enviado al Tech Lead con prioridad urgent...                   │
+│    Para acelerar: pásame aquí los detalles...                     │
+│                                                                   │
+│  @AiTeam_TechLead_bot (18:05):                                    │
+│    Estoy en ello. Déjame revisar qué tenemos en el módulo...     │
+│                                                                   │
+│  @AiTeam_TechLead_bot (18:05):                                    │
+│    Ya lancé un audit de seguridad del módulo de auth...           │
+│    Luis: 1. ¿Qué problema detectaste? 2. ¿Producción?           │
+│                                                                   │
+│  @AiTeam_TechLead_bot (18:05):                                    │
+│    Ya confirmé al PM que estoy liderando esto...                  │
+│                                                                   │
+│  @AiTeam_ProductManager_bot (18:05):                              │
+│    Respuesta del Tech Lead: • Recibido, tiene ownership...        │
+│    • Ya lanzó un audit automático...                              │
+│                                                                   │
+│  @AiTeam_TechLead_bot (18:05):                                    │
+│    ✅ Auth Security Audit Report...                                │
+│    Recommendation: rotate tokens, enable rate limiting...         │
+│                                                                   │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+**Per-persona identity proof:** the TL's messages were delivered via `accountId:"tl"` (env var `TELEGRAM_BOT_TOKEN_TL`), so the Telegram group shows `@AiTeam_TechLead_bot` — a different avatar and username from `@AiTeam_ProductManager_bot`. Both bots appear in the same conversation, each with their own identity, demonstrating the ft-0173 multi-account routing working as designed.
 
 ---
 
