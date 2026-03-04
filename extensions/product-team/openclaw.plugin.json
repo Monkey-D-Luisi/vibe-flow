@@ -163,7 +163,7 @@
               "broadcastKeywords": {
                 "type": "array",
                 "items": { "type": "string" },
-                "default": ["decision", "escalation", "blocker", "review", "approval", "deploy", "release", "rollback", "incident", "hotfix"]
+                "default": ["decision", "decisión", "escalation", "escalación", "blocker", "review", "revisión", "approval", "aprobación", "deploy", "release", "rollback", "incident", "incidencia", "hotfix"]
               },
               "broadcastPriorities": {
                 "type": "array",

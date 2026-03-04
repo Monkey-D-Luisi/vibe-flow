@@ -117,8 +117,9 @@ describe('resolveDeliveryConfig', () => {
     expect(result.defaultMode).toBe('smart');
     expect(result.broadcastPriorities).toEqual(['urgent']);
     expect(result.broadcastKeywords).toContain('decision');
+    expect(result.broadcastKeywords).toContain('decisión');
     expect(result.broadcastKeywords).toContain('blocker');
-    expect(result.broadcastKeywords).toHaveLength(10);
+    expect(result.broadcastKeywords).toHaveLength(15);
     expect(result.agents).toEqual({});
   });
 
