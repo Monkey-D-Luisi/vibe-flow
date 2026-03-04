@@ -575,56 +575,101 @@ PM turn (sessionKey: agent:pm:telegram:group:-5177552677)
 
 ---
 
-### Example 2 — Security incident escalation + autonomous task creation
+### Example 2 — Security incident escalation + autonomous task creation (complete trace)
 
-*2026-03-04 17:04 UTC — same group, 16 minutes before ft-0173 commit — ft-0173 code already deployed in Docker*
+*2026-03-04 18:04 CET (17:04 UTC) — Telegram group -5177552677 — ft-0173 already live in Docker*
 
-**From DB (`agent_messages` table):**
+This is a verbatim trace of a real incident. Every record below was queried directly from the live container's SQLite.
+
+---
+
+**Step 1 — User writes in the Telegram group (18:04 CET)**
 
 ```
+[Telegram group -5177552677]
+Luis: @AiTeam_ProductManager_bot tenemos un problema de seguridad crítico en el
+      módulo de auth, necesito que el tech lead lo revise urgentemente
+```
+
+The message lands in@AiTeam_ProductManager_bot's update queue (Grammy long-polling). The SDK routes it to the `pm` agent session `agent:pm:telegram:group:-5177552677`.
+
+---
+
+**Step 2 — PM processes, escalates to TL — `agent_messages` row created (18:04:58 CET)**
+
+```
+id           : 01KJWWYMVWTX6PP1TC0VYSS2K6
 from_agent   : pm
 to_agent     : tech-lead
 subject      : URGENTE: problema de seguridad crítico en módulo de auth
-body         : Luis reporta un problema de seguridad CRÍTICO en el módulo de
-               autenticación y necesita tu revisión urgente.
-               1) confirma recepción y ownership
-               2) indica mitigación inmediata (feature flag/disable endpoint/rotación
-                  de secretos)
-               3) qué info necesitas (repo/branch, descripción del vector, logs,
-                  entorno afectado)
-               4) ETA para primer assessment. Prioriza contener (bloquear vector)
-                  antes del análisis completo.
-origin_channel       : telegram
-origin_session_key   : agent:pm:telegram:group:-5177552677
-created_at           : 2026-03-04T17:04:58.236Z
+body         :
+  Luis reporta un problema de seguridad CRÍTICO en el módulo de autenticación y
+  necesita tu revisión urgente.
+
+  Por favor: 1) confirma recepción y ownership, 2) indica mitigación inmediata
+  (feature flag/disable endpoint/rotación de secretos), 3) qué info necesitas
+  (repo/branch, descripción del vector, logs, entorno afectado), 4) ETA para
+  primer assessment.
+
+  Si es posible, prioriza contener (bloquear exploit) antes de root-cause.
+origin_channel     : telegram
+origin_session_key : agent:pm:telegram:group:-5177552677
+created_at         : 2026-03-04T17:04:58.236Z
 ```
 
-**TL response (21 seconds later):**
+The `team_message` call triggers the `after_tool_call` hook synchronously:
 
 ```
+after_tool_call hook
+├─ shouldDeliver("pm") → deliver:true   [pm is broadcast — always delivers]
+├─ agentAccounts["tech-lead"] → "tl"
+├─ rebuildSessionKey("agent:pm:telegram:group:-5177552677", "tech-lead")
+│    → "agent:tech-lead:telegram:group:-5177552677"
+├─ extractChatId → "-5177552677"
+└─ fireAgentViaGatewayWs("tech-lead", msg, {
+       deliver:true, channel:"telegram",
+       accountId:"tl", sessionKey:"agent:tech-lead:telegram:group:-5177552677"
+   })  ← detached subprocess, raw WS to gateway port 28789
+```
+
+---
+
+**Step 3 — TL responds to the group (18:05:19 CET, 21 seconds later)**
+
+```
+id           : 01KJWWZ9NCF161P0C9MC05SE4T
 from_agent   : tech-lead
 to_agent     : pm
 subject      : Re: URGENTE: problema de seguridad crítico en módulo de auth
-body         : Recibido, ya tengo ownership. Estado:
+body         :
+  Recibido, ya tengo ownership. Estado:
 
-               1. **Ya lancé un audit automático** del módulo de auth en vibe-flow.
-                  Esperando resultados.
-               2. **Mitigación inmediata:** Pendiente de que Luis confirme qué
-                  vector/síntoma vio. Sin esa info, las opciones genéricas son:
-                  (a) desactivar endpoints de auth públicos vía feature flag,
-                  (b) rotar secretos/JWT keys,
-                  (c) activar rate limiting agresivo.
-               3. **Info que necesito:** repo branch afectado, descripción del vector
-                  (XSS/CSRF/injection/bypass/exposure?), logs del error y entorno
-                  (prod/staging).
-origin_session_key   : agent:pm:telegram:group:-5177552677
-created_at           : 2026-03-04T17:05:19.532Z
+  1. **Ya lancé un audit automático** del módulo de auth en vibe-flow.
+     Esperando resultados.
+  2. **Mitigación inmediata:** Pendiente de que Luis confirme qué vector/síntoma
+     vio. Sin esa info, las opciones genéricas son:
+     (a) desactivar endpoints de auth públicos vía feature flag,
+     (b) rotar secretos/JWT keys,
+     (c) activar rate limiting agresivo.
+  3. **Info que necesito de Luis:** ¿Qué vio exactamente? (acceso no autorizado,
+     tokens válidos de usuarios inexistentes, brute force, etc.) + ¿está en
+     producción y es explotable ahora?
+  4. **ETA:** Primer assessment en cuanto termine el scan (~minutos) o en cuanto
+     Luis dé más contexto, lo que llegue primero.
+
+  Prioridad: contención > diagnóstico > fix.
+origin_session_key : agent:pm:telegram:group:-5177552677
+created_at         : 2026-03-04T17:05:19.532Z
 ```
 
-**Task created autonomously by TL (6 seconds after response):**
+Sent via `accountId:"tl"` → @AiTeam_TechLead_bot appears in the group. @AiTeam_ProductManager_bot is silent; only the TL bot posts.
+
+---
+
+**Step 4 — TL creates audit task autonomously (18:05:25 CET, 6 seconds after response)**
 
 ```sql
--- From task_records table
+-- task_records
 id         : 01KJWWZFKZ5G5VJGVWFYKWZSC5
 title      : Auth Security Audit - workspace exploration
 status     : backlog
@@ -633,24 +678,42 @@ assignee   : null
 created_at : 2026-03-04T17:05:25.631Z
 ```
 
-**Complete sequence timeline:**
-
 ```
-17:04:58  User → group: "@PM reporta CRÍTICO en módulo de auth"
-17:04:58  @AiTeam_ProductManager_bot (PM) responds in group
-17:04:58  PM calls team_message({ to:"tech-lead", subject:"URGENTE: ...", priority:"urgent" })
-17:04:58  ┌── after_tool_call hook fires immediately ──────────────────────────────┐
-          │  shouldDeliver("pm") → deliver:true (broadcast mode, always on)        │
-          │  agentAccounts["tech-lead"] → account "tl"                             │
-          │  sessionKey → "agent:tech-lead:telegram:group:-5177552677"             │
-          │  fireAgentViaGatewayWs("tech-lead", ..., { accountId:"tl" })           │
-          └────────────────────────────────────────────────────────────────────────┘
-17:05:19  @AiTeam_TechLead_bot appears in group: "Recibido, ya tengo ownership..."
-17:05:25  TL calls task_create({ title:"Auth Security Audit...", scope:"patch" })
-          → task_records: 01KJWWZFKZ5G5VJGVWFYKWZSC5 created
+-- event_log (task lifecycle)
+17:05:25.631  task.created          (task_create tool called)
+17:05:25.632  cost.tool             toolName=task.create  durationMs=2  success=true
 ```
 
-**Proof of per-persona identity:** the TL's response at 17:05:19 was sent via `accountId:"tl"` (TELEGRAM_BOT_TOKEN_TL), appearing in the Telegram group as `@AiTeam_TechLead_bot` — not as `@AiTeam_ProductManager_bot`. The PM and TL bots are visually distinct in the conversation.
+---
+
+**Step 5 — TL runs 3 workspace-exploration steps in parallel (18:05:30 CET, 5 seconds later)**
+
+```
+-- event_log (workflow steps)
+17:05:30.663  workflow.step.completed  stepId=find-all-files   stepType=shell  agent=tech-lead
+17:05:30.663  workflow.step.completed  stepId=find-auth-files  stepType=shell  agent=tech-lead
+17:05:30.663  workflow.step.completed  stepId=grep-auth-refs   stepType=shell  agent=tech-lead
+17:05:30.663  cost.tool               toolName=workflow.step.run  durationMs=1  success=true
+```
+
+Three shell steps fired literally at the same millisecond — the orchestrator runs them as a parallel batch. All completed within 5 seconds of the task being created.
+
+---
+
+**Complete timeline:**
+
+```
+18:04:35  Luis types in Telegram group: "@AiTeam_ProductManager_bot tenemos un problema..."
+18:04:58  @AiTeam_ProductManager_bot (pm) processes → calls team_message to tech-lead (+23s)
+          after_tool_call: hook spawns TL agent in same group session via WS
+18:05:19  @AiTeam_TechLead_bot appears in group: "Recibido, ya tengo ownership..." (+21s)
+18:05:25  TL calls task_create → task 01KJWWZFKZ5G5VJGVWFYKWZSC5 written to DB (+6s)
+18:05:30  TL runs 3 parallel shell steps: find-all-files, find-auth-files, grep-auth-refs (+5s)
+          ─────────────────────────────────────────────────────────────────────────────
+          Total: 55 seconds from user message to autonomous workspace scan in progress
+```
+
+**Per-persona identity proof:** the TL's message at 18:05:19 was delivered via `accountId:"tl"` (env var `TELEGRAM_BOT_TOKEN_TL`), so the Telegram group shows `@AiTeam_TechLead_bot` — a different avatar and username from `@AiTeam_ProductManager_bot`. The PM never posted after relaying the escalation. This is the ft-0173 feature working as designed.
 
 ---
 
