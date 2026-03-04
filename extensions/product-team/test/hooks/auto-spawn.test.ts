@@ -7,6 +7,8 @@ import {
   handleDecisionEscalationAutoSpawn,
   registerAutoSpawnHooks,
   resetDedupCache,
+  rebuildSessionKeyForAgent,
+  extractChatIdFromSessionKey,
   type AutoSpawnDeps,
 } from '../../src/hooks/auto-spawn.js';
 import type { OpenClawPluginApi } from '../../src/index.js';
@@ -43,6 +45,52 @@ function makeCtx(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+// ── rebuildSessionKeyForAgent ────────────────────────────────────────────────
+
+describe('rebuildSessionKeyForAgent', () => {
+  it('replaces the agent ID in a standard session key', () => {
+    expect(rebuildSessionKeyForAgent('agent:pm:telegram:group:-12345', 'tech-lead'))
+      .toBe('agent:tech-lead:telegram:group:-12345');
+  });
+
+  it('replaces the agent ID in a DM session key', () => {
+    expect(rebuildSessionKeyForAgent('agent:pm:telegram:dm:67890', 'qa'))
+      .toBe('agent:qa:telegram:dm:67890');
+  });
+
+  it('replaces the agent ID in a main session key', () => {
+    expect(rebuildSessionKeyForAgent('agent:pm:main', 'back-1'))
+      .toBe('agent:back-1:main');
+  });
+
+  it('falls back to agent:<id>:main for unrecognised formats', () => {
+    expect(rebuildSessionKeyForAgent('random-key', 'tech-lead'))
+      .toBe('agent:tech-lead:main');
+  });
+});
+
+describe('extractChatIdFromSessionKey', () => {
+  it('extracts chatId from a group session key', () => {
+    expect(extractChatIdFromSessionKey('agent:pm:telegram:group:-1005177552677'))
+      .toBe('-1005177552677');
+  });
+
+  it('extracts userId from a DM session key', () => {
+    expect(extractChatIdFromSessionKey('agent:pm:telegram:dm:67890'))
+      .toBe('67890');
+  });
+
+  it('returns null for a main session key', () => {
+    expect(extractChatIdFromSessionKey('agent:pm:main'))
+      .toBeNull();
+  });
+
+  it('returns null for unrecognised formats', () => {
+    expect(extractChatIdFromSessionKey('random-key'))
+      .toBeNull();
+  });
+});
 
 // ── extractDetails ──────────────────────────────────────────────────────────
 
@@ -267,7 +315,8 @@ describe('handleTeamMessageAutoSpawn', () => {
     expect(options).toEqual({
       deliver: true,
       channel: 'telegram',
-      sessionKey: 'agent:pm:telegram:group:-517123',
+      sessionKey: 'agent:tech-lead:telegram:group:-517123',
+      to: '-517123',
     });
   });
 
@@ -535,15 +584,8 @@ describe('handleTeamReplyAutoSpawn', () => {
     expect(options).toBeUndefined();
   });
 
-  it('delivers to origin channel when deliveryConfig and originChannel are present', () => {
-    deps = createDeps({
-      deliveryConfig: {
-        defaultMode: 'broadcast',
-        broadcastKeywords: [],
-        broadcastPriorities: ['urgent'],
-        agents: {},
-      },
-    });
+  it('delivers to origin channel when originChannel is present', () => {
+    // No deliveryConfig needed — replies always route back to origin
     resetDedupCache();
 
     const event = makeEvent({
@@ -567,10 +609,13 @@ describe('handleTeamReplyAutoSpawn', () => {
       deliver: true,
       channel: 'telegram',
       sessionKey: 'agent:pm:telegram:group:-517123',
+      to: '-517123',
     });
   });
 
-  it('skips delivery when delivery policy says internal', () => {
+  it('delivers reply to origin even when sender delivery mode is internal', () => {
+    // Reply routing ignores the sender's delivery mode — it always honours
+    // the conversation's origin channel.
     deps = createDeps({
       deliveryConfig: {
         defaultMode: 'smart',
@@ -597,7 +642,10 @@ describe('handleTeamReplyAutoSpawn', () => {
 
     expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
     const options = (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls[0][2];
-    expect(options).toBeUndefined();
+    expect(options).toEqual({
+      deliver: true,
+      channel: 'telegram',
+    });
   });
 
   it('skips delivery when originChannel is missing even with deliveryConfig', () => {
