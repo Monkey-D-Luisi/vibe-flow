@@ -56,7 +56,7 @@
   },
 
   "messages": {
-    "responsePrefix": "[{provider}/{model}]\n\n",
+    "responsePrefix": "[{agentName} | {provider}/{model}]\n\n",
     "ackReactionScope": "group-mentions"
   },
 
@@ -163,6 +163,25 @@
             },
             "timeoutMs": 300000,
             "humanApprovalTimeout": 3600000
+          },
+          "delivery": {
+            "default": {
+              "mode": "smart",
+              "broadcastKeywords": ["decision", "escalation", "blocker", "review", "approval", "deploy", "release", "rollback", "incident", "hotfix"],
+              "broadcastPriorities": ["urgent"]
+            },
+            "agents": {
+              "pm":        { "mode": "broadcast" },
+              "tech-lead": { "mode": "smart" },
+              "po":        { "mode": "smart" },
+              "back-1":    { "mode": "internal" },
+              "back-2":    { "mode": "internal" },
+              "front-1":   { "mode": "internal" },
+              "front-2":   { "mode": "internal" },
+              "qa":        { "mode": "smart" },
+              "devops":    { "mode": "smart" },
+              "designer":  { "mode": "internal" }
+            }
           }
         }
       },
@@ -226,10 +245,16 @@
   },
 
   "bindings": [
-    {
-      "agentId": "pm",
-      "match": { "channel": "telegram" }
-    }
+    { "agentId": "pm",        "match": { "channel": "telegram" } },
+    { "agentId": "tech-lead", "match": { "channel": "telegram" } },
+    { "agentId": "po",        "match": { "channel": "telegram" } },
+    { "agentId": "designer",  "match": { "channel": "telegram" } },
+    { "agentId": "back-1",    "match": { "channel": "telegram" } },
+    { "agentId": "back-2",    "match": { "channel": "telegram" } },
+    { "agentId": "front-1",   "match": { "channel": "telegram" } },
+    { "agentId": "front-2",   "match": { "channel": "telegram" } },
+    { "agentId": "qa",        "match": { "channel": "telegram" } },
+    { "agentId": "devops",    "match": { "channel": "telegram" } }
   ],
 
   "agents": {

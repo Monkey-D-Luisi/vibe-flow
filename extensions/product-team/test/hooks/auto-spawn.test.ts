@@ -237,6 +237,73 @@ describe('handleTeamMessageAutoSpawn', () => {
     handleTeamMessageAutoSpawn(deps, event, makeCtx());
     expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
   });
+
+  it('delivers to origin channel when sender is broadcast and originChannel exists', () => {
+    deps = createDeps({
+      deliveryConfig: {
+        defaultMode: 'smart',
+        broadcastKeywords: [],
+        broadcastPriorities: ['urgent'],
+        agents: { pm: { mode: 'broadcast' } },
+      },
+    });
+    resetDedupCache();
+
+    const event = makeEvent({
+      result: {
+        details: {
+          delivered: true,
+          messageId: 'msg-bc',
+          originChannel: 'telegram',
+          originSessionKey: 'agent:pm:telegram:group:-517123',
+        },
+      },
+      params: { to: 'tech-lead', subject: 'Review this' },
+    });
+    handleTeamMessageAutoSpawn(deps, event, makeCtx({ agentId: 'pm' }));
+
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+    const options = (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls[0][2];
+    expect(options).toEqual({
+      deliver: true,
+      channel: 'telegram',
+      sessionKey: 'agent:pm:telegram:group:-517123',
+    });
+  });
+
+  it('does not deliver when sender is internal', () => {
+    deps = createDeps({
+      agents: [
+        { id: 'tech-lead', name: 'Tech Lead' },
+        { id: 'pm', name: 'Product Manager' },
+        { id: 'back-1', name: 'Senior Backend Developer' },
+        { id: 'back-2', name: 'Junior Backend Developer' },
+      ],
+      deliveryConfig: {
+        defaultMode: 'smart',
+        broadcastKeywords: [],
+        broadcastPriorities: [],
+        agents: { 'back-1': { mode: 'internal' } },
+      },
+    });
+    resetDedupCache();
+
+    const event = makeEvent({
+      result: {
+        details: {
+          delivered: true,
+          messageId: 'msg-int',
+          originChannel: 'telegram',
+        },
+      },
+      params: { to: 'back-2', subject: 'Internal chat' },
+    });
+    handleTeamMessageAutoSpawn(deps, event, makeCtx({ agentId: 'back-1' }));
+
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+    const options = (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls[0][2];
+    expect(options).toBeUndefined();
+  });
 });
 
 // ── handleDecisionEscalationAutoSpawn ───────────────────────────────────────
@@ -451,7 +518,7 @@ describe('handleTeamReplyAutoSpawn', () => {
     expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
   });
 
-  it('fires agent spawn with deliver option for a valid team_reply', () => {
+  it('fires agent spawn without delivery when no deliveryConfig (no legacy fallback)', () => {
     const event = makeEvent({
       toolName: 'team_reply',
       result: { details: { replied: true, to: 'pm', from: 'tech-lead', replyId: 'r-42' } },
@@ -464,7 +531,103 @@ describe('handleTeamReplyAutoSpawn', () => {
     expect(message).toContain('r-42');
     expect(message).toContain('tech-lead');
     expect(message).toContain('team_inbox');
-    expect(options).toEqual({ deliver: true, channel: 'telegram' });
+    // No deliveryConfig → no delivery options
+    expect(options).toBeUndefined();
+  });
+
+  it('delivers to origin channel when deliveryConfig and originChannel are present', () => {
+    deps = createDeps({
+      deliveryConfig: {
+        defaultMode: 'broadcast',
+        broadcastKeywords: [],
+        broadcastPriorities: ['urgent'],
+        agents: {},
+      },
+    });
+    resetDedupCache();
+
+    const event = makeEvent({
+      toolName: 'team_reply',
+      result: {
+        details: {
+          replied: true,
+          to: 'pm',
+          from: 'tech-lead',
+          replyId: 'r-dyn',
+          originChannel: 'telegram',
+          originSessionKey: 'agent:pm:telegram:group:-517123',
+        },
+      },
+    });
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+    const options = (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls[0][2];
+    expect(options).toEqual({
+      deliver: true,
+      channel: 'telegram',
+      sessionKey: 'agent:pm:telegram:group:-517123',
+    });
+  });
+
+  it('skips delivery when delivery policy says internal', () => {
+    deps = createDeps({
+      deliveryConfig: {
+        defaultMode: 'smart',
+        broadcastKeywords: [],
+        broadcastPriorities: ['urgent'],
+        agents: { 'tech-lead': { mode: 'internal' } },
+      },
+    });
+    resetDedupCache();
+
+    const event = makeEvent({
+      toolName: 'team_reply',
+      result: {
+        details: {
+          replied: true,
+          to: 'pm',
+          from: 'tech-lead',
+          replyId: 'r-int',
+          originChannel: 'telegram',
+        },
+      },
+    });
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+    const options = (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls[0][2];
+    expect(options).toBeUndefined();
+  });
+
+  it('skips delivery when originChannel is missing even with deliveryConfig', () => {
+    deps = createDeps({
+      deliveryConfig: {
+        defaultMode: 'broadcast',
+        broadcastKeywords: [],
+        broadcastPriorities: [],
+        agents: {},
+      },
+    });
+    resetDedupCache();
+
+    const event = makeEvent({
+      toolName: 'team_reply',
+      result: {
+        details: {
+          replied: true,
+          to: 'pm',
+          from: 'tech-lead',
+          replyId: 'r-noorigin',
+          // no originChannel
+        },
+      },
+    });
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+    const options = (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls[0][2];
+    expect(options).toBeUndefined();
   });
 
   it('deduplicates identical reply spawns', () => {

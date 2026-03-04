@@ -23,6 +23,8 @@ export function teamMessageToolDef(deps: ToolDeps): ToolDef {
         priority?: 'low' | 'normal' | 'urgent';
         taskRef?: string;
         from?: string;
+        originChannel?: string;
+        originSessionKey?: string;
       }>(TeamMessageParams, params);
 
       const id = deps.generateId();
@@ -30,13 +32,13 @@ export function teamMessageToolDef(deps: ToolDeps): ToolDef {
       const priority = input.priority ?? 'normal';
 
       deps.db.prepare(`
-        INSERT INTO ${MESSAGES_TABLE} (id, from_agent, to_agent, subject, body, priority, task_ref, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(id, input.from ?? 'anonymous', input.to, input.subject, input.body, priority, input.taskRef ?? null, now);
+        INSERT INTO ${MESSAGES_TABLE} (id, from_agent, to_agent, subject, body, priority, task_ref, origin_channel, origin_session_key, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(id, input.from ?? 'anonymous', input.to, input.subject, input.body, priority, input.taskRef ?? null, input.originChannel ?? null, input.originSessionKey ?? null, now);
 
       deps.logger?.info(`team.message: ${id} → ${input.to} [${priority}] "${input.subject}"`);
 
-      const result = { messageId: id, delivered: true, priority };
+      const result = { messageId: id, delivered: true, priority, originChannel: input.originChannel ?? null, originSessionKey: input.originSessionKey ?? null };
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
         details: result,
@@ -108,11 +110,15 @@ export function teamReplyToolDef(deps: ToolDeps): ToolDef {
       ensureMessagesTable(deps);
       const input = deps.validate<{ messageId: string; body: string }>(TeamReplyParams, params);
 
-      const original = deps.db.prepare(`SELECT id, from_agent, to_agent, subject, task_ref FROM ${MESSAGES_TABLE} WHERE id = ?`).get(input.messageId) as {
+      const original = deps.db.prepare(`SELECT id, from_agent, to_agent, subject, task_ref, origin_channel, origin_session_key, reply_to FROM ${MESSAGES_TABLE} WHERE id = ?`).get(input.messageId) as {
+        id: string;
         from_agent: string;
         to_agent: string;
         subject: string;
         task_ref: string | null;
+        origin_channel: string | null;
+        origin_session_key: string | null;
+        reply_to: string | null;
       } | undefined;
 
       if (!original) {
@@ -123,18 +129,39 @@ export function teamReplyToolDef(deps: ToolDeps): ToolDef {
         };
       }
 
+      // Walk the reply chain to find the root message's origin if this message doesn't have it
+      let originChannel = original.origin_channel;
+      let originSessionKey = original.origin_session_key;
+      if (!originChannel && original.reply_to) {
+        let currentId: string | null = original.reply_to;
+        const visited = new Set<string>([original.id]);
+        while (currentId && !originChannel) {
+          if (visited.has(currentId)) break; // cycle guard
+          visited.add(currentId);
+          const ancestor = deps.db.prepare(
+            `SELECT origin_channel, origin_session_key, reply_to FROM ${MESSAGES_TABLE} WHERE id = ?`,
+          ).get(currentId) as { origin_channel: string | null; origin_session_key: string | null; reply_to: string | null } | undefined;
+          if (!ancestor) break;
+          if (ancestor.origin_channel) {
+            originChannel = ancestor.origin_channel;
+            originSessionKey = ancestor.origin_session_key;
+          }
+          currentId = ancestor.reply_to;
+        }
+      }
+
       const replyId = deps.generateId();
       const now = deps.now();
 
       deps.db.prepare(`
-        INSERT INTO ${MESSAGES_TABLE} (id, from_agent, to_agent, subject, body, priority, task_ref, reply_to, created_at)
-        VALUES (?, ?, ?, ?, ?, 'normal', ?, ?, ?)
-      `).run(replyId, original.to_agent, original.from_agent, `Re: ${original.subject}`, input.body, original.task_ref, input.messageId, now);
+        INSERT INTO ${MESSAGES_TABLE} (id, from_agent, to_agent, subject, body, priority, task_ref, reply_to, origin_channel, origin_session_key, created_at)
+        VALUES (?, ?, ?, ?, ?, 'normal', ?, ?, ?, ?, ?)
+      `).run(replyId, original.to_agent, original.from_agent, `Re: ${original.subject}`, input.body, original.task_ref, input.messageId, originChannel, originSessionKey, now);
 
       // Mark original as read
       deps.db.prepare(`UPDATE ${MESSAGES_TABLE} SET read = 1 WHERE id = ?`).run(input.messageId);
 
-      const result = { replied: true, replyId, from: original.to_agent, to: original.from_agent };
+      const result = { replied: true, replyId, from: original.to_agent, to: original.from_agent, originChannel, originSessionKey };
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
         details: result,

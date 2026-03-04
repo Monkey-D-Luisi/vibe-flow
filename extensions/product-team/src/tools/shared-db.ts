@@ -14,8 +14,15 @@ export function ensureMessagesTable(deps: ToolDeps): void {
       task_ref TEXT,
       reply_to TEXT,
       read INTEGER NOT NULL DEFAULT 0,
+      origin_channel TEXT,
+      origin_session_key TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (reply_to) REFERENCES ${MESSAGES_TABLE}(id)
     )
   `);
+
+  // Migrate existing databases: add origin columns if they don't exist.
+  // SQLite ALTER TABLE ADD COLUMN is safe — it errors if the column exists.
+  try { deps.db.exec(`ALTER TABLE ${MESSAGES_TABLE} ADD COLUMN origin_channel TEXT`); } catch { /* already exists */ }
+  try { deps.db.exec(`ALTER TABLE ${MESSAGES_TABLE} ADD COLUMN origin_session_key TEXT`); } catch { /* already exists */ }
 }
