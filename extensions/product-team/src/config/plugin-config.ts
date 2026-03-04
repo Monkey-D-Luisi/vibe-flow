@@ -166,6 +166,8 @@ export interface DeliveryConfig {
   readonly broadcastKeywords: readonly string[];
   readonly broadcastPriorities: readonly string[];
   readonly agents: Readonly<Record<string, { mode: DeliveryMode }>>;
+  /** Maps agentId → Telegram account ID for agents with their own bot. */
+  readonly agentAccounts: Readonly<Record<string, string>>;
 }
 
 const DEFAULT_BROADCAST_KEYWORDS: readonly string[] = [
@@ -210,5 +212,16 @@ export function resolveDeliveryConfig(
     }
   }
 
-  return { defaultMode, broadcastKeywords, broadcastPriorities, agents };
+  const rawAccounts = asRecord(delivery?.agentAccounts);
+  const agentAccounts: Record<string, string> = {};
+  if (rawAccounts) {
+    for (const [agentId, val] of Object.entries(rawAccounts)) {
+      const acct = asNonEmptyString(val);
+      if (acct) {
+        agentAccounts[agentId] = acct;
+      }
+    }
+  }
+
+  return { defaultMode, broadcastKeywords, broadcastPriorities, agents, agentAccounts };
 }

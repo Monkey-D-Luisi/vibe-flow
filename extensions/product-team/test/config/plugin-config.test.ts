@@ -121,6 +121,7 @@ describe('resolveDeliveryConfig', () => {
     expect(result.broadcastKeywords).toContain('blocker');
     expect(result.broadcastKeywords).toHaveLength(15);
     expect(result.agents).toEqual({});
+    expect(result.agentAccounts).toEqual({});
   });
 
   it('reads full config including per-agent overrides', () => {
@@ -169,5 +170,48 @@ describe('resolveDeliveryConfig', () => {
     });
 
     expect(result.defaultMode).toBe('smart');
+  });
+
+  it('reads agentAccounts mapping when present', () => {
+    const result = resolveDeliveryConfig({
+      delivery: {
+        agentAccounts: {
+          'tech-lead': 'tl',
+          'designer': 'designer',
+        },
+      },
+    });
+
+    expect(result.agentAccounts).toEqual({
+      'tech-lead': 'tl',
+      'designer': 'designer',
+    });
+  });
+
+  it('ignores empty and non-string agentAccounts values', () => {
+    const result = resolveDeliveryConfig({
+      delivery: {
+        agentAccounts: {
+          'tech-lead': 'tl',
+          'bad-empty': '',
+          'bad-number': 42,
+          'bad-null': null,
+        },
+      },
+    });
+
+    expect(result.agentAccounts).toEqual({
+      'tech-lead': 'tl',
+    });
+  });
+
+  it('defaults agentAccounts to empty object when missing', () => {
+    const result = resolveDeliveryConfig({
+      delivery: {
+        agents: { pm: { mode: 'broadcast' } },
+      },
+    });
+
+    expect(result.agentAccounts).toEqual({});
   });
 });

@@ -184,6 +184,13 @@
                 }
               }
             }
+          },
+          "agentAccounts": {
+            "type": "object",
+            "description": "Maps agentId to Telegram account ID for agents with their own bot",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       }

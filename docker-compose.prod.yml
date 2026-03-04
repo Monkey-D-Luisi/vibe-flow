@@ -37,7 +37,9 @@ services:
       - anthropic_api_key
       - openai_api_key
       - google_ai_api_key
-      - telegram_bot_token
+      - telegram_bot_token_pm
+      - telegram_bot_token_tl
+      - telegram_bot_token_designer
       - stitch_api_key
       - github_token
     healthcheck:
@@ -55,8 +57,12 @@ secrets:
     file: ./secrets/openai_api_key.txt
   google_ai_api_key:
     file: ./secrets/google_ai_api_key.txt
-  telegram_bot_token:
-    file: ./secrets/telegram_bot_token.txt
+  telegram_bot_token_pm:
+    file: ./secrets/telegram_bot_token_pm.txt
+  telegram_bot_token_tl:
+    file: ./secrets/telegram_bot_token_tl.txt
+  telegram_bot_token_designer:
+    file: ./secrets/telegram_bot_token_designer.txt
   stitch_api_key:
     file: ./secrets/stitch_api_key.txt
   github_token:
