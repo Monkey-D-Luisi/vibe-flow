@@ -25,10 +25,14 @@ export function parseChannelFromSessionKey(sessionKey: string): string | null {
 
 /**
  * Hook handler for before_tool_call that injects origin channel info
- * into team_message params when not already provided by the LLM.
+ * into team_message params from the authoritative session context.
+ *
+ * Always overrides any LLM-provided values for originChannel and
+ * originSessionKey — the session context is the trusted source of truth,
+ * not the model's guess (which may be stale or incorrect).
  *
  * Returns modified params with originChannel and originSessionKey set,
- * or undefined if no modification is needed.
+ * or undefined if no modification is needed (non-team_message or no session).
  */
 export function injectOriginIntoTeamMessage(
   event: { toolName: string; params: Record<string, unknown> },
@@ -37,16 +41,13 @@ export function injectOriginIntoTeamMessage(
   // Only intercept team_message (registered as team_message with underscore)
   if (event.toolName !== 'team_message') return undefined;
 
-  // If the LLM already provided originChannel, don't override
-  if (event.params['originChannel']) return undefined;
-
   // Need sessionKey to determine origin
   if (!ctx.sessionKey) return undefined;
 
   const channel = parseChannelFromSessionKey(ctx.sessionKey);
   if (!channel) return undefined;
 
-  // Inject origin fields into params
+  // Always inject from session context — override any LLM-provided values
   return {
     params: {
       ...event.params,
