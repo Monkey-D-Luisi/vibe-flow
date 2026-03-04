@@ -169,8 +169,9 @@ export interface DeliveryConfig {
 }
 
 const DEFAULT_BROADCAST_KEYWORDS: readonly string[] = [
-  'decision', 'escalation', 'blocker', 'review', 'approval',
-  'deploy', 'release', 'rollback', 'incident', 'hotfix',
+  'decision', 'decisión', 'escalation', 'escalación', 'blocker',
+  'review', 'revisión', 'approval', 'aprobación',
+  'deploy', 'release', 'rollback', 'incident', 'incidencia', 'hotfix',
 ];
 
 const DEFAULT_BROADCAST_PRIORITIES: readonly string[] = ['urgent'];

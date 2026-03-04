@@ -37,6 +37,7 @@ import { initializeWorkspaces } from './services/workspace-init.js';
 import { MonitoringCron } from './services/monitoring-cron.js';
 import { createGracefulShutdown } from './hooks/graceful-shutdown.js';
 import { registerAutoSpawnHooks } from './hooks/auto-spawn.js';
+import { injectOriginIntoTeamMessage } from './hooks/origin-injection.js';
 import { registerHttpRoutes } from './registration/http-routes.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
@@ -278,6 +279,24 @@ export function register(api: OpenClawPluginApi): void {
     });
     api.logger.info('registered PR-Bot after_tool_call hook');
   }
+
+  // Origin injection hook: auto-populates originChannel and originSessionKey in
+  // team_message calls using the caller's session key (available in before_tool_call
+  // ctx but NOT in after_tool_call). This ensures delivery routing works without
+  // relying on the LLM to pass these fields explicitly.
+  api.on('before_tool_call', (event, ctx) => {
+    const typedEvent = event as { toolName: string; params: Record<string, unknown> };
+    const typedCtx = ctx as { agentId?: string; sessionKey?: string };
+    if (typedEvent.toolName === 'team_message') {
+      api.logger.info(
+        `origin-injection: team_message intercepted — ctx.sessionKey=${typedCtx.sessionKey ?? 'undefined'}, ` +
+        `ctx.agentId=${typedCtx.agentId ?? 'undefined'}, ` +
+        `existingOriginChannel=${String(typedEvent.params['originChannel'] ?? 'none')}`,
+      );
+    }
+    return injectOriginIntoTeamMessage(typedEvent, typedCtx);
+  });
+  api.logger.info('registered origin-injection before_tool_call hook for team_message');
 
   // Auto-spawn hooks: when an agent sends a team_message or escalates a decision,
   // inject a system directive into the caller's session to spawn the target agent.

@@ -56,7 +56,7 @@
   },
 
   "messages": {
-    "responsePrefix": "[{agentName} | {provider}/{model}]\n\n",
+    "responsePrefix": "[{identityName} | {provider}/{model}]\n\n",
     "ackReactionScope": "group-mentions"
   },
 
@@ -167,7 +167,7 @@
           "delivery": {
             "default": {
               "mode": "smart",
-              "broadcastKeywords": ["decision", "escalation", "blocker", "review", "approval", "deploy", "release", "rollback", "incident", "hotfix"],
+              "broadcastKeywords": ["decision", "decisión", "escalation", "escalación", "blocker", "review", "revisión", "approval", "aprobación", "deploy", "release", "rollback", "incident", "incidencia", "hotfix"],
               "broadcastPriorities": ["urgent"]
             },
             "agents": {
@@ -277,6 +277,7 @@
         "id": "pm",
         "name": "Product Manager",
         "default": true,
+        "identity": { "name": "PM" },
         "model": { "primary": "openai-codex/gpt-5.2", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "agentDir": ".agent/agents/pm",
@@ -299,6 +300,7 @@
       {
         "id": "tech-lead",
         "name": "Tech Lead",
+        "identity": { "name": "Tech Lead" },
         "model": { "primary": "anthropic/claude-opus-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "agentDir": ".agent/agents/tech-lead",
@@ -322,6 +324,7 @@
       {
         "id": "po",
         "name": "Product Owner",
+        "identity": { "name": "PO" },
         "model": { "primary": "github-copilot/gpt-4.1", "fallbacks": ["anthropic/claude-sonnet-4-6", "openai-codex/gpt-5.2"] },
         "workspace": "/workspaces/active",
         "skills": ["product-owner", "requirements-grooming"],
@@ -337,6 +340,7 @@
       {
         "id": "designer",
         "name": "UI/UX Designer",
+        "identity": { "name": "Designer" },
         "model": { "primary": "github-copilot/gpt-4o", "fallbacks": ["anthropic/claude-sonnet-4-6", "openai-codex/gpt-5.2"] },
         "workspace": "/workspaces/active",
         "skills": ["ui-designer"],
@@ -353,6 +357,7 @@
       {
         "id": "back-1",
         "name": "Senior Backend Developer",
+        "identity": { "name": "Back-1" },
         "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["backend-dev", "tdd-implementation", "patterns"],
@@ -370,6 +375,7 @@
       {
         "id": "back-2",
         "name": "Junior Backend Developer",
+        "identity": { "name": "Back-2" },
         "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["backend-dev", "tdd-implementation"],
@@ -387,6 +393,7 @@
       {
         "id": "front-1",
         "name": "Senior Frontend Developer",
+        "identity": { "name": "Front-1" },
         "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["frontend-dev", "tdd-implementation"],
@@ -405,6 +412,7 @@
       {
         "id": "front-2",
         "name": "Junior Frontend Developer",
+        "identity": { "name": "Front-2" },
         "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["frontend-dev", "tdd-implementation"],
@@ -423,6 +431,7 @@
       {
         "id": "qa",
         "name": "QA Engineer",
+        "identity": { "name": "QA" },
         "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["qa-testing"],
@@ -441,6 +450,7 @@
       {
         "id": "devops",
         "name": "DevOps Engineer",
+        "identity": { "name": "DevOps" },
         "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["devops", "github-automation"],
