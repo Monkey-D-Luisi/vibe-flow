@@ -132,33 +132,33 @@ Gateway starts
 
 ### Task lifecycle FSM
 
-Tasks move through these statuses in order:
-
 ```
-OPEN → REFINEMENT → DESIGN → IMPLEMENTATION → QA → REVIEW → DONE
-                                                            ↓
-                                                         SHIPPING (optional)
-                                                            ↓
-                                                          CLOSED
+                         ┌──── skipDesignForNonUITasks ────┐
+                         │                                  ▼
+  OPEN ──► REFINEMENT ──►DESIGN──► IMPLEMENTATION ──► QA ──► REVIEW ──► DONE
+                                         ▲             │       │          ▲
+                                         │  (regression)│  (rework)       │
+                                         └──────────────┘       │    SHIPPING
+                                                                 └────► QA     │
+                                                                              ─┘
 
-Any status → BLOCKED (on pause/blocker decision)
-BLOCKED → any status (on unblock)
-Any status → CANCELLED
+  * (any status) ──► BLOCKED      BLOCKED ──► (previous status)
+  * (any status) ──► CANCELLED
 ```
 
-Compact representation of valid transitions:
+Valid transitions summary:
 
-```
-OPEN            → REFINEMENT
-REFINEMENT      → DESIGN, IMPLEMENTATION
-DESIGN          → IMPLEMENTATION
-IMPLEMENTATION  → QA
-QA              → REVIEW, IMPLEMENTATION (regression)
-REVIEW          → SHIPPING, DONE, QA (rework)
-SHIPPING        → DONE
-*               → BLOCKED, CANCELLED
-BLOCKED         → (previous status)
-```
+| From          | To (allowed)                                    |
+|---------------|-------------------------------------------------|
+| OPEN          | REFINEMENT                                      |
+| REFINEMENT    | DESIGN, IMPLEMENTATION                          |
+| DESIGN        | IMPLEMENTATION                                  |
+| IMPLEMENTATION| QA                                              |
+| QA            | REVIEW, IMPLEMENTATION (regression)             |
+| REVIEW        | SHIPPING, DONE, QA (rework)                     |
+| SHIPPING      | DONE                                            |
+| any           | BLOCKED, CANCELLED                              |
+| BLOCKED       | previous status                                 |
 
 ### Transition guards
 
@@ -196,40 +196,49 @@ The plugin uses **SQLite** via `better-sqlite3` with a 2-migration schema manage
 
 Configured via `dbPath` in the plugin config block (e.g. `/app/data/product-team.db`). Must be writable at gateway startup.
 
-### Migration 001 — Core schema
+### Database tables
+
+The actual tables (verified from the live container):
 
 ```sql
-tasks           id, title, body, status, assignee, priority, scope,
-                project, branch, pr_url, stitch_id, created_at, updated_at
-workflow_events task_id, event_type, from_status, to_status, actor,
-                payload, created_at
-leases          agent_id, task_id, acquired_at
-decisions       id, task_id, type, question, action, escalated_to,
-                resolved_at, payload
-messages        id, from_agent, to_agent, subject, body, priority,
-                reply_to, status, origin_channel, origin_session_key,
-                created_at, read_at
+-- Core task records
+task_records      id, title, status, scope, assignee, tags, metadata,
+                  created_at, updated_at, rev (optimistic lock counter)
+
+-- Append-only workflow event log
+event_log         id, task_id, event_type, agent_id, payload, created_at
+
+-- Agent concurrency leases
+leases            (agent_id, task_id, acquired_at)
+
+-- Decision records (scope/quality/conflict/budget/blocker)
+agent_decisions   id, task_id, type, question, action, status,
+                  escalated_to, resolved_at, payload, created_at
+
+-- Team inbox/outbox with full origin context
+agent_messages    id, from_agent, to_agent, subject, body, priority,
+                  reply_to, status, origin_channel, origin_session_key,
+                  created_at, read_at
+
+-- Orchestrator FSM tracking per task
+orchestrator_state  task_id, stage, step, retries, metadata
+
+-- VCS idempotency cache
+ext_requests      id, type, dedup_key, status, response_payload, created_at
 ```
-
-### Migration 002 — VCS idempotency
-
-```sql
-ext_requests    id, type, dedup_key, status, response_payload, created_at
-```
-
-`ext_requests` prevents duplicate GitHub API calls (branch creates, PR creates) when an agent retries a tool. Every VCS tool writes a `dedup_key = "type:params-hash"` row; on duplicate key, the stored response is returned without re-calling GitHub.
 
 ### Repositories
 
-| Repository              | Manages                              |
-|-------------------------|--------------------------------------|
-| `TaskRepository`        | CRUD + status transitions            |
-| `WorkflowEventRepository` | Append-only event log              |
-| `LeaseRepository`       | Agent concurrency leases             |
-| `DecisionRepository`    | Decision records                     |
-| `MessageRepository`     | Team inbox/outbox                    |
+| Repository              | Table              | Manages                              |
+|-------------------------|--------------------|--------------------------------------|
+| `TaskRepository`        | `task_records`     | CRUD + status transitions            |
+| `EventRepository`       | `event_log`        | Append-only event log                |
+| `LeaseRepository`       | `leases`           | Agent concurrency leases             |
+| `DecisionRepository`    | `agent_decisions`  | Decision records                     |
+| `MessageRepository`     | `agent_messages`   | Team inbox/outbox                    |
+| `OrchestratorRepository`| `orchestrator_state`| FSM stage tracking per task         |
 
-All mutations use **optimistic locking** on `updated_at`. Concurrent writes return a `409 Conflict` rather than silently overwriting.
+All mutations use **optimistic locking** on `rev` (integer counter). Concurrent writes return a `409 Conflict` rather than silently overwriting.
 
 ---
 
@@ -239,7 +248,7 @@ The plugin registers three `after_tool_call` hooks. All hooks are wrapped with t
 
 ### Origin-injection hook
 
-Injected in the message store layer (not as an SDK hook). When `team_message` stores a message to the DB, it captures the current `originChannel` and `originSessionKey` from the tool call context. This is what enables later delivery routing — the origin is preserved in the `messages` table and returned in tool results so the auto-spawn hooks can read it without needing `ctx.sessionKey` (which the SDK passes as `undefined` in `after_tool_call`).
+Injected in the message store layer (not as an SDK hook). When `team_message` stores a message to the DB, it captures the current `originChannel` and `originSessionKey` from the tool call context. This is what enables later delivery routing — the origin is preserved in the `agent_messages` table and returned in tool results so the auto-spawn hooks can read it without needing `ctx.sessionKey` (which the SDK passes as `undefined` in `after_tool_call`).
 
 ### Auto-spawn hook — `handleTeamMessageAutoSpawn`
 
@@ -270,44 +279,56 @@ If the approver is a non-human agent with a `nextAction.agentId`, fires `agentRu
 
 End-to-end flow from a user message to a spawned agent responding via the correct bot.
 
-### Step 1: Inbound — origin capture
-
 ```
-User sends message to @AiTeam_ProductManager_bot in Telegram group
-    → SDK receives update via Grammy (botToken for `pm` account)
-    → Gateway creates/resumes session: agent:pm:telegram:group:<chatId>
-    → PM agent runs; tool call: team_message({ to: "tech-lead", ... })
-    → Message stored in DB with originChannel="telegram", originSessionKey="agent:pm:telegram:group:<chatId>"
-```
-
-### Step 2: Auto-spawn decision
-
-```
-after_tool_call fires with team_message result (delivered: true)
-    → handleTeamMessageAutoSpawn reads toAgent="tech-lead"
-    → shouldDeliver(deliveryConfig, "pm", { priority, subject }) returns { deliver: true }
-    → targetAccountId = deliveryConfig.agentAccounts["tech-lead"] → "tl"
-    → sessionKey = rebuildSessionKeyForAgent("agent:pm:telegram:group:<chatId>", "tech-lead")
-                 = "agent:tech-lead:telegram:group:<chatId>"
-    → chatId = extractChatIdFromSessionKey("agent:pm:telegram:group:<chatId>") → "<chatId>"
-```
-
-### Step 3: Gateway WS spawn
-
-```
-fireAgentViaGatewayWs("tech-lead", message, logger, {
-    deliver: true,
-    channel: "telegram",
-    accountId: "tl",
-    sessionKey: "agent:tech-lead:telegram:group:<chatId>",
-    to: "<chatId>"
-})
-    → Detached Node.js subprocess opens WS to gateway
-    → Calls gateway "agent" method with { sessionKey, message, deliver, channel, accountId, to }
-    → Gateway resolves agent config from sessionKey (tech-lead's tools + skills)
-    → Tech Lead agent runs
-    → Response sent via account "tl" (TELEGRAM_BOT_TOKEN_TL → @AiTeam_TechLead_bot)
-    → Message appears in group as @AiTeam_TechLead_bot
+Telegram Group (user @-mentions @AiTeam_ProductManager_bot)
+│
+▼
+Grammy Bot [pm account] ──► SDK gateway ──► session: agent:pm:telegram:group:<chatId>
+                                                │
+                                                ▼
+                                        PM agent turn
+                                                │
+                                                └─► team_message({ to:"tech-lead", priority:"urgent" })
+                                                           │
+                                                           ├─ DB: INSERT agent_messages
+                                                           │      origin_channel = "telegram"
+                                                           │      origin_session_key = "agent:pm:telegram:group:<chatId>"
+                                                           │
+                                                           └─ returns { delivered:true, originChannel, originSessionKey }
+                                                                     │
+                                                           after_tool_call hook fires
+                                                                     │
+                                                  ┌──────────────────▼──────────────────┐
+                                                  │  handleTeamMessageAutoSpawn          │
+                                                  │  shouldDeliver("pm") → deliver:true  │
+                                                  │  agentAccounts["tech-lead"] → "tl"   │
+                                                  │  rebuildSessionKey → "agent:tech-lead│
+                                                  │                    :telegram:group:  │
+                                                  │                    <chatId>"         │
+                                                  │  extractChatId → "<chatId>"          │
+                                                  └──────────────────┬──────────────────┘
+                                                                     │
+                                                          fireAgentViaGatewayWs(
+                                                              "tech-lead", message,
+                                                              { deliver:true,
+                                                                channel:"telegram",
+                                                                accountId:"tl",
+                                                                sessionKey, to }
+                                                          )
+                                                                     │
+                                                           detached Node subprocess
+                                                           raw WS → gateway :28789
+                                                                     │
+                                                                     ▼
+                                                  session: agent:tech-lead:telegram:group:<chatId>
+                                                  (loads tech-lead's tools+skills)
+                                                                     │
+                                                                     ▼
+                                                          Tech Lead agent turn
+                                                                     │
+                                                                     ▼
+                                                  Grammy Bot [tl account]
+                                                  → message sent as @AiTeam_TechLead_bot
 ```
 
 ### Delivery mode matrix
@@ -328,6 +349,30 @@ Default `broadcastKeywords`: decision, escalation, blocker, review, approval, de
 ### Multi-account channel config
 
 All three bots share a single `channels.telegram` config block. The SDK creates one `Bot` (Grammy) instance per named account in `accounts`:
+
+```
+channels.telegram.accounts
+┌────────────────┬─────────────────┬─────────────────────┐
+│   "pm"         │   "tl"          │   "designer"         │
+│ BOT_TOKEN_PM   │ BOT_TOKEN_TL    │ BOT_TOKEN_DESIGNER   │
+└───────┬────────┴────────┬────────┴──────────┬───────────┘
+        │                 │                   │
+  Grammy Bot         Grammy Bot          Grammy Bot
+  (long poll)        (long poll)         (long poll)
+  @PM_bot            @TL_bot             @Designer_bot
+        │                 │                   │
+  inbound              inbound            inbound
+  accountId:"pm"       accountId:"tl"     accountId:"designer"
+        │                 │                   │
+  ┌─────▼─────┐     ┌─────▼──────┐     ┌──────▼────────┐
+  │ pm, po,   │     │ tech-lead  │     │ designer      │
+  │ back-1/2, │     └────────────┘     └───────────────┘
+  │ front-1/2,│
+  │ qa,devops │
+  └───────────┘
+```
+
+JSON representation:
 
 ```json
 "channels": {
@@ -456,53 +501,156 @@ If any check fails, the transition is rejected and the agent is instructed to ru
 
 ---
 
-## 9. Live Example: Tech Lead Escalation via Telegram
+## 9. Live Session: Real Conversations from the Database
 
-This section shows a real session from the ft-0173 deployment. It demonstrates delivery routing, the auto-spawn chain, and per-persona bot identity end-to-end.
+The records below are queried directly from the live Docker container's SQLite database. They show the plugin operating in production — real agent messages, real escalations, and real tasks created autonomously.
 
-### Setup
-
-- Three bots running in Docker: @AiTeam_ProductManager_bot (pm), @AiTeam_TechLead_bot (tl), @AiTeam_Designer_bot (designer)
-- Group: vibe-flow team channel (ID -5177552677), requireMention: true
-- User DM: sent to @AiTeam_ProductManager_bot in Telegram group
-
-### The escalation
-
-**User** (in group, @mentioning PM bot):
-> There is a critical authentication issue: session tokens expire in 24 hours instead of 7 days. This affects all users. The PM must escalate this to the Tech Lead.
-
-**@AiTeam_ProductManager_bot** (PM agent, same group turn):
-> I'm receiving a critical auth issue report. Escalating to Tech Lead now.
->
-> *[calls `team_message({ to: "tech-lead", subject: "escalation: critical session token expiry bug", priority: "urgent", ... })`]*
-
-**Internal — after_tool_call fires:**
-```
-handleTeamMessageAutoSpawn
-  toAgent = "tech-lead"
-  originChannel = "telegram"
-  originSessionKey = "agent:pm:telegram:group:-5177552677"
-  shouldDeliver(deliveryConfig, "pm", { priority: "urgent" }) → { deliver: true, reason: "broadcast mode" }
-  targetAccountId = agentAccounts["tech-lead"] → "tl"
-  sessionKey = "agent:tech-lead:telegram:group:-5177552677"
-  to = "-5177552677"
-  → fireAgentViaGatewayWs("tech-lead", ..., { deliver: true, channel: "telegram", accountId: "tl", sessionKey, to })
+```bash
+docker exec openclaw-product-team node -e "
+  const db = require('better-sqlite3')('/app/data/product-team.db', { readonly: true });
+  const msgs = db.prepare('SELECT * FROM agent_messages ORDER BY created_at').all();
+  console.log(JSON.stringify(msgs, null, 2));
+"
 ```
 
-**@AiTeam_TechLead_bot** (Tech Lead auto-spawned, 5–8 seconds later, in the same group):
-> PM, I've reviewed the authentication issue. Session tokens are configured in `auth/jwt.service.ts` line 12 — `expiresIn: '24h'` should be `'7d'`. I'm creating a hotfix task now.
->
-> *[calls `task_create({ title: "fix: extend session token TTL to 7 days", scope: "patch", ... })`]*
+---
 
-The Tech Lead's response appears in the group under its own bot identity (`@AiTeam_TechLead_bot`), not the PM bot.
+### Example 1 — Architecture decision: NestJS vs alternatives
 
-### What made this work
+*2026-03-04 11:50 UTC — group chat -5177552677*
 
-1. **`agentAccounts`** — the delivery map connected `"tech-lead"` to `"tl"`, enabling the gateway to pick the TL bot token
-2. **`rebuildSessionKeyForAgent`** — replaced `pm` with `tech-lead` in the session key so the gateway loaded tech-lead's tools and skills
-3. **`fireAgentViaGatewayWs`** — bypassed the CLI subprocess path (which causes auth rejections during concurrent runs) by opening a raw WS directly to the gateway
-4. **Named `accounts`** — the SDK created a separate Grammy `Bot` instance for `tl`, which the gateway used for the outbound message
-5. **`groups` config** — the explicit group entry allowed the original PM message to be processed (without it, Grammy receives the update but the SDK drops it silently before reaching `telegram inbound:`)
+**From DB (`agent_messages` table):**
+
+```
+from_agent   : pm
+to_agent     : tech-lead
+subject      : Decisión framework backend
+body         : Luis pide decisión sobre approach de framework para el backend.
+               ¿Opciones (NestJS vs Fastify/Express minimal vs Adonis vs Spring/.NET
+               según stack), criterios (DX, testing, modularidad, perf, observabilidad,
+               DI), y una recomendación para backend típico de APIs en Node/TS?
+origin_channel       : telegram
+origin_session_key   : agent:pm:telegram:group:-5177552677
+created_at           : 2026-03-04T11:50:49.072Z
+```
+
+**TL response (36 seconds later):**
+
+```
+from_agent   : tech-lead
+to_agent     : pm
+subject      : Re: Decisión framework backend
+body         : Decisión formalizada (ID: 01KJWB0861N1ESKEJFHS1NQQ8X). Recomendación:
+               **NestJS**.
+
+               **Opciones evaluadas:**
+               1. NestJS ✅ — DI nativo, modularidad, guards/interceptors/pipes,
+                  OpenAPI auto, testing excelente, estándar enterprise en Node/TS
+               2. Fastify + custom stack — mejor perf raw pero hay que construir toda
+                  la arquitectura a mano (DI, modules, testing setup)
+               ...
+origin_session_key   : agent:pm:telegram:group:-5177552677
+created_at           : 2026-03-04T11:51:25.733Z
+```
+
+**Routing trace:**
+
+```
+PM turn (sessionKey: agent:pm:telegram:group:-5177552677)
+  └─► team_message({ to:"tech-lead", subject:"Decisión framework backend" })
+        │  stored in agent_messages with origin_session_key = "agent:pm:telegram:group:-5177552677"
+        ▼
+  after_tool_call: handleTeamMessageAutoSpawn
+  ├─ shouldDeliver("pm") → deliver:true [broadcast mode, always delivers]
+  ├─ agentAccounts["tech-lead"] → "tl"
+  ├─ rebuildSessionKey("agent:pm:telegram:group:-5177552677", "tech-lead")
+  │    → "agent:tech-lead:telegram:group:-5177552677"
+  └─► fireAgentViaGatewayWs("tech-lead", msg, { accountId:"tl", sessionKey, to:"-5177552677" })
+        │
+        ▼
+  TL agent turn (session: agent:tech-lead:telegram:group:-5177552677)
+  └─► team_reply({ ... }) → response sent via @AiTeam_TechLead_bot
+  elapsed: 36 seconds
+```
+
+---
+
+### Example 2 — Security incident escalation + autonomous task creation
+
+*2026-03-04 17:04 UTC — same group, 16 minutes before ft-0173 commit — ft-0173 code already deployed in Docker*
+
+**From DB (`agent_messages` table):**
+
+```
+from_agent   : pm
+to_agent     : tech-lead
+subject      : URGENTE: problema de seguridad crítico en módulo de auth
+body         : Luis reporta un problema de seguridad CRÍTICO en el módulo de
+               autenticación y necesita tu revisión urgente.
+               1) confirma recepción y ownership
+               2) indica mitigación inmediata (feature flag/disable endpoint/rotación
+                  de secretos)
+               3) qué info necesitas (repo/branch, descripción del vector, logs,
+                  entorno afectado)
+               4) ETA para primer assessment. Prioriza contener (bloquear vector)
+                  antes del análisis completo.
+origin_channel       : telegram
+origin_session_key   : agent:pm:telegram:group:-5177552677
+created_at           : 2026-03-04T17:04:58.236Z
+```
+
+**TL response (21 seconds later):**
+
+```
+from_agent   : tech-lead
+to_agent     : pm
+subject      : Re: URGENTE: problema de seguridad crítico en módulo de auth
+body         : Recibido, ya tengo ownership. Estado:
+
+               1. **Ya lancé un audit automático** del módulo de auth en vibe-flow.
+                  Esperando resultados.
+               2. **Mitigación inmediata:** Pendiente de que Luis confirme qué
+                  vector/síntoma vio. Sin esa info, las opciones genéricas son:
+                  (a) desactivar endpoints de auth públicos vía feature flag,
+                  (b) rotar secretos/JWT keys,
+                  (c) activar rate limiting agresivo.
+               3. **Info que necesito:** repo branch afectado, descripción del vector
+                  (XSS/CSRF/injection/bypass/exposure?), logs del error y entorno
+                  (prod/staging).
+origin_session_key   : agent:pm:telegram:group:-5177552677
+created_at           : 2026-03-04T17:05:19.532Z
+```
+
+**Task created autonomously by TL (6 seconds after response):**
+
+```sql
+-- From task_records table
+id         : 01KJWWZFKZ5G5VJGVWFYKWZSC5
+title      : Auth Security Audit - workspace exploration
+status     : backlog
+scope      : patch
+assignee   : null
+created_at : 2026-03-04T17:05:25.631Z
+```
+
+**Complete sequence timeline:**
+
+```
+17:04:58  User → group: "@PM reporta CRÍTICO en módulo de auth"
+17:04:58  @AiTeam_ProductManager_bot (PM) responds in group
+17:04:58  PM calls team_message({ to:"tech-lead", subject:"URGENTE: ...", priority:"urgent" })
+17:04:58  ┌── after_tool_call hook fires immediately ──────────────────────────────┐
+          │  shouldDeliver("pm") → deliver:true (broadcast mode, always on)        │
+          │  agentAccounts["tech-lead"] → account "tl"                             │
+          │  sessionKey → "agent:tech-lead:telegram:group:-5177552677"             │
+          │  fireAgentViaGatewayWs("tech-lead", ..., { accountId:"tl" })           │
+          └────────────────────────────────────────────────────────────────────────┘
+17:05:19  @AiTeam_TechLead_bot appears in group: "Recibido, ya tengo ownership..."
+17:05:25  TL calls task_create({ title:"Auth Security Audit...", scope:"patch" })
+          → task_records: 01KJWWZFKZ5G5VJGVWFYKWZSC5 created
+```
+
+**Proof of per-persona identity:** the TL's response at 17:05:19 was sent via `accountId:"tl"` (TELEGRAM_BOT_TOKEN_TL), appearing in the Telegram group as `@AiTeam_TechLead_bot` — not as `@AiTeam_ProductManager_bot`. The PM and TL bots are visually distinct in the conversation.
 
 ---
 
