@@ -18,15 +18,24 @@ Never create blocking "continue" checkpoints. Execute every workflow atomically 
 Monorepo of extensions, skills, and quality tooling for [OpenClaw](https://openclaw.ai):
 - `extensions/product-team/` - Primary product-team plugin (task engine, workflow, quality tools, VCS automation, CI feedback hooks)
 - `extensions/quality-gate/` - Standalone quality gate engine/CLI for local and CI quality runs
+- `extensions/model-router/` - Per-agent model routing hook
+- `extensions/telegram-notifier/` - Telegram notification integration
+- `extensions/stitch-bridge/` - Google Stitch MCP design bridge
 - `skills/adr/` - ADR management skill
 - `skills/architecture-design/` - Architecture design workflow skill
+- `skills/backend-dev/` - Backend development skill
 - `skills/code-review/` - Code review workflow skill
+- `skills/devops/` - DevOps and infrastructure skill
+- `skills/frontend-dev/` - Frontend development skill
 - `skills/github-automation/` - GitHub automation workflow skill
 - `skills/patterns/` - Architecture patterns skill
+- `skills/product-owner/` - Product owner workflow skill
 - `skills/qa-testing/` - QA/testing workflow skill
 - `skills/requirements-grooming/` - Requirements grooming workflow skill
 - `skills/tdd-implementation/` - TDD implementation workflow skill
-- `packages/schemas/` - Shared JSON Schemas for quality tools
+- `skills/tech-lead/` - Tech lead workflow skill
+- `skills/ui-designer/` - UI design workflow skill
+- `packages/quality-contracts/` - Shared parsers, gate policy, complexity analysis, and validation contracts
 
 ## Commands
 

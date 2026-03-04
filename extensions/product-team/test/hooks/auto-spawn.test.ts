@@ -375,7 +375,7 @@ describe('handleTeamMessageAutoSpawn', () => {
         { id: 'tech-lead', name: 'Tech Lead' },
         { id: 'pm', name: 'Product Manager' },
         { id: 'back-1', name: 'Senior Backend Developer' },
-        { id: 'back-2', name: 'Junior Backend Developer' },
+        { id: 'front-1', name: 'Senior Frontend Developer' },
       ],
       deliveryConfig: {
         defaultMode: 'smart',
@@ -395,7 +395,7 @@ describe('handleTeamMessageAutoSpawn', () => {
           originChannel: 'telegram',
         },
       },
-      params: { to: 'back-2', subject: 'Internal chat' },
+      params: { to: 'front-1', subject: 'Internal chat' },
     });
     handleTeamMessageAutoSpawn(deps, event, makeCtx({ agentId: 'back-1' }));
 

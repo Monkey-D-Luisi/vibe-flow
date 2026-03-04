@@ -29,10 +29,8 @@ export const DEFAULT_AGENT_CONFIG = [
   { id: 'po', name: 'Product Owner', model: { primary: 'gpt-4o' } },
   { id: 'tech-lead', name: 'Tech Lead', model: { primary: 'claude-opus-4-6' } },
   { id: 'designer', name: 'Designer', model: { primary: 'gpt-4o' } },
-  { id: 'back-1', name: 'Backend Dev 1', model: { primary: 'claude-sonnet-4-6' } },
-  { id: 'back-2', name: 'Backend Dev 2', model: { primary: 'claude-sonnet-4-6' } },
-  { id: 'front-1', name: 'Frontend Dev 1', model: { primary: 'claude-sonnet-4-6' } },
-  { id: 'front-2', name: 'Frontend Dev 2', model: { primary: 'claude-sonnet-4-6' } },
+  { id: 'back-1', name: 'Backend Dev', model: { primary: 'claude-sonnet-4-6' } },
+  { id: 'front-1', name: 'Frontend Dev', model: { primary: 'claude-sonnet-4-6' } },
   { id: 'qa', name: 'QA Engineer', model: { primary: 'gpt-4o-mini' } },
   { id: 'devops', name: 'DevOps Engineer', model: { primary: 'gpt-4o-mini' } },
 ];

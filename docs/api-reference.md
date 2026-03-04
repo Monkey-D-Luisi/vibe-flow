@@ -8,22 +8,36 @@ This document lists every registered tool from
 | Tool | Primary Agent(s) | Purpose |
 |------|-------------------|---------|
 | `task.create` | pm | Create a new task record |
-| `task.get` | pm, architect, dev, qa, reviewer, infra | Fetch one task with orchestrator state and cost summary |
-| `task.search` | pm, infra | Search tasks by filters |
-| `task.update` | pm, architect, dev, qa, reviewer | Update mutable task fields with optimistic locking |
-| `task.transition` | pm, architect, dev, qa, reviewer | Move task through lifecycle with guards |
-| `workflow.step.run` | dev | Persist structured workflow step outputs |
-| `workflow.state.get` | architect, dev, infra | Read workflow state/history/guard matrix |
-| `workflow.events.query` | infra | Query event log with filters and aggregates |
+| `task.get` | pm, tech-lead, dev, qa, devops | Fetch one task with orchestrator state and cost summary |
+| `task.search` | pm, tech-lead, devops | Search tasks by filters |
+| `task.update` | pm, tech-lead, dev, qa, po | Update mutable task fields with optimistic locking |
+| `task.transition` | pm, tech-lead, dev, qa, po, devops | Move task through lifecycle with guards |
+| `workflow.step.run` | tech-lead, dev, qa, po, designer | Persist structured workflow step outputs |
+| `workflow.state.get` | tech-lead, dev, qa, po, designer, devops | Read workflow state/history/guard matrix |
+| `workflow.events.query` | pm, tech-lead, qa, devops | Query event log with filters and aggregates |
 | `quality.tests` | dev, qa | Run tests and persist QA evidence |
 | `quality.coverage` | dev, qa | Parse coverage reports and persist metrics |
 | `quality.lint` | dev, qa | Run lint engine and persist metrics |
 | `quality.complexity` | dev, qa | Compute complexity metrics and persist |
-| `quality.gate` | dev | Evaluate quality policy from metadata/evidence |
-| `vcs.branch.create` | infra | Create task branch (idempotent) |
-| `vcs.pr.create` | infra | Create pull request (idempotent) |
-| `vcs.pr.update` | infra | Update pull request (idempotent) |
-| `vcs.label.sync` | infra | Ensure repository labels exist/update |
+| `quality.gate` | tech-lead, dev, qa | Evaluate quality policy from metadata/evidence |
+| `vcs.branch.create` | devops | Create task branch (idempotent) |
+| `vcs.pr.create` | devops | Create pull request (idempotent) |
+| `vcs.pr.update` | devops | Update pull request (idempotent) |
+| `vcs.label.sync` | devops | Ensure repository labels exist/update |
+| `project.list` | pm, tech-lead, devops | List registered projects |
+| `project.switch` | pm, tech-lead, devops | Change active project context |
+| `project.register` | (management only) | Register a new project workspace |
+| `team.message` | all agents | Post a message to another agent's inbox |
+| `team.inbox` | all agents | Read messages in an agent's inbox |
+| `team.reply` | all agents | Reply to a team message |
+| `team.status` | all agents | Update this agent's status |
+| `team.assign` | pm, tech-lead | Assign work to a specific agent |
+| `decision.evaluate` | all agents | Evaluate a decision (auto/escalate/pause/retry) |
+| `decision.log` | tech-lead, pm | Query decision audit records |
+| `pipeline.start` | pm | Start the roadmap-to-release pipeline |
+| `pipeline.status` | pm, tech-lead, devops | Get pipeline status and step results |
+| `pipeline.retry` | tech-lead | Retry a failed pipeline step |
+| `pipeline.skip` | tech-lead | Skip a pipeline step with justification |
 
 ## Task Tools
 
@@ -575,3 +589,90 @@ This document lists every registered tool from
   }
 }
 ```
+
+## Project Tools
+
+### `project.list`
+
+- Parameters: none
+- Returns: `{ projects, activeProject }`
+
+### `project.switch`
+
+- Parameters: `projectId`
+- Returns: `{ switched, activeProject }`
+
+### `project.register`
+
+- Parameters: `id`, `name`, `repo`, `workspace`, optional `defaultBranch`, `stitch`, `quality`
+- Returns: `{ registered, project }`
+- Management-only: not exposed to most agents
+
+## Team Messaging Tools
+
+### `team.message`
+
+- Parameters: `to`, `subject`, `body`, optional `from`, `priority` (`normal` | `urgent`), `taskRef`
+- Returns: `{ delivered, messageId, originChannel, originSessionKey }`
+- Side effect: triggers `after_tool_call` auto-spawn hook for delivery
+
+### `team.inbox`
+
+- Parameters: `agentId`, optional `unreadOnly`
+- Returns: `{ messages[] }`
+
+### `team.reply`
+
+- Parameters: `messageId`, `body`, optional `from`
+- Returns: `{ replied, replyId, originChannel, originSessionKey }`
+- Side effect: triggers `after_tool_call` auto-spawn hook; replies always route to origin channel
+
+### `team.status`
+
+- Parameters: `agentId`, `status`
+- Returns: `{ updated, agent }`
+- In-memory only; no DB persistence
+
+### `team.assign`
+
+- Parameters: `taskId`, `agentId`, optional `fromAgent`, `message`
+- Returns: `{ assigned, task }`
+- Side effect: updates task assignee via `task_update`, optionally sends inbox message
+
+## Decision Engine Tools
+
+### `decision.evaluate`
+
+- Parameters: `category` (`technical` | `scope` | `quality` | `conflict` | `budget` | `blocker`), `question`, `options[]`, optional `recommendation`, `reasoning`, `taskRef`
+- Returns: `{ decisionId, decision, escalated, approver, reasoning }`
+- Behavior: looks up policy for the category. Policies: `auto` (decide immediately), `escalate` (forward to target agent), `pause` (wait for human), `retry` (retry with max retries before escalating)
+- Side effect: when `escalated: true`, triggers auto-spawn hook for approver agent
+- Circuit breaker: max 5 decisions per agent per task
+
+### `decision.log`
+
+- Parameters: optional `taskRef`, `category`, `agentId`
+- Returns: `{ decisions[] }`
+
+## Pipeline Tools
+
+### `pipeline.start`
+
+- Parameters: `ideaText`, optional `scope`, `priority`
+- Returns: `{ taskId, stage, owner }`
+- Creates a task and initializes pipeline metadata with stage tracking
+
+### `pipeline.status`
+
+- Parameters: `taskId`
+- Returns: `{ tasks[], stages[] }`
+
+### `pipeline.retry`
+
+- Parameters: `taskId`, `stage`, optional `reason`
+- Returns: `{ retried, stage, retryCount }`
+
+### `pipeline.skip`
+
+- Parameters: `taskId`, `stage`, `justification`
+- Returns: `{ skipped, stage, justification }`

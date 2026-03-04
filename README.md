@@ -8,7 +8,10 @@ This monorepo contains:
 
 - **`extensions/product-team/`**: primary OpenClaw plugin with task lifecycle, workflow orchestration, quality tooling, and VCS automation.
 - **`extensions/quality-gate/`**: standalone quality engine + CLI (`pnpm q:gate`, `pnpm q:*`) used for local/CI quality runs.
-- **`packages/schemas/`**: shared JSON Schemas for quality tool input/output.
+- **`extensions/model-router/`**: per-agent model routing hook.
+- **`extensions/telegram-notifier/`**: Telegram notification integration.
+- **`extensions/stitch-bridge/`**: Google Stitch MCP design bridge.
+- **`packages/quality-contracts/`**: shared parsers, gate policy, complexity analysis, and validation contracts.
 - **`skills/`**: role-focused skills used by OpenClaw agents.
 
 ## Architecture Overview
@@ -17,6 +20,9 @@ This monorepo contains:
 flowchart LR
   AG[Role Agents] --> OC[OpenClaw Gateway]
   OC --> PT[product-team plugin]
+  OC --> MR[model-router hook]
+  OC --> TN[telegram-notifier]
+  OC --> SB[stitch-bridge]
   PT --> DB[(SQLite task DB)]
   PT --> GH[GitHub via gh CLI]
   CI[Local/CI pipeline] --> QG[quality-gate CLI]
@@ -70,17 +76,26 @@ vibe-flow/
       src/                  # Standalone quality-gate engine
       cli/                  # q:gate / q:* CLI entrypoints
       test/
+    model-router/           # Per-agent model routing hook
+    telegram-notifier/      # Telegram notification integration
+    stitch-bridge/          # Google Stitch MCP design bridge
   packages/                 # Shared packages
-    schemas/
+    quality-contracts/      # Shared parsers, gate policy, complexity analysis, validation contracts
   skills/                   # Role skills loaded by OpenClaw
     adr/
     architecture-design/
+    backend-dev/
     code-review/
+    devops/
+    frontend-dev/
     github-automation/
     patterns/
+    product-owner/
     qa-testing/
     requirements-grooming/
     tdd-implementation/
+    tech-lead/
+    ui-designer/
   docs/                     # Product, operations, and execution documentation
     roadmap.md              # Status and execution queue
     runbook.md              # Operator setup and troubleshooting

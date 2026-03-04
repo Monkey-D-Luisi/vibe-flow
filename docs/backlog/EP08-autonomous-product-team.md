@@ -12,7 +12,7 @@
 
 ## Goal
 
-Deploy a fully autonomous product team of 10 AI agents running inside an
+Deploy a fully autonomous product team of 8 AI agents running inside an
 OpenClaw gateway in Docker, with per-agent model configuration (GPT 5.3,
 Opus 4.6, GPT 4.1, Gemini 3, Sonnet 4.6), Stitch MCP integration for design,
 Telegram channel for human oversight, a web UI for configuration, and multi-
@@ -45,6 +45,8 @@ infra) are defined with tool allow-lists. What's missing is:
 7. **Multi-project support** — agents can work on any repo, not just vibe-flow
 8. **Inter-agent messaging** — agents can communicate beyond task metadata
 9. **Autonomous workflow orchestration** — end-to-end roadmap → PR pipeline
+
+> **Note (2026-03-04):** The agent roster was reduced from 10 to 8 agents. `back-2` (Junior Backend) and `front-2` (Junior Frontend) were removed. The team-ui extension was also removed — the built-in OpenClaw Control UI is sufficient.
 
 ## Architecture Overview
 
@@ -111,7 +113,7 @@ infra) are defined with tool allow-lists. What's missing is:
 | Docker Gateway WebSocket         | 28790 | Agent WS connections            |
 | Docker Stitch MCP Proxy          | 28791 | Internal only (in container)    |
 
-## Agent Roster (10 agents)
+## Agent Roster (8 agents)
 
 | ID          | Role                 | Model                        | Responsibilities                                                    |
 |-------------|----------------------|------------------------------|---------------------------------------------------------------------|
@@ -120,9 +122,7 @@ infra) are defined with tool allow-lists. What's missing is:
 | `po`        | Product Owner        | `openai/gpt-4.1`            | User story refinement, acceptance criteria, scope negotiation       |
 | `designer`  | UI/UX Designer       | `google/gemini-3-pro`        | Stitch designs, design system, component specs, responsive layouts  |
 | `back-1`    | Backend Dev (Senior) | `anthropic/claude-sonnet-4.6`| API implementation, database design, server-side logic              |
-| `back-2`    | Backend Dev (Junior) | `anthropic/claude-sonnet-4.6`| Backend features, tests, documentation                              |
 | `front-1`   | Frontend Dev (Senior)| `anthropic/claude-sonnet-4.6`| React/Next.js components, state management, Stitch→code            |
-| `front-2`   | Frontend Dev (Junior)| `anthropic/claude-sonnet-4.6`| UI components, CSS, responsive implementation                       |
 | `qa`        | QA Engineer          | `anthropic/claude-sonnet-4.6`| Test plans, test execution, regression suites, quality reports      |
 | `devops`    | DevOps Engineer      | `anthropic/claude-sonnet-4.6`| CI/CD, GitHub automation, deployment, infrastructure as code        |
 
@@ -188,10 +188,10 @@ results, agent errors) and posts formatted updates to the Telegram group. Also
 accepts human commands from Telegram to intervene in the workflow.
 
 #### 8A.4 Expanded Agent Roster with Per-Agent Model Routing (Task 0038)
-Expand the current 6-agent roster to 10 agents with the full role breakdown.
+Expand the current 6-agent roster to 8 agents with the full role breakdown.
 Configure per-agent model assignments using the `before_model_resolve` hook.
-Define tool allow-lists for each new role (tech-lead, po, designer, back-1/2,
-front-1/2, devops). Update skills to match new roles.
+Define tool allow-lists for each new role (tech-lead, po, designer, back-1,
+front-1, devops). Update skills to match new roles.
 
 ### Phase 8B: Design & Multi-Project
 
@@ -302,7 +302,7 @@ graph TD
 | Risk | Impact | Probability | Mitigation |
 |------|--------|-------------|------------|
 | Model API rate limits at scale | HIGH | MEDIUM | Implement request queuing with backpressure; configure per-agent rate limits; use fallback models on 429 |
-| Token cost overruns with 10 agents | HIGH | HIGH | Per-agent budget caps (from EP06); cost dashboard in Telegram; auto-pause on budget breach |
+| Token cost overruns with 8 agents | HIGH | HIGH | Per-agent budget caps (from EP06); cost dashboard in Telegram; auto-pause on budget breach |
 | Agent loops (infinite task ping-pong) | HIGH | MEDIUM | Circuit breaker in orchestrator; max rounds per task; escalate to human after N iterations |
 | Docker networking issues with WSL | MEDIUM | MEDIUM | Use bridge network; explicit port binding; health check endpoints; document WSL-specific gotchas |
 | Stitch MCP availability/rate limits | MEDIUM | LOW | Cache designs locally; retry with backoff; designer agent can describe design in text as fallback |
@@ -312,14 +312,14 @@ graph TD
 ## Success Criteria
 
 1. Docker container boots with `docker compose up` and gateway is accessible at `localhost:28789`
-2. All 10 agents are reachable and respond with their role-appropriate model
+2. All 8 agents are reachable and respond with their role-appropriate model
 3. A product idea posted in Telegram triggers the full pipeline autonomously
 4. Designer agent produces Stitch designs that frontend agents consume
 5. Quality gates block bad transitions (no regression from EP05/EP06)
 6. All agent activity is visible in the Telegram group
 7. The human can intervene via Telegram commands at any point
 8. Multiple projects can be configured and switched between
-9. Cost tracking and budget limits work across all 10 agents
+9. Cost tracking and budget limits work across all 8 agents
 10. End-to-end test suite passes with mocked external services
 
 ## References

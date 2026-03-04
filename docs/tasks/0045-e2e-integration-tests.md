@@ -9,6 +9,8 @@
 | Dependencies | 0042 (Orchestrator pipeline complete)                |
 | Blocks       | None (final validation)                              |
 
+> **Note (2026-03-04):** The agent roster was reduced from 10 to 8 agents. `back-2` (Junior Backend) and `front-2` (Junior Frontend) were removed. The team-ui extension was also removed — the built-in OpenClaw Control UI is sufficient.
+
 ## Goal
 
 Build a comprehensive test suite that validates the full autonomous pipeline:

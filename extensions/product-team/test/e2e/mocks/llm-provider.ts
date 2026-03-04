@@ -20,9 +20,7 @@ const ROLE_FIXTURE_FILES: Record<string, string> = {
   'tech-lead': 'tech-lead-responses',
   designer: 'designer-responses',
   'back-1': 'dev-responses',
-  'back-2': 'dev-responses',
   'front-1': 'dev-responses',
-  'front-2': 'dev-responses',
   qa: 'qa-responses',
   devops: 'devops-responses',
 };

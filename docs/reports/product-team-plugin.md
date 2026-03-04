@@ -1,22 +1,23 @@
 # Product-Team Plugin — Architecture Reference
 
 > Permanent reference document for developers, onboarding, and future maintainers.
-> Covers the `extensions/product-team` plugin: how it boots, what it exposes, and how it orchestrates a 10-agent team over Telegram.
+> Covers the `extensions/product-team` plugin: how it boots, what it exposes, and how it orchestrates an 8-agent team over Telegram.
 
 ---
 
 ## 1. Overview
 
-The **product-team** plugin is an OpenClaw gateway plugin that turns a set of 10 AI agents into a structured software-delivery team. It registers with the gateway at startup, injects 31 custom tools into every agent session, and coordinates the full task lifecycle from triage to release.
+The **product-team** plugin is an OpenClaw gateway plugin that turns a set of 8 AI agents into a structured software-delivery team. It registers with the gateway at startup, injects 31 custom tools into every agent session, and coordinates the full task lifecycle from triage to release.
 
 ### Plugin manifest
 
 Located at `extensions/product-team/openclaw.plugin.json`. The manifest declares:
 
 - **`id`**: `product-team` — matches the key in `openclaw.docker.json > plugins.entries`
-- **`tools`**: all 31 tool names that the plugin registers
-- **`hooks`**: `after_tool_call` (auto-spawn, delivery policy)
+- **`skills`**: paths to all 14 skill directories
 - **`configSchema`**: JSON Schema for the plugin config block (validated by the SDK at load time — any undeclared key causes a config rejection)
+
+Tools and hooks are registered programmatically in `index.ts` via `api.registerTool()` and `api.on()`, not declared in the manifest.
 
 ### Boot sequence
 
@@ -32,7 +33,7 @@ Gateway starts
   → Gateway starts Telegram polling for each named account (pm, tl, designer)
 ```
 
-### The 10 agents
+### The 8 agents
 
 | ID          | Role                     | Model (primary)              | Delivery mode |
 |-------------|--------------------------|------------------------------|---------------|
@@ -40,10 +41,8 @@ Gateway starts
 | `tech-lead` | Tech Lead                | anthropic/claude-opus-4-6    | smart         |
 | `po`        | Product Owner            | github-copilot/gpt-4.1       | smart         |
 | `designer`  | UI/UX Designer           | github-copilot/gpt-4o        | internal      |
-| `back-1`    | Senior Backend Dev       | anthropic/claude-sonnet-4-6  | internal      |
-| `back-2`    | Junior Backend Dev       | anthropic/claude-sonnet-4-6  | internal      |
-| `front-1`   | Senior Frontend Dev      | anthropic/claude-sonnet-4-6  | internal      |
-| `front-2`   | Junior Frontend Dev      | anthropic/claude-sonnet-4-6  | internal      |
+| `back-1`    | Backend Developer        | anthropic/claude-sonnet-4-6  | internal      |
+| `front-1`   | Frontend Developer       | anthropic/claude-sonnet-4-6  | internal      |
 | `qa`        | QA Engineer              | anthropic/claude-sonnet-4-6  | smart         |
 | `devops`    | DevOps Engineer          | anthropic/claude-sonnet-4-6  | smart         |
 
@@ -107,7 +106,7 @@ Gateway starts
 | `decision_evaluate`| Evaluate a decision (auto/escalate/pause/retry)   |
 | `decision_log`     | Record a decision for audit                        |
 
-### Pipeline (3)
+### Pipeline (4)
 
 | Tool               | Purpose                                           |
 |--------------------|---------------------------------------------------|
@@ -116,7 +115,7 @@ Gateway starts
 | `pipeline_retry`   | Retry a failed pipeline step                      |
 | `pipeline_skip`    | Skip a pipeline step with justification           |
 
-### Project (2)
+### Project (3)
 
 | Tool               | Purpose                                           |
 |--------------------|---------------------------------------------------|
@@ -133,43 +132,38 @@ Gateway starts
 ### Task lifecycle FSM
 
 ```
-                         ┌──── skipDesignForNonUITasks ────┐
-                         │                                  ▼
-  OPEN ──► REFINEMENT ──►DESIGN──► IMPLEMENTATION ──► QA ──► REVIEW ──► DONE
-                                         ▲             │       │          ▲
-                                         │  (regression)│  (rework)       │
-                                         └──────────────┘       │    SHIPPING
-                                                                 └────► QA     │
-                                                                              ─┘
-
-  * (any status) ──► BLOCKED      BLOCKED ──► (previous status)
-  * (any status) ──► CANCELLED
+                        ┌──── fast-track (minor scope) ───┐
+                        │                                  ▼
+  backlog ──► grooming ──► design ──► in_progress ──► in_review ──► qa ──► done
+                                          ▲               │          │
+                                          │  (rejection)  │  (failure)│
+                                          └───────────────┘          │
+                                          ▲                          │
+                                          └──────────────────────────┘
 ```
 
 Valid transitions summary:
 
 | From          | To (allowed)                                    |
 |---------------|-------------------------------------------------|
-| OPEN          | REFINEMENT                                      |
-| REFINEMENT    | DESIGN, IMPLEMENTATION                          |
-| DESIGN        | IMPLEMENTATION                                  |
-| IMPLEMENTATION| QA                                              |
-| QA            | REVIEW, IMPLEMENTATION (regression)             |
-| REVIEW        | SHIPPING, DONE, QA (rework)                     |
-| SHIPPING      | DONE                                            |
-| any           | BLOCKED, CANCELLED                              |
-| BLOCKED       | previous status                                 |
+| backlog       | grooming                                        |
+| grooming      | design, in_progress (fast-track)                |
+| design        | in_progress                                     |
+| in_progress   | in_review                                       |
+| in_review     | qa, in_progress (rejection)                     |
+| qa            | done, in_progress (failure)                     |
+| done          | (terminal)                                      |
 
 ### Transition guards
 
 Guards are evaluated by `task_transition` before the FSM moves. The checks:
 
-| Guard                 | Condition                                      |
-|-----------------------|------------------------------------------------|
-| Coverage (major)      | `linePct >= coverageMajor` (default 80%)       |
-| Coverage (minor)      | `linePct >= coverageMinor` (default 70%)       |
-| Max review rounds     | `reviewRounds <= maxReviewRounds` (default 3)  |
-| QA approval           | QA step must be marked completed               |
+| Guard                             | Transition              | Condition                                                  |
+|-----------------------------------|-------------------------|------------------------------------------------------------|
+| Architecture plan completeness    | design → in_progress    | `architecture_plan.adr_id` non-empty; `contracts` non-empty|
+| Coverage + lint + TDD log         | in_progress → in_review | `coverage >= scope threshold`; `lint_clean`; `≥ 2 TDD log entries` |
+| Review violations + round cap     | in_review → qa          | No high/critical violations; `rounds_review < maxReviewRounds` |
+| QA pass                           | qa → done               | `qa_report.failed === 0`                                   |
 
 Guard thresholds come from `workflow.transitionGuards` in the plugin config, with per-project overrides possible via `projects[].quality`.
 
@@ -201,42 +195,44 @@ Configured via `dbPath` in the plugin config block (e.g. `/app/data/product-team
 The actual tables (verified from the live container):
 
 ```sql
--- Core task records
+-- Core task records (migration 001)
 task_records      id, title, status, scope, assignee, tags, metadata,
                   created_at, updated_at, rev (optimistic lock counter)
 
--- Append-only workflow event log
+-- Orchestrator FSM tracking per task (migration 001)
+orchestrator_state  task_id, current, previous, last_agent, rounds_review,
+                    rev, updated_at
+
+-- Append-only workflow event log (migration 001)
 event_log         id, task_id, event_type, agent_id, payload, created_at
 
--- Agent concurrency leases
-leases            (agent_id, task_id, acquired_at)
+-- Agent concurrency leases (migration 001)
+leases            task_id, agent_id, acquired_at, expires_at
 
--- Decision records (scope/quality/conflict/budget/blocker)
-agent_decisions   id, task_id, type, question, action, status,
-                  escalated_to, resolved_at, payload, created_at
+-- VCS idempotency cache (migration 002)
+ext_requests      request_id, task_id, tool, payload_hash, response, created_at
 
--- Team inbox/outbox with full origin context
+-- Decision records (lazily created in decision-engine.ts)
+agent_decisions   id, task_ref, agent_id, category, question, options,
+                  decision, reasoning, escalated, approver, created_at
+
+-- Team inbox/outbox (lazily created in shared-db.ts)
 agent_messages    id, from_agent, to_agent, subject, body, priority,
-                  reply_to, status, origin_channel, origin_session_key,
-                  created_at, read_at
-
--- Orchestrator FSM tracking per task
-orchestrator_state  task_id, stage, step, retries, metadata
-
--- VCS idempotency cache
-ext_requests      id, type, dedup_key, status, response_payload, created_at
+                  task_ref, reply_to, read, origin_channel,
+                  origin_session_key, created_at
 ```
 
 ### Repositories
 
-| Repository              | Table              | Manages                              |
-|-------------------------|--------------------|--------------------------------------|
-| `TaskRepository`        | `task_records`     | CRUD + status transitions            |
-| `EventRepository`       | `event_log`        | Append-only event log                |
-| `LeaseRepository`       | `leases`           | Agent concurrency leases             |
-| `DecisionRepository`    | `agent_decisions`  | Decision records                     |
-| `MessageRepository`     | `agent_messages`   | Team inbox/outbox                    |
-| `OrchestratorRepository`| `orchestrator_state`| FSM stage tracking per task         |
+| Repository                | Table              | Manages                              |
+|---------------------------|--------------------|--------------------------------------|
+| `SqliteTaskRepository`    | `task_records`     | CRUD + status transitions            |
+| `SqliteOrchestratorRepository` | `orchestrator_state` | FSM stage tracking per task   |
+| `SqliteEventRepository`   | `event_log`        | Append-only event log                |
+| `SqliteLeaseRepository`   | `leases`           | Agent concurrency leases             |
+| `SqliteRequestRepository` | `ext_requests`     | VCS idempotency cache                |
+
+`agent_decisions` and `agent_messages` are managed via inline SQL in `decision-engine.ts` and `shared-db.ts` respectively — no formal repository classes.
 
 All mutations use **optimistic locking** on `rev` (integer counter). Concurrent writes return a `409 Conflict` rather than silently overwriting.
 
@@ -244,11 +240,19 @@ All mutations use **optimistic locking** on `rev` (integer counter). Concurrent 
 
 ## 5. Hook System
 
-The plugin registers three `after_tool_call` hooks. All hooks are wrapped with try/catch so a failing hook never kills the parent agent turn.
+The plugin registers five hooks across two lifecycle events. All hooks are wrapped with try/catch so a failing hook never kills the parent agent turn.
+
+| Hook                            | Lifecycle event    | Condition            |
+|---------------------------------|--------------------|----------------------|
+| Origin injection                | `before_tool_call` | Always               |
+| Team message auto-spawn         | `after_tool_call`  | Always               |
+| Team reply auto-spawn           | `after_tool_call`  | Always               |
+| Decision escalation auto-spawn  | `after_tool_call`  | Always               |
+| PR-Bot                          | `after_tool_call`  | `prBot.enabled` only |
 
 ### Origin-injection hook
 
-Injected in the message store layer (not as an SDK hook). When `team_message` stores a message to the DB, it captures the current `originChannel` and `originSessionKey` from the tool call context. This is what enables later delivery routing — the origin is preserved in the `agent_messages` table and returned in tool results so the auto-spawn hooks can read it without needing `ctx.sessionKey` (which the SDK passes as `undefined` in `after_tool_call`).
+Registered as a `before_tool_call` hook via `api.on('before_tool_call', ...)` in `index.ts`. When `team_message` stores a message to the DB, it captures the current `originChannel` and `originSessionKey` from the tool call context. This is what enables later delivery routing — the origin is preserved in the `agent_messages` table and returned in tool results so the auto-spawn hooks can read it without needing `ctx.sessionKey` (which the SDK passes as `undefined` in `after_tool_call`).
 
 ### Auto-spawn hook — `handleTeamMessageAutoSpawn`
 
@@ -366,8 +370,8 @@ channels.telegram.accounts
         │                 │                   │
   ┌─────▼─────┐     ┌─────▼──────┐     ┌──────▼────────┐
   │ pm, po,   │     │ tech-lead  │     │ designer      │
-  │ back-1/2, │     └────────────┘     └───────────────┘
-  │ front-1/2,│
+  │ back-1,   │     └────────────┘     └───────────────┘
+  │ front-1,  │
   │ qa,devops │
   └───────────┘
 ```
@@ -394,7 +398,7 @@ JSON representation:
 
 | Account    | Env var                    | Telegram bot               | Bound agents                              |
 |------------|----------------------------|----------------------------|-------------------------------------------|
-| `pm`       | `TELEGRAM_BOT_TOKEN_PM`    | @AiTeam_ProductManager_bot | pm, po, back-1, back-2, front-1, front-2, qa, devops |
+| `pm`       | `TELEGRAM_BOT_TOKEN_PM`    | @AiTeam_ProductManager_bot | pm, po, back-1, front-1, qa, devops |
 | `tl`       | `TELEGRAM_BOT_TOKEN_TL`    | @AiTeam_TechLead_bot       | tech-lead                                 |
 | `designer` | `TELEGRAM_BOT_TOKEN_DESIGNER` | @AiTeam_Designer_bot    | designer                                  |
 
@@ -443,7 +447,7 @@ Account routing is a separate dimension: `DeliveryContext.accountId` tells the g
 }
 ```
 
-Agents absent from this map default to the `pm` account. This map is read by `handleTeamMessageAutoSpawn` and `handleTeamReplyAutoSpawn` to set `accountId` in the WS spawn params.
+Agents absent from this map receive no explicit `accountId` in spawn params. Their routing to the PM bot is determined by the gateway `bindings` configuration, not by a plugin-level default.
 
 ---
 

@@ -9,6 +9,8 @@
 | Dependencies | 0035, 0036 (Docker + models ready)                   |
 | Blocks       | 0039, 0040, 0041 (Phase 8B needs full roster)        |
 
+> **Note (2026-03-04):** The agent roster was reduced from 10 to 8 agents. `back-2` (Junior Backend) and `front-2` (Junior Frontend) were removed. The team-ui extension was also removed — the built-in OpenClaw Control UI is sufficient.
+
 ## Goal
 
 Expand the current 6-agent roster to 10 agents with differentiated roles,

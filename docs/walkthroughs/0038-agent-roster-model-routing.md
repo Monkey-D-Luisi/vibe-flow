@@ -1,5 +1,7 @@
 # Walkthrough 0038 -- Expanded Agent Roster with Per-Agent Model Routing
 
+> **Note (2026-03-04):** The agent roster was reduced from 10 to 8 agents. `back-2` (Junior Backend) and `front-2` (Junior Frontend) were removed. The team-ui extension was also removed — the built-in OpenClaw Control UI is sufficient.
+
 ## Goal (restated)
 Expand the 6-agent roster to 10 agents with per-agent model differentiation,
 differentiated tool allow-lists, and skill bindings. Each role gets the

@@ -190,34 +190,6 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.18.9)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.8.2)
 
-  extensions/team-ui:
-    dependencies:
-      openclaw:
-        specifier: 2026.2.22-2
-        version: 2026.2.22-2(@napi-rs/canvas@0.1.94)(@types/express@5.0.6)(hono@4.12.2)(node-llama-cpp@3.15.1(typescript@5.9.3))
-    devDependencies:
-      '@types/node':
-        specifier: ^22.5.4
-        version: 22.18.9
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^6.21.0
-        version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^6.21.0
-        version: 6.21.0(eslint@8.57.1)(typescript@5.9.3)
-      '@vitest/coverage-v8':
-        specifier: ^3.2.4
-        version: 3.2.4(vitest@3.2.4(@types/node@22.18.9)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.8.2))
-      eslint:
-        specifier: ^8.57.1
-        version: 8.57.1
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.4(@types/node@22.18.9)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.8.2)
-
   extensions/telegram-notifier:
     dependencies:
       openclaw:

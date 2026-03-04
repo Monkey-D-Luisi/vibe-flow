@@ -36,16 +36,16 @@ docker exec openclaw-product-team pnpm exec openclaw doctor
 Host (Windows/Mac/Linux)
   |
   +-- Browser: http://localhost:28789/       (Control UI)
-  +-- Browser: http://localhost:28789/team   (Team Dashboard)
   |
   +-- Docker Container: openclaw-product-team
         |
         +-- OpenClaw Gateway (port 28789, foreground mode)
-        +-- 6 plugins: product-team, quality-gate, telegram-notifier,
-        |              model-router, stitch-bridge, team-ui
-        +-- 10 agents: pm, tech-lead, po, designer, back-1, back-2,
-        |              front-1, front-2, qa, devops
-        +-- Telegram bot: @AiProductTeamBot
+        +-- 5 plugins: product-team, quality-gate, telegram-notifier,
+        |              model-router, stitch-bridge
+        +-- 8 agents: pm, tech-lead, po, designer, back-1,
+        |             front-1, qa, devops
+        +-- Telegram bots: @AiTeam_ProductManager_bot, @AiTeam_TechLead_bot,
+        |                  @AiTeam_Designer_bot
         |
         +-- Volumes:
               openclaw-data       -> /app/data       (SQLite DBs)
@@ -269,10 +269,8 @@ docker exec openclaw-product-team pnpm exec openclaw models list
 | tech-lead | Tech Lead | anthropic/claude-opus-4-6 | openai-codex/gpt-5.2, github-copilot/gpt-4o |
 | po | Product Owner | github-copilot/gpt-4.1 | anthropic/claude-sonnet-4-6, openai-codex/gpt-5.2 |
 | designer | UI/UX Designer | github-copilot/gpt-4o | anthropic/claude-sonnet-4-6, openai-codex/gpt-5.2 |
-| back-1 | Senior Backend | anthropic/claude-sonnet-4-6 | openai-codex/gpt-5.2, github-copilot/gpt-4o |
-| back-2 | Junior Backend | anthropic/claude-sonnet-4-6 | openai-codex/gpt-5.2, github-copilot/gpt-4o |
-| front-1 | Senior Frontend | anthropic/claude-sonnet-4-6 | openai-codex/gpt-5.2, github-copilot/gpt-4o |
-| front-2 | Junior Frontend | anthropic/claude-sonnet-4-6 | openai-codex/gpt-5.2, github-copilot/gpt-4o |
+| back-1 | Backend Developer | anthropic/claude-sonnet-4-6 | openai-codex/gpt-5.2, github-copilot/gpt-4o |
+| front-1 | Frontend Developer | anthropic/claude-sonnet-4-6 | openai-codex/gpt-5.2, github-copilot/gpt-4o |
 | qa | QA Engineer | anthropic/claude-sonnet-4-6 | openai-codex/gpt-5.2, github-copilot/gpt-4o |
 | devops | DevOps Engineer | anthropic/claude-sonnet-4-6 | openai-codex/gpt-5.2, github-copilot/gpt-4o |
 
@@ -302,15 +300,12 @@ On every container start:
 
 ### Control UI
 - URL: `http://localhost:28789/`
+- Provides: Chat, Config editing, Sessions, Channels, Cron, Skills, Nodes, Exec approvals, Logs, Debug, Update
 - First visit requires device pairing:
   1. Open the URL in browser
   2. The gateway will show a pairing request
   3. Approve it: `docker exec openclaw-product-team pnpm exec openclaw devices approve <request-id>`
   4. Pairing persists in the `openclaw-state` volume
-
-### Team Dashboard
-- URL: `http://localhost:28789/team`
-- Shows all 10 agents, their status, and task boards
 
 ## Telegram
 

@@ -28,9 +28,7 @@ engineering tasks and ensuring code quality standards.
 
 ### 3. Task Assignment
 - Assign tasks to appropriate dev agents using `team.assign`
-- Consider agent specialization: `back-1/2` for server work, `front-1/2` for UI
-- Senior agents (`back-1`, `front-1`) get complex/novel tasks
-- Junior agents (`back-2`, `front-2`) get well-defined/routine tasks
+- Consider agent specialization: `back-1` for server work, `front-1` for UI
 - Balance workload across agents
 
 ### 4. Code Review (Final Authority)
@@ -65,7 +63,7 @@ outputs. It is **not** a `schemaKey` and is **not** validated by the step runner
       "id": "string",
       "title": "string",
       "description": "string",
-      "assignee": "back-1 | back-2 | front-1 | front-2",
+      "assignee": "back-1 | front-1 | qa | devops",
       "scope": "major | minor | patch",
       "dependencies": ["localTaskId"],
       "acceptanceCriteria": ["string"]

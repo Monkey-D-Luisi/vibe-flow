@@ -2,7 +2,7 @@
  * E2E Scenario: Agent Failure + Escalation
  *
  * Backend dev encounters an unresolvable blocker. Decision engine retries once,
- * still fails → escalates to Tech Lead → Tech Lead reassigns to back-2 → pipeline continues.
+ * still fails → escalates to Tech Lead → Tech Lead reassigns to devops → pipeline continues.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -30,7 +30,7 @@ describe('E2E: Agent Failure + Escalation — crash, retry, reassign', () => {
     harness.cleanup();
   });
 
-  it('retries once on blocker, escalates to tech-lead, reassigns to back-2', async () => {
+  it('retries once on blocker, escalates to tech-lead, reassigns to devops', async () => {
     const { tools, advanceToStage } = harness;
 
     // 1. Pipeline reaches IMPLEMENTATION
@@ -99,22 +99,22 @@ describe('E2E: Agent Failure + Escalation — crash, retry, reassign', () => {
     const tlInbox = await tools.teamInbox.execute(nextCallId(), { agentId: 'tech-lead' });
     assertInboxHasMessage(tlInbox, 'BLOCKER');
 
-    // 6. Tech Lead reassigns the task to back-2 who has infra expertise
+    // 6. Tech Lead reassigns the task to devops who can upgrade the Docker base
     const assignResult = await tools.teamAssign.execute(nextCallId(), {
       taskId,
-      agentId: 'back-2',
+      agentId: 'devops',
       fromAgent: 'tech-lead',
-      message: 'Reassigning to back-2 who has experience with Docker node upgrades. Please coordinate with DevOps.',
+      message: 'Reassigning to devops who can upgrade the Docker base to node 20. Please coordinate with back-1 for auth-lib integration.',
     });
-    assertTaskAssigned(assignResult, 'back-2');
+    assertTaskAssigned(assignResult, 'devops');
 
-    // Verify back-2 received the assignment message
-    const back2Inbox = await tools.teamInbox.execute(nextCallId(), { agentId: 'back-2' });
-    assertInboxHasMessage(back2Inbox, 'Task Assignment');
+    // Verify devops received the assignment message
+    const devopsInbox = await tools.teamInbox.execute(nextCallId(), { agentId: 'devops' });
+    assertInboxHasMessage(devopsInbox, 'Task Assignment');
 
-    // 7. back-2 resolves the issue — pipeline continues to QA
+    // 7. devops resolves the issue — pipeline continues to QA
     await tools.teamMessage.execute(nextCallId(), {
-      from: 'back-2',
+      from: 'devops',
       to: 'qa',
       subject: 'OAuth PKCE implementation complete',
       body: 'Upgraded Dockerfile to node 20. auth-lib@3.x installed. PKCE implemented. Ready for QA.',

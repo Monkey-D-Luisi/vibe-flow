@@ -1,5 +1,8 @@
 # Walkthrough 0047 -- Configuration Web UI
 
+> **Note (2026-03-04):** The agent roster was reduced from 10 to 8 agents. `back-2` (Junior Backend) and `front-2` (Junior Frontend) were removed. The team-ui extension was also removed — the built-in OpenClaw Control UI is sufficient.
+> The team-ui extension was subsequently removed (2026-03-04). The built-in OpenClaw Control UI covers config, sessions, logs, and agent management.
+
 ## Summary
 
 Scaffolded a new `team-ui` extension that provides a web-based configuration and

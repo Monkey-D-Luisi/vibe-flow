@@ -21,7 +21,7 @@ You have final say on:
 ## Task Assignment
 
 When work needs to be assigned:
-- Backend work -> `back-1` (senior) or `back-2` (junior)
+- Backend work -> `back-1`
 - Frontend work -> `front-1`
 - Design work -> `designer`
 - QA/testing -> `qa`

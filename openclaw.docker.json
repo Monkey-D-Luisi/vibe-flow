@@ -67,8 +67,7 @@
         "/app/extensions/quality-gate",
         "/app/extensions/telegram-notifier",
         "/app/extensions/model-router",
-        "/app/extensions/stitch-bridge",
-        "/app/extensions/team-ui"
+        "/app/extensions/stitch-bridge"
       ]
     },
     "entries": {
@@ -175,9 +174,7 @@
               "tech-lead": { "mode": "smart" },
               "po":        { "mode": "smart" },
               "back-1":    { "mode": "internal" },
-              "back-2":    { "mode": "internal" },
               "front-1":   { "mode": "internal" },
-              "front-2":   { "mode": "internal" },
               "qa":        { "mode": "smart" },
               "devops":    { "mode": "smart" },
               "designer":  { "mode": "internal" }
@@ -221,12 +218,6 @@
       },
       "telegram": {
         "enabled": true
-      },
-      "team-ui": {
-        "enabled": true,
-        "config": {
-          "basePath": "/team"
-        }
       }
     }
   },
@@ -271,9 +262,7 @@
     { "agentId": "po",        "match": { "channel": "telegram", "accountId": "pm" } },
     { "agentId": "designer",  "match": { "channel": "telegram", "accountId": "designer" } },
     { "agentId": "back-1",    "match": { "channel": "telegram", "accountId": "pm" } },
-    { "agentId": "back-2",    "match": { "channel": "telegram", "accountId": "pm" } },
     { "agentId": "front-1",   "match": { "channel": "telegram", "accountId": "pm" } },
-    { "agentId": "front-2",   "match": { "channel": "telegram", "accountId": "pm" } },
     { "agentId": "qa",        "match": { "channel": "telegram", "accountId": "pm" } },
     { "agentId": "devops",    "match": { "channel": "telegram", "accountId": "pm" } }
   ],
@@ -327,7 +316,7 @@
         "agentDir": ".agent/agents/tech-lead",
         "skills": ["tech-lead", "architecture-design", "code-review", "adr"],
         "subagents": {
-          "allowAgents": ["back-1", "back-2", "front-1", "designer", "qa", "devops"]
+          "allowAgents": ["back-1", "front-1", "designer", "qa", "devops"]
         },
         "tools": {
           "allow": [
@@ -394,46 +383,9 @@
         }
       },
       {
-        "id": "back-2",
-        "name": "Junior Backend Developer",
-        "identity": { "name": "Back-2" },
-        "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
-        "workspace": "/workspaces/active",
-        "skills": ["backend-dev", "tdd-implementation"],
-        "tools": {
-          "allow": [
-            "task_get", "task_update", "task_transition",
-            "workflow_step_run", "workflow_state_get",
-            "quality_tests", "quality_coverage", "quality_lint",
-            "quality_complexity", "quality_gate",
-            "team_message", "team_inbox", "team_reply",
-            "decision_evaluate"
-          ]
-        }
-      },
-      {
         "id": "front-1",
         "name": "Senior Frontend Developer",
         "identity": { "name": "Front-1" },
-        "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
-        "workspace": "/workspaces/active",
-        "skills": ["frontend-dev", "tdd-implementation"],
-        "tools": {
-          "allow": [
-            "task_get", "task_update", "task_transition",
-            "workflow_step_run", "workflow_state_get",
-            "quality_tests", "quality_coverage", "quality_lint",
-            "quality_complexity", "quality_gate",
-            "design_get", "design_list",
-            "team_message", "team_inbox", "team_reply",
-            "decision_evaluate"
-          ]
-        }
-      },
-      {
-        "id": "front-2",
-        "name": "Junior Frontend Developer",
-        "identity": { "name": "Front-2" },
         "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "skills": ["frontend-dev", "tdd-implementation"],

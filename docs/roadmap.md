@@ -1,13 +1,14 @@
 # Roadmap -- OpenClaw Product Team Extensions
 
-> Last updated: 2026-03-01
+> Last updated: 2026-03-04
 
 ## Vision
 
-A fully autonomous **product-team** of AI agents (PM, Architect, Dev, QA,
-Reviewer, Infra) operating inside the OpenClaw gateway. Each agent owns a
-well-defined slice of the software delivery lifecycle, communicates through
-structured JSON contracts, and is governed by tool-policy allow-lists.
+A fully autonomous **product-team** of 8 AI agents (PM, Tech Lead, PO, Designer,
+Backend Dev, Frontend Dev, QA, DevOps) operating inside the OpenClaw gateway.
+Each agent owns a well-defined slice of the software delivery lifecycle,
+communicates through inter-agent messaging, and is governed by tool-policy
+allow-lists and a decision engine with escalation policies.
 
 ---
 
@@ -24,6 +25,7 @@ structured JSON contracts, and is governed by tool-policy allow-lists.
 | 6     | AR01 | Audit Remediation Program       | EP06         | Q1 2026      | DONE |
 | 7     | EP07 | DX & Platform Ops               | AR01         | Q2 2026      | DONE    |
 | 8     | EP08 | Autonomous Product Team         | EP07         | Q2 2026      | DONE    |
+| 9     | EP09 | Pipeline Intelligence & Reliability | EP08     | Q2-Q3 2026   | PENDING |
 
 ---
 
@@ -167,7 +169,7 @@ Key deliverables:
 
 ### EP08 -- Autonomous Product Team
 
-Deploy a fully autonomous product team of 10 AI agents running inside an
+Deploy a fully autonomous product team of 8 AI agents running inside an
 OpenClaw gateway in Docker, with per-agent model routing, Stitch MCP
 integration, Telegram channel for human oversight, a web UI for configuration,
 and multi-project support.
@@ -177,7 +179,7 @@ Key deliverables:
 - Docker deployment isolated from existing WSL gateway (port 28789)
 - Multi-model provider config (OpenAI, Anthropic, Google AI)
 - Telegram channel integration plugin
-- Expanded 10-agent roster with per-agent model routing
+- Expanded 8-agent roster with per-agent model routing
 - Stitch MCP bridge for designer agent
 - Multi-project workspace manager
 - New role skills (tech-lead, po, designer, backend-dev, frontend-dev, devops)
@@ -187,6 +189,30 @@ Key deliverables:
 - End-to-end integration test suite
 - Docker Compose production profile
 - Configuration web UI extension
+
+---
+
+## Phase 9: Pipeline Intelligence & Reliability (Q2-Q3 2026)
+
+### EP09 -- Pipeline Intelligence & Reliability
+
+Close the gap between EP08's infrastructure (agents, messaging, pipeline tools) and
+truly autonomous operation. EP08 deployed the team and gave it tools to track stages
+and make decisions. EP09 makes the pipeline self-driving: automatic stage advancement,
+enforced timeouts and retry limits, spawn failure recovery, decision outcome learning,
+and per-stage metrics that enable continuous improvement.
+
+Key deliverables:
+
+- Automatic pipeline stage advancement driven by the orchestrator loop
+- Stage timeout enforcement with escalation (using existing config values)
+- Spawn failure recovery: retry queue with dead-letter alerting
+- Decision engine fixes: per-agent circuit breaker, maxRetries enforcement, timeout enforcement
+- Decision outcome tracking and feedback loop (was the auto-decision later overridden?)
+- Per-stage metrics: duration, token cost, retry count, quality gate results
+- Pipeline state promotion to indexed DB column (efficient stage-based queries)
+- Spawn abstraction layer to decouple from OpenClaw SDK internals
+- Per-persona Telegram bot routing for remaining agents (po, qa, devops)
 
 ---
 
@@ -203,6 +229,7 @@ graph TD
   AR01[AR01: Audit Remediation Program] --> EP06
   EP07[EP07: DX & Platform Ops] --> AR01
   EP08[EP08: Autonomous Product Team] --> EP07
+  EP09[EP09: Pipeline Intelligence & Reliability] --> EP08
 ```
 
 ---
@@ -215,16 +242,21 @@ graph TD
 | SQLite concurrency under parallel agents| WAL mode, lease-based locking                |
 | Token cost overruns                     | Per-task budget caps (EP06)                  |
 | Schema drift between roles              | Shared TypeBox schemas, CI validation        |
+| Spawn fragility from SDK internals     | Abstraction layer over WS spawn (EP09)       |
+| Silent message loss on spawn failure   | Retry queue with dead-letter alerting (EP09)  |
+| Pipeline stalls from unenforced timeouts| Stage timeout enforcement (EP09)             |
 
 ---
 
 ## Success Criteria
 
-1. All six agents can execute their role through the gateway.
+1. All eight agents can execute their role through the gateway.
 2. TaskRecords flow through the full lifecycle without manual intervention.
 3. Quality gates block bad transitions automatically.
-4. GitHub PRs are created and updated by the infra agent.
+4. GitHub PRs are created and updated by the devops agent.
 5. Full audit trail available for every task.
+6. Inter-agent messaging delivers across Telegram with per-persona bot identity.
+7. Decision engine escalates blockers and resolves conflicts autonomously.
 
 ---
 
@@ -267,6 +299,9 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - [EP04 Backlog](backlog/EP04-github-integration.md)
 - [EP05 Backlog](backlog/EP05-quality-observability.md)
 - [EP06 Backlog](backlog/EP06-hardening.md)
+- [EP07 Backlog](backlog/EP07-dx-platform-ops.md)
+- [EP08 Backlog](backlog/EP08-autonomous-product-team.md)
+- [EP09 Backlog](backlog/EP09-pipeline-intelligence-reliability.md)
 - [Open Issues Intake (Unscheduled)](backlog/open-issues-intake.md)
 
 2026-02-27 audit remediation queue (derived from `audits/2026-02-27-full-audit.md`):
@@ -314,6 +349,38 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - [Task 0045: End-to-End Integration Test Suite](tasks/0045-e2e-integration-tests.md) -- DONE (EP08, 8D)
 - [Task 0046: Docker Compose Production Profile](tasks/0046-docker-production-profile.md) -- DONE (EP08, 8D)
 - [Task 0047: Configuration Web UI Extension](tasks/0047-config-web-ui.md) -- DONE (EP08, 8D)
+
+2026-03-04 EP09 — Pipeline Intelligence & Reliability:
+
+### Phase 9A: Pipeline Autonomy
+
+- Task 0062: Automatic Pipeline Stage Advancement -- PENDING (EP09, 9A)
+- Task 0063: Stage Timeout Enforcement -- PENDING (EP09, 9A)
+- Task 0064: Per-Stage Retry Limit Enforcement -- PENDING (EP09, 9A)
+- Task 0065: Conditional Design Skip for Non-UI Tasks -- PENDING (EP09, 9A)
+
+### Phase 9B: Spawn Reliability
+
+- Task 0066: Spawn Retry Queue with Dead-Letter Alerting -- PENDING (EP09, 9B)
+- Task 0067: Spawn Abstraction Layer -- PENDING (EP09, 9B)
+
+### Phase 9C: Decision Engine Maturity
+
+- Task 0068: Fix Circuit Breaker Per-Agent Tracking -- PENDING (EP09, 9C)
+- Task 0069: Enforce Decision Timeouts -- PENDING (EP09, 9C)
+- Task 0070: Enforce Blocker maxRetries Policy -- PENDING (EP09, 9C)
+- Task 0071: Decision Outcome Tracking and Feedback Loop -- PENDING (EP09, 9C)
+
+### Phase 9D: Observability & Metrics
+
+- Task 0072: Per-Stage Metrics Collection -- PENDING (EP09, 9D)
+- Task 0073: Pipeline State Indexing -- PENDING (EP09, 9D)
+- Task 0074: Structured Stage Transition Events -- PENDING (EP09, 9D)
+
+### Phase 9E: Telegram Experience
+
+- Task 0075: Per-Persona Bot Expansion -- PENDING (EP09, 9E)
+- Task 0076: Telegram Decision Approval Commands -- PENDING (EP09, 9E)
 
 ### Architecture & Operations
 - [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)

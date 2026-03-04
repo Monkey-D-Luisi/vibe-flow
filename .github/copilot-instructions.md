@@ -3,7 +3,7 @@
 ## Project Context
 
 This is an OpenClaw extensions monorepo containing quality gate tooling, skills,
-and shared schemas. Tech stack: TypeScript ESM, Node 22+, pnpm workspaces, Vitest.
+and quality tooling. Tech stack: TypeScript ESM, Node 22+, pnpm workspaces, Vitest.
 
 ## Conventional Commits
 
@@ -29,7 +29,10 @@ Format: `type(scope): subject`
 
 - `quality-gate` -- Quality gate extension in `extensions/quality-gate/`
 - `product-team` -- Product team plugin in `extensions/product-team/`
-- `schemas` -- JSON Schemas in `packages/schemas/`
+- `model-router` -- Model routing hook in `extensions/model-router/`
+- `telegram-notifier` -- Telegram notifier in `extensions/telegram-notifier/`
+- `stitch-bridge` -- Stitch bridge in `extensions/stitch-bridge/`
+- `quality-contracts` -- Quality contracts in `packages/quality-contracts/`
 - `skills` -- Skill definitions in `skills/`
 - `docs` -- Documentation in `docs/`
 - `ci` -- CI/CD workflows in `.github/`
