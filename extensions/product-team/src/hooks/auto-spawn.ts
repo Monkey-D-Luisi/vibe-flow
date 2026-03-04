@@ -42,6 +42,8 @@ export interface AgentSpawnOptions {
   sessionKey?: string;
   /** Explicit delivery target (e.g. Telegram chatId) for the gateway to route to. */
   to?: string;
+  /** Telegram account ID within the channel (multi-bot: "tl", "designer", etc.). */
+  accountId?: string;
 }
 
 /** Dependencies injected into the auto-spawn hooks for testability. */
@@ -95,7 +97,7 @@ export function extractDetails(result: unknown): Record<string, unknown> | null 
 /**
  * Rebuild a session key replacing the agent ID prefix.
  *
- * Session keys follow the pattern `agent:<id>:<suffix>`, e.g.
+ * Session keys follow the pattern `agent:<id>:<channel>:<type>:<chatId>`, e.g.
  * `agent:pm:telegram:group:-12345`. This replaces the `<id>` segment
  * with a different agent's ID so the gateway loads the correct agent
  * config while preserving the channel/chat routing suffix.
@@ -116,14 +118,20 @@ export function rebuildSessionKeyForAgent(
  * Extract the Telegram chat ID from a session key.
  *
  * Session keys for Telegram follow the pattern:
- * `agent:<id>:telegram:group:<chatId>` or `agent:<id>:telegram:dm:<userId>`
+ * `agent:<id>:<channel>:group:<chatId>` or `agent:<id>:<channel>:dm:<userId>`
+ * where `<channel>` is `telegram`, `telegram-tl`, `telegram-designer`, etc.
  *
  * Returns the chatId/userId portion, or null if the key doesn't match.
  */
 export function extractChatIdFromSessionKey(sessionKey: string): string | null {
-  // Pattern: agent:<id>:telegram:(group|dm):<chatId>
+  // Pattern: agent:<id>:<channel>:(group|dm):<chatId>
   const parts = sessionKey.split(':');
-  if (parts.length >= 5 && parts[0] === 'agent' && parts[2] === 'telegram') {
+  if (
+    parts.length >= 5 &&
+    parts[0] === 'agent' &&
+    parts[2].startsWith('telegram') &&
+    (parts[3] === 'group' || parts[3] === 'dm')
+  ) {
     // chatId is everything from index 4 onwards (may contain colons)
     return parts.slice(4).join(':');
   }
@@ -224,10 +232,15 @@ export function handleTeamMessageAutoSpawn(
       // encodes the chat/DM suffix (e.g. "agent:pm:telegram:group:-12345");
       // we replace the agent ID prefix with the target agent's ID.
       // Also extract the chatId for explicit delivery targeting.
+      //
+      // If the target agent has its own Telegram account (via agentAccounts),
+      // pass accountId so the response is sent from the target's own bot.
+      const targetAccountId = deps.deliveryConfig.agentAccounts?.[toAgent];
       const chatId = originSessionKey ? extractChatIdFromSessionKey(originSessionKey) : null;
       spawnOptions = {
         deliver: true,
         channel: originChannel,
+        ...(targetAccountId ? { accountId: targetAccountId } : {}),
         ...(originSessionKey
           ? { sessionKey: rebuildSessionKeyForAgent(originSessionKey, toAgent) }
           : {}),
@@ -302,13 +315,18 @@ export function handleTeamReplyAutoSpawn(
   // Telegram), the reply always routes back to that channel — the sender's
   // delivery mode is irrelevant. Delivery policy only governs *new* outbound
   // messages; replies honour the conversation's origin.
+  //
+  // If the target agent has its own Telegram account (via agentAccounts),
+  // pass accountId so the response is sent from the target's own bot.
   let spawnOptions: AgentSpawnOptions | undefined;
 
   if (originChannel) {
+    const targetAccountId = deps.deliveryConfig?.agentAccounts?.[toAgent];
     const chatId = originSessionKey ? extractChatIdFromSessionKey(originSessionKey) : null;
     spawnOptions = {
       deliver: true,
       channel: originChannel,
+      ...(targetAccountId ? { accountId: targetAccountId } : {}),
       // Rebuild session key for the recipient so the gateway loads the correct
       // agent config while still routing to the right Telegram chat.
       ...(originSessionKey
@@ -317,7 +335,8 @@ export function handleTeamReplyAutoSpawn(
       ...(chatId ? { to: chatId } : {}),
     };
     deps.logger.info(
-      `team-reply-hook: delivery policy → deliver (reply routed to origin channel "${originChannel}")`,
+      `team-reply-hook: delivery policy → deliver (reply routed to origin channel "${originChannel}"` +
+      (targetAccountId ? `, account "${targetAccountId}"` : '') + `)`,
     );
   }
   // No originChannel → internal conversation, no delivery
@@ -425,7 +444,7 @@ export function fireAgentViaGatewayWs(
     sessionKey,
     message,
     idempotencyKey: `auto-spawn:${agentId}:${Date.now()}`,
-    ...(options?.deliver ? { deliver: true, channel: options.channel, ...(options.to ? { to: options.to } : {}) } : {}),
+    ...(options?.deliver ? { deliver: true, channel: options.channel, ...(options.accountId ? { accountId: options.accountId } : {}), ...(options.to ? { to: options.to } : {}) } : {}),
   });
 
   const script = `

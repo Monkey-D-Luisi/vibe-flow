@@ -25,7 +25,7 @@ const ACTIVITY_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 const COST_INTERVAL_MS = 24 * 60 * 60 * 1000; // 1 day
 
 function resolveTelegramConfig(deps: MonitoringCronDeps): TelegramConfig | null {
-  const token = process.env['TELEGRAM_BOT_TOKEN'] ?? '';
+  const token = process.env['TELEGRAM_BOT_TOKEN_PM'] ?? process.env['TELEGRAM_BOT_TOKEN'] ?? '';
   const chatId = deps.telegramChatId ?? process.env['TELEGRAM_CHAT_ID'] ?? '';
   if (!token.trim() || !chatId.trim()) {
     return null;

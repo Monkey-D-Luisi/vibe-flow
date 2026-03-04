@@ -81,6 +81,16 @@ describe('extractChatIdFromSessionKey', () => {
       .toBe('67890');
   });
 
+  it('extracts chatId from a telegram-tl channel session key', () => {
+    expect(extractChatIdFromSessionKey('agent:tech-lead:telegram-tl:group:-1005177552677'))
+      .toBe('-1005177552677');
+  });
+
+  it('extracts userId from a telegram-designer DM session key', () => {
+    expect(extractChatIdFromSessionKey('agent:designer:telegram-designer:dm:67890'))
+      .toBe('67890');
+  });
+
   it('returns null for a main session key', () => {
     expect(extractChatIdFromSessionKey('agent:pm:main'))
       .toBeNull();
@@ -293,6 +303,7 @@ describe('handleTeamMessageAutoSpawn', () => {
         broadcastKeywords: [],
         broadcastPriorities: ['urgent'],
         agents: { pm: { mode: 'broadcast' } },
+        agentAccounts: {},
       },
     });
     resetDedupCache();
@@ -320,6 +331,42 @@ describe('handleTeamMessageAutoSpawn', () => {
     });
   });
 
+  it('routes to target agent account when agentAccounts is configured', () => {
+    deps = createDeps({
+      deliveryConfig: {
+        defaultMode: 'smart',
+        broadcastKeywords: [],
+        broadcastPriorities: ['urgent'],
+        agents: { pm: { mode: 'broadcast' } },
+        agentAccounts: { 'tech-lead': 'tl', 'designer': 'designer' },
+      },
+    });
+    resetDedupCache();
+
+    const event = makeEvent({
+      result: {
+        details: {
+          delivered: true,
+          messageId: 'msg-ac',
+          originChannel: 'telegram',
+          originSessionKey: 'agent:pm:telegram:group:-517123',
+        },
+      },
+      params: { to: 'tech-lead', subject: 'Architecture review' },
+    });
+    handleTeamMessageAutoSpawn(deps, event, makeCtx({ agentId: 'pm' }));
+
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+    const options = (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls[0][2];
+    expect(options).toEqual({
+      deliver: true,
+      channel: 'telegram',
+      accountId: 'tl',
+      sessionKey: 'agent:tech-lead:telegram:group:-517123',
+      to: '-517123',
+    });
+  });
+
   it('does not deliver when sender is internal', () => {
     deps = createDeps({
       agents: [
@@ -333,6 +380,7 @@ describe('handleTeamMessageAutoSpawn', () => {
         broadcastKeywords: [],
         broadcastPriorities: [],
         agents: { 'back-1': { mode: 'internal' } },
+        agentAccounts: {},
       },
     });
     resetDedupCache();
@@ -613,6 +661,44 @@ describe('handleTeamReplyAutoSpawn', () => {
     });
   });
 
+  it('routes reply to target agent account when agentAccounts is configured', () => {
+    deps = createDeps({
+      deliveryConfig: {
+        defaultMode: 'smart',
+        broadcastKeywords: [],
+        broadcastPriorities: ['urgent'],
+        agents: {},
+        agentAccounts: { pm: '', 'tech-lead': 'tl' },
+      },
+    });
+    resetDedupCache();
+
+    const event = makeEvent({
+      toolName: 'team_reply',
+      result: {
+        details: {
+          replied: true,
+          to: 'tech-lead',
+          from: 'pm',
+          replyId: 'r-channel',
+          originChannel: 'telegram',
+          originSessionKey: 'agent:pm:telegram:group:-517123',
+        },
+      },
+    });
+    handleTeamReplyAutoSpawn(deps, event, makeCtx());
+
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+    const options = (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls[0][2];
+    expect(options).toEqual({
+      deliver: true,
+      channel: 'telegram',
+      accountId: 'tl',
+      sessionKey: 'agent:tech-lead:telegram:group:-517123',
+      to: '-517123',
+    });
+  });
+
   it('delivers reply to origin even when sender delivery mode is internal', () => {
     // Reply routing ignores the sender's delivery mode — it always honours
     // the conversation's origin channel.
@@ -622,6 +708,7 @@ describe('handleTeamReplyAutoSpawn', () => {
         broadcastKeywords: [],
         broadcastPriorities: ['urgent'],
         agents: { 'tech-lead': { mode: 'internal' } },
+        agentAccounts: {},
       },
     });
     resetDedupCache();
@@ -655,6 +742,7 @@ describe('handleTeamReplyAutoSpawn', () => {
         broadcastKeywords: [],
         broadcastPriorities: [],
         agents: {},
+        agentAccounts: {},
       },
     });
     resetDedupCache();
