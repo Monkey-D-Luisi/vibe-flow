@@ -63,12 +63,21 @@ describe('injectOriginIntoTeamMessage', () => {
     expect(injectOriginIntoTeamMessage(event, telegramCtx)).toBeUndefined();
   });
 
-  it('does not override if originChannel already provided', () => {
+  it('overrides LLM-provided originChannel with session context', () => {
     const event = {
       toolName: 'team_message',
-      params: { to: 'tech-lead', subject: 'Test', body: 'Hello', originChannel: 'slack' },
+      params: { to: 'tech-lead', subject: 'Test', body: 'Hello', originChannel: 'slack', originSessionKey: 'stale:value' },
     };
-    expect(injectOriginIntoTeamMessage(event, telegramCtx)).toBeUndefined();
+    const result = injectOriginIntoTeamMessage(event, telegramCtx);
+    expect(result).toEqual({
+      params: {
+        to: 'tech-lead',
+        subject: 'Test',
+        body: 'Hello',
+        originChannel: 'telegram',
+        originSessionKey: 'agent:pm:telegram:group:-5177552677',
+      },
+    });
   });
 
   it('does not inject when sessionKey is undefined', () => {
