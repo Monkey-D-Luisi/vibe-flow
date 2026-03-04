@@ -145,6 +145,47 @@
           "timeoutMs": { "type": "integer", "minimum": 1000 },
           "humanApprovalTimeout": { "type": "integer", "minimum": 1000 }
         }
+      },
+      "delivery": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Delivery channel routing config for agent messages",
+        "properties": {
+          "default": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": ["broadcast", "internal", "smart", "replies-only"],
+                "default": "smart"
+              },
+              "broadcastKeywords": {
+                "type": "array",
+                "items": { "type": "string" },
+                "default": ["decision", "escalation", "blocker", "review", "approval", "deploy", "release", "rollback", "incident", "hotfix"]
+              },
+              "broadcastPriorities": {
+                "type": "array",
+                "items": { "type": "string" },
+                "default": ["urgent"]
+              }
+            }
+          },
+          "agents": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": ["broadcast", "internal", "smart", "replies-only"]
+                }
+              }
+            }
+          }
+        }
       }
     }
   }

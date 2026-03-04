@@ -546,5 +546,5 @@ export function registerAutoSpawnHooks(
     }
   });
 
-  api.logger.info('registered auto-spawn hooks for team_message and decision escalation');
+  api.logger.info('registered auto-spawn hooks for team_message, team_reply, and decision escalation');
 }
