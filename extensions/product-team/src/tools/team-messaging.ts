@@ -129,21 +129,23 @@ export function teamReplyToolDef(deps: ToolDeps): ToolDef {
         };
       }
 
-      // Walk the reply chain to find the root message's origin if this message doesn't have it
+      // Walk the reply chain to find the root message's origin if this message doesn't have it fully populated
       let originChannel = original.origin_channel;
       let originSessionKey = original.origin_session_key;
-      if (!originChannel && original.reply_to) {
+      if ((!originChannel || !originSessionKey) && original.reply_to) {
         let currentId: string | null = original.reply_to;
         const visited = new Set<string>([original.id]);
-        while (currentId && !originChannel) {
+        while (currentId && (!originChannel || !originSessionKey)) {
           if (visited.has(currentId)) break; // cycle guard
           visited.add(currentId);
           const ancestor = deps.db.prepare(
             `SELECT origin_channel, origin_session_key, reply_to FROM ${MESSAGES_TABLE} WHERE id = ?`,
           ).get(currentId) as { origin_channel: string | null; origin_session_key: string | null; reply_to: string | null } | undefined;
           if (!ancestor) break;
-          if (ancestor.origin_channel) {
+          if (!originChannel && ancestor.origin_channel) {
             originChannel = ancestor.origin_channel;
+          }
+          if (!originSessionKey && ancestor.origin_session_key) {
             originSessionKey = ancestor.origin_session_key;
           }
           currentId = ancestor.reply_to;

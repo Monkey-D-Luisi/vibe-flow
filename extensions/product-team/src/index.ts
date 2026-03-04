@@ -287,13 +287,6 @@ export function register(api: OpenClawPluginApi): void {
   api.on('before_tool_call', (event, ctx) => {
     const typedEvent = event as { toolName: string; params: Record<string, unknown> };
     const typedCtx = ctx as { agentId?: string; sessionKey?: string };
-    if (typedEvent.toolName === 'team_message') {
-      api.logger.info(
-        `origin-injection: team_message intercepted — ctx.sessionKey=${typedCtx.sessionKey ?? 'undefined'}, ` +
-        `ctx.agentId=${typedCtx.agentId ?? 'undefined'}, ` +
-        `existingOriginChannel=${String(typedEvent.params['originChannel'] ?? 'none')}`,
-      );
-    }
     return injectOriginIntoTeamMessage(typedEvent, typedCtx);
   });
   api.logger.info('registered origin-injection before_tool_call hook for team_message');

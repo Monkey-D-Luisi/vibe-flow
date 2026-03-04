@@ -185,8 +185,8 @@ export function handleTeamMessageAutoSpawn(
   const messageId = String(details['messageId'] ?? '');
   const subject = String(event.params?.['subject'] ?? 'your message');
   const priority = String(event.params?.['priority'] ?? details['priority'] ?? 'normal');
-  const originChannel = details['originChannel'] as string | null | undefined;
-  const originSessionKey = details['originSessionKey'] as string | null | undefined;
+  const originChannel = typeof details['originChannel'] === 'string' ? details['originChannel'] : null;
+  const originSessionKey = typeof details['originSessionKey'] === 'string' ? details['originSessionKey'] : null;
 
   if (!toAgent) return;
 
@@ -262,8 +262,9 @@ export function handleTeamMessageAutoSpawn(
  * PM sends team_message → TL auto-spawns → TL reads & replies → PM auto-spawns
  * → PM reads TL's reply and reports to the originating channel.
  *
- * Delivery routing is dynamic: it reads the originating channel from the reply
- * result and consults the delivery policy to decide whether to deliver externally.
+ * Delivery routing reads the originating channel from the reply result and
+ * routes the reply back to that channel when present. Replies always honour
+ * the conversation's origin — the sender's delivery mode is irrelevant.
  */
 export function handleTeamReplyAutoSpawn(
   deps: AutoSpawnDeps,
@@ -279,8 +280,8 @@ export function handleTeamReplyAutoSpawn(
   const toAgent = String(details['to'] ?? '');
   const fromAgent = String(details['from'] ?? '');
   const replyId = String(details['replyId'] ?? '');
-  const originChannel = details['originChannel'] as string | null | undefined;
-  const originSessionKey = details['originSessionKey'] as string | null | undefined;
+  const originChannel = typeof details['originChannel'] === 'string' ? details['originChannel'] : null;
+  const originSessionKey = typeof details['originSessionKey'] === 'string' ? details['originSessionKey'] : null;
 
   if (!toAgent) return;
 
