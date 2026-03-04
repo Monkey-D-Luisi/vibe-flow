@@ -156,3 +156,58 @@ export function resolveProjectConfig(
   const activeProject = asNonEmptyString(pluginConfig?.activeProject) ?? (projects[0]?.id ?? '');
   return { projects, activeProject };
 }
+
+// ── Delivery channel routing config ──────────────────────────────────────────
+
+export type DeliveryMode = 'broadcast' | 'internal' | 'smart' | 'replies-only';
+
+export interface DeliveryConfig {
+  readonly defaultMode: DeliveryMode;
+  readonly broadcastKeywords: readonly string[];
+  readonly broadcastPriorities: readonly string[];
+  readonly agents: Readonly<Record<string, { mode: DeliveryMode }>>;
+}
+
+const DEFAULT_BROADCAST_KEYWORDS: readonly string[] = [
+  'decision', 'escalation', 'blocker', 'review', 'approval',
+  'deploy', 'release', 'rollback', 'incident', 'hotfix',
+];
+
+const DEFAULT_BROADCAST_PRIORITIES: readonly string[] = ['urgent'];
+
+const VALID_DELIVERY_MODES = new Set<string>(['broadcast', 'internal', 'smart', 'replies-only']);
+
+function asDeliveryMode(value: unknown): DeliveryMode | null {
+  return typeof value === 'string' && VALID_DELIVERY_MODES.has(value)
+    ? value as DeliveryMode
+    : null;
+}
+
+export function resolveDeliveryConfig(
+  pluginConfig: Record<string, unknown> | undefined,
+): DeliveryConfig {
+  const delivery = asRecord(pluginConfig?.delivery);
+  const defaults = asRecord(delivery?.default);
+
+  const defaultMode = asDeliveryMode(defaults?.mode) ?? 'smart';
+  const broadcastKeywords = defaults?.broadcastKeywords
+    ? asStringArray(defaults.broadcastKeywords)
+    : [...DEFAULT_BROADCAST_KEYWORDS];
+  const broadcastPriorities = defaults?.broadcastPriorities
+    ? asStringArray(defaults.broadcastPriorities)
+    : [...DEFAULT_BROADCAST_PRIORITIES];
+
+  const rawAgents = asRecord(delivery?.agents);
+  const agents: Record<string, { mode: DeliveryMode }> = {};
+  if (rawAgents) {
+    for (const [agentId, val] of Object.entries(rawAgents)) {
+      const agentRec = asRecord(val);
+      const mode = asDeliveryMode(agentRec?.mode);
+      if (mode) {
+        agents[agentId] = { mode };
+      }
+    }
+  }
+
+  return { defaultMode, broadcastKeywords, broadcastPriorities, agents };
+}

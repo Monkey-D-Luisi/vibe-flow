@@ -134,6 +134,41 @@ describe('team messaging tools', () => {
       const result = await tool.execute('call-1', { to: 'pm', subject: 'Hi', body: 'Hello' });
       expect(() => JSON.parse(result.content[0].text)).not.toThrow();
     });
+
+    it('stores and returns originChannel and originSessionKey', async () => {
+      const tool = teamMessageToolDef(deps);
+      const result = await tool.execute('call-1', {
+        to: 'tech-lead',
+        subject: 'From Telegram',
+        body: 'Message from group',
+        originChannel: 'telegram',
+        originSessionKey: 'agent:pm:telegram:group:-517123',
+      });
+
+      const details = result.details as { originChannel: string | null; originSessionKey: string | null };
+      expect(details.originChannel).toBe('telegram');
+      expect(details.originSessionKey).toBe('agent:pm:telegram:group:-517123');
+
+      const row = db.prepare('SELECT origin_channel, origin_session_key FROM agent_messages').get() as {
+        origin_channel: string | null;
+        origin_session_key: string | null;
+      } | undefined;
+      expect(row?.origin_channel).toBe('telegram');
+      expect(row?.origin_session_key).toBe('agent:pm:telegram:group:-517123');
+    });
+
+    it('defaults originChannel and originSessionKey to null when not provided', async () => {
+      const tool = teamMessageToolDef(deps);
+      const result = await tool.execute('call-1', {
+        to: 'tech-lead',
+        subject: 'Internal message',
+        body: 'No origin',
+      });
+
+      const details = result.details as { originChannel: string | null; originSessionKey: string | null };
+      expect(details.originChannel).toBeNull();
+      expect(details.originSessionKey).toBeNull();
+    });
   });
 
   describe('team.inbox', () => {
@@ -240,6 +275,66 @@ describe('team messaging tools', () => {
 
       const row = db.prepare('SELECT subject FROM agent_messages WHERE id = ?').get(replyId) as { subject: string } | undefined;
       expect(row?.subject).toBe('Re: API Design');
+    });
+
+    it('returns originChannel from the original message', async () => {
+      const msgTool = teamMessageToolDef(deps);
+      const sent = await msgTool.execute('send-1', {
+        to: 'tech-lead',
+        subject: 'From Telegram',
+        body: 'Group message',
+        originChannel: 'telegram',
+        originSessionKey: 'agent:pm:telegram:group:-517123',
+      });
+      const { messageId } = sent.details as { messageId: string };
+
+      const replyTool = teamReplyToolDef(deps);
+      const result = await replyTool.execute('call-1', { messageId, body: 'My reply' });
+      const details = result.details as { originChannel: string | null; originSessionKey: string | null };
+      expect(details.originChannel).toBe('telegram');
+      expect(details.originSessionKey).toBe('agent:pm:telegram:group:-517123');
+    });
+
+    it('walks the reply chain to find root origin', async () => {
+      const msgTool = teamMessageToolDef(deps);
+      const replyTool = teamReplyToolDef(deps);
+
+      // Root message with origin
+      const root = await msgTool.execute('send-1', {
+        to: 'tech-lead',
+        subject: 'Root',
+        body: 'Origin msg',
+        from: 'pm',
+        originChannel: 'telegram',
+        originSessionKey: 'agent:pm:telegram:group:-517123',
+      });
+      const rootId = (root.details as { messageId: string }).messageId;
+
+      // Reply 1 (no explicit origin — should inherit from root)
+      const reply1 = await replyTool.execute('call-2', { messageId: rootId, body: 'Reply 1' });
+      const reply1Id = (reply1.details as { replyId: string }).replyId;
+
+      // Reply 2 to reply 1 (deeper in chain)
+      const reply2 = await replyTool.execute('call-3', { messageId: reply1Id, body: 'Reply 2' });
+      const details = reply2.details as { originChannel: string | null; originSessionKey: string | null };
+      expect(details.originChannel).toBe('telegram');
+      expect(details.originSessionKey).toBe('agent:pm:telegram:group:-517123');
+    });
+
+    it('returns null origin when no message in chain has one', async () => {
+      const msgTool = teamMessageToolDef(deps);
+      const sent = await msgTool.execute('send-1', {
+        to: 'tech-lead',
+        subject: 'Internal',
+        body: 'No origin',
+      });
+      const { messageId } = sent.details as { messageId: string };
+
+      const replyTool = teamReplyToolDef(deps);
+      const result = await replyTool.execute('call-1', { messageId, body: 'Reply' });
+      const details = result.details as { originChannel: string | null; originSessionKey: string | null };
+      expect(details.originChannel).toBeNull();
+      expect(details.originSessionKey).toBeNull();
     });
   });
 

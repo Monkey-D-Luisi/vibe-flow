@@ -28,6 +28,7 @@ import { PrBotAutomation } from './github/pr-bot.js';
 import { CiFeedbackAutomation } from './github/ci-feedback.js';
 import {
   resolveConcurrencyConfig,
+  resolveDeliveryConfig,
   resolveGithubConfig,
   resolveProjectConfig,
 } from './config/plugin-config.js';
@@ -280,7 +281,8 @@ export function register(api: OpenClawPluginApi): void {
 
   // Auto-spawn hooks: when an agent sends a team_message or escalates a decision,
   // inject a system directive into the caller's session to spawn the target agent.
-  registerAutoSpawnHooks(api, agentConfig);
+  const deliveryConfig = resolveDeliveryConfig(pluginConfig);
+  registerAutoSpawnHooks(api, agentConfig, undefined, deliveryConfig);
 
   api.logger.info(`registered ${tools.length} task/workflow/quality/vcs/messaging/decision/pipeline tools`);
   // EP03: workflow.step.run, workflow.state.get

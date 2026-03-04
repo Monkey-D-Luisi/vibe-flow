@@ -11,6 +11,8 @@ export const TeamMessageParams = Type.Object({
   ])),
   taskRef: Type.Optional(Type.String({ description: 'Related task ID' })),
   from: Type.Optional(Type.String({ minLength: 1, description: 'Sender agent ID' })),
+  originChannel: Type.Optional(Type.String({ minLength: 1, description: 'Originating channel (e.g. "telegram", "web")' })),
+  originSessionKey: Type.Optional(Type.String({ minLength: 1, description: 'Originating session key (e.g. "agent:pm:telegram:group:-517...")' })),
 });
 export type TeamMessageParams = Static<typeof TeamMessageParams>;
 

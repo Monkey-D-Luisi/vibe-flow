@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   resolveConcurrencyConfig,
+  resolveDeliveryConfig,
   resolveGithubConfig,
 } from '../../src/config/plugin-config.js';
 
@@ -106,5 +107,66 @@ describe('resolveConcurrencyConfig', () => {
       maxLeasesPerAgent: 2,
       maxTotalLeases: 5,
     });
+  });
+});
+
+describe('resolveDeliveryConfig', () => {
+  it('returns smart defaults when delivery config is missing', () => {
+    const result = resolveDeliveryConfig(undefined);
+
+    expect(result.defaultMode).toBe('smart');
+    expect(result.broadcastPriorities).toEqual(['urgent']);
+    expect(result.broadcastKeywords).toContain('decision');
+    expect(result.broadcastKeywords).toContain('blocker');
+    expect(result.broadcastKeywords).toHaveLength(10);
+    expect(result.agents).toEqual({});
+  });
+
+  it('reads full config including per-agent overrides', () => {
+    const result = resolveDeliveryConfig({
+      delivery: {
+        default: {
+          mode: 'replies-only',
+          broadcastKeywords: ['custom-kw'],
+          broadcastPriorities: ['normal', 'urgent'],
+        },
+        agents: {
+          pm: { mode: 'broadcast' },
+          'back-1': { mode: 'internal' },
+        },
+      },
+    });
+
+    expect(result.defaultMode).toBe('replies-only');
+    expect(result.broadcastKeywords).toEqual(['custom-kw']);
+    expect(result.broadcastPriorities).toEqual(['normal', 'urgent']);
+    expect(result.agents).toEqual({
+      pm: { mode: 'broadcast' },
+      'back-1': { mode: 'internal' },
+    });
+  });
+
+  it('ignores invalid delivery modes in agent overrides', () => {
+    const result = resolveDeliveryConfig({
+      delivery: {
+        agents: {
+          pm: { mode: 'invalid-mode' },
+          'tech-lead': { mode: 'smart' },
+        },
+      },
+    });
+
+    expect(result.agents['pm']).toBeUndefined();
+    expect(result.agents['tech-lead']).toEqual({ mode: 'smart' });
+  });
+
+  it('falls back to smart when default mode is invalid', () => {
+    const result = resolveDeliveryConfig({
+      delivery: {
+        default: { mode: 'nonexistent' },
+      },
+    });
+
+    expect(result.defaultMode).toBe('smart');
   });
 });

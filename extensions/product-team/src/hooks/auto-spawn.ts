@@ -15,6 +15,8 @@ import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { spawn } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import type { DeliveryConfig } from '../config/plugin-config.js';
+import { shouldDeliver } from './delivery-policy.js';
 
 /** Minimal agent config needed by the hooks. */
 export type AgentEntry = { id: string; name: string };
@@ -36,6 +38,8 @@ export interface AgentSpawnOptions {
   deliver?: boolean;
   /** The channel to deliver the response to (e.g. "telegram"). */
   channel?: string;
+  /** Override session key to route the response to a specific session (e.g. group vs DM). */
+  sessionKey?: string;
 }
 
 /** Dependencies injected into the auto-spawn hooks for testability. */
@@ -43,6 +47,7 @@ export interface AutoSpawnDeps {
   agents: ReadonlyArray<AgentEntry>;
   logger: AutoSpawnLogger;
   agentRunner: AgentSpawnSink;
+  deliveryConfig?: DeliveryConfig;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -118,9 +123,12 @@ export function buildSpawnDirective(params: {
  * When a message is delivered, fires a detached `openclaw agent` process to
  * run the target agent's turn so it can read and respond to the inbox message.
  *
+ * Also evaluates the sender's delivery policy: if the sender agent is in
+ * broadcast or smart mode (and the message matches heuristics), the spawned
+ * agent gets delivery options so the conversation is visible in Telegram.
+ *
  * NOTE: ctx.sessionKey is always undefined in after_tool_call — the SDK passes
- * void 0 for both agentId and sessionKey in this hook context. The spawn is
- * therefore unconditional (no session context required).
+ * void 0 for both agentId and sessionKey in this hook context.
  */
 export function handleTeamMessageAutoSpawn(
   deps: AutoSpawnDeps,
@@ -136,6 +144,9 @@ export function handleTeamMessageAutoSpawn(
   const toAgent = String(event.params?.['to'] ?? '');
   const messageId = String(details['messageId'] ?? '');
   const subject = String(event.params?.['subject'] ?? 'your message');
+  const priority = String(event.params?.['priority'] ?? details['priority'] ?? 'normal');
+  const originChannel = details['originChannel'] as string | null | undefined;
+  const originSessionKey = details['originSessionKey'] as string | null | undefined;
 
   if (!toAgent) return;
 
@@ -158,11 +169,34 @@ export function handleTeamMessageAutoSpawn(
     `Read your team inbox with team_inbox({ agentId: "${toAgent}" }) then reply to "${callerAgent}" ` +
     `using team_reply({ messageId: "${messageId}", body: "<your response>" }).`;
 
+  // Evaluate delivery policy for the sender agent
+  let spawnOptions: AgentSpawnOptions | undefined;
+  if (deps.deliveryConfig && originChannel) {
+    const decision = shouldDeliver(deps.deliveryConfig, callerAgent, {
+      priority,
+      subject,
+      isReply: false,
+    });
+
+    if (decision.deliver) {
+      spawnOptions = {
+        deliver: true,
+        channel: originChannel,
+        ...(originSessionKey ? { sessionKey: originSessionKey } : {}),
+      };
+      deps.logger.info(`team-message-hook: delivery policy → deliver (${decision.reason})`);
+    } else {
+      deps.logger.info(`team-message-hook: delivery policy → skip (${decision.reason})`);
+    }
+  }
+
   try {
-    deps.agentRunner.spawnAgent(toAgent, message);
+    deps.agentRunner.spawnAgent(toAgent, message, spawnOptions);
     deps.logger.info(
       `team-message-hook: agent turn fired for "${toAgent}" ` +
-      `(message: ${messageId}, caller: ${ctx.agentId ?? 'unknown'})`,
+      `(message: ${messageId}, caller: ${callerAgent}` +
+      (spawnOptions ? `, deliver: ${spawnOptions.channel}` : ', no delivery') +
+      `)`,
     );
   } catch (err: unknown) {
     deps.logger.warn(`team-message-hook: spawnAgent failed: ${String(err)}`);
@@ -177,7 +211,10 @@ export function handleTeamMessageAutoSpawn(
  * When an agent replies to a message, the recipient agent must run to process
  * the response. This enables bidirectional reactive communication:
  * PM sends team_message → TL auto-spawns → TL reads & replies → PM auto-spawns
- * → PM reads TL's reply and reports to Telegram.
+ * → PM reads TL's reply and reports to the originating channel.
+ *
+ * Delivery routing is dynamic: it reads the originating channel from the reply
+ * result and consults the delivery policy to decide whether to deliver externally.
  */
 export function handleTeamReplyAutoSpawn(
   deps: AutoSpawnDeps,
@@ -193,6 +230,8 @@ export function handleTeamReplyAutoSpawn(
   const toAgent = String(details['to'] ?? '');
   const fromAgent = String(details['from'] ?? '');
   const replyId = String(details['replyId'] ?? '');
+  const originChannel = details['originChannel'] as string | null | undefined;
+  const originSessionKey = details['originSessionKey'] as string | null | undefined;
 
   if (!toAgent) return;
 
@@ -208,13 +247,38 @@ export function handleTeamReplyAutoSpawn(
     `You have a new reply from "${fromAgent}" in your inbox (ID: ${replyId}). ` +
     `Read your team inbox with team_inbox({ agentId: "${toAgent}" }) and relay the reply to the user.`;
 
+  // Determine delivery options based on policy and origin channel
+  let spawnOptions: AgentSpawnOptions | undefined;
+
+  if (deps.deliveryConfig && originChannel) {
+    const subject = String(details['subject'] ?? '');
+    const priority = String(details['priority'] ?? 'normal');
+    const decision = shouldDeliver(deps.deliveryConfig, fromAgent, {
+      priority,
+      subject,
+      isReply: true,
+    });
+
+    if (decision.deliver) {
+      spawnOptions = {
+        deliver: true,
+        channel: originChannel,
+        ...(originSessionKey ? { sessionKey: originSessionKey } : {}),
+      };
+      deps.logger.info(`team-reply-hook: delivery policy → deliver (${decision.reason})`);
+    } else {
+      deps.logger.info(`team-reply-hook: delivery policy → skip (${decision.reason})`);
+    }
+  }
+  // No deliveryConfig or no originChannel → no delivery (clean slate, no legacy fallback)
+
   try {
-    // Pass deliver: true so the gateway sends the PM's response to Telegram
-    // (or whichever channel the agent is bound to).
-    deps.agentRunner.spawnAgent(toAgent, message, { deliver: true, channel: 'telegram' });
+    deps.agentRunner.spawnAgent(toAgent, message, spawnOptions);
     deps.logger.info(
       `team-reply-hook: agent turn fired for "${toAgent}" ` +
-      `(reply: ${replyId}, from: ${fromAgent}, deliver: telegram)`,
+      `(reply: ${replyId}, from: ${fromAgent}` +
+      (spawnOptions ? `, deliver: ${spawnOptions.channel}` : ', no delivery') +
+      `)`,
     );
   } catch (err: unknown) {
     deps.logger.warn(`team-reply-hook: spawnAgent failed: ${String(err)}`);
@@ -294,7 +358,7 @@ export function fireAgentViaGatewayWs(
 ): void {
   const port = process.env['OPENCLAW_GATEWAY_PORT'] || '28789';
   const token = process.env['OPENCLAW_GATEWAY_TOKEN'] ?? '';
-  const sessionKey = `agent:${agentId}:main`;
+  const sessionKey = options?.sessionKey ?? `agent:${agentId}:main`;
 
   // ESM script using the SDK's GatewayClient directly (NOT callGatewayFromCli).
   // callGatewayFromCli triggers loadConfig() which causes config state changes
@@ -431,11 +495,14 @@ export function resolveAgentSessionId(
  * @param agentRunner - Optional custom runner for testing. In production,
  *   defaults to a raw WebSocket connection to the gateway that sends the
  *   `agent` method with both `agentId` and `sessionKey` for proper tool resolution.
+ * @param deliveryConfig - Optional delivery policy config. When provided,
+ *   enables dynamic channel routing and smart delivery filtering.
  */
 export function registerAutoSpawnHooks(
   api: OpenClawPluginApi,
   agents: ReadonlyArray<AgentEntry>,
   agentRunner?: AgentSpawnSink,
+  deliveryConfig?: DeliveryConfig,
 ): void {
   const runner: AgentSpawnSink = agentRunner ?? {
     spawnAgent(agentId: string, message: string, options?: AgentSpawnOptions): void {
@@ -452,6 +519,7 @@ export function registerAutoSpawnHooks(
     agents,
     logger: api.logger,
     agentRunner: runner,
+    deliveryConfig,
   };
 
   api.on('after_tool_call', (_event, _ctx) => {
