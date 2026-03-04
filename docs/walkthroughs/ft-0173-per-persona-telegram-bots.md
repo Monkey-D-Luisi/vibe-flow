@@ -53,7 +53,7 @@ Agents not in this map use the default account (PM bot).
 
 1. **`handleTeamMessageAutoSpawn`** — looks up `deliveryConfig.agentAccounts[toAgent]`, passes `accountId` in spawn options so the gateway routes the response via the correct bot
 2. **`handleTeamReplyAutoSpawn`** — same logic for reply routing
-3. **`extractChatIdFromSessionKey`** — matches any channel starting with `telegram`
+3. **`extractChatIdFromSessionKey`** — matches the `telegram` channel exactly (`parts[2] === 'telegram'`)
 4. **`fireAgentViaGatewayWs`** — passes `accountId` in the WS `agent` method params
 5. **`monitoring-cron`** — reads `TELEGRAM_BOT_TOKEN_PM` with fallback to `TELEGRAM_BOT_TOKEN`
 

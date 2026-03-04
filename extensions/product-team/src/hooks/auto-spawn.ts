@@ -44,6 +44,8 @@ export interface AgentSpawnOptions {
   to?: string;
   /** Telegram account ID within the channel (multi-bot: "tl", "designer", etc.). */
   accountId?: string;
+  /** Stable idempotency key for this spawn to prevent gateway-level double-fires. */
+  idempotencyKey?: string;
 }
 
 /** Dependencies injected into the auto-spawn hooks for testability. */
@@ -119,7 +121,7 @@ export function rebuildSessionKeyForAgent(
  *
  * Session keys for Telegram follow the pattern:
  * `agent:<id>:<channel>:group:<chatId>` or `agent:<id>:<channel>:dm:<userId>`
- * where `<channel>` is `telegram`, `telegram-tl`, `telegram-designer`, etc.
+ * where `<channel>` is `telegram`.
  *
  * Returns the chatId/userId portion, or null if the key doesn't match.
  */
@@ -129,7 +131,7 @@ export function extractChatIdFromSessionKey(sessionKey: string): string | null {
   if (
     parts.length >= 5 &&
     parts[0] === 'agent' &&
-    parts[2].startsWith('telegram') &&
+    parts[2] === 'telegram' &&
     (parts[3] === 'group' || parts[3] === 'dm')
   ) {
     // chatId is everything from index 4 onwards (may contain colons)
@@ -240,6 +242,7 @@ export function handleTeamMessageAutoSpawn(
       spawnOptions = {
         deliver: true,
         channel: originChannel,
+        idempotencyKey: `tm:${messageId}:${toAgent}`,
         ...(targetAccountId ? { accountId: targetAccountId } : {}),
         ...(originSessionKey
           ? { sessionKey: rebuildSessionKeyForAgent(originSessionKey, toAgent) }
@@ -326,6 +329,7 @@ export function handleTeamReplyAutoSpawn(
     spawnOptions = {
       deliver: true,
       channel: originChannel,
+      idempotencyKey: `tr:${replyId}:${toAgent}`,
       ...(targetAccountId ? { accountId: targetAccountId } : {}),
       // Rebuild session key for the recipient so the gateway loads the correct
       // agent config while still routing to the right Telegram chat.
@@ -443,7 +447,7 @@ export function fireAgentViaGatewayWs(
   const agentParams = JSON.stringify({
     sessionKey,
     message,
-    idempotencyKey: `auto-spawn:${agentId}:${Date.now()}`,
+    idempotencyKey: options?.idempotencyKey ?? `auto-spawn:${agentId}:${Date.now()}`,
     ...(options?.deliver ? { deliver: true, channel: options.channel, ...(options.accountId ? { accountId: options.accountId } : {}), ...(options.to ? { to: options.to } : {}) } : {}),
   });
 

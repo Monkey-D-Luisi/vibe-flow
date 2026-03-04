@@ -81,14 +81,14 @@ describe('extractChatIdFromSessionKey', () => {
       .toBe('67890');
   });
 
-  it('extracts chatId from a telegram-tl channel session key', () => {
+  it('returns null for a deprecated telegram-tl channel session key', () => {
     expect(extractChatIdFromSessionKey('agent:tech-lead:telegram-tl:group:-1005177552677'))
-      .toBe('-1005177552677');
+      .toBeNull();
   });
 
-  it('extracts userId from a telegram-designer DM session key', () => {
+  it('returns null for a deprecated telegram-designer DM session key', () => {
     expect(extractChatIdFromSessionKey('agent:designer:telegram-designer:dm:67890'))
-      .toBe('67890');
+      .toBeNull();
   });
 
   it('returns null for a main session key', () => {
@@ -326,6 +326,7 @@ describe('handleTeamMessageAutoSpawn', () => {
     expect(options).toEqual({
       deliver: true,
       channel: 'telegram',
+      idempotencyKey: 'tm:msg-bc:tech-lead',
       sessionKey: 'agent:tech-lead:telegram:group:-517123',
       to: '-517123',
     });
@@ -362,6 +363,7 @@ describe('handleTeamMessageAutoSpawn', () => {
       deliver: true,
       channel: 'telegram',
       accountId: 'tl',
+      idempotencyKey: 'tm:msg-ac:tech-lead',
       sessionKey: 'agent:tech-lead:telegram:group:-517123',
       to: '-517123',
     });
@@ -656,6 +658,7 @@ describe('handleTeamReplyAutoSpawn', () => {
     expect(options).toEqual({
       deliver: true,
       channel: 'telegram',
+      idempotencyKey: 'tr:r-dyn:pm',
       sessionKey: 'agent:pm:telegram:group:-517123',
       to: '-517123',
     });
@@ -694,6 +697,7 @@ describe('handleTeamReplyAutoSpawn', () => {
       deliver: true,
       channel: 'telegram',
       accountId: 'tl',
+      idempotencyKey: 'tr:r-channel:tech-lead',
       sessionKey: 'agent:tech-lead:telegram:group:-517123',
       to: '-517123',
     });
@@ -732,6 +736,7 @@ describe('handleTeamReplyAutoSpawn', () => {
     expect(options).toEqual({
       deliver: true,
       channel: 'telegram',
+      idempotencyKey: 'tr:r-int:pm',
     });
   });
 
