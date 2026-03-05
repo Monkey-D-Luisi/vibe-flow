@@ -36,7 +36,6 @@ Configuration lives in `openclaw.json`.
         "enabled": true,
         "config": {
           "dbPath": "./data/product-team.db",
-          "telegramChatId": "<telegram-chat-id>",
           "github": {
             "owner": "org-or-user",
             "repo": "repo-name",
@@ -95,7 +94,7 @@ Configuration lives in `openclaw.json`.
           "activeProject": "my-project",
           "delivery": {
             "default": {
-              "mode": "silent",
+              "mode": "smart",
               "broadcastKeywords": ["deploy", "release"]
             },
             "agents": {},
