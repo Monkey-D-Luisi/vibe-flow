@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0077-github-pages-landing.md`
 - Epic: Open Source Launch (standalone)
 - Branch: `feat/0077-github-pages-landing`
-- PR: TBD
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/217
 
 ---
 

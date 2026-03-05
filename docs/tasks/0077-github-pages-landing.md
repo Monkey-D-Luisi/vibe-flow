@@ -121,7 +121,7 @@ No branding assets, logos, or images exist. Everything must be CSS/SVG-generated
 - [x] Lint passes with zero errors (`pnpm lint`)
 - [x] TypeScript compiles without errors (`pnpm typecheck`)
 - [x] Walkthrough updated
-- [ ] PR created and linked
+- [x] PR created and linked
 
 ---
 
