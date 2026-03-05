@@ -1,6 +1,7 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import * as https from 'node:https';
+import { timingSafeEqual } from 'node:crypto';
 
 type ProviderStatus = {
   connected: boolean;
@@ -138,7 +139,10 @@ export function registerProviderHealthRoute(
       const secret = process.env['HEALTH_CHECK_SECRET'];
       if (secret) {
         const auth = (req.headers as Record<string, string>)['authorization'] ?? '';
-        if (auth !== `Bearer ${secret}`) {
+        const expected = `Bearer ${secret}`;
+        const authBuf = Buffer.from(auth);
+        const expectedBuf = Buffer.from(expected);
+        if (authBuf.length !== expectedBuf.length || !timingSafeEqual(authBuf, expectedBuf)) {
           writeJson(req, res, 401, { ok: false, error: 'unauthorized' });
           return;
         }

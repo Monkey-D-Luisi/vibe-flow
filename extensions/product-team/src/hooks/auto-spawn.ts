@@ -430,7 +430,6 @@ export function fireAgentViaGatewayWs(
   options?: AgentSpawnOptions,
 ): void {
   const port = process.env['OPENCLAW_GATEWAY_PORT'] || '28789';
-  const token = process.env['OPENCLAW_GATEWAY_TOKEN'] ?? '';
   const sessionKey = options?.sessionKey ?? `agent:${agentId}:main`;
 
   // ESM script using the SDK's GatewayClient directly (NOT callGatewayFromCli).
@@ -479,7 +478,7 @@ await new Promise((resolve, reject) => {
 
   const client = new GatewayClient({
     url: "ws://127.0.0.1:${port}",
-    token: ${JSON.stringify(token)},
+    token: process.env.OPENCLAW_GATEWAY_TOKEN || "",
     instanceId: randomUUID(),
     clientName: "cli",
     clientVersion: "1.0.0",
@@ -511,7 +510,13 @@ process.exit(0);
       detached: true,
       stdio: 'ignore',
       cwd: '/app',
-      env: { ...process.env, NODE_PATH: '/app/node_modules' },
+      env: {
+        PATH: process.env['PATH'] ?? '',
+        HOME: process.env['HOME'] ?? '',
+        NODE_PATH: '/app/node_modules',
+        OPENCLAW_GATEWAY_TOKEN: process.env['OPENCLAW_GATEWAY_TOKEN'] ?? '',
+        OPENCLAW_GATEWAY_PORT: process.env['OPENCLAW_GATEWAY_PORT'] ?? '',
+      },
     });
     child.unref();
   } catch (err: unknown) {
