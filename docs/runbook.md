@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Operate and troubleshoot the `@openclaw/plugin-product-team` extension safely in
+Operate and troubleshoot the `@openclaw/product-team` extension safely in
 local and CI environments.
 
 ## Prerequisites
@@ -22,6 +22,10 @@ pnpm install
 
 Configuration lives in `openclaw.json`.
 
+> **Note:** Tool names use underscore notation at runtime (e.g., `task_create`),
+> matching the registered tool names in CLAUDE.md. Dots are rewritten to
+> underscores by the OpenClaw plugin registration system.
+
 ### Plugin configuration
 
 ```json
@@ -32,6 +36,7 @@ Configuration lives in `openclaw.json`.
         "enabled": true,
         "config": {
           "dbPath": "./data/product-team.db",
+          "telegramChatId": "<telegram-chat-id>",
           "github": {
             "owner": "org-or-user",
             "repo": "repo-name",
@@ -71,6 +76,35 @@ Configuration lives in `openclaw.json`.
               "maxLeasesPerAgent": 3,
               "maxTotalLeases": 10
             }
+          },
+          "orchestrator": {
+            "maxRetriesPerStage": 1,
+            "stageTimeouts": { "dev": 1800000, "review": 600000 },
+            "skipDesignForNonUITasks": false,
+            "autoEscalateAfterRetries": true,
+            "notifyTelegramOnStageChange": false
+          },
+          "projects": [
+            {
+              "id": "my-project",
+              "name": "My Project",
+              "repo": "org/repo",
+              "workspace": "/workspaces/project"
+            }
+          ],
+          "activeProject": "my-project",
+          "delivery": {
+            "default": {
+              "mode": "silent",
+              "broadcastKeywords": ["deploy", "release"]
+            },
+            "agents": {},
+            "agentAccounts": {}
+          },
+          "decisions": {
+            "policies": {},
+            "timeoutMs": 300000,
+            "humanApprovalTimeout": 600000
           }
         }
       }
@@ -126,22 +160,48 @@ CI enforces vulnerability policy through `pnpm verify:vuln-policy`.
 
 ## Routine Operations
 
-1. Create/update tasks with `task.create`, `task.update`, `task.transition`.
-2. Capture quality evidence with `quality.coverage`, `quality.lint`,
-   `quality.complexity`, and `quality.tests`. Use `quality.gate` for an
+### Task management (EP01-EP03)
+
+1. Create/update tasks with `task_create`, `task_update`, `task_transition`.
+2. Capture quality evidence with `quality_coverage`, `quality_lint`,
+   `quality_complexity`, and `quality_tests`. Use `quality_gate` for an
    explicit quality verdict snapshot. For adaptive thresholds, call
-   `quality.gate` with `autoTune.enabled=true` and bounded safeguards
+   `quality_gate` with `autoTune.enabled=true` and bounded safeguards
    (`minSamples`, `smoothingFactor`, `maxDeltas`, `bounds`). For regression
    notifications, enable `alerts.enabled=true` and configure
    `alerts.thresholds.coverageDropPct`, `alerts.thresholds.complexityRise`, and
    optional `alerts.noise.cooldownEvents`.
-3. Use `workflow.step.run` for role outputs (`architecture_plan`,
+3. Use `workflow_step_run` for role outputs (`architecture_plan`,
    `dev_result`, `review_result`, `qa_report`) when transitions require
    structured evidence beyond quality metrics.
-4. Inspect lifecycle and events with `workflow.state.get`,
-   `workflow.events.query`.
-5. Use infra VCS tools (`vcs.branch.create`, `vcs.pr.create`,
-   `vcs.pr.update`, `vcs.label.sync`) from infra agent context.
+4. Inspect lifecycle and events with `workflow_state_get`,
+   `workflow_events_query`.
+5. Use infra VCS tools (`vcs_branch_create`, `vcs_pr_create`,
+   `vcs_pr_update`, `vcs_label_sync`) from infra agent context.
+
+### Team messaging (EP06)
+
+6. Post messages with `team_message`. Read inbox with `team_inbox`.
+   Reply to a thread with `team_reply`.
+7. Update agent status with `team_status`.
+8. Assign work to agents with `team_assign`.
+
+### Decision engine (EP07)
+
+9. Evaluate decisions with `decision_evaluate`. Log decisions with
+   `decision_log`. Tag completed task decisions with `decision_outcome`.
+
+### Multi-project management (EP08)
+
+10. List projects with `project_list`. Switch active project with
+    `project_switch`. Register new projects with `project_register`.
+
+### Pipeline intelligence (EP09)
+
+11. Start pipelines with `pipeline_start`. Check status with
+    `pipeline_status`. Retry failed steps with `pipeline_retry`.
+12. Skip a step with `pipeline_skip`. Advance to next stage with
+    `pipeline_advance`. Query metrics with `pipeline_metrics`.
 
 ## Troubleshooting
 
@@ -158,18 +218,18 @@ CI enforces vulnerability policy through `pnpm verify:vuln-policy`.
 
 ### Transition guard failures
 
-- Use `workflow.state.get` and review guard matrix + metadata requirements.
-- Run missing quality tools and re-attempt `task.transition`.
+- Use `workflow_state_get` and review guard matrix + metadata requirements.
+- Run missing quality tools and re-attempt `task_transition`.
 
 ### Budget warnings (`cost.warning` events)
 
-- Inspect `task.get` `costSummary`.
+- Inspect `task_get` `costSummary`.
 - Increase `metadata.budget.maxTokens` or `metadata.budget.maxDurationMs` via
-  `task.update` if warnings are expected for this task.
+  `task_update` if warnings are expected for this task.
 
 ### Quality regression alerts
 
-- Review `quality.gate` result `output.alerts` for emitted coverage-drop and
+- Review `quality_gate` result `output.alerts` for emitted coverage-drop and
   complexity-rise alerts.
 - Use `result.alerting.baseline` to understand comparison inputs and
   `result.alerting.suppressed` for dedupe/noise decisions.
@@ -198,8 +258,8 @@ CI enforces vulnerability policy through `pnpm verify:vuln-policy`.
 
 ## Recovery
 
-1. Query task history with `workflow.events.query` to identify last valid state.
-2. If metadata is invalid, repair with `task.update` at current revision.
+1. Query task history with `workflow_events_query` to identify last valid state.
+2. If metadata is invalid, repair with `task_update` at current revision.
 3. Re-run blocked workflow step and transition.
 4. For persistent DB corruption or migration issues, restore DB from backup and
    replay task events through automation.
