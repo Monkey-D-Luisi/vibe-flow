@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Epic | Open Source Launch (standalone) |
 | Priority | HIGH |
 | Scope | MAJOR |
@@ -68,15 +68,15 @@ No branding assets, logos, or images exist. Everything must be CSS/SVG-generated
 
 ## Acceptance Criteria
 
-- [ ] AC1: `site/index.html` opens in browser and renders all 9 sections correctly
-- [ ] AC2: 3 Mermaid diagrams render with dark theme (extension topology, task state machine, epic dependency graph)
-- [ ] AC3: Pipeline visualization shows 10 stages with agent color coding
-- [ ] AC4: 8 agent cards display with correct roles, models, and responsibilities
-- [ ] AC5: Site is mobile-responsive at 768px and 375px breakpoints
-- [ ] AC6: `deploy-pages.yml` workflow file is valid GitHub Actions syntax
-- [ ] AC7: Existing `pnpm test`, `pnpm lint`, `pnpm typecheck` pass (no regressions)
-- [ ] AC8: All CSS animations respect `prefers-reduced-motion`
-- [ ] AC9: Copy-to-clipboard works on quick start code block
+- [x] AC1: `site/index.html` opens in browser and renders all 9 sections correctly
+- [x] AC2: 3 Mermaid diagrams render with dark theme (extension topology, task state machine, epic dependency graph)
+- [x] AC3: Pipeline visualization shows 10 stages with agent color coding
+- [x] AC4: 8 agent cards display with correct roles, models, and responsibilities
+- [x] AC5: Site is mobile-responsive at 768px and 375px breakpoints
+- [x] AC6: `deploy-pages.yml` workflow file is valid GitHub Actions syntax
+- [x] AC7: Existing `pnpm test`, `pnpm lint`, `pnpm typecheck` pass (no regressions)
+- [x] AC8: All CSS animations respect `prefers-reduced-motion`
+- [x] AC9: Copy-to-clipboard works on quick start code block
 
 ---
 
@@ -116,11 +116,11 @@ No branding assets, logos, or images exist. Everything must be CSS/SVG-generated
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Regression tests passing (`pnpm test`)
-- [ ] Lint passes with zero errors (`pnpm lint`)
-- [ ] TypeScript compiles without errors (`pnpm typecheck`)
-- [ ] Walkthrough updated
+- [x] All Acceptance Criteria met
+- [x] Regression tests passing (`pnpm test`)
+- [x] Lint passes with zero errors (`pnpm lint`)
+- [x] TypeScript compiles without errors (`pnpm typecheck`)
+- [x] Walkthrough updated
 - [ ] PR created and linked
 
 ---
