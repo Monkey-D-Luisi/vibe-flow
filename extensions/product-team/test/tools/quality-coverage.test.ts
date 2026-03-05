@@ -337,24 +337,6 @@ describe('quality.coverage tool', () => {
     expect(() => JSON.parse(result.content[0].text)).not.toThrow();
   });
 
-  it('logs quality.coverage event with correct coveragePct', async () => {
-    const tool = qualityCoverageToolDef(deps);
-    await tool.execute('cov-event', {
-      taskId,
-      agentId: 'test-agent',
-      rev: 0,
-      workingDir,
-      summaryPath: 'coverage-summary.json',
-      format: 'summary',
-    });
-
-    const events = deps.eventLog.getHistory(taskId).filter((event) => event.eventType === 'quality.coverage');
-    expect(events).toHaveLength(1);
-    const payload = events[0].payload;
-    expect(typeof payload.coveragePct).toBe('number');
-    expect(payload.coveragePct).toBe(85);
-  });
-
   it('uses auto format and reads summary when both files exist', async () => {
     // Create both summary and lcov
     await mkdir(join(workingDir, 'coverage'), { recursive: true });

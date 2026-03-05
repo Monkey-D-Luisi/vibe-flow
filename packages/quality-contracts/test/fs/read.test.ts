@@ -33,6 +33,28 @@ describe('readFileSafe', () => {
     const missing = join(dir, 'does-not-exist.txt');
     await expect(readFileSafe(missing)).rejects.toThrow('NOT_FOUND');
   });
+
+  it('reads a file when root is provided and path is contained', async () => {
+    const dir = createTempDir();
+    const file = join(dir, 'safe.txt');
+    writeFileSync(file, 'safe content');
+    const result = await readFileSafe(file, dir);
+    expect(result).toBe('safe content');
+  });
+
+  it('throws PATH_TRAVERSAL when path escapes root', async () => {
+    const dir = createTempDir();
+    const escapedPath = join(dir, '..', '..', 'etc', 'passwd');
+    await expect(readFileSafe(escapedPath, dir)).rejects.toThrow('PATH_TRAVERSAL');
+  });
+
+  it('does not validate path when root is omitted', async () => {
+    const dir = createTempDir();
+    const file = join(dir, 'test.txt');
+    writeFileSync(file, 'no root check');
+    const result = await readFileSafe(file);
+    expect(result).toBe('no root check');
+  });
 });
 
 describe('readJsonFile', () => {
@@ -60,5 +82,19 @@ describe('readJsonFile', () => {
 
   it('exports MAX_JSON_FILE_BYTES constant (50 MB)', () => {
     expect(MAX_JSON_FILE_BYTES).toBe(50 * 1024 * 1024);
+  });
+
+  it('parses valid JSON when root is provided and path is contained', async () => {
+    const dir = createTempDir();
+    const file = join(dir, 'safe.json');
+    writeFileSync(file, JSON.stringify({ safe: true }));
+    const result = await readJsonFile<{ safe: boolean }>(file, dir);
+    expect(result.safe).toBe(true);
+  });
+
+  it('throws PATH_TRAVERSAL when path escapes root', async () => {
+    const dir = createTempDir();
+    const escapedPath = join(dir, '..', '..', 'etc', 'secret.json');
+    await expect(readJsonFile(escapedPath, dir)).rejects.toThrow('PATH_TRAVERSAL');
   });
 });

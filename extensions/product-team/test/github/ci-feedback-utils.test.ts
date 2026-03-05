@@ -595,6 +595,11 @@ describe('buildTaskIdCandidatesFromBranch', () => {
     // Segments filter out empty strings, so only "TASK" and "100" remain
     expect(result).toEqual(['TASK-100', 'TASK']);
   });
+
+  it('returns empty when suffix is only hyphens (all segments empty)', () => {
+    expect(buildTaskIdCandidatesFromBranch('task/---')).toEqual([]);
+    expect(buildTaskIdCandidatesFromBranch('task/-')).toEqual([]);
+  });
 });
 
 // ── readRequestBody ─────────────────────────────────────────────────────────
@@ -621,6 +626,20 @@ describe('readRequestBody', () => {
     const body = 'x'.repeat(50);
     const result = await readRequestBody(createRequest(body), 50);
     expect(result.length).toBe(50);
+  });
+
+  it('handles string chunks (non-Buffer) by converting them', async () => {
+    const readable = new Readable({
+      objectMode: true,
+      read() {
+        // Push a raw string in object mode so Buffer.isBuffer returns false
+        this.push('hello-string-chunk');
+        this.push(null);
+      },
+    });
+    const req = readable as unknown as import('node:http').IncomingMessage;
+    const result = await readRequestBody(req);
+    expect(result.toString('utf8')).toBe('hello-string-chunk');
   });
 });
 

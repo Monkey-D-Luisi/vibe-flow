@@ -21,6 +21,7 @@ describe('health-check', () => {
     delete process.env['OPENAI_API_KEY'];
     delete process.env['GOOGLE_AI_API_KEY'];
     delete process.env['TELEGRAM_BOT_TOKEN'];
+    delete process.env['HEALTH_CHECK_SECRET'];
     deps = createDeps();
   });
 
@@ -30,6 +31,7 @@ describe('health-check', () => {
     delete process.env['OPENAI_API_KEY'];
     delete process.env['GOOGLE_AI_API_KEY'];
     delete process.env['TELEGRAM_BOT_TOKEN'];
+    delete process.env['HEALTH_CHECK_SECRET'];
   });
 
   describe('getHealthStatus', () => {
@@ -164,6 +166,106 @@ describe('health-check', () => {
       handler({} as never, res as never);
 
       expect(statusCode).toBe(503);
+    });
+
+    it('returns 401 when HEALTH_CHECK_SECRET is set and no auth header provided', () => {
+      process.env['HEALTH_CHECK_SECRET'] = 'my-secret-token';
+      const handler = createHealthCheckHandler(deps);
+
+      let statusCode = 0;
+      let body = '';
+      const req = { headers: {} };
+      const res = {
+        statusCode: 0,
+        setHeader: vi.fn(),
+        end: vi.fn((data: string) => { body = data; }),
+      };
+      Object.defineProperty(res, 'statusCode', {
+        set(v: number) { statusCode = v; },
+        get() { return statusCode; },
+      });
+
+      handler(req as never, res as never);
+
+      expect(statusCode).toBe(401);
+      const parsed = JSON.parse(body);
+      expect(parsed.ok).toBe(false);
+      expect(parsed.error).toBe('unauthorized');
+    });
+
+    it('returns 401 when HEALTH_CHECK_SECRET is set and wrong token provided', () => {
+      process.env['HEALTH_CHECK_SECRET'] = 'my-secret-token';
+      const handler = createHealthCheckHandler(deps);
+
+      let statusCode = 0;
+      let body = '';
+      const req = { headers: { authorization: 'Bearer wrong-token' } };
+      const res = {
+        statusCode: 0,
+        setHeader: vi.fn(),
+        end: vi.fn((data: string) => { body = data; }),
+      };
+      Object.defineProperty(res, 'statusCode', {
+        set(v: number) { statusCode = v; },
+        get() { return statusCode; },
+      });
+
+      handler(req as never, res as never);
+
+      expect(statusCode).toBe(401);
+      const parsed = JSON.parse(body);
+      expect(parsed.ok).toBe(false);
+    });
+
+    it('returns health status when HEALTH_CHECK_SECRET is set and correct token provided', () => {
+      process.env['HEALTH_CHECK_SECRET'] = 'my-secret-token';
+      process.env['ANTHROPIC_API_KEY'] = 'test-key';
+      process.env['TELEGRAM_BOT_TOKEN'] = 'test-token';
+      const handler = createHealthCheckHandler(deps);
+
+      let statusCode = 0;
+      let body = '';
+      const req = { headers: { authorization: 'Bearer my-secret-token' } };
+      const res = {
+        statusCode: 0,
+        setHeader: vi.fn(),
+        end: vi.fn((data: string) => { body = data; }),
+      };
+      Object.defineProperty(res, 'statusCode', {
+        set(v: number) { statusCode = v; },
+        get() { return statusCode; },
+      });
+
+      handler(req as never, res as never);
+
+      expect(statusCode).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(parsed.status).toBe('ok');
+    });
+
+    it('does not require auth when HEALTH_CHECK_SECRET is not set', () => {
+      process.env['ANTHROPIC_API_KEY'] = 'test-key';
+      process.env['TELEGRAM_BOT_TOKEN'] = 'test-token';
+      const handler = createHealthCheckHandler(deps);
+
+      let statusCode = 0;
+      let body = '';
+      const req = { headers: {} };
+      const res = {
+        statusCode: 0,
+        setHeader: vi.fn(),
+        end: vi.fn((data: string) => { body = data; }),
+      };
+      Object.defineProperty(res, 'statusCode', {
+        set(v: number) { statusCode = v; },
+        get() { return statusCode; },
+      });
+
+      handler(req as never, res as never);
+
+      expect(statusCode).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(parsed.status).toBe('ok');
     });
   });
 });

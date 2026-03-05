@@ -140,31 +140,6 @@ export function extractChatIdFromSessionKey(sessionKey: string): string | null {
   return null;
 }
 
-/**
- * Build the system-directive text that instructs the LLM to spawn a target agent.
- *
- * @deprecated This directive-based approach relies on enqueueSystemEvent which
- * requires ctx.sessionKey (never populated in after_tool_call). Kept for
- * reference only; use agentRunner.spawnAgent() for actual spawning.
- */
-export function buildSpawnDirective(params: {
-  targetAgentId: string;
-  task: string;
-  reason: string;
-  priority?: 'high' | 'critical';
-}): string {
-  const { targetAgentId, task, reason, priority = 'high' } = params;
-  const safeTask = task.replace(/"/g, "'");
-  return (
-    `<system-directive priority="${priority}">\n` +
-    `${reason}\n` +
-    `You MUST now call the sessions_spawn tool to spawn agent "${targetAgentId}".\n` +
-    `Use: sessions_spawn({ agentId: "${targetAgentId}", task: "${safeTask}", mode: "run" })\n` +
-    `The spawned agent auto-replies on completion. Do NOT use team_message; do NOT skip this step.\n` +
-    `</system-directive>`
-  );
-}
-
 // ── Hook: team_message ──────────────────────────────────────────────────────
 
 /**

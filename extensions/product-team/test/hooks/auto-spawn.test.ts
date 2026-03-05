@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   extractDetails,
-  buildSpawnDirective,
   handleTeamMessageAutoSpawn,
   handleTeamReplyAutoSpawn,
   handleDecisionEscalationAutoSpawn,
@@ -131,44 +130,6 @@ describe('extractDetails', () => {
     const result = { details: 'string-value' };
     // Falls through to return the outer object
     expect(extractDetails(result)).toEqual(result);
-  });
-});
-
-// ── buildSpawnDirective ─────────────────────────────────────────────────────
-
-describe('buildSpawnDirective', () => {
-  it('builds a directive with default priority', () => {
-    const directive = buildSpawnDirective({
-      targetAgentId: 'tech-lead',
-      task: 'Review the code',
-      reason: 'Escalation required',
-    });
-    expect(directive).toContain('<system-directive priority="high">');
-    expect(directive).toContain('sessions_spawn');
-    expect(directive).toContain('"tech-lead"');
-    expect(directive).toContain('Review the code');
-    expect(directive).toContain('Escalation required');
-    expect(directive).toContain('</system-directive>');
-  });
-
-  it('uses critical priority when specified', () => {
-    const directive = buildSpawnDirective({
-      targetAgentId: 'pm',
-      task: 'Urgent review',
-      reason: 'Critical decision',
-      priority: 'critical',
-    });
-    expect(directive).toContain('<system-directive priority="critical">');
-  });
-
-  it('escapes double quotes in task', () => {
-    const directive = buildSpawnDirective({
-      targetAgentId: 'tech-lead',
-      task: 'Review "important" changes',
-      reason: 'Test',
-    });
-    expect(directive).toContain("Review 'important' changes");
-    expect(directive).not.toContain('Review "important" changes');
   });
 });
 

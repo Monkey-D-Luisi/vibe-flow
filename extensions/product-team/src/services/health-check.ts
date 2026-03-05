@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { timingSafeEqual } from 'node:crypto';
 
 export type HealthStatus = 'ok' | 'degraded' | 'down';
 
@@ -79,7 +80,22 @@ function computeStatus(checks: HealthCheckResult['checks']): HealthStatus {
 export function createHealthCheckHandler(
   deps: HealthCheckDeps,
 ): (req: IncomingMessage, res: ServerResponse) => void {
-  return (_req, res) => {
+  return (req, res) => {
+    // Optional bearer-token auth: if HEALTH_CHECK_SECRET is set, enforce it.
+    const secret = process.env['HEALTH_CHECK_SECRET'];
+    if (secret) {
+      const auth = (req.headers as Record<string, string>)['authorization'] ?? '';
+      const expected = `Bearer ${secret}`;
+      const authBuf = Buffer.from(auth);
+      const expectedBuf = Buffer.from(expected);
+      if (authBuf.length !== expectedBuf.length || !timingSafeEqual(authBuf, expectedBuf)) {
+        res.statusCode = 401;
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify({ ok: false, error: 'unauthorized' }));
+        return;
+      }
+    }
+
     const result = getHealthStatus(deps);
     const statusCode = result.status === 'down' ? 503 : 200;
     res.statusCode = statusCode;
