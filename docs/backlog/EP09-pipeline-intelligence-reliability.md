@@ -3,7 +3,7 @@
 | Field       | Value                                                    |
 |-------------|----------------------------------------------------------|
 | Epic        | EP09                                                     |
-| Status      | PENDING                                                  |
+| Status      | DONE                                                     |
 | Priority    | P0                                                       |
 | Phase       | 9 -- Pipeline Intelligence & Reliability                 |
 | Target      | Q2-Q3 2026                                               |
@@ -282,29 +282,29 @@ there is no mechanism for the human to approve/reject via Telegram.
 ## Task Breakdown
 
 ### Phase 9A: Pipeline Autonomy
-- Task 0062: Automatic Pipeline Stage Advancement -- PENDING (EP09, 9A)
-- Task 0063: Stage Timeout Enforcement -- PENDING (EP09, 9A)
-- Task 0064: Per-Stage Retry Limit Enforcement -- PENDING (EP09, 9A)
-- Task 0065: Conditional Design Skip for Non-UI Tasks -- PENDING (EP09, 9A)
+- Task 0062: Automatic Pipeline Stage Advancement -- DONE (EP09, 9A)
+- Task 0063: Stage Timeout Enforcement -- DONE (EP09, 9A)
+- Task 0064: Per-Stage Retry Limit Enforcement -- DONE (EP09, 9A)
+- Task 0065: Conditional Design Skip for Non-UI Tasks -- DONE (EP09, 9A)
 
 ### Phase 9B: Spawn Reliability
-- Task 0066: Spawn Retry Queue with Dead-Letter Alerting -- PENDING (EP09, 9B)
-- Task 0067: Spawn Abstraction Layer (decouple from SDK internals) -- PENDING (EP09, 9B)
+- Task 0066: Spawn Retry Queue with Dead-Letter Alerting -- DONE (EP09, 9B)
+- Task 0067: Spawn Abstraction Layer (decouple from SDK internals) -- DONE (EP09, 9B)
 
 ### Phase 9C: Decision Engine Maturity
-- Task 0068: Fix Circuit Breaker Per-Agent Tracking -- PENDING (EP09, 9C)
-- Task 0069: Enforce Decision Timeouts -- PENDING (EP09, 9C)
-- Task 0070: Enforce Blocker maxRetries Policy -- PENDING (EP09, 9C)
-- Task 0071: Decision Outcome Tracking and Feedback Loop -- PENDING (EP09, 9C)
+- Task 0068: Fix Circuit Breaker Per-Agent Tracking -- DONE (EP09, 9C)
+- Task 0069: Enforce Decision Timeouts -- DONE (EP09, 9C)
+- Task 0070: Enforce Blocker maxRetries Policy -- DONE (EP09, 9C)
+- Task 0071: Decision Outcome Tracking and Feedback Loop -- DONE (EP09, 9C)
 
 ### Phase 9D: Observability & Metrics
-- Task 0072: Per-Stage Metrics Collection -- PENDING (EP09, 9D)
-- Task 0073: Pipeline State Indexing (DB column + migration) -- PENDING (EP09, 9D)
-- Task 0074: Structured Stage Transition Events -- PENDING (EP09, 9D)
+- Task 0072: Per-Stage Metrics Collection -- DONE (EP09, 9D)
+- Task 0073: Pipeline State Indexing (DB column + migration) -- DONE (EP09, 9D)
+- Task 0074: Structured Stage Transition Events -- DONE (EP09, 9D)
 
 ### Phase 9E: Telegram Experience
-- Task 0075: Per-Persona Bot Expansion (8 bots) -- PENDING (EP09, 9E)
-- Task 0076: Telegram Decision Approval Commands -- PENDING (EP09, 9E)
+- Task 0075: Per-Persona Bot Expansion (8 bots) -- DONE (EP09, 9E)
+- Task 0076: Telegram Decision Approval Commands -- DONE (EP09, 9E)
 
 ## Dependency Graph
 

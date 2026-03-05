@@ -34,10 +34,13 @@ This document lists every registered tool from
 | `team.assign` | pm, tech-lead | Assign work to a specific agent |
 | `decision.evaluate` | all agents | Evaluate a decision (auto/escalate/pause/retry) |
 | `decision.log` | tech-lead, pm | Query decision audit records |
+| `decision.outcome` | pm, tech-lead | Tag decisions for a completed task with outcome |
 | `pipeline.start` | pm | Start the roadmap-to-release pipeline |
 | `pipeline.status` | pm, tech-lead, devops | Get pipeline status and step results |
 | `pipeline.retry` | tech-lead | Retry a failed pipeline step |
 | `pipeline.skip` | tech-lead | Skip a pipeline step with justification |
+| `pipeline.advance` | pm, tech-lead | Advance a pipeline to its next stage |
+| `pipeline.metrics` | pm, tech-lead, po | Get pipeline stage timing and throughput metrics |
 
 ## Task Tools
 
@@ -643,16 +646,23 @@ This document lists every registered tool from
 
 ### `decision.evaluate`
 
-- Parameters: `category` (`technical` | `scope` | `quality` | `conflict` | `budget` | `blocker`), `question`, `options[]`, optional `recommendation`, `reasoning`, `taskRef`
-- Returns: `{ decisionId, decision, escalated, approver, reasoning }`
+- Parameters: `category` (`technical` | `scope` | `quality` | `conflict` | `budget` | `blocker`), `question`, `options[]`, optional `recommendation`, `reasoning`, `taskRef`, `agentId`
+- Returns: `{ decisionId, decision, escalated, approver, reasoning, escalationMessageId?, nextAction? }`
 - Behavior: looks up policy for the category. Policies: `auto` (decide immediately), `escalate` (forward to target agent), `pause` (wait for human), `retry` (retry with max retries before escalating)
 - Side effect: when `escalated: true`, triggers auto-spawn hook for approver agent
-- Circuit breaker: max 5 decisions per agent per task
+- Circuit breaker: max 5 decisions per agent per task (tracked per-agent via `agent-id-injection` hook; falls back to `'calling-agent'` if hook unavailable)
+- `agentId` is automatically injected by the `agent-id-injection` before_tool_call hook — callers do not need to provide it
 
 ### `decision.log`
 
 - Parameters: optional `taskRef`, `category`, `agentId`
 - Returns: `{ decisions[] }`
+
+### `decision.outcome`
+
+- Parameters: `taskRef` (string), `outcome` (`success` | `overridden` | `failed`)
+- Returns: `{ taskRef, outcome, taggedCount }`
+- Tags all untagged decisions for a completed task with the given outcome, enabling decision quality analysis
 
 ## Pipeline Tools
 
@@ -676,3 +686,17 @@ This document lists every registered tool from
 
 - Parameters: `taskId`, `stage`, `justification`
 - Returns: `{ skipped, stage, justification }`
+
+### `pipeline.advance`
+
+- Parameters: `taskId`, optional `skipDesign` (boolean)
+- Returns: `{ advanced, fromStage, toStage, taskId }`
+- Advances a pipeline task to its next stage (IDEA → ROADMAP → REFINEMENT → ... → SHIPPED)
+- Enforces per-stage retry limits, emits structured stage transition events
+- Conditional design skip: if `skipDesign=true` or config `skipDesignForNonUITasks=true` with non-UI task type, DESIGN stage is auto-skipped
+
+### `pipeline.metrics`
+
+- Parameters: optional `taskId`
+- Returns: `{ stages: Record<string, { count, avgDurationMs, minMs, maxMs }>, totalPipelines }`
+- Aggregates per-stage timing metrics from pipeline metadata across all tasks or a specific task

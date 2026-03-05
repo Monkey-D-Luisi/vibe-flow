@@ -22,7 +22,7 @@ flowchart TD
 
 ```
 OpenClaw Gateway (port 28789)
-  -> product-team plugin (31 tools, 5 hooks, SQLite persistence)
+  -> product-team plugin (34 tools, 6 hooks, SQLite persistence)
       -> Task lifecycle tools (task.*)
       -> Workflow tools (workflow.*)
       -> Quality tools (quality.*)
@@ -49,7 +49,7 @@ Local/CI Shell
 
 | Area | product-team | quality-gate | model-router | telegram-notifier | stitch-bridge |
 |---|---|---|---|---|---|
-| OpenClaw runtime tools | 31 tools | No (CLI only) | No | No | 4 tools (design.*) |
+| OpenClaw runtime tools | 34 tools | No (CLI only) | No | No | 4 tools (design.*) |
 | Task metadata writes | Yes | No | No | No | No |
 | Transition guard support | Yes | No | No | No | No |
 | Standalone quality CLI | No | Yes | No | No | No |

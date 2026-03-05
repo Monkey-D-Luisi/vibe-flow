@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | EP09 -- Pipeline Intelligence & Reliability |
 | Priority | HIGH |
 | Scope | MINOR |

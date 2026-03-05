@@ -306,8 +306,8 @@
             "task_transition", "workflow_events_query",
             "project_list", "project_switch",
             "team_assign", "team_status", "team_message", "team_inbox", "team_reply",
-            "pipeline_start", "pipeline_status",
-            "decision_evaluate", "decision_log",
+            "pipeline_start", "pipeline_status", "pipeline_advance", "pipeline_metrics",
+            "decision_evaluate", "decision_log", "decision_outcome",
             "sessions_spawn"
           ]
         }
@@ -330,8 +330,8 @@
             "workflow_events_query", "quality_gate",
             "team_assign", "team_status", "team_message", "team_inbox", "team_reply",
             "project_list", "project_switch",
-            "pipeline_status", "pipeline_retry", "pipeline_skip",
-            "decision_evaluate", "decision_log",
+            "pipeline_status", "pipeline_retry", "pipeline_skip", "pipeline_advance", "pipeline_metrics",
+            "decision_evaluate", "decision_log", "decision_outcome",
             "sessions_spawn"
           ]
         }
@@ -348,7 +348,7 @@
             "task_create", "task_get", "task_search", "task_update",
             "task_transition", "workflow_step_run", "workflow_state_get",
             "team_message", "team_inbox", "team_reply", "team_status",
-            "decision_evaluate", "decision_log"
+            "decision_evaluate", "decision_log", "decision_outcome"
           ]
         }
       },
