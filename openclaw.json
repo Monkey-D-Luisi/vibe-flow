@@ -59,6 +59,7 @@
         "workspace": "~/.openclaw/workspaces/product-team/pm",
         "tools": {
           "allow": [
+            "group:fs", "group:runtime",
             "task_create",
             "task_get",
             "task_search",
@@ -73,6 +74,7 @@
         "workspace": "~/.openclaw/workspaces/product-team/architect",
         "tools": {
           "allow": [
+            "group:fs", "group:runtime",
             "task_get",
             "task_update",
             "task_transition",
@@ -86,6 +88,7 @@
         "workspace": "~/.openclaw/workspaces/product-team/dev",
         "tools": {
           "allow": [
+            "group:fs", "group:runtime",
             "task_get",
             "task_update",
             "task_transition",
@@ -105,6 +108,7 @@
         "workspace": "~/.openclaw/workspaces/product-team/qa",
         "tools": {
           "allow": [
+            "group:fs", "group:runtime",
             "task_get",
             "task_update",
             "task_transition",
@@ -121,6 +125,7 @@
         "workspace": "~/.openclaw/workspaces/product-team/reviewer",
         "tools": {
           "allow": [
+            "group:fs", "group:runtime",
             "task_get",
             "task_update",
             "task_transition"
@@ -133,6 +138,7 @@
         "workspace": "~/.openclaw/workspaces/product-team/infra",
         "tools": {
           "allow": [
+            "group:fs", "group:runtime",
             "vcs_branch_create",
             "vcs_pr_create",
             "vcs_pr_update",

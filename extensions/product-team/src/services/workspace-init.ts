@@ -106,12 +106,12 @@ export async function initializeWorkspaces(
         logger.info(`workspace-init: cloned ${id} successfully`);
       }
     } else {
-      logger.info(`workspace-init: fetching origin for ${id} at ${workspace}`);
-      const result = await runGit(['fetch', 'origin'], workspace);
+      logger.info(`workspace-init: pulling latest for ${id} at ${workspace}`);
+      const result = await runGit(['pull', 'origin', 'main'], workspace);
       if (result.exitCode !== 0) {
-        logger.warn(`workspace-init: fetch failed for ${id} (exit ${result.exitCode}): ${result.stderr.trim()}`);
+        logger.warn(`workspace-init: pull failed for ${id} (exit ${result.exitCode}): ${result.stderr.trim()}`);
       } else {
-        logger.info(`workspace-init: fetched ${id} successfully`);
+        logger.info(`workspace-init: pulled ${id} successfully`);
       }
     }
   }

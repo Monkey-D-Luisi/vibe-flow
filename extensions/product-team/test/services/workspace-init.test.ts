@@ -80,7 +80,7 @@ describe('initializeWorkspaces', () => {
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('cloned'));
   });
 
-  it('fetches origin when workspace already exists', async () => {
+  it('pulls latest when workspace already exists', async () => {
     mockAccess.mockResolvedValueOnce(undefined);
     mockSpawn.mockImplementationOnce(() => makeFakeProcess(0));
 
@@ -89,8 +89,8 @@ describe('initializeWorkspaces', () => {
 
     const [cmd, args] = mockSpawn.mock.calls[0]!;
     expect(cmd).toBe('git');
-    expect(args).toEqual(['fetch', 'origin']);
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('fetch'));
+    expect(args).toEqual(['pull', 'origin', 'main']);
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('pull'));
   });
 
   it('logs a warning when clone fails', async () => {
@@ -103,14 +103,14 @@ describe('initializeWorkspaces', () => {
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('clone failed'));
   });
 
-  it('logs a warning when fetch fails', async () => {
+  it('logs a warning when pull fails', async () => {
     mockAccess.mockResolvedValueOnce(undefined);
     mockSpawn.mockImplementationOnce(() => makeFakeProcess(1, 'fatal: could not read Username'));
 
     const logger = makeLogger();
     await initializeWorkspaces(makeProjectConfig(), logger);
 
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('fetch failed'));
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('pull failed'));
   });
 
   it('skips projects with missing repo', async () => {

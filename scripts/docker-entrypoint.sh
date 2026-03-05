@@ -67,6 +67,25 @@ if [ -n "$GITHUB_TOKEN" ]; then
   git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 fi
 
+# Authenticate gh CLI with GITHUB_TOKEN
+if [ -n "$GITHUB_TOKEN" ]; then
+  echo "$GITHUB_TOKEN" | gh auth login --with-token 2>/dev/null
+  echo "[entrypoint] gh CLI authenticated"
+fi
+
+# Create /workspaces/active symlink to default project workspace
+if [ ! -e /workspaces/active ]; then
+  ACTIVE_WS="/workspaces/vibe-flow"
+  if [ -d "$ACTIVE_WS" ]; then
+    ln -sf "$ACTIVE_WS" /workspaces/active
+    echo "[entrypoint] Created /workspaces/active -> $ACTIVE_WS"
+  else
+    mkdir -p /workspaces
+    ln -sf "$ACTIVE_WS" /workspaces/active
+    echo "[entrypoint] Created dangling /workspaces/active -> $ACTIVE_WS (will resolve after workspace-init clone)"
+  fi
+fi
+
 # Check for auth credentials and warn if missing
 AUTH_FILE="/root/.openclaw/agents/main/agent/auth-profiles.json"
 if [ ! -f "$AUTH_FILE" ]; then
