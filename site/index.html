@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>vibe-flow — Autonomous AI Product Team</title>
+  <meta name="description" content="An open-source autonomous product team of 8 AI agents built on OpenClaw. From idea to merged PR with zero human bottlenecks.">
+  <meta property="og:title" content="vibe-flow — Autonomous AI Product Team">
+  <meta property="og:description" content="8 AI agents collaborate to take product ideas from concept to merged PR. Open source, MIT licensed.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://monkey-d-luisi.github.io/vibe-flow/">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== HERO ===== -->
+  <header class="hero" id="hero">
+    <div class="hero-bg-blob hero-bg-blob--1"></div>
+    <div class="hero-bg-blob hero-bg-blob--2"></div>
+    <div class="container hero-content">
+      <div class="hero-logo" aria-label="vibe-flow logo">
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" class="hero-logo-svg">
+          <polygon points="60,6 108,33 108,87 60,114 12,87 12,33" fill="none" stroke="var(--accent-primary)" stroke-width="2.5" opacity="0.3"/>
+          <polygon points="60,20 94,40 94,80 60,100 26,80 26,40" fill="none" stroke="var(--accent-primary)" stroke-width="2" opacity="0.5"/>
+          <polygon points="60,34 80,47 80,73 60,86 40,73 40,47" fill="var(--accent-primary)" fill-opacity="0.1" stroke="var(--accent-primary)" stroke-width="1.5"/>
+          <text x="60" y="68" text-anchor="middle" fill="var(--accent-primary)" font-family="system-ui,sans-serif" font-size="22" font-weight="700">VF</text>
+        </svg>
+      </div>
+
+      <h1 class="hero-title">
+        8 AI Agents. One Product Team.<br>
+        <span class="hero-highlight">Zero Human Bottlenecks.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        An open-source autonomous product team that takes ideas from concept to merged PR.
+        Built on <strong>OpenClaw</strong>.
+      </p>
+
+      <div class="hero-ctas">
+        <a href="https://github.com/Monkey-D-Luisi/vibe-flow" class="btn btn-primary" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+        <a href="#quickstart" class="btn btn-secondary">Quick Start</a>
+      </div>
+
+      <div class="hero-badges">
+        <span class="badge">MIT License</span>
+        <span class="badge">TypeScript</span>
+        <span class="badge">9 Epics Shipped</span>
+        <span class="badge">119+ Tasks Completed</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== PIPELINE ===== -->
+  <section class="section" id="pipeline">
+    <div class="container">
+      <h2 class="section-title fade-up">From Idea to Merged PR &mdash; Autonomously</h2>
+      <p class="section-subtitle fade-up">The full pipeline runs without human intervention. Each stage is owned by a specialized agent.</p>
+
+      <div class="pipeline fade-up">
+        <div class="pipeline-track">
+          <div class="pipeline-node" style="--node-color: var(--accent-primary)">
+            <div class="pipeline-icon">💡</div>
+            <div class="pipeline-label">Idea</div>
+            <div class="pipeline-agent">Human</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-node" style="--node-color: var(--agent-pm)">
+            <div class="pipeline-icon">🗺️</div>
+            <div class="pipeline-label">Roadmap</div>
+            <div class="pipeline-agent">PM</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-node" style="--node-color: var(--agent-po)">
+            <div class="pipeline-icon">📋</div>
+            <div class="pipeline-label">Refinement</div>
+            <div class="pipeline-agent">PO</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-node" style="--node-color: var(--agent-techlead)">
+            <div class="pipeline-icon">🔧</div>
+            <div class="pipeline-label">Decomposition</div>
+            <div class="pipeline-agent">Tech Lead</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-node" style="--node-color: var(--agent-designer)">
+            <div class="pipeline-icon">🎨</div>
+            <div class="pipeline-label">Design</div>
+            <div class="pipeline-agent">Designer</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-node" style="--node-color: var(--agent-backend)">
+            <div class="pipeline-icon">⚡</div>
+            <div class="pipeline-label">Implementation</div>
+            <div class="pipeline-agent">Devs</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-node" style="--node-color: var(--agent-qa)">
+            <div class="pipeline-icon">🧪</div>
+            <div class="pipeline-label">QA</div>
+            <div class="pipeline-agent">QA</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-node" style="--node-color: var(--agent-techlead)">
+            <div class="pipeline-icon">👁️</div>
+            <div class="pipeline-label">Review</div>
+            <div class="pipeline-agent">Tech Lead</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-node" style="--node-color: var(--agent-devops)">
+            <div class="pipeline-icon">🚀</div>
+            <div class="pipeline-label">Shipping</div>
+            <div class="pipeline-agent">DevOps</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-node" style="--node-color: var(--accent-emerald)">
+            <div class="pipeline-icon">✅</div>
+            <div class="pipeline-label">Done</div>
+            <div class="pipeline-agent">Merged</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="pipeline-narrative fade-up">
+        A human posts an idea in Telegram. The <strong>PM</strong> creates a roadmap item and breaks it into epics.
+        The <strong>PO</strong> refines each epic into user stories with acceptance criteria.
+        The <strong>Tech Lead</strong> decomposes stories into technical tasks and assigns them.
+        The <strong>Designer</strong> creates mockups via Google Stitch.
+        <strong>Backend and Frontend Devs</strong> implement in parallel with TDD.
+        <strong>QA</strong> validates with automated test suites.
+        The <strong>Tech Lead</strong> reviews the code.
+        <strong>DevOps</strong> ships the PR and manages CI.
+        All status updates broadcast to the Telegram group in real time.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===== AGENT TEAM ===== -->
+  <section class="section section--alt" id="team">
+    <div class="container">
+      <h2 class="section-title fade-up">Meet the Team</h2>
+      <p class="section-subtitle fade-up">8 specialized AI agents, each with its own model, skill set, and domain expertise.</p>
+
+      <div class="agent-grid fade-up">
+        <!-- PM -->
+        <div class="agent-card" style="--agent-color: var(--agent-pm)">
+          <div class="agent-avatar">
+            <svg viewBox="0 0 80 80" aria-hidden="true">
+              <circle cx="40" cy="40" r="36" fill="var(--agent-color)" opacity="0.12"/>
+              <circle cx="40" cy="40" r="26" fill="var(--agent-color)" opacity="0.25"/>
+              <text x="40" y="47" text-anchor="middle" fill="var(--agent-color)" font-size="22" font-weight="700" font-family="system-ui,sans-serif">PM</text>
+            </svg>
+          </div>
+          <h3 class="agent-role">Product Manager</h3>
+          <span class="agent-model">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>
+            GPT-5.3
+          </span>
+          <p class="agent-desc">Roadmap definition, feature prioritization, stakeholder communications</p>
+        </div>
+        <!-- Tech Lead -->
+        <div class="agent-card" style="--agent-color: var(--agent-techlead)">
+          <div class="agent-avatar">
+            <svg viewBox="0 0 80 80" aria-hidden="true">
+              <circle cx="40" cy="40" r="36" fill="var(--agent-color)" opacity="0.12"/>
+              <circle cx="40" cy="40" r="26" fill="var(--agent-color)" opacity="0.25"/>
+              <text x="40" y="47" text-anchor="middle" fill="var(--agent-color)" font-size="22" font-weight="700" font-family="system-ui,sans-serif">TL</text>
+            </svg>
+          </div>
+          <h3 class="agent-role">Tech Lead</h3>
+          <span class="agent-model">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12,2 22,20 2,20"/></svg>
+            Opus 4.6
+          </span>
+          <p class="agent-desc">Task decomposition, architecture decisions, code review final say</p>
+        </div>
+        <!-- PO -->
+        <div class="agent-card" style="--agent-color: var(--agent-po)">
+          <div class="agent-avatar">
+            <svg viewBox="0 0 80 80" aria-hidden="true">
+              <circle cx="40" cy="40" r="36" fill="var(--agent-color)" opacity="0.12"/>
+              <circle cx="40" cy="40" r="26" fill="var(--agent-color)" opacity="0.25"/>
+              <text x="40" y="47" text-anchor="middle" fill="var(--agent-color)" font-size="22" font-weight="700" font-family="system-ui,sans-serif">PO</text>
+            </svg>
+          </div>
+          <h3 class="agent-role">Product Owner</h3>
+          <span class="agent-model">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>
+            GPT-4.1
+          </span>
+          <p class="agent-desc">User story refinement, acceptance criteria, scope negotiation</p>
+        </div>
+        <!-- Designer -->
+        <div class="agent-card" style="--agent-color: var(--agent-designer)">
+          <div class="agent-avatar">
+            <svg viewBox="0 0 80 80" aria-hidden="true">
+              <circle cx="40" cy="40" r="36" fill="var(--agent-color)" opacity="0.12"/>
+              <circle cx="40" cy="40" r="26" fill="var(--agent-color)" opacity="0.25"/>
+              <text x="40" y="47" text-anchor="middle" fill="var(--agent-color)" font-size="22" font-weight="700" font-family="system-ui,sans-serif">DS</text>
+            </svg>
+          </div>
+          <h3 class="agent-role">UI/UX Designer</h3>
+          <span class="agent-model">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="#4285f4"/><circle cx="18" cy="6" r="4" fill="#ea4335"/><circle cx="6" cy="18" r="4" fill="#34a853"/><circle cx="18" cy="18" r="4" fill="#fbbc05"/></svg>
+            Gemini 3 Pro
+          </span>
+          <p class="agent-desc">Stitch designs, design system, component specs, responsive layouts</p>
+        </div>
+        <!-- Backend -->
+        <div class="agent-card" style="--agent-color: var(--agent-backend)">
+          <div class="agent-avatar">
+            <svg viewBox="0 0 80 80" aria-hidden="true">
+              <circle cx="40" cy="40" r="36" fill="var(--agent-color)" opacity="0.12"/>
+              <circle cx="40" cy="40" r="26" fill="var(--agent-color)" opacity="0.25"/>
+              <text x="40" y="47" text-anchor="middle" fill="var(--agent-color)" font-size="22" font-weight="700" font-family="system-ui,sans-serif">BE</text>
+            </svg>
+          </div>
+          <h3 class="agent-role">Backend Dev</h3>
+          <span class="agent-model">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12,2 22,20 2,20"/></svg>
+            Sonnet 4.6
+          </span>
+          <p class="agent-desc">API implementation, database design, server-side logic</p>
+        </div>
+        <!-- Frontend -->
+        <div class="agent-card" style="--agent-color: var(--agent-frontend)">
+          <div class="agent-avatar">
+            <svg viewBox="0 0 80 80" aria-hidden="true">
+              <circle cx="40" cy="40" r="36" fill="var(--agent-color)" opacity="0.12"/>
+              <circle cx="40" cy="40" r="26" fill="var(--agent-color)" opacity="0.25"/>
+              <text x="40" y="47" text-anchor="middle" fill="var(--agent-color)" font-size="22" font-weight="700" font-family="system-ui,sans-serif">FE</text>
+            </svg>
+          </div>
+          <h3 class="agent-role">Frontend Dev</h3>
+          <span class="agent-model">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12,2 22,20 2,20"/></svg>
+            Sonnet 4.6
+          </span>
+          <p class="agent-desc">React/Next.js components, state management, Stitch-to-code</p>
+        </div>
+        <!-- QA -->
+        <div class="agent-card" style="--agent-color: var(--agent-qa)">
+          <div class="agent-avatar">
+            <svg viewBox="0 0 80 80" aria-hidden="true">
+              <circle cx="40" cy="40" r="36" fill="var(--agent-color)" opacity="0.12"/>
+              <circle cx="40" cy="40" r="26" fill="var(--agent-color)" opacity="0.25"/>
+              <text x="40" y="47" text-anchor="middle" fill="var(--agent-color)" font-size="22" font-weight="700" font-family="system-ui,sans-serif">QA</text>
+            </svg>
+          </div>
+          <h3 class="agent-role">QA Engineer</h3>
+          <span class="agent-model">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12,2 22,20 2,20"/></svg>
+            Sonnet 4.6
+          </span>
+          <p class="agent-desc">Test plans, test execution, regression suites, quality reports</p>
+        </div>
+        <!-- DevOps -->
+        <div class="agent-card" style="--agent-color: var(--agent-devops)">
+          <div class="agent-avatar">
+            <svg viewBox="0 0 80 80" aria-hidden="true">
+              <circle cx="40" cy="40" r="36" fill="var(--agent-color)" opacity="0.12"/>
+              <circle cx="40" cy="40" r="26" fill="var(--agent-color)" opacity="0.25"/>
+              <text x="40" y="47" text-anchor="middle" fill="var(--agent-color)" font-size="22" font-weight="700" font-family="system-ui,sans-serif">DO</text>
+            </svg>
+          </div>
+          <h3 class="agent-role">DevOps Engineer</h3>
+          <span class="agent-model">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12,2 22,20 2,20"/></svg>
+            Sonnet 4.6
+          </span>
+          <p class="agent-desc">CI/CD, GitHub automation, deployment, infrastructure as code</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== EXTENSIONS ===== -->
+  <section class="section" id="extensions">
+    <div class="container">
+      <h2 class="section-title fade-up">Modular Extension Architecture</h2>
+      <p class="section-subtitle fade-up">5 extensions compose the system. Each is a self-contained OpenClaw plugin with its own tools and responsibilities.</p>
+
+      <div class="extension-grid fade-up">
+        <div class="extension-card">
+          <div class="extension-icon">
+            <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="4" width="32" height="32" rx="6" fill="var(--accent-primary)" opacity="0.15" stroke="var(--accent-primary)" stroke-width="1.5"/><text x="20" y="26" text-anchor="middle" fill="var(--accent-primary)" font-size="16" font-weight="700" font-family="system-ui,sans-serif">PT</text></svg>
+          </div>
+          <h3>product-team</h3>
+          <span class="extension-badge">34+ tools</span>
+          <p>The core engine. Task lifecycle, workflow execution, quality gates, VCS automation, team messaging, decision engine, and pipeline orchestrator.</p>
+        </div>
+        <div class="extension-card">
+          <div class="extension-icon">
+            <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="4" width="32" height="32" rx="6" fill="var(--accent-emerald)" opacity="0.15" stroke="var(--accent-emerald)" stroke-width="1.5"/><text x="20" y="26" text-anchor="middle" fill="var(--accent-emerald)" font-size="16" font-weight="700" font-family="system-ui,sans-serif">QG</text></svg>
+          </div>
+          <h3>quality-gate</h3>
+          <span class="extension-badge">CLI</span>
+          <p>Standalone quality enforcement. Tests, coverage, lint, complexity -- all without task-engine state. CLI-first for local and CI pipelines.</p>
+        </div>
+        <div class="extension-card">
+          <div class="extension-icon">
+            <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="4" width="32" height="32" rx="6" fill="var(--accent-cyan)" opacity="0.15" stroke="var(--accent-cyan)" stroke-width="1.5"/><text x="20" y="26" text-anchor="middle" fill="var(--accent-cyan)" font-size="16" font-weight="700" font-family="system-ui,sans-serif">MR</text></svg>
+          </div>
+          <h3>model-router</h3>
+          <span class="extension-badge">Hook</span>
+          <p>Per-agent model routing. Each agent gets the right LLM: GPT-5.3 for strategy, Opus 4.6 for architecture, Sonnet 4.6 for code.</p>
+        </div>
+        <div class="extension-card">
+          <div class="extension-icon">
+            <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="4" width="32" height="32" rx="6" fill="var(--accent-amber)" opacity="0.15" stroke="var(--accent-amber)" stroke-width="1.5"/><text x="20" y="26" text-anchor="middle" fill="var(--accent-amber)" font-size="16" font-weight="700" font-family="system-ui,sans-serif">TN</text></svg>
+          </div>
+          <h3>telegram-notifier</h3>
+          <span class="extension-badge">Bridge</span>
+          <p>Human oversight via Telegram. Real-time updates on task transitions, PR links, quality gates, and decision escalations. Observe or intervene.</p>
+        </div>
+        <div class="extension-card">
+          <div class="extension-icon">
+            <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="4" width="32" height="32" rx="6" fill="var(--accent-secondary)" opacity="0.15" stroke="var(--accent-secondary)" stroke-width="1.5"/><text x="20" y="26" text-anchor="middle" fill="var(--accent-secondary)" font-size="16" font-weight="700" font-family="system-ui,sans-serif">SB</text></svg>
+          </div>
+          <h3>stitch-bridge</h3>
+          <span class="extension-badge">MCP</span>
+          <p>Google Stitch MCP integration. The designer agent creates visual mockups before coding begins. Design-driven development pipeline.</p>
+        </div>
+      </div>
+
+      <div class="mermaid-container fade-up">
+        <h3 class="diagram-title">Extension Topology</h3>
+        <pre class="mermaid">
+flowchart TD
+  OC[OpenClaw Gateway] --> PT["product-team plugin"]
+  OC --> MR["model-router hook"]
+  OC --> TN["telegram-notifier"]
+  OC --> SB["stitch-bridge"]
+  PT --> T1["task.*"]
+  PT --> T2["workflow.*"]
+  PT --> T3["quality.*"]
+  PT --> T4["vcs.*"]
+  PT --> T5["team.* / decision.* / pipeline.* / project.*"]
+  PT --> DB[("SQLite DB + event log")]
+  SB --> Stitch["Google Stitch MCP"]
+  CI["Local/CI shell"] --> QG["quality-gate CLI"]
+        </pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FEATURES ===== -->
+  <section class="section section--alt" id="features">
+    <div class="container">
+      <h2 class="section-title fade-up">Built for Production</h2>
+      <p class="section-subtitle fade-up">Not a prototype. Battle-tested through 9 epics, 6 audits, and 119+ autonomous tasks.</p>
+
+      <div class="features-grid fade-up">
+        <div class="feature-tile">
+          <div class="feature-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" aria-hidden="true"><polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5"/></svg></div>
+          <h3>Hexagonal Architecture</h3>
+          <p>5-layer domain model with ports and adapters. Clean boundaries between tools, domain, persistence, and orchestration.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M4.22 4.22l2.83 2.83m9.9 9.9l2.83 2.83M1 12h4m14 0h4M4.22 19.78l2.83-2.83m9.9-9.9l2.83-2.83"/></svg></div>
+          <h3>State Machine with Guards</h3>
+          <p>Transition guards enforce evidence: architecture plan, dev metrics, review result, QA report. No shortcuts.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-emerald)" stroke-width="2" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg></div>
+          <h3>SQLite Persistence</h3>
+          <p>Event-sourced task records with append-only log, lease-based ownership, and WAL mode for concurrency.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-rose)" stroke-width="2" aria-hidden="true"><path d="M9 12l2 2 4-4"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg></div>
+          <h3>Quality Gates</h3>
+          <p>Tests, coverage (&ge;80%), lint (zero errors), complexity (&le;5.0), vulnerability scanning. Enforced at every transition.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3"/><circle cx="12" cy="12" r="5"/></svg></div>
+          <h3>Decision Engine</h3>
+          <p>6 decision categories with configurable policies: auto-resolve, escalate to tech lead, pause for human, retry with backoff.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-secondary)" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+          <h3>Inter-Agent Messaging</h3>
+          <p>Direct agent-to-agent communication with auto-spawn, event logging, and Telegram forwarding for urgent messages.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg></div>
+          <h3>GitHub Automation</h3>
+          <p>Idempotent branch creation, PR management, label sync, CI webhook feedback. All via gh CLI wrapper.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" aria-hidden="true"><path d="M22 12H2M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg></div>
+          <h3>Docker Deployment</h3>
+          <p>Single-container deployment with persistent volumes, health checks, and multi-project workspace support.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-emerald)" stroke-width="2" aria-hidden="true"><path d="M16 3h5v5M8 3H3v5M16 21h5v-5M8 21H3v-5"/><circle cx="12" cy="12" r="4"/></svg></div>
+          <h3>Multi-Model Routing</h3>
+          <p>3 providers (OpenAI, Anthropic, Google), per-agent primary + fallback chains, provider health monitoring.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-rose)" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+          <h3>Pipeline Orchestration</h3>
+          <p>10-stage pipeline with automatic advancement, stage timeouts, retry limits, and dead-letter alerting.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
+          <h3>14 Role Skills</h3>
+          <p>Markdown prompt libraries for every role: from requirements grooming to TDD implementation. Schema-validated outputs.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-secondary)" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <h3>CI/CD Integrated</h3>
+          <p>4 GitHub Actions workflows: CI, quality gate PR comments, npm publish with provenance, project board sync.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ARCHITECTURE ===== -->
+  <section class="section" id="architecture">
+    <div class="container">
+      <h2 class="section-title fade-up">How It Works</h2>
+      <p class="section-subtitle fade-up">Task lifecycle state machine with evidence-gated transitions. Every step leaves an audit trail.</p>
+
+      <div class="diagrams-row">
+        <div class="mermaid-container fade-up">
+          <h3 class="diagram-title">Task State Machine</h3>
+          <pre class="mermaid">
+stateDiagram-v2
+  backlog --> grooming
+  grooming --> design
+  grooming --> in_progress : fast-track (minor)
+  design --> in_progress : requires architecture_plan
+  in_progress --> in_review : requires dev_result
+  in_review --> qa : requires review_result
+  in_review --> in_progress : rejection loop
+  qa --> done : requires qa_report
+  qa --> in_progress : rework loop
+          </pre>
+        </div>
+        <div class="mermaid-container fade-up">
+          <h3 class="diagram-title">Epic Dependency Graph</h3>
+          <pre class="mermaid">
+graph TD
+  EP01["EP01: OpenClaw Foundation"]
+  EP02["EP02: Task Engine"]
+  EP03["EP03: Role Execution"] --> EP02
+  EP04["EP04: GitHub Integration"] --> EP02
+  EP05["EP05: Quality &amp; Observability"] --> EP02
+  EP05 --> EP03
+  EP06["EP06: Hardening"] --> EP03
+  EP06 --> EP04
+  AR01["AR01: Audit Remediation"] --> EP06
+  EP07["EP07: DX &amp; Platform Ops"] --> AR01
+  EP08["EP08: Autonomous Product Team"] --> EP07
+  EP09["EP09: Pipeline Intelligence"] --> EP08
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== STATS ===== -->
+  <section class="section section--alt" id="stats">
+    <div class="container">
+      <div class="stats-row fade-up">
+        <div class="stat">
+          <span class="stat-number" data-target="119">0</span>
+          <span class="stat-suffix">+</span>
+          <span class="stat-label">Tasks Completed</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number" data-target="9">0</span>
+          <span class="stat-label">Epics Shipped</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number" data-target="34">0</span>
+          <span class="stat-suffix">+</span>
+          <span class="stat-label">Registered Tools</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number" data-target="14">0</span>
+          <span class="stat-label">Role Skills</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number" data-target="6">0</span>
+          <span class="stat-label">Security Audits</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number" data-target="8">0</span>
+          <span class="stat-label">AI Agents</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== QUICKSTART ===== -->
+  <section class="section" id="quickstart">
+    <div class="container">
+      <h2 class="section-title fade-up">Get Started in 60 Seconds</h2>
+
+      <div class="prereqs fade-up">
+        <span class="badge badge--outline">Node.js 22+</span>
+        <span class="badge badge--outline">pnpm</span>
+        <span class="badge badge--outline">OpenClaw</span>
+      </div>
+
+      <div class="code-block fade-up">
+        <div class="code-header">
+          <span class="code-dots"><span></span><span></span><span></span></span>
+          <span class="code-title">Terminal</span>
+          <button class="code-copy" data-copy="clone" aria-label="Copy to clipboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+        </div>
+        <pre class="code-content" id="clone"><code><span class="code-comment"># Clone the repository</span>
+git clone https://github.com/Monkey-D-Luisi/vibe-flow.git
+cd vibe-flow
+
+<span class="code-comment"># Install dependencies</span>
+pnpm install
+
+<span class="code-comment"># Run tests</span>
+pnpm test
+
+<span class="code-comment"># Run quality gates</span>
+pnpm q:gate --source artifacts --scope minor</code></pre>
+      </div>
+
+      <div class="code-block fade-up">
+        <div class="code-header">
+          <span class="code-dots"><span></span><span></span><span></span></span>
+          <span class="code-title">Docker</span>
+          <button class="code-copy" data-copy="docker" aria-label="Copy to clipboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+        </div>
+        <pre class="code-content" id="docker"><code><span class="code-comment"># Run the full 8-agent team in Docker</span>
+docker compose --profile production up -d
+
+<span class="code-comment"># Gateway available at http://localhost:28789</span></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div class="footer-brand">
+        <svg viewBox="0 0 80 80" width="32" height="32" aria-hidden="true">
+          <polygon points="40,4 72,22 72,58 40,76 8,58 8,22" fill="none" stroke="var(--accent-primary)" stroke-width="2"/>
+          <text x="40" y="47" text-anchor="middle" fill="var(--accent-primary)" font-family="system-ui,sans-serif" font-size="18" font-weight="700">VF</text>
+        </svg>
+        <span class="footer-name">vibe-flow</span>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/Monkey-D-Luisi/vibe-flow" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/Monkey-D-Luisi/vibe-flow/tree/main/docs" target="_blank" rel="noopener">Documentation</a>
+        <a href="https://github.com/Monkey-D-Luisi/vibe-flow/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+        <a href="https://openclaw.ai" target="_blank" rel="noopener">OpenClaw</a>
+      </div>
+      <p class="footer-copy">&copy; 2024 Monkey-D-Luisi. Built with <a href="https://openclaw.ai" target="_blank" rel="noopener">OpenClaw</a>.</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

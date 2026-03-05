@@ -382,6 +382,10 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - Task 0075: Per-Persona Bot Expansion -- DONE (EP09, 9E)
 - Task 0076: Telegram Decision Approval Commands -- DONE (EP09, 9E)
 
+### Open Source Launch
+
+- [Task 0077: GitHub Pages Landing Page](tasks/0077-github-pages-landing.md) -- IN_PROGRESS
+
 ### Architecture & Operations
 - [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)
 - [Transition Guard Evidence](transition-guard-evidence.md)

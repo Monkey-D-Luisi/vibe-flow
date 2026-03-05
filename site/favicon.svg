@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <polygon points="50,3 93,28 93,72 50,97 7,72 7,28"
+           fill="#0b0f1a" stroke="#6366f1" stroke-width="4"/>
+  <polygon points="50,18 78,35 78,65 50,82 22,65 22,35"
+           fill="none" stroke="#6366f1" stroke-width="2" opacity="0.5"/>
+  <text x="50" y="58" text-anchor="middle" fill="#6366f1"
+        font-family="system-ui,sans-serif" font-size="28" font-weight="700">VF</text>
+</svg>
