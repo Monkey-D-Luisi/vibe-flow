@@ -7,6 +7,7 @@
   "scripts": {
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/**/*.ts --no-cache",
     "typecheck": "tsc --noEmit"
   },
   "exports": {
@@ -86,7 +87,10 @@
   "devDependencies": {
     "@types/node": "^22.5.4",
     "@types/picomatch": "^3.0.2",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^8.57.1",
     "vitest": "^4.0.18"
   }
 }

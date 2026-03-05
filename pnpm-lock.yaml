@@ -118,24 +118,6 @@ importers:
       '@openclaw/quality-contracts':
         specifier: workspace:*
         version: link:../../packages/quality-contracts
-      ajv:
-        specifier: 8.18.0
-        version: 8.18.0
-      ajv-formats:
-        specifier: ^3.0.1
-        version: 3.0.1(ajv@8.18.0)
-      fast-glob:
-        specifier: ^3.3.2
-        version: 3.3.3
-      picomatch:
-        specifier: 2.3.1
-        version: 2.3.1
-      ts-morph:
-        specifier: ^23.0.0
-        version: 23.0.0
-      typhonjs-escomplex:
-        specifier: ^0.1.0
-        version: 0.1.0
     devDependencies:
       '@types/node':
         specifier: ^22.5.4
@@ -150,7 +132,7 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(vitest@3.2.4(@types/node@22.18.9)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.8.2))
       eslint:
-        specifier: ^8.57.0
+        specifier: ^8.57.1
         version: 8.57.1
       tsx:
         specifier: ^4.16.0
@@ -233,9 +215,18 @@ importers:
       '@types/picomatch':
         specifier: ^3.0.2
         version: 3.0.2
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^6.21.0
+        version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^6.21.0
+        version: 6.21.0(eslint@8.57.1)(typescript@5.9.3)
       '@vitest/coverage-v8':
         specifier: ^4.0.18
         version: 4.0.18(vitest@4.0.18(@types/node@22.18.9)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.8.2))
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@22.18.9)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.8.2)
