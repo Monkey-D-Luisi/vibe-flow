@@ -18,7 +18,7 @@ function getConfig(api: OpenClawPluginApi): StitchConfig {
     endpoint: String(cfg?.['endpoint'] ?? 'https://stitch.googleapis.com/mcp'),
     defaultProjectId: String(cfg?.['defaultProjectId'] ?? ''),
     defaultModel: String(cfg?.['defaultModel'] ?? 'GEMINI_3_PRO'),
-    timeoutMs: Number(cfg?.['timeoutMs'] ?? 60000),
+    timeoutMs: Number(cfg?.['timeoutMs'] ?? 120000),
     designDir: String(cfg?.['designDir'] ?? '.stitch-html'),
   };
 }
@@ -38,14 +38,62 @@ function sanitizeScreenName(raw: string): string {
   return name;
 }
 
-/** Extract html string from Stitch result, throwing if absent or wrong type. */
-function extractHtml(result: unknown): string {
+/** Navigate a nested Stitch response to find the first screen's resource name. */
+function findScreenResourceName(result: unknown): string | undefined {
   const obj = result as Record<string, unknown>;
-  const html = obj?.['html'];
-  if (typeof html !== 'string' || !html) {
-    throw new Error('Stitch MCP response missing html field');
+  const components = obj?.['outputComponents'];
+  if (!Array.isArray(components)) return undefined;
+  for (const comp of components) {
+    const design = (comp as Record<string, unknown>)?.['design'] as Record<string, unknown> | undefined;
+    const screens = design?.['screens'];
+    if (!Array.isArray(screens)) continue;
+    for (const screen of screens) {
+      const name = (screen as Record<string, unknown>)?.['name'];
+      if (typeof name === 'string' && name) return name;
+    }
   }
-  return html;
+  return undefined;
+}
+
+/** Navigate a nested Stitch response to find the first screen's htmlCode downloadUrl. */
+function findHtmlDownloadUrl(result: unknown): string | undefined {
+  const obj = result as Record<string, unknown>;
+  const components = obj?.['outputComponents'];
+  if (!Array.isArray(components)) return undefined;
+  for (const comp of components) {
+    const design = (comp as Record<string, unknown>)?.['design'] as Record<string, unknown> | undefined;
+    const screens = design?.['screens'];
+    if (!Array.isArray(screens)) continue;
+    for (const screen of screens) {
+      const htmlCode = (screen as Record<string, unknown>)?.['htmlCode'] as Record<string, unknown> | undefined;
+      const url = htmlCode?.['downloadUrl'];
+      if (typeof url === 'string' && url) return url;
+    }
+  }
+  return undefined;
+}
+
+/** Extract html string from Stitch result, fetching from downloadUrl if needed. */
+async function extractHtml(result: unknown): Promise<string> {
+  const obj = result as Record<string, unknown>;
+
+  // Direct html field (legacy / mock format)
+  const directHtml = obj?.['html'];
+  if (typeof directHtml === 'string' && directHtml) return directHtml;
+
+  // Stitch MCP format: outputComponents[].design.screens[].htmlCode.downloadUrl
+  const downloadUrl = findHtmlDownloadUrl(result);
+  if (downloadUrl) {
+    const resp = await fetch(downloadUrl);
+    if (!resp.ok) {
+      throw new Error(`Failed to download HTML from Stitch: ${resp.status}`);
+    }
+    const html = await resp.text();
+    if (!html) throw new Error('Stitch HTML download returned empty content');
+    return html;
+  }
+
+  throw new Error(`Stitch MCP response missing html field. Keys: ${Object.keys(obj ?? {}).join(', ')}`);
 }
 
 /** Validate workspace is an absolute path with no traversal segments. */
@@ -99,7 +147,7 @@ export default {
           modelId,
         });
 
-        const html = extractHtml(result);
+        const html = await extractHtml(result);
         const workspace = validateWorkspace(String(params['workspace'] ?? '/workspaces/active'));
         const dir = await ensureDesignDir(workspace, config.designDir);
         const filePath = join(dir, `${screenName}.html`);
@@ -107,8 +155,11 @@ export default {
 
         logger.info(`stitch-bridge: Generated design for "${screenName}" → ${filePath}`);
 
+        // Extract screenId from Stitch response (resource name path or direct field or fallback)
+        const screenId = findScreenResourceName(result)
+          ?? String((result as Record<string, unknown>)?.['screenId'] ?? screenName);
         const output = {
-          screenId: String((result as Record<string, unknown>)?.['screenId'] ?? screenName),
+          screenId,
           html,
           savedTo: filePath,
         };
@@ -146,7 +197,7 @@ export default {
           prompt: editPrompt,
         });
 
-        const html = extractHtml(result);
+        const html = await extractHtml(result);
         const workspace = validateWorkspace(String(params['workspace'] ?? '/workspaces/active'));
         const dir = await ensureDesignDir(workspace, config.designDir);
         const filePath = join(dir, `${screenName}.html`);
