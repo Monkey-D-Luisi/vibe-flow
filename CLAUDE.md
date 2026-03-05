@@ -37,6 +37,8 @@ Monorepo of extensions, skills, and quality tooling for [OpenClaw](https://openc
 - `skills/ui-designer/` - UI design workflow skill
 - `packages/quality-contracts/` - Shared parsers, gate policy, complexity analysis, and validation contracts
 
+> **Note:** `skills/` directories are Markdown-only prompt libraries (each containing a `SKILL.md`). They are intentionally excluded from `pnpm-workspace.yaml` since they have no package.json or build artifacts.
+
 ## Commands
 
 | Command | Action |
@@ -125,6 +127,8 @@ pnpm q:complexity
 | `qgate_gate` | Evaluate quality gate policy |
 
 > **Note:** `qgate_*` and `quality_*` tools serve different purposes. `quality_*` tools integrate with the task lifecycle. `qgate_*` tools are stateless and work without a task context. Both extensions can be loaded simultaneously — the `qgate_*` namespace prevents tool name collisions.
+>
+> **Complexity tool comparison:** `quality_complexity` uses AST-based analysis (ts-morph) and produces higher, more accurate scores. `qgate_complexity` uses regex heuristics and produces lower, faster-to-compute scores. Results from the two tools are not directly comparable.
 
 ## Conventions
 
