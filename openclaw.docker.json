@@ -309,7 +309,7 @@
             "team_assign", "team_status", "team_message", "team_inbox", "team_reply",
             "pipeline_start", "pipeline_status", "pipeline_advance", "pipeline_metrics",
             "decision_evaluate", "decision_log", "decision_outcome",
-            "sessions_spawn"
+            "group:sessions"
           ]
         }
       },
@@ -334,7 +334,7 @@
             "project_list", "project_switch",
             "pipeline_status", "pipeline_retry", "pipeline_skip", "pipeline_advance", "pipeline_metrics",
             "decision_evaluate", "decision_log", "decision_outcome",
-            "sessions_spawn"
+            "group:sessions"
           ]
         }
       },
