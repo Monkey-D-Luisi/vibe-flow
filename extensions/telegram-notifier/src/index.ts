@@ -153,6 +153,131 @@ export default {
       },
     });
 
+    // EP09 Task 0076: Decision approval commands from Telegram
+    api.registerCommand({
+      name: 'approve',
+      description: 'Approve a pending escalated decision',
+      acceptsArgs: true,
+      handler: async (ctx) => {
+        const args = String(ctx.args ?? '').trim();
+        const parts = args.split(/\s+/);
+        const decisionId = parts[0] ?? '';
+        const choice = parts[1] ?? '';
+
+        if (!decisionId || !choice) {
+          return { text: 'Usage: /approve <decisionId> <optionId>\n\nExample: /approve DEC\\_001 option\\-a' };
+        }
+
+        try {
+          const db = (api as unknown as Record<string, unknown>)['_sharedDb'];
+          if (!db || typeof db !== 'object') {
+            return { text: '⚠️ Decision database not available from this context\\.' };
+          }
+
+          const dbAny = db as { prepare: (sql: string) => { get: (...args: unknown[]) => unknown; run: (...args: unknown[]) => unknown } };
+
+          const row = dbAny.prepare(
+            'SELECT id, escalated, approver, decision FROM agent_decisions WHERE id = ?',
+          ).get(decisionId) as { id: string; escalated: number; approver: string | null; decision: string | null } | undefined;
+
+          if (!row) {
+            return { text: `❌ Decision \`${escapeMarkdownV2(decisionId)}\` not found\\.` };
+          }
+
+          if (row.decision !== null) {
+            return { text: `ℹ️ Decision \`${escapeMarkdownV2(decisionId)}\` already resolved: \`${escapeMarkdownV2(row.decision)}\`\\.` };
+          }
+
+          dbAny.prepare(
+            'UPDATE agent_decisions SET decision = ?, reasoning = COALESCE(reasoning, \'\') || ? WHERE id = ?',
+          ).run(choice, ` [Approved via Telegram by human]`, decisionId);
+
+          return { text: `✅ Decision \`${escapeMarkdownV2(decisionId)}\` approved with choice \`${escapeMarkdownV2(choice)}\`\\.` };
+        } catch (err: unknown) {
+          logger.warn(`telegram-notifier: /approve failed: ${String(err)}`);
+          return { text: `⚠️ Failed to process approval: ${escapeMarkdownV2(String(err))}` };
+        }
+      },
+    });
+
+    api.registerCommand({
+      name: 'reject',
+      description: 'Reject a pending escalated decision and re-escalate',
+      acceptsArgs: true,
+      handler: async (ctx) => {
+        const args = String(ctx.args ?? '').trim();
+        const parts = args.split(/\s+/);
+        const decisionId = parts[0] ?? '';
+        const reason = parts.slice(1).join(' ') || 'Rejected via Telegram';
+
+        if (!decisionId) {
+          return { text: 'Usage: /reject <decisionId> \\[reason\\]' };
+        }
+
+        try {
+          const db = (api as unknown as Record<string, unknown>)['_sharedDb'];
+          if (!db || typeof db !== 'object') {
+            return { text: '⚠️ Decision database not available from this context\\.' };
+          }
+
+          const dbAny = db as { prepare: (sql: string) => { get: (...args: unknown[]) => unknown; run: (...args: unknown[]) => unknown } };
+
+          const row = dbAny.prepare(
+            'SELECT id, decision FROM agent_decisions WHERE id = ?',
+          ).get(decisionId) as { id: string; decision: string | null } | undefined;
+
+          if (!row) {
+            return { text: `❌ Decision \`${escapeMarkdownV2(decisionId)}\` not found\\.` };
+          }
+
+          if (row.decision !== null) {
+            return { text: `ℹ️ Decision \`${escapeMarkdownV2(decisionId)}\` already resolved\\.` };
+          }
+
+          dbAny.prepare(
+            'UPDATE agent_decisions SET approver = \'tech-lead\', reasoning = COALESCE(reasoning, \'\') || ? WHERE id = ?',
+          ).run(` [Rejected via Telegram: ${reason}]`, decisionId);
+
+          return { text: `🔄 Decision \`${escapeMarkdownV2(decisionId)}\` rejected and re\\-escalated to tech\\-lead\\.` };
+        } catch (err: unknown) {
+          logger.warn(`telegram-notifier: /reject failed: ${String(err)}`);
+          return { text: `⚠️ Failed to process rejection: ${escapeMarkdownV2(String(err))}` };
+        }
+      },
+    });
+
+    api.registerCommand({
+      name: 'decisions',
+      description: 'List pending decisions awaiting human approval',
+      handler: async () => {
+        try {
+          const db = (api as unknown as Record<string, unknown>)['_sharedDb'];
+          if (!db || typeof db !== 'object') {
+            return { text: '⚠️ Decision database not available from this context\\.' };
+          }
+
+          const dbAny = db as { prepare: (sql: string) => { all: () => unknown[] } };
+
+          const rows = dbAny.prepare(
+            'SELECT id, category, question, approver, created_at FROM agent_decisions WHERE decision IS NULL AND escalated = 1 ORDER BY created_at DESC LIMIT 10',
+          ).all() as Array<{ id: string; category: string; question: string; approver: string | null; created_at: string }>;
+
+          if (rows.length === 0) {
+            return { text: '✅ No pending decisions\\.' };
+          }
+
+          const lines = rows.map((r) =>
+            `• \`${escapeMarkdownV2(r.id)}\` \\[${escapeMarkdownV2(r.category)}\\] ${escapeMarkdownV2(r.question.slice(0, 60))} → ${escapeMarkdownV2(r.approver ?? 'unknown')}`,
+          );
+
+          return { text: `📋 *Pending decisions \\(${rows.length}\\):*\n\n${lines.join('\n')}` };
+        } catch (err: unknown) {
+          logger.warn(`telegram-notifier: /decisions failed: ${String(err)}`);
+          return { text: `⚠️ Could not list decisions: ${escapeMarkdownV2(String(err))}` };
+        }
+      },
+    });
+
     // ── Background Message Queue Service ──
 
     api.registerService({

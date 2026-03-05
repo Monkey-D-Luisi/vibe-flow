@@ -25,7 +25,7 @@ allow-lists and a decision engine with escalation policies.
 | 6     | AR01 | Audit Remediation Program       | EP06         | Q1 2026      | DONE |
 | 7     | EP07 | DX & Platform Ops               | AR01         | Q2 2026      | DONE    |
 | 8     | EP08 | Autonomous Product Team         | EP07         | Q2 2026      | DONE    |
-| 9     | EP09 | Pipeline Intelligence & Reliability | EP08     | Q2-Q3 2026   | PENDING |
+| 9     | EP09 | Pipeline Intelligence & Reliability | EP08     | Q2-Q3 2026   | DONE    |
 
 ---
 
@@ -354,33 +354,33 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 ### Phase 9A: Pipeline Autonomy
 
-- Task 0062: Automatic Pipeline Stage Advancement -- PENDING (EP09, 9A)
-- Task 0063: Stage Timeout Enforcement -- PENDING (EP09, 9A)
-- Task 0064: Per-Stage Retry Limit Enforcement -- PENDING (EP09, 9A)
-- Task 0065: Conditional Design Skip for Non-UI Tasks -- PENDING (EP09, 9A)
+- Task 0062: Automatic Pipeline Stage Advancement -- DONE (EP09, 9A)
+- Task 0063: Stage Timeout Enforcement -- DONE (EP09, 9A)
+- Task 0064: Per-Stage Retry Limit Enforcement -- DONE (EP09, 9A)
+- Task 0065: Conditional Design Skip for Non-UI Tasks -- DONE (EP09, 9A)
 
 ### Phase 9B: Spawn Reliability
 
-- Task 0066: Spawn Retry Queue with Dead-Letter Alerting -- PENDING (EP09, 9B)
-- Task 0067: Spawn Abstraction Layer -- PENDING (EP09, 9B)
+- Task 0066: Spawn Retry Queue with Dead-Letter Alerting -- DONE (EP09, 9B)
+- Task 0067: Spawn Abstraction Layer -- DONE (EP09, 9B)
 
 ### Phase 9C: Decision Engine Maturity
 
-- Task 0068: Fix Circuit Breaker Per-Agent Tracking -- PENDING (EP09, 9C)
-- Task 0069: Enforce Decision Timeouts -- PENDING (EP09, 9C)
-- Task 0070: Enforce Blocker maxRetries Policy -- PENDING (EP09, 9C)
-- Task 0071: Decision Outcome Tracking and Feedback Loop -- PENDING (EP09, 9C)
+- [Task 0068: Fix Circuit Breaker Per-Agent Tracking](tasks/0068-fix-circuit-breaker-agent-tracking.md) -- DONE (EP09, 9C)
+- Task 0069: Enforce Decision Timeouts -- DONE (EP09, 9C)
+- Task 0070: Enforce Blocker maxRetries Policy -- DONE (EP09, 9C)
+- Task 0071: Decision Outcome Tracking and Feedback Loop -- DONE (EP09, 9C)
 
 ### Phase 9D: Observability & Metrics
 
-- Task 0072: Per-Stage Metrics Collection -- PENDING (EP09, 9D)
-- Task 0073: Pipeline State Indexing -- PENDING (EP09, 9D)
-- Task 0074: Structured Stage Transition Events -- PENDING (EP09, 9D)
+- Task 0072: Per-Stage Metrics Collection -- DONE (EP09, 9D)
+- Task 0073: Pipeline State Indexing -- DONE (EP09, 9D)
+- Task 0074: Structured Stage Transition Events -- DONE (EP09, 9D)
 
 ### Phase 9E: Telegram Experience
 
-- Task 0075: Per-Persona Bot Expansion -- PENDING (EP09, 9E)
-- Task 0076: Telegram Decision Approval Commands -- PENDING (EP09, 9E)
+- Task 0075: Per-Persona Bot Expansion -- DONE (EP09, 9E)
+- Task 0076: Telegram Decision Approval Commands -- DONE (EP09, 9E)
 
 ### Architecture & Operations
 - [ADR-001: Migrate from MCP to OpenClaw](adr/ADR-001-migrate-from-mcp-to-openclaw.md)

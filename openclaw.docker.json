@@ -181,7 +181,12 @@
             },
             "agentAccounts": {
               "tech-lead": "tl",
-              "designer":  "designer"
+              "designer":  "designer",
+              "po":        "po",
+              "back-1":    "backend",
+              "front-1":   "frontend",
+              "qa":        "qa",
+              "devops":    "devops"
             }
           }
         }
