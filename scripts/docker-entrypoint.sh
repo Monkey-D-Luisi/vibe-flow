@@ -74,16 +74,18 @@ if [ -n "$GITHUB_TOKEN" ]; then
 fi
 
 # Create /workspaces/active symlink to default project workspace
-if [ ! -e /workspaces/active ]; then
-  ACTIVE_WS="/workspaces/vibe-flow"
-  if [ -d "$ACTIVE_WS" ]; then
-    ln -sf "$ACTIVE_WS" /workspaces/active
-    echo "[entrypoint] Created /workspaces/active -> $ACTIVE_WS"
-  else
-    mkdir -p /workspaces
-    ln -sf "$ACTIVE_WS" /workspaces/active
-    echo "[entrypoint] Created dangling /workspaces/active -> $ACTIVE_WS (will resolve after workspace-init clone)"
-  fi
+# If a stale directory exists from a previous run, replace it with a symlink.
+ACTIVE_WS="/workspaces/vibe-flow"
+if [ -L /workspaces/active ]; then
+  : # already a symlink — leave it
+elif [ -d /workspaces/active ]; then
+  rm -rf /workspaces/active
+  ln -sf "$ACTIVE_WS" /workspaces/active
+  echo "[entrypoint] Replaced stale /workspaces/active directory with symlink -> $ACTIVE_WS"
+else
+  mkdir -p /workspaces
+  ln -sf "$ACTIVE_WS" /workspaces/active
+  echo "[entrypoint] Created /workspaces/active -> $ACTIVE_WS"
 fi
 
 # Check for auth credentials and warn if missing
