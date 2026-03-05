@@ -132,23 +132,28 @@ describe('sweepDecisionTimeouts', () => {
     expect(sweepDecisionTimeouts(deps)).toBe(0);
   });
 
-  it('does not double-escalate on successive sweeps', () => {
+  it('stops re-escalating after 2 timeout rounds (marks as timed_out)', () => {
     const oldTime = new Date(Date.now() - 5000).toISOString();
     db.prepare(`
       INSERT INTO agent_decisions (id, task_ref, agent_id, category, question, options, decision, reasoning, escalated, approver, created_at)
       VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 1, ?, ?)
     `).run('d4', 'task-4', 'back-1', 'scope', 'Q?', '[]', 'Escalated', 'tech-lead', oldTime);
 
-    // First sweep escalates to pm
+    // First sweep escalates to pm (adds 1 TIMEOUT marker)
     expect(sweepDecisionTimeouts(deps)).toBe(1);
 
-    // Second sweep: the approver is now pm, the created_at is old, so it may
-    // re-escalate again (pm → pm), but there is no infinite loop because
-    // pm is the final escalation target for agent timeouts.
-    // The decision still has decision IS NULL, but this is expected —
-    // pm needs to act. The sweep correctly re-fires.
-    const secondCount = sweepDecisionTimeouts(deps);
-    // pm re-escalates to pm (it's already at pm level) — this is fine
-    expect(secondCount).toBe(1);
+    // Second sweep re-escalates pm → pm (adds 2nd TIMEOUT marker)
+    expect(sweepDecisionTimeouts(deps)).toBe(1);
+
+    // Third sweep: 2 TIMEOUT markers already present → marks decision as timed_out
+    expect(sweepDecisionTimeouts(deps)).toBe(1);
+
+    // Decision should now have decision = 'timed_out'
+    const row = db.prepare('SELECT decision, reasoning FROM agent_decisions WHERE id = ?').get('d4') as { decision: string | null; reasoning: string };
+    expect(row.decision).toBe('timed_out');
+    expect(row.reasoning).toContain('max escalation rounds reached');
+
+    // Fourth sweep: decision IS NOT NULL, so it's no longer picked up
+    expect(sweepDecisionTimeouts(deps)).toBe(0);
   });
 });

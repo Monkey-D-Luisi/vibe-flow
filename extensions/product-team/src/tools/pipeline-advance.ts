@@ -102,10 +102,11 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
       }
 
       // Task 0065: Conditional design skip for non-UI tasks
+      let designSkipReason: string | null = null;
       const skipDesignConfig = deps.orchestratorConfig?.skipDesignForNonUITasks ?? false;
       const isNonUITask = meta.taskType === 'backend' || meta.taskType === 'infra' || meta.taskType === 'devops';
       if (targetStage === 'DESIGN' && (input.skipDesign || (skipDesignConfig && isNonUITask))) {
-        const skipReason = input.skipDesign
+        designSkipReason = input.skipDesign
           ? 'Explicitly skipped by caller'
           : 'Auto-skipped: non-UI task (skipDesignForNonUITasks=true)';
 
@@ -114,7 +115,7 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
         if (afterDesign) {
           emitStageEvent(deps, input.taskId, 'pipeline.stage.skipped', {
             stage: 'DESIGN',
-            reason: skipReason,
+            reason: designSkipReason,
           });
           targetStage = afterDesign;
         }
@@ -149,9 +150,9 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
       };
 
       // If design was skipped, record it
-      if (targetStage !== getNextStage(currentStage)) {
+      if (designSkipReason) {
         updatedMeta['DESIGN_skipped'] = true;
-        updatedMeta['DESIGN_skipReason'] = 'Auto-skipped: non-UI task';
+        updatedMeta['DESIGN_skipReason'] = designSkipReason;
       }
 
       deps.taskRepo.update(input.taskId, { metadata: updatedMeta }, task.rev, now);

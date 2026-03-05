@@ -62,6 +62,7 @@ interface PendingDecision {
   category: string;
   question: string;
   approver: string;
+  reasoning: string | null;
   created_at: string;
 }
 
@@ -82,7 +83,7 @@ export function sweepDecisionTimeouts(deps: DecisionTimeoutDeps): number {
   let rows: PendingDecision[];
   try {
     rows = deps.db.prepare(`
-      SELECT id, task_ref, category, question, approver, created_at
+      SELECT id, task_ref, category, question, approver, reasoning, created_at
       FROM agent_decisions
       WHERE escalated = 1 AND decision IS NULL AND approver IS NOT NULL
     `).all() as PendingDecision[];
@@ -102,6 +103,20 @@ export function sweepDecisionTimeouts(deps: DecisionTimeoutDeps): number {
     const elapsed = now - createdAt;
 
     if (elapsed < timeoutMs) continue;
+
+    // Guard against infinite re-escalation: if reasoning already contains two
+    // TIMEOUT markers, mark the decision as timed_out and stop re-escalating.
+    const timeoutMarkerCount = (row.reasoning ?? '').split('[TIMEOUT:').length - 1;
+    if (timeoutMarkerCount >= 2) {
+      deps.db.prepare(`
+        UPDATE agent_decisions
+        SET decision = 'timed_out', reasoning = reasoning || ' [TIMEOUT: max escalation rounds reached]'
+        WHERE id = ?
+      `).run(row.id);
+      deps.logger.info(`decision-timeout: Decision ${row.id} reached max escalation rounds, marking as timed_out`);
+      escalatedCount++;
+      continue;
+    }
 
     // This decision has timed out — re-escalate
     const newApprover = isHuman ? 'tech-lead' : 'pm';
