@@ -125,4 +125,34 @@ describe('design_generate tool', () => {
       getTool('design_generate')!('call-4', { screenName: 'err', description: 'Test' }),
     ).rejects.toThrow('Stitch MCP returned 503');
   });
+
+  it('rejects relative workspace paths to prevent path traversal', async () => {
+    vi.mocked(callStitchMcp).mockResolvedValue({ html: '<p/>', screenId: 's1' });
+
+    const { api, getTool } = makeApi();
+    plugin.register(api as never);
+
+    await expect(
+      getTool('design_generate')!('call-5', {
+        screenName: 'evil',
+        description: 'test',
+        workspace: '../../../../tmp',
+      }),
+    ).rejects.toThrow('Invalid workspace: must be an absolute path');
+  });
+
+  it('rejects workspace paths containing traversal segments', async () => {
+    vi.mocked(callStitchMcp).mockResolvedValue({ html: '<p/>', screenId: 's1' });
+
+    const { api, getTool } = makeApi();
+    plugin.register(api as never);
+
+    await expect(
+      getTool('design_generate')!('call-6', {
+        screenName: 'evil',
+        description: 'test',
+        workspace: '/workspaces/active/../../etc',
+      }),
+    ).rejects.toThrow('Invalid workspace: path traversal detected');
+  });
 });

@@ -1,6 +1,6 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { readFile, writeFile, mkdir, readdir, stat } from 'node:fs/promises';
-import { join, basename } from 'node:path';
+import { join, basename, resolve, isAbsolute } from 'node:path';
 import { callStitchMcp } from './stitch-client.js';
 import type { StitchConfig } from './stitch-client.js';
 
@@ -48,6 +48,21 @@ function extractHtml(result: unknown): string {
   return html;
 }
 
+/** Validate workspace is an absolute path with no traversal segments. */
+function validateWorkspace(raw: string): string {
+  if (!isAbsolute(raw)) {
+    throw new Error(`Invalid workspace: must be an absolute path, got "${raw}"`);
+  }
+  const resolved = resolve(raw);
+  // After resolve, check the canonical path doesn't differ from what we expect
+  // (resolve normalizes away ".." segments). If raw contained "..", resolved
+  // will differ — compare to detect traversal.
+  if (raw.includes('..')) {
+    throw new Error(`Invalid workspace: path traversal detected in "${raw}"`);
+  }
+  return resolved;
+}
+
 export default {
   id: 'stitch-bridge',
   name: 'Stitch MCP Bridge',
@@ -85,7 +100,7 @@ export default {
         });
 
         const html = extractHtml(result);
-        const workspace = String(params['workspace'] ?? '/workspaces/active');
+        const workspace = validateWorkspace(String(params['workspace'] ?? '/workspaces/active'));
         const dir = await ensureDesignDir(workspace, config.designDir);
         const filePath = join(dir, `${screenName}.html`);
         await writeFile(filePath, html, 'utf-8');
@@ -132,7 +147,7 @@ export default {
         });
 
         const html = extractHtml(result);
-        const workspace = String(params['workspace'] ?? '/workspaces/active');
+        const workspace = validateWorkspace(String(params['workspace'] ?? '/workspaces/active'));
         const dir = await ensureDesignDir(workspace, config.designDir);
         const filePath = join(dir, `${screenName}.html`);
         await writeFile(filePath, html, 'utf-8');
@@ -161,7 +176,7 @@ export default {
       },
       async execute(_toolCallId: string, params: Record<string, unknown>) {
         const screenName = sanitizeScreenName(String(params['screenName']));
-        const workspace = String(params['workspace'] ?? '/workspaces/active');
+        const workspace = validateWorkspace(String(params['workspace'] ?? '/workspaces/active'));
         const filePath = join(workspace, config.designDir, `${screenName}.html`);
 
         const html = await readFile(filePath, 'utf-8');
@@ -183,7 +198,7 @@ export default {
         properties: {},
       },
       async execute(_toolCallId: string, params: Record<string, unknown>) {
-        const workspace = String(params['workspace'] ?? '/workspaces/active');
+        const workspace = validateWorkspace(String(params['workspace'] ?? '/workspaces/active'));
         const dir = join(workspace, config.designDir);
 
         let files: string[];
