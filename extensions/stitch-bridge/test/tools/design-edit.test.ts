@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../src/stitch-client.js', () => ({
   callStitchMcp: vi.fn(),
+  listTools: vi.fn().mockResolvedValue({ tools: [] }),
 }));
 
 vi.mock('node:fs/promises', () => ({

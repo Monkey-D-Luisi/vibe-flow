@@ -6,18 +6,30 @@ export interface StitchConfig {
   designDir: string;
 }
 
-interface StitchJsonRpcRequest {
+interface McpJsonRpcRequest {
   jsonrpc: '2.0';
   id: string;
   method: string;
   params: Record<string, unknown>;
 }
 
-interface StitchJsonRpcResponse {
+interface McpJsonRpcResponse {
   jsonrpc: '2.0';
   id: string;
   result?: unknown;
   error?: { code: number; message: string };
+}
+
+/** MCP tools/call result content block. */
+interface McpContentBlock {
+  type: string;
+  text?: string;
+}
+
+/** MCP tools/call result shape. */
+interface McpToolResult {
+  content?: McpContentBlock[];
+  isError?: boolean;
 }
 
 const MAX_ATTEMPTS = 3;
@@ -42,7 +54,8 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function callStitchMcp(
+/** Low-level JSON-RPC sender with retry logic. */
+export async function sendRpc(
   config: StitchConfig,
   method: string,
   params: Record<string, unknown>,
@@ -59,7 +72,7 @@ export async function callStitchMcp(
       await sleep(BASE_DELAY_MS * 2 ** (attempt - 1));
     }
 
-    const body: StitchJsonRpcRequest = {
+    const body: McpJsonRpcRequest = {
       jsonrpc: '2.0',
       id: `stitch-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       method,
@@ -94,7 +107,7 @@ export async function callStitchMcp(
         throw error;
       }
 
-      const json = (await response.json()) as StitchJsonRpcResponse;
+      const json = (await response.json()) as McpJsonRpcResponse;
       if (json.error) {
         throw new Error(`Stitch MCP error ${json.error.code}: ${json.error.message}`);
       }
@@ -110,4 +123,77 @@ export async function callStitchMcp(
   }
 
   throw lastError;
+}
+
+// ── MCP session management ──
+
+const initializedEndpoints = new Set<string>();
+
+/** Send MCP initialize handshake (once per endpoint). */
+export async function initializeSession(config: StitchConfig): Promise<void> {
+  if (initializedEndpoints.has(config.endpoint)) return;
+
+  await sendRpc(config, 'initialize', {
+    protocolVersion: '2025-03-26',
+    capabilities: {},
+    clientInfo: { name: 'stitch-bridge', version: '0.1.0' },
+  });
+
+  initializedEndpoints.add(config.endpoint);
+}
+
+/** Reset cached session state (for testing). */
+export function resetSessionCache(): void {
+  initializedEndpoints.clear();
+}
+
+/** Discover available tools on the Stitch MCP endpoint. */
+export async function listTools(config: StitchConfig): Promise<unknown> {
+  await initializeSession(config);
+  return sendRpc(config, 'tools/list', {});
+}
+
+/**
+ * Call a Stitch MCP tool using the standard MCP protocol.
+ *
+ * Sends `tools/call` with `{ name, arguments }` and parses the
+ * response content array. Returns the parsed JSON from the first
+ * text content block, or throws if the response is empty/error.
+ */
+export async function callStitchMcp(
+  config: StitchConfig,
+  toolName: string,
+  toolArgs: Record<string, unknown>,
+): Promise<unknown> {
+  await initializeSession(config);
+
+  const raw = await sendRpc(config, 'tools/call', {
+    name: toolName,
+    arguments: toolArgs,
+  });
+
+  const result = raw as McpToolResult | undefined;
+
+  if (result?.isError) {
+    const msg = result.content?.[0]?.text ?? 'Unknown tool error';
+    throw new Error(`Stitch tool "${toolName}" failed: ${msg}`);
+  }
+
+  const content = result?.content;
+  if (!content || content.length === 0) {
+    throw new Error(`Stitch tool "${toolName}" returned empty content`);
+  }
+
+  // Try to parse the first text block as JSON (most Stitch tools return structured data).
+  const textBlock = content.find(b => b.type === 'text' && b.text);
+  if (!textBlock?.text) {
+    throw new Error(`Stitch tool "${toolName}" returned no text content`);
+  }
+
+  try {
+    return JSON.parse(textBlock.text);
+  } catch {
+    // If not JSON, return the raw text wrapped in an object.
+    return { text: textBlock.text };
+  }
 }
