@@ -107,4 +107,319 @@ describe('quality.coverage tool', () => {
     const events = deps.eventLog.getHistory(taskId).filter((event) => event.eventType === 'quality.coverage');
     expect(events).toHaveLength(1);
   });
+
+  it('parses LCOV format when format is lcov', async () => {
+    const lcovContent = [
+      'SF:src/index.ts',
+      'LF:10',
+      'LH:8',
+      'BRF:4',
+      'BRH:3',
+      'FNF:2',
+      'FNH:2',
+      'end_of_record',
+    ].join('\n');
+
+    await writeFile(join(workingDir, 'lcov.info'), lcovContent, 'utf8');
+
+    const tool = qualityCoverageToolDef(deps);
+    const result = await tool.execute('cov-lcov', {
+      taskId,
+      agentId: 'dev',
+      rev: 0,
+      workingDir,
+      lcovPath: 'lcov.info',
+      format: 'lcov',
+    });
+
+    const output = (result.details as { output: Record<string, unknown> }).output;
+    const total = output.total as Record<string, number>;
+    expect(total.lines).toBeGreaterThan(0);
+    expect(total.lines).toBeLessThanOrEqual(1);
+  });
+
+  it('falls back to lcov when format is auto and summary file is missing', async () => {
+    // Remove the summary file so auto mode falls back to lcov
+    await rm(join(workingDir, 'coverage-summary.json'), { force: true });
+
+    const lcovContent = [
+      'SF:src/main.ts',
+      'LF:20',
+      'LH:18',
+      'BRF:6',
+      'BRH:5',
+      'FNF:4',
+      'FNH:4',
+      'end_of_record',
+    ].join('\n');
+
+    await mkdir(join(workingDir, 'coverage'), { recursive: true });
+    await writeFile(join(workingDir, 'coverage', 'lcov.info'), lcovContent, 'utf8');
+
+    const tool = qualityCoverageToolDef(deps);
+    const result = await tool.execute('cov-auto-fallback', {
+      taskId,
+      agentId: 'dev',
+      rev: 0,
+      workingDir,
+      format: 'auto',
+    });
+
+    const output = (result.details as { output: Record<string, unknown> }).output;
+    const total = output.total as Record<string, number>;
+    expect(total.lines).toBeGreaterThan(0);
+  });
+
+  it('throws NOT_FOUND when no coverage report is available', async () => {
+    // Remove the summary file and don't create lcov
+    await rm(join(workingDir, 'coverage-summary.json'), { force: true });
+
+    const tool = qualityCoverageToolDef(deps);
+    await expect(
+      tool.execute('cov-missing', {
+        taskId,
+        agentId: 'dev',
+        rev: 0,
+        workingDir,
+        format: 'auto',
+      }),
+    ).rejects.toThrow('NOT_FOUND');
+  });
+
+  it('rethrows error when format is summary and summary file is missing', async () => {
+    await rm(join(workingDir, 'coverage-summary.json'), { force: true });
+
+    const tool = qualityCoverageToolDef(deps);
+    await expect(
+      tool.execute('cov-summary-missing', {
+        taskId,
+        agentId: 'dev',
+        rev: 0,
+        workingDir,
+        format: 'summary',
+        summaryPath: 'coverage-summary.json',
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('uses custom summaryPath and lcovPath when provided', async () => {
+    await writeFile(
+      join(workingDir, 'custom-summary.json'),
+      JSON.stringify({
+        total: {
+          lines: { total: 50, covered: 45, skipped: 0, pct: 90 },
+          statements: { total: 50, covered: 44, skipped: 0, pct: 88 },
+          functions: { total: 10, covered: 9, skipped: 0, pct: 90 },
+          branches: { total: 20, covered: 16, skipped: 0, pct: 80 },
+        },
+      }),
+      'utf8',
+    );
+
+    const tool = qualityCoverageToolDef(deps);
+    const result = await tool.execute('cov-custom-path', {
+      taskId,
+      agentId: 'dev',
+      rev: 0,
+      workingDir,
+      summaryPath: 'custom-summary.json',
+      format: 'summary',
+    });
+
+    const output = (result.details as { output: Record<string, unknown> }).output;
+    const meta = output.meta as Record<string, unknown>;
+    expect(meta.summaryPath).toBe('custom-summary.json');
+  });
+
+  it('excludes files matching exclude patterns', async () => {
+    await writeFile(
+      join(workingDir, 'coverage-with-tests.json'),
+      JSON.stringify({
+        total: {
+          lines: { total: 100, covered: 85, skipped: 0, pct: 85 },
+          statements: { total: 100, covered: 84, skipped: 0, pct: 84 },
+          functions: { total: 20, covered: 18, skipped: 0, pct: 90 },
+          branches: { total: 40, covered: 30, skipped: 0, pct: 75 },
+        },
+        'src/index.ts': {
+          lines: { total: 10, covered: 8, skipped: 0, pct: 80 },
+          statements: { total: 10, covered: 8, skipped: 0, pct: 80 },
+          functions: { total: 2, covered: 2, skipped: 0, pct: 100 },
+          branches: { total: 4, covered: 3, skipped: 0, pct: 75 },
+        },
+        'src/index.test.ts': {
+          lines: { total: 10, covered: 10, skipped: 0, pct: 100 },
+          statements: { total: 10, covered: 10, skipped: 0, pct: 100 },
+          functions: { total: 2, covered: 2, skipped: 0, pct: 100 },
+          branches: { total: 4, covered: 4, skipped: 0, pct: 100 },
+        },
+      }),
+      'utf8',
+    );
+
+    const tool = qualityCoverageToolDef(deps);
+    const result = await tool.execute('cov-exclude', {
+      taskId,
+      agentId: 'dev',
+      rev: 0,
+      workingDir,
+      summaryPath: 'coverage-with-tests.json',
+      format: 'summary',
+      exclude: ['**/*.test.*'],
+    });
+
+    const output = (result.details as { output: Record<string, unknown> }).output;
+    const files = output.files as Array<Record<string, unknown>>;
+    const testFile = files.find((f) => String(f.path).includes('.test.'));
+    expect(testFile).toBeUndefined();
+  });
+
+  it('uses default exclude when no exclude is provided', async () => {
+    const tool = qualityCoverageToolDef(deps);
+    const result = await tool.execute('cov-default-exclude', {
+      taskId,
+      agentId: 'dev',
+      rev: 0,
+      workingDir,
+      summaryPath: 'coverage-summary.json',
+      format: 'summary',
+    });
+
+    const output = (result.details as { output: Record<string, unknown> }).output;
+    const meta = output.meta as Record<string, unknown>;
+    expect(meta.excluded).toEqual(['**/*.test.*', '**/__tests__/**', '**/fixtures/**']);
+  });
+
+  it('handles LCOV with zero linesFound (returns ratio 1)', async () => {
+    const lcovContent = [
+      'SF:src/empty.ts',
+      'LF:0',
+      'LH:0',
+      'BRF:0',
+      'BRH:0',
+      'FNF:0',
+      'FNH:0',
+      'end_of_record',
+    ].join('\n');
+
+    await writeFile(join(workingDir, 'lcov-empty.info'), lcovContent, 'utf8');
+
+    const tool = qualityCoverageToolDef(deps);
+    const result = await tool.execute('cov-empty-lcov', {
+      taskId,
+      agentId: 'dev',
+      rev: 0,
+      workingDir,
+      lcovPath: 'lcov-empty.info',
+      format: 'lcov',
+    });
+
+    const output = (result.details as { output: Record<string, unknown> }).output;
+    const files = output.files as Array<Record<string, number>>;
+    expect(files).toHaveLength(1);
+    // Zero found → ratio is 1 (full coverage by convention)
+    expect(files[0].lines).toBe(1);
+    expect(files[0].branches).toBe(1);
+    expect(files[0].functions).toBe(1);
+  });
+
+  it('returns valid JSON text content', async () => {
+    const tool = qualityCoverageToolDef(deps);
+    const result = await tool.execute('cov-json', {
+      taskId,
+      agentId: 'dev',
+      rev: 0,
+      workingDir,
+      summaryPath: 'coverage-summary.json',
+      format: 'summary',
+    });
+
+    expect(() => JSON.parse(result.content[0].text)).not.toThrow();
+  });
+
+  it('logs quality.coverage event with correct coveragePct', async () => {
+    const tool = qualityCoverageToolDef(deps);
+    await tool.execute('cov-event', {
+      taskId,
+      agentId: 'test-agent',
+      rev: 0,
+      workingDir,
+      summaryPath: 'coverage-summary.json',
+      format: 'summary',
+    });
+
+    const events = deps.eventLog.getHistory(taskId).filter((event) => event.eventType === 'quality.coverage');
+    expect(events).toHaveLength(1);
+    const payload = events[0].payload;
+    expect(typeof payload.coveragePct).toBe('number');
+    expect(payload.coveragePct).toBe(85);
+  });
+
+  it('uses auto format and reads summary when both files exist', async () => {
+    // Create both summary and lcov
+    await mkdir(join(workingDir, 'coverage'), { recursive: true });
+    await writeFile(
+      join(workingDir, 'coverage', 'coverage-summary.json'),
+      JSON.stringify({
+        total: {
+          lines: { total: 100, covered: 95, skipped: 0, pct: 95 },
+          statements: { total: 100, covered: 94, skipped: 0, pct: 94 },
+          functions: { total: 20, covered: 19, skipped: 0, pct: 95 },
+          branches: { total: 40, covered: 38, skipped: 0, pct: 95 },
+        },
+      }),
+      'utf8',
+    );
+
+    const tool = qualityCoverageToolDef(deps);
+    const result = await tool.execute('cov-auto-both', {
+      taskId,
+      agentId: 'dev',
+      rev: 0,
+      workingDir,
+      format: 'auto',
+    });
+
+    const output = (result.details as { output: Record<string, unknown> }).output;
+    const total = output.total as Record<string, number>;
+    // Summary format should be preferred in auto mode
+    expect(total.lines).toBeCloseTo(0.95, 2);
+  });
+
+  it('handles LCOV with multiple records', async () => {
+    const lcovContent = [
+      'SF:src/a.ts',
+      'LF:20',
+      'LH:16',
+      'BRF:4',
+      'BRH:3',
+      'FNF:3',
+      'FNH:2',
+      'end_of_record',
+      'SF:src/b.ts',
+      'LF:30',
+      'LH:30',
+      'BRF:6',
+      'BRH:6',
+      'FNF:5',
+      'FNH:5',
+      'end_of_record',
+    ].join('\n');
+
+    await writeFile(join(workingDir, 'multi-lcov.info'), lcovContent, 'utf8');
+
+    const tool = qualityCoverageToolDef(deps);
+    const result = await tool.execute('cov-multi-lcov', {
+      taskId,
+      agentId: 'dev',
+      rev: 0,
+      workingDir,
+      lcovPath: 'multi-lcov.info',
+      format: 'lcov',
+    });
+
+    const output = (result.details as { output: Record<string, unknown> }).output;
+    const files = output.files as Array<Record<string, unknown>>;
+    expect(files).toHaveLength(2);
+  });
 });
