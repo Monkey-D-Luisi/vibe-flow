@@ -69,8 +69,11 @@ fi
 
 # Authenticate gh CLI with GITHUB_TOKEN
 if [ -n "$GITHUB_TOKEN" ]; then
-  echo "$GITHUB_TOKEN" | gh auth login --with-token 2>/dev/null
-  echo "[entrypoint] gh CLI authenticated"
+  if echo "$GITHUB_TOKEN" | gh auth login --with-token 2>/dev/null; then
+    echo "[entrypoint] gh CLI authenticated"
+  else
+    echo "[entrypoint] gh CLI auth skipped (token type may not be compatible with gh)"
+  fi
 fi
 
 # Create /workspaces/active symlink to default project workspace
