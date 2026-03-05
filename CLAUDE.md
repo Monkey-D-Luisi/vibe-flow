@@ -106,10 +106,13 @@ pnpm q:complexity
 | `team_assign` | Assign work to a team member |
 | `decision_evaluate` | Evaluate a decision via the decision engine |
 | `decision_log` | Log a decision record |
+| `decision_outcome` | Tag decisions for a completed task with success/overridden/failed outcome |
 | `pipeline_start` | Start a pipeline |
 | `pipeline_status` | Get pipeline status |
 | `pipeline_retry` | Retry a failed pipeline step |
 | `pipeline_skip` | Skip a pipeline step |
+| `pipeline_advance` | Advance a pipeline to its next stage |
+| `pipeline_metrics` | Get pipeline stage timing and throughput metrics |
 
 ### quality-gate extension (standalone, stateless, no task lifecycle)
 

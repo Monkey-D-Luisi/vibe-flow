@@ -169,6 +169,7 @@ describe('decision engine tools', () => {
           question: `Decision ${i}`,
           options: OPTIONS,
           taskRef,
+          agentId: 'back-1',
         });
       }
 
@@ -178,6 +179,7 @@ describe('decision engine tools', () => {
         question: 'The 6th decision',
         options: OPTIONS,
         taskRef,
+        agentId: 'back-1',
       });
       const details = result.details as { decisionId: string; escalated: boolean; approver: string };
       expect(details.decisionId).toBeTruthy();
@@ -189,6 +191,162 @@ describe('decision engine tools', () => {
       expect(rows).toHaveLength(6);
       const cbRow = rows[5];
       expect(cbRow.escalated).toBe(1);
+    });
+
+    it('circuit breaker counts per-agent — different agents do not cross-contaminate', async () => {
+      const tool = decisionEvaluateToolDef(deps);
+      const taskRef = 'task-multi-agent';
+
+      // back-1 makes 4 decisions
+      for (let i = 0; i < 4; i++) {
+        await tool.execute(`back-${i}`, {
+          category: 'technical',
+          question: `Back decision ${i}`,
+          options: OPTIONS,
+          taskRef,
+          agentId: 'back-1',
+        });
+      }
+
+      // front-1 makes 4 decisions — should NOT trigger circuit breaker
+      for (let i = 0; i < 4; i++) {
+        const result = await tool.execute(`front-${i}`, {
+          category: 'technical',
+          question: `Front decision ${i}`,
+          options: OPTIONS,
+          taskRef,
+          agentId: 'front-1',
+        });
+        const details = result.details as { escalated: boolean };
+        expect(details.escalated).toBe(false);
+      }
+
+      // back-1's 5th decision is still fine (count = 4, not >= 5)
+      const fifthResult = await tool.execute('back-4', {
+        category: 'technical',
+        question: 'Back decision 4',
+        options: OPTIONS,
+        taskRef,
+        agentId: 'back-1',
+      });
+      expect((fifthResult.details as { escalated: boolean }).escalated).toBe(false);
+
+      // back-1's 6th decision triggers circuit breaker (count = 5 >= 5)
+      const sixthResult = await tool.execute('back-5', {
+        category: 'technical',
+        question: 'Back decision 5',
+        options: OPTIONS,
+        taskRef,
+        agentId: 'back-1',
+      });
+      expect((sixthResult.details as { escalated: boolean }).escalated).toBe(true);
+      expect((sixthResult.details as { approver: string }).approver).toBe('tech-lead');
+
+      // front-1 can still make decisions (only 4 so far)
+      const frontFifth = await tool.execute('front-4', {
+        category: 'technical',
+        question: 'Front decision 4',
+        options: OPTIONS,
+        taskRef,
+        agentId: 'front-1',
+      });
+      expect((frontFifth.details as { escalated: boolean }).escalated).toBe(false);
+    });
+
+    it('falls back to calling-agent when agentId is not provided', async () => {
+      const tool = decisionEvaluateToolDef(deps);
+      await tool.execute('call-1', {
+        category: 'technical',
+        question: 'No agent ID?',
+        options: OPTIONS,
+        taskRef: 'task-fallback',
+      });
+
+      const row = db.prepare('SELECT agent_id FROM agent_decisions WHERE task_ref = ?').get('task-fallback') as { agent_id: string } | undefined;
+      expect(row?.agent_id).toBe('calling-agent');
+    });
+
+    it('blocker category auto-decides on first retry', async () => {
+      const tool = decisionEvaluateToolDef(deps);
+      const result = await tool.execute('call-1', {
+        category: 'blocker',
+        question: 'External API down?',
+        options: OPTIONS,
+        recommendation: 'fetch',
+        taskRef: 'task-blocker',
+        agentId: 'back-1',
+      });
+      const details = result.details as { decision: string | null; escalated: boolean };
+      expect(details.escalated).toBe(false);
+      expect(details.decision).toBe('fetch');
+    });
+
+    it('blocker category escalates after maxRetries exceeded', async () => {
+      const tool = decisionEvaluateToolDef(deps);
+      const taskRef = 'task-blocker-max';
+
+      // Make 2 blocker decisions (default maxRetries = 2)
+      for (let i = 0; i < 2; i++) {
+        const r = await tool.execute(`blk-${i}`, {
+          category: 'blocker',
+          question: `Blocker ${i}`,
+          options: OPTIONS,
+          recommendation: 'fetch',
+          taskRef,
+          agentId: 'back-1',
+        });
+        expect((r.details as { escalated: boolean }).escalated).toBe(false);
+      }
+
+      // 3rd blocker decision should escalate
+      const result = await tool.execute('blk-2', {
+        category: 'blocker',
+        question: 'Blocker again',
+        options: OPTIONS,
+        recommendation: 'fetch',
+        taskRef,
+        agentId: 'back-1',
+      });
+      const details = result.details as { escalated: boolean; approver: string; decision: string | null };
+      expect(details.escalated).toBe(true);
+      expect(details.approver).toBe('tech-lead');
+      expect(details.decision).toBeNull();
+    });
+
+    it('blocker maxRetries counts per-agent — different agents have separate counts', async () => {
+      const tool = decisionEvaluateToolDef(deps);
+      const taskRef = 'task-blocker-multi';
+
+      // back-1 makes 2 blocker retries
+      for (let i = 0; i < 2; i++) {
+        await tool.execute(`b-${i}`, {
+          category: 'blocker',
+          question: `B${i}`,
+          options: OPTIONS,
+          taskRef,
+          agentId: 'back-1',
+        });
+      }
+
+      // front-1 makes 1 retry — should NOT escalate
+      const frontResult = await tool.execute('f-0', {
+        category: 'blocker',
+        question: 'Front blocker',
+        options: OPTIONS,
+        taskRef,
+        agentId: 'front-1',
+      });
+      expect((frontResult.details as { escalated: boolean }).escalated).toBe(false);
+
+      // back-1's 3rd retry DOES escalate
+      const backResult = await tool.execute('b-2', {
+        category: 'blocker',
+        question: 'Back blocker 3',
+        options: OPTIONS,
+        taskRef,
+        agentId: 'back-1',
+      });
+      expect((backResult.details as { escalated: boolean }).escalated).toBe(true);
     });
 
     it('persists a decision record in agent_decisions table', async () => {
@@ -261,6 +419,7 @@ describe('decision engine tools', () => {
         question: 'Detailed question?',
         options: OPTIONS,
         taskRef: 'task-detail',
+        agentId: 'back-1',
       });
 
       const logTool = decisionLogToolDef(deps);
@@ -270,7 +429,7 @@ describe('decision engine tools', () => {
       };
       expect(details.decisions[0]?.category).toBe('technical');
       expect(details.decisions[0]?.question).toBe('Detailed question?');
-      expect(details.decisions[0]?.decidedBy).toBe('calling-agent');
+      expect(details.decisions[0]?.decidedBy).toBe('back-1');
     });
 
     it('marks escalated decisions with the approver as decidedBy', async () => {
@@ -435,6 +594,7 @@ describe('decision engine tools', () => {
           question: `Q${i}`,
           options: OPTIONS,
           taskRef,
+          agentId: 'back-1',
         });
       }
 
@@ -444,6 +604,7 @@ describe('decision engine tools', () => {
         question: 'Trigger CB',
         options: OPTIONS,
         taskRef,
+        agentId: 'back-1',
       });
 
       const details = result.details as {

@@ -7,7 +7,7 @@
 
 ## 1. Overview
 
-The **product-team** plugin is an OpenClaw gateway plugin that turns a set of 8 AI agents into a structured software-delivery team. It registers with the gateway at startup, injects 31 custom tools into every agent session, and coordinates the full task lifecycle from triage to release.
+The **product-team** plugin is an OpenClaw gateway plugin that turns a set of 8 AI agents into a structured software-delivery team. It registers with the gateway at startup, injects 34 custom tools into every agent session, and coordinates the full task lifecycle from triage to release.
 
 ### Plugin manifest
 
@@ -26,10 +26,11 @@ Gateway starts
   → SDK loads openclaw.docker.json
   → SDK validates plugin config against configSchema
   → SDK calls plugin entrypoint (index.ts)
-  → Plugin registers 31 tools via api.tool(name, schema, handler)
-  → Plugin registers after_tool_call hooks (auto-spawn, delivery)
-  → Plugin opens SQLite database, runs pending migrations
-  → Plugin starts monitoring cron (heartbeat, CI poll)
+  → Plugin registers 34 tools via api.tool(name, schema, handler)
+  → Plugin registers before_tool_call hooks (origin-injection, agent-id-injection)
+  → Plugin registers after_tool_call hooks (auto-spawn, delivery, PR-Bot)
+  → Plugin opens SQLite database, runs pending migrations (4 migrations)
+  → Plugin starts services (decision-timeout-cron, stage-timeout-cron, spawn-service)
   → Gateway starts Telegram polling for each named account (pm, tl, designer)
 ```
 
@@ -50,7 +51,7 @@ Gateway starts
 
 ## 2. Tool Inventory
 
-31 tools grouped by domain. Tool names use underscores (dots rewritten at registration).
+34 tools grouped by domain. Tool names use underscores (dots rewritten at registration).
 
 ### Task management (6)
 
@@ -99,14 +100,15 @@ Gateway starts
 | `team_status`  | Update this agent's status                            |
 | `team_assign`  | Assign work to a specific agent                       |
 
-### Decision engine (2)
+### Decision engine (3)
 
 | Tool               | Purpose                                           |
 |--------------------|---------------------------------------------------|
 | `decision_evaluate`| Evaluate a decision (auto/escalate/pause/retry)   |
 | `decision_log`     | Record a decision for audit                        |
+| `decision_outcome` | Tag decisions for a completed task with success/overridden/failed outcome |
 
-### Pipeline (4)
+### Pipeline (6)
 
 | Tool               | Purpose                                           |
 |--------------------|---------------------------------------------------|
@@ -114,6 +116,8 @@ Gateway starts
 | `pipeline_status`  | Get pipeline status and step results              |
 | `pipeline_retry`   | Retry a failed pipeline step                      |
 | `pipeline_skip`    | Skip a pipeline step with justification           |
+| `pipeline_advance` | Advance a pipeline to its next stage              |
+| `pipeline_metrics` | Get pipeline stage timing and throughput metrics  |
 
 ### Project (3)
 
@@ -184,7 +188,7 @@ Executes a named step within the current state. Steps are declared in the agent'
 
 ## 4. Persistence Layer
 
-The plugin uses **SQLite** via `better-sqlite3` with a 2-migration schema managed at startup.
+The plugin uses **SQLite** via `better-sqlite3` with a 4-migration schema managed at startup.
 
 ### Database location
 
@@ -214,12 +218,19 @@ ext_requests      request_id, task_id, tool, payload_hash, response, created_at
 
 -- Decision records (lazily created in decision-engine.ts)
 agent_decisions   id, task_ref, agent_id, category, question, options,
-                  decision, reasoning, escalated, approver, created_at
+                  decision, reasoning, escalated, approver, outcome, created_at
 
 -- Team inbox/outbox (lazily created in shared-db.ts)
 agent_messages    id, from_agent, to_agent, subject, body, priority,
                   task_ref, reply_to, read, origin_channel,
                   origin_session_key, created_at
+
+-- Pipeline stage index (migration 003)
+task_records.pipeline_stage  TEXT column for fast stage-based queries
+
+-- Spawn retry queue (migration 004, lazily created in spawn-service.ts)
+spawn_queue       id, target_agent, message, options, status,
+                  attempts, created_at, updated_at, error
 ```
 
 ### Repositories
@@ -240,11 +251,12 @@ All mutations use **optimistic locking** on `rev` (integer counter). Concurrent 
 
 ## 5. Hook System
 
-The plugin registers five hooks across two lifecycle events. All hooks are wrapped with try/catch so a failing hook never kills the parent agent turn.
+The plugin registers six hooks across two lifecycle events. All hooks are wrapped with try/catch so a failing hook never kills the parent agent turn.
 
 | Hook                            | Lifecycle event    | Condition            |
 |---------------------------------|--------------------|----------------------|
 | Origin injection                | `before_tool_call` | Always               |
+| Agent-ID injection              | `before_tool_call` | Always               |
 | Team message auto-spawn         | `after_tool_call`  | Always               |
 | Team reply auto-spawn           | `after_tool_call`  | Always               |
 | Decision escalation auto-spawn  | `after_tool_call`  | Always               |

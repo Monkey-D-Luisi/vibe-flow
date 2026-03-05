@@ -124,6 +124,35 @@ export function resolveConcurrencyConfig(
   };
 }
 
+export interface OrchestratorConfig {
+  readonly maxRetriesPerStage: number;
+  readonly stageTimeouts: Record<string, number>;
+  readonly skipDesignForNonUITasks: boolean;
+  readonly autoEscalateAfterRetries: boolean;
+  readonly notifyTelegramOnStageChange: boolean;
+}
+
+export function resolveOrchestratorConfig(
+  pluginConfig: Record<string, unknown> | undefined,
+): OrchestratorConfig {
+  const orch = asRecord(pluginConfig?.orchestrator);
+  const rawTimeouts = asRecord(orch?.stageTimeouts);
+  const stageTimeouts: Record<string, number> = {};
+  if (rawTimeouts) {
+    for (const [stage, val] of Object.entries(rawTimeouts)) {
+      const n = asPositiveInteger(val);
+      if (n) stageTimeouts[stage] = n;
+    }
+  }
+  return {
+    maxRetriesPerStage: asPositiveInteger(orch?.maxRetriesPerStage) ?? 1,
+    stageTimeouts,
+    skipDesignForNonUITasks: asBoolean(orch?.skipDesignForNonUITasks) ?? false,
+    autoEscalateAfterRetries: asBoolean(orch?.autoEscalateAfterRetries) ?? true,
+    notifyTelegramOnStageChange: asBoolean(orch?.notifyTelegramOnStageChange) ?? false,
+  };
+}
+
 export interface Project {
   id: string;
   name: string;

@@ -67,6 +67,31 @@ CREATE INDEX IF NOT EXISTS idx_ext_requests_task ON ext_requests(task_id);
 CREATE INDEX IF NOT EXISTS idx_ext_requests_lookup ON ext_requests(tool, payload_hash);
 `;
 
+const MIGRATION_003 = `
+-- EP09: Pipeline state indexing — promote pipeline stage from metadata JSON
+-- to a dedicated indexed column for efficient stage-based queries.
+ALTER TABLE task_records ADD COLUMN pipeline_stage TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_task_records_pipeline_stage ON task_records(pipeline_stage);
+`;
+
+const MIGRATION_004 = `
+-- EP09: Spawn retry queue for reliable agent spawning (Task 0066).
+CREATE TABLE IF NOT EXISTS spawn_queue (
+  id TEXT PRIMARY KEY,
+  target_agent TEXT NOT NULL,
+  message TEXT NOT NULL,
+  options TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending',
+  attempts INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  error TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_spawn_queue_status ON spawn_queue(status);
+`;
+
 interface Migration {
   readonly version: number;
   readonly sql: string;
@@ -75,6 +100,8 @@ interface Migration {
 const MIGRATIONS: readonly Migration[] = [
   { version: 1, sql: MIGRATION_001 },
   { version: 2, sql: MIGRATION_002 },
+  { version: 3, sql: MIGRATION_003 },
+  { version: 4, sql: MIGRATION_004 },
 ];
 
 /**

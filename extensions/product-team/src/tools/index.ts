@@ -44,6 +44,13 @@ export interface ToolDeps {
     timeoutMs?: number;
     humanApprovalTimeout?: number;
   };
+  orchestratorConfig?: {
+    maxRetriesPerStage?: number;
+    stageTimeouts?: Record<string, number>;
+    skipDesignForNonUITasks?: boolean;
+    autoEscalateAfterRetries?: boolean;
+    notifyTelegramOnStageChange?: boolean;
+  };
   vcs?: {
     requestRepo: SqliteRequestRepository;
     branchService: BranchService;
@@ -85,8 +92,9 @@ import { projectListToolDef } from './project-list.js';
 import { projectSwitchToolDef } from './project-switch.js';
 import { projectRegisterToolDef } from './project-register.js';
 import { teamMessageToolDef, teamInboxToolDef, teamReplyToolDef, teamStatusToolDef, teamAssignToolDef } from './team-messaging.js';
-import { decisionEvaluateToolDef, decisionLogToolDef } from './decision-engine.js';
+import { decisionEvaluateToolDef, decisionLogToolDef, decisionOutcomeToolDef } from './decision-engine.js';
 import { pipelineStartToolDef, pipelineStatusToolDef, pipelineRetryToolDef, pipelineSkipToolDef } from './pipeline.js';
+import { pipelineAdvanceToolDef, pipelineMetricsToolDef } from './pipeline-advance.js';
 
 export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
   const toolDefs = [
@@ -117,10 +125,13 @@ export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
     teamAssignToolDef(deps),
     decisionEvaluateToolDef(deps),
     decisionLogToolDef(deps),
+    decisionOutcomeToolDef(deps),
     pipelineStartToolDef(deps),
     pipelineStatusToolDef(deps),
     pipelineRetryToolDef(deps),
     pipelineSkipToolDef(deps),
+    pipelineAdvanceToolDef(deps),
+    pipelineMetricsToolDef(deps),
   ];
 
   return toolDefs.map((tool) => withCostTracking(tool, deps));

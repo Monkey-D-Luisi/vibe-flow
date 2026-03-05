@@ -63,7 +63,7 @@ describe('runMigrations', () => {
     const row = db
       .prepare('SELECT MAX(version) as v FROM schema_version')
       .get() as { v: number };
-    expect(row.v).toBe(2);
+    expect(row.v).toBe(4);
   });
 
   it('should be idempotent', () => {
@@ -74,6 +74,6 @@ describe('runMigrations', () => {
     const rows = db
       .prepare('SELECT COUNT(*) as c FROM schema_version')
       .get() as { c: number };
-    expect(rows.c).toBe(2);
+    expect(rows.c).toBe(4);
   });
 });

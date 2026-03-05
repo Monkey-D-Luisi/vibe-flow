@@ -19,6 +19,7 @@ export const DecisionEvaluateParams = Type.Object({
   recommendation: Type.Optional(Type.String({ description: 'Agent recommended option ID' })),
   reasoning: Type.Optional(Type.String({ description: 'Agent reasoning for recommendation' })),
   taskRef: Type.Optional(Type.String({ description: 'Related task ID' })),
+  agentId: Type.Optional(Type.String({ description: 'Caller agent ID (injected by before_tool_call hook)' })),
 });
 export type DecisionEvaluateParams = Static<typeof DecisionEvaluateParams>;
 

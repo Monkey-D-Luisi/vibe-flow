@@ -2,14 +2,14 @@ import type { ToolDef, ToolDeps } from './index.js';
 import { PipelineStartParams, PipelineStatusParams, PipelineRetryParams, PipelineSkipParams } from '../schemas/pipeline.schema.js';
 import { createTaskRecord, createOrchestratorState } from '../domain/task-record.js';
 
-const PIPELINE_STAGES = [
+export const PIPELINE_STAGES = [
   'IDEA', 'ROADMAP', 'REFINEMENT', 'DECOMPOSITION', 'DESIGN',
   'IMPLEMENTATION', 'QA', 'REVIEW', 'SHIPPING', 'DONE',
 ] as const;
 
-type PipelineStage = typeof PIPELINE_STAGES[number];
+export type PipelineStage = typeof PIPELINE_STAGES[number];
 
-const STAGE_OWNERS: Record<PipelineStage, string> = {
+export const STAGE_OWNERS: Record<PipelineStage, string> = {
   IDEA: 'pm',
   ROADMAP: 'pm',
   REFINEMENT: 'po',
@@ -22,10 +22,19 @@ const STAGE_OWNERS: Record<PipelineStage, string> = {
   DONE: 'system',
 };
 
-function getNextStage(current: string): PipelineStage | null {
+export function getNextStage(current: string): PipelineStage | null {
   const idx = PIPELINE_STAGES.indexOf(current as PipelineStage);
   if (idx < 0 || idx >= PIPELINE_STAGES.length - 1) return null;
   return PIPELINE_STAGES[idx + 1];
+}
+
+/** Sync the pipeline_stage indexed column with the metadata value. */
+function syncPipelineStageColumn(deps: ToolDeps, taskId: string, stage: string): void {
+  try {
+    deps.db.prepare('UPDATE task_records SET pipeline_stage = ? WHERE id = ?').run(stage, taskId);
+  } catch {
+    // Column may not exist yet if migration 003 hasn't run — silently ignore
+  }
 }
 
 export function pipelineStartToolDef(deps: ToolDeps): ToolDef {
@@ -63,6 +72,7 @@ export function pipelineStartToolDef(deps: ToolDeps): ToolDef {
         return result;
       })();
 
+      syncPipelineStageColumn(deps, id, 'IDEA');
       deps.logger?.info(`pipeline.start: Created pipeline task ${id} from idea`);
 
       const result = { taskId: id, status: 'IDEA' as const, title: created.title };
@@ -171,6 +181,7 @@ export function pipelineRetryToolDef(deps: ToolDeps): ToolDef {
         },
       }, task.rev, deps.now());
 
+      syncPipelineStageColumn(deps, input.taskId, retryStage);
       deps.logger?.info(`pipeline.retry: Task ${input.taskId} stage ${retryStage}`);
 
       const result = { retried: true, taskId: input.taskId, stage: retryStage };
@@ -230,6 +241,7 @@ export function pipelineSkipToolDef(deps: ToolDeps): ToolDef {
         },
       }, task.rev, deps.now());
 
+      syncPipelineStageColumn(deps, input.taskId, nextStage);
       deps.logger?.info(`pipeline.skip: Task ${input.taskId} skipped ${input.stage} → ${nextStage}`);
 
       const result = { skipped: true, taskId: input.taskId, skippedStage: input.stage, nextStage };

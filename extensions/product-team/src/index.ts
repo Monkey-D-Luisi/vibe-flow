@@ -30,14 +30,18 @@ import {
   resolveConcurrencyConfig,
   resolveDeliveryConfig,
   resolveGithubConfig,
+  resolveOrchestratorConfig,
   resolveProjectConfig,
 } from './config/plugin-config.js';
 import { registerProcessShutdownHooks } from './lifecycle/process-shutdown.js';
 import { initializeWorkspaces } from './services/workspace-init.js';
 import { MonitoringCron } from './services/monitoring-cron.js';
+import { DecisionTimeoutCron } from './services/decision-timeout-cron.js';
+import { StageTimeoutCron } from './services/stage-timeout-cron.js';
 import { createGracefulShutdown } from './hooks/graceful-shutdown.js';
 import { registerAutoSpawnHooks } from './hooks/auto-spawn.js';
 import { injectOriginIntoTeamMessage } from './hooks/origin-injection.js';
+import { injectAgentIdIntoDecisionEvaluate } from './hooks/agent-id-injection.js';
 import { registerHttpRoutes } from './registration/http-routes.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
@@ -116,12 +120,14 @@ export function register(api: OpenClawPluginApi): void {
   });
   monitoringCron.start();
 
-  // Register graceful shutdown: release leases, WAL checkpoint, close DB, stop cron
+  // Register graceful shutdown: release leases, WAL checkpoint, close DB, stop crons
   const gracefulShutdown = createGracefulShutdown({
     db,
     leaseRepo,
     logger: api.logger,
-    stopMonitoringCron: () => monitoringCron.stop(),
+    stopMonitoringCron: () => {
+      monitoringCron.stop();
+    },
   });
   registerProcessShutdownHooks(() => {
     gracefulShutdown();
@@ -247,6 +253,7 @@ export function register(api: OpenClawPluginApi): void {
     projectConfig,
     agentConfig,
     decisionConfig,
+    orchestratorConfig: resolveOrchestratorConfig(pluginConfig),
     vcs: {
       requestRepo,
       branchService,
@@ -291,10 +298,41 @@ export function register(api: OpenClawPluginApi): void {
   });
   api.logger.info('registered origin-injection before_tool_call hook for team_message');
 
+  // Agent ID injection hook: auto-populates agentId in decision_evaluate calls
+  // using the caller's agent identity (available in before_tool_call ctx). This
+  // enables per-agent circuit breaker tracking and audit trail attribution.
+  api.on('before_tool_call', (event, ctx) => {
+    const typedEvent = event as { toolName: string; params: Record<string, unknown> };
+    const typedCtx = ctx as { agentId?: string; sessionKey?: string };
+    return injectAgentIdIntoDecisionEvaluate(typedEvent, typedCtx);
+  });
+  api.logger.info('registered agent-id-injection before_tool_call hook for decision_evaluate');
+
   // Auto-spawn hooks: when an agent sends a team_message or escalates a decision,
   // inject a system directive into the caller's session to spawn the target agent.
   const deliveryConfig = resolveDeliveryConfig(pluginConfig);
   registerAutoSpawnHooks(api, agentConfig, undefined, deliveryConfig);
+
+  // Start decision timeout cron (re-escalates stalled decisions)
+  const decisionTimeoutCron = new DecisionTimeoutCron({
+    db,
+    generateId,
+    now,
+    logger: api.logger,
+    decisionConfig,
+  });
+  decisionTimeoutCron.start();
+
+  // Start stage timeout cron (escalates stalled pipeline stages)
+  const orchestratorConfig = resolveOrchestratorConfig(pluginConfig);
+  const stageTimeoutCron = new StageTimeoutCron({
+    db,
+    generateId,
+    now,
+    logger: api.logger,
+    orchestratorConfig,
+  });
+  stageTimeoutCron.start();
 
   api.logger.info(`registered ${tools.length} task/workflow/quality/vcs/messaging/decision/pipeline tools`);
   // EP03: workflow.step.run, workflow.state.get

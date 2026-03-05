@@ -1,6 +1,7 @@
 import type { ToolDef, ToolDeps } from './index.js';
 import { DecisionEvaluateParams, DecisionLogParams } from '../schemas/decision.schema.js';
 import { MESSAGES_TABLE, ensureMessagesTable } from './shared-db.js';
+import { Type } from '@sinclair/typebox';
 
 interface DecisionPolicy {
   action: 'auto' | 'escalate' | 'pause' | 'retry';
@@ -36,6 +37,8 @@ function ensureDecisionsTable(deps: ToolDeps): void {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
+  // EP09 Task 0071: outcome tracking column
+  try { deps.db.exec(`ALTER TABLE ${DECISIONS_TABLE} ADD COLUMN outcome TEXT`); } catch { /* already exists */ }
 }
 
 /** Send an inter-agent message for escalation (writes to the shared messages table). */
@@ -81,7 +84,11 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
         recommendation?: string;
         reasoning?: string;
         taskRef?: string;
+        agentId?: string;
       }>(DecisionEvaluateParams, params);
+
+      // Resolve caller identity: prefer hook-injected agentId, fall back to legacy placeholder
+      const agentId = input.agentId ?? 'calling-agent';
 
       const rawPolicies = deps.decisionConfig?.policies as unknown;
       let policy: DecisionPolicy = DEFAULT_POLICIES[input.category] ?? DEFAULT_POLICIES['technical'];
@@ -99,7 +106,7 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
       if (input.taskRef) {
         const countRow = deps.db.prepare(
           `SELECT COUNT(*) as cnt FROM ${DECISIONS_TABLE} WHERE task_ref = ? AND agent_id = ?`,
-        ).get(input.taskRef, 'calling-agent');
+        ).get(input.taskRef, agentId);
         const cnt =
           typeof countRow === 'object' && countRow !== null &&
           typeof (countRow as Record<string, unknown>)['cnt'] === 'number'
@@ -114,7 +121,7 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
           `).run(
             cbId,
             input.taskRef,
-            'calling-agent',
+            agentId,
             input.category,
             input.question,
             JSON.stringify(input.options),
@@ -171,7 +178,28 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
         escalated = true;
         approver = 'human';
       } else if (policy.action === 'retry') {
-        decision = input.recommendation ?? input.options[0].id;
+        // Enforce maxRetries: count previous blocker-category retries for this task+agent
+        const maxRetries = policy.maxRetries ?? 2;
+        if (input.taskRef) {
+          const retryCountRow = deps.db.prepare(
+            `SELECT COUNT(*) as cnt FROM ${DECISIONS_TABLE} WHERE task_ref = ? AND agent_id = ? AND category = ?`,
+          ).get(input.taskRef, agentId, input.category);
+          const retryCount =
+            typeof retryCountRow === 'object' && retryCountRow !== null &&
+            typeof (retryCountRow as Record<string, unknown>)['cnt'] === 'number'
+              ? (retryCountRow as { cnt: number }).cnt
+              : 0;
+          if (retryCount >= maxRetries) {
+            // maxRetries exceeded — force escalation to tech-lead
+            escalated = true;
+            approver = 'tech-lead';
+            decision = null;
+          } else {
+            decision = input.recommendation ?? input.options[0].id;
+          }
+        } else {
+          decision = input.recommendation ?? input.options[0].id;
+        }
       }
 
       deps.db.prepare(`
@@ -180,7 +208,7 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
       `).run(
         id,
         input.taskRef ?? null,
-        'calling-agent',
+        agentId,
         input.category,
         input.question,
         JSON.stringify(input.options),
@@ -276,6 +304,47 @@ export function decisionLogToolDef(deps: ToolDeps): ToolDef {
       }));
 
       const result = { decisions, count: decisions.length };
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    },
+  };
+}
+
+const DecisionOutcomeParams = Type.Object({
+  taskRef: Type.String({ minLength: 1, description: 'Task ID to tag decision outcomes for' }),
+  outcome: Type.Union([
+    Type.Literal('success'),
+    Type.Literal('overridden'),
+    Type.Literal('failed'),
+  ], { description: 'Outcome to apply to all untagged decisions for this task' }),
+});
+
+/**
+ * Tag all decisions for a task with an outcome (Task 0071).
+ * Called when a task reaches done/failed to enable decision quality analysis.
+ */
+export function decisionOutcomeToolDef(deps: ToolDeps): ToolDef {
+  return {
+    name: 'decision.outcome',
+    label: 'Tag Decision Outcomes',
+    description: 'Tag decisions for a completed task with success/overridden/failed outcome',
+    parameters: DecisionOutcomeParams,
+    execute: async (_toolCallId, params) => {
+      ensureDecisionsTable(deps);
+      const input = deps.validate<{ taskRef: string; outcome: string }>(DecisionOutcomeParams, params);
+
+      const updated = deps.db.prepare(`
+        UPDATE ${DECISIONS_TABLE}
+        SET outcome = ?
+        WHERE task_ref = ? AND outcome IS NULL
+      `).run(input.outcome, input.taskRef);
+
+      const count = updated.changes;
+      deps.logger?.info(`decision.outcome: Tagged ${count} decisions for ${input.taskRef} as ${input.outcome}`);
+
+      const result = { taskRef: input.taskRef, outcome: input.outcome, taggedCount: count };
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
         details: result,
