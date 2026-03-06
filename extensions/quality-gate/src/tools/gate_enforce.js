@@ -1,0 +1,251 @@
+/**
+ * Tool: qgate.gate
+ *
+ * Evaluates quality gate policy against collected metrics.
+ * Determines pass/fail/warn verdict for workflow transitions.
+ *
+ * RGR count sources (NO TaskRepository dependency):
+ * 1. deps.rgrLogCount (direct injection)
+ * 2. deps.loadRgrLogCount() (async loader)
+ * 3. RGR_LOG_COUNT environment variable
+ */
+import { evaluateGate, resolvePolicy } from '../gate/policy.js';
+import { assertOptionalStringEnum, assertOptionalObject, assertOptionalArray, } from '@openclaw/quality-contracts/validate/tools';
+import { collectGateMetrics } from '../gate/sources.js';
+import { DEFAULT_POLICIES } from '../gate/types.js';
+import { autoTunePolicy, } from '../gate/auto-tune.js';
+import { evaluateRegressionAlerts, } from '../gate/alerts.js';
+function resolveAutoTuneConfig(input) {
+    if (!input?.enabled) {
+        return null;
+    }
+    return {
+        minSamples: input.minSamples,
+        smoothingFactor: input.smoothingFactor,
+        maxDeltas: input.maxDeltas,
+        bounds: input.bounds,
+    };
+}
+function resolveAlertConfig(input) {
+    if (!input?.enabled) {
+        return null;
+    }
+    return {
+        thresholds: input.thresholds,
+        noise: input.noise,
+    };
+}
+function filterHistoryByScope(history, scope) {
+    if (!history || history.length === 0) {
+        return [];
+    }
+    return history.filter((sample) => {
+        const sampleScope = sample.scope;
+        if (typeof sampleScope !== 'string' || sampleScope.length === 0) {
+            return true;
+        }
+        return sampleScope === scope;
+    });
+}
+/**
+ * Execute gate enforcement tool.
+ */
+export async function gateEnforceTool(input) {
+    const scope = input.scope || 'default';
+    // Resolve policy
+    let policy = resolvePolicy(DEFAULT_POLICIES, scope);
+    if (input.policy) {
+        policy = { ...policy, ...input.policy };
+    }
+    // Collect metrics from sources (deps + env, NO TaskRepository)
+    const collectedMetrics = await collectGateMetrics(input.deps || {});
+    // Merge with any directly provided metrics
+    const metrics = {
+        ...collectedMetrics,
+        ...input.metrics,
+    };
+    const autoTuneConfig = resolveAutoTuneConfig(input.autoTune);
+    const alertConfig = resolveAlertConfig(input.alerts);
+    const history = (autoTuneConfig || alertConfig)
+        ? filterHistoryByScope(input.history, scope)
+        : [];
+    let tuning;
+    if (autoTuneConfig) {
+        const tuned = autoTunePolicy(policy, history, autoTuneConfig);
+        policy = tuned.tunedPolicy;
+        tuning = {
+            applied: tuned.applied,
+            sampleCount: tuned.sampleCount,
+            adjustments: tuned.adjustments,
+            reason: tuned.reason,
+        };
+    }
+    let alerting;
+    if (alertConfig) {
+        alerting = evaluateRegressionAlerts({
+            coveragePct: metrics.coveragePct,
+            maxCyclomatic: metrics.maxCyclomatic,
+        }, history, scope, alertConfig);
+    }
+    // Evaluate gate
+    const result = evaluateGate(metrics, policy);
+    return {
+        result,
+        scope,
+        policy,
+        metrics,
+        tuning,
+        alerting,
+    };
+}
+/**
+ * Tool definition for registration.
+ */
+export const gateEnforceToolDef = {
+    name: 'qgate.gate',
+    description: 'Evaluate quality gate policy against collected metrics and return pass/fail/warn verdict',
+    parameters: {
+        type: 'object',
+        properties: {
+            scope: {
+                type: 'string',
+                enum: ['major', 'minor', 'patch', 'default'],
+                description: 'Policy scope to apply',
+                default: 'default',
+            },
+            policy: {
+                type: 'object',
+                description: 'Override policy values',
+                properties: {
+                    coverageMinPct: { type: 'number' },
+                    lintMaxErrors: { type: 'number' },
+                    lintMaxWarnings: { type: 'number' },
+                    complexityMaxCyclomatic: { type: 'number' },
+                    testsRequired: { type: 'boolean' },
+                    testsMustPass: { type: 'boolean' },
+                    rgrMaxCount: { type: 'number' },
+                },
+                additionalProperties: false,
+            },
+            metrics: {
+                type: 'object',
+                description: 'Directly provided metric values',
+                properties: {
+                    coveragePct: { type: 'number' },
+                    lintErrors: { type: 'number' },
+                    lintWarnings: { type: 'number' },
+                    maxCyclomatic: { type: 'number' },
+                    testsExist: { type: 'boolean' },
+                    testsPassed: { type: 'boolean' },
+                    rgrCount: { type: 'number' },
+                },
+                additionalProperties: false,
+            },
+            history: {
+                type: 'array',
+                description: 'Historical quality metric samples for optional auto-tuning',
+                items: {
+                    type: 'object',
+                    properties: {
+                        coveragePct: { type: 'number' },
+                        lintWarnings: { type: 'number' },
+                        maxCyclomatic: { type: 'number' },
+                        scope: { type: 'string' },
+                        timestamp: { type: 'string', format: 'date-time' },
+                        alertKeys: {
+                            type: 'array',
+                            items: { type: 'string' },
+                        },
+                    },
+                    additionalProperties: false,
+                },
+            },
+            autoTune: {
+                type: 'object',
+                description: 'Optional bounded threshold auto-tuning controls',
+                properties: {
+                    enabled: { type: 'boolean' },
+                    minSamples: { type: 'integer', minimum: 1 },
+                    smoothingFactor: { type: 'number', minimum: 0, maximum: 1 },
+                    maxDeltas: {
+                        type: 'object',
+                        properties: {
+                            coverageMinPct: { type: 'number', minimum: 0 },
+                            lintMaxWarnings: { type: 'number', minimum: 0 },
+                            complexityMaxCyclomatic: { type: 'number', minimum: 0 },
+                        },
+                        additionalProperties: false,
+                    },
+                    bounds: {
+                        type: 'object',
+                        properties: {
+                            coverageMinPct: {
+                                type: 'object',
+                                properties: {
+                                    min: { type: 'number', minimum: 0 },
+                                    max: { type: 'number', minimum: 0 },
+                                },
+                                required: ['min', 'max'],
+                                additionalProperties: false,
+                            },
+                            lintMaxWarnings: {
+                                type: 'object',
+                                properties: {
+                                    min: { type: 'number', minimum: 0 },
+                                    max: { type: 'number', minimum: 0 },
+                                },
+                                required: ['min', 'max'],
+                                additionalProperties: false,
+                            },
+                            complexityMaxCyclomatic: {
+                                type: 'object',
+                                properties: {
+                                    min: { type: 'number', minimum: 0 },
+                                    max: { type: 'number', minimum: 0 },
+                                },
+                                required: ['min', 'max'],
+                                additionalProperties: false,
+                            },
+                        },
+                        additionalProperties: false,
+                    },
+                },
+                additionalProperties: false,
+            },
+            alerts: {
+                type: 'object',
+                description: 'Optional regression alerting for coverage drops and complexity rises',
+                properties: {
+                    enabled: { type: 'boolean' },
+                    thresholds: {
+                        type: 'object',
+                        properties: {
+                            coverageDropPct: { type: 'number', minimum: 0 },
+                            complexityRise: { type: 'number', minimum: 0 },
+                        },
+                        additionalProperties: false,
+                    },
+                    noise: {
+                        type: 'object',
+                        properties: {
+                            cooldownEvents: { type: 'integer', minimum: 1 },
+                        },
+                        additionalProperties: false,
+                    },
+                },
+                additionalProperties: false,
+            },
+        },
+        additionalProperties: false,
+    },
+    execute: async (_id, params) => {
+        assertOptionalStringEnum(params['scope'], 'scope', ['major', 'minor', 'patch', 'default']);
+        assertOptionalObject(params['policy'], 'policy');
+        assertOptionalObject(params['metrics'], 'metrics');
+        assertOptionalArray(params['history'], 'history');
+        assertOptionalObject(params['deps'], 'deps');
+        assertOptionalObject(params['autoTune'], 'autoTune');
+        assertOptionalObject(params['alerts'], 'alerts');
+        return gateEnforceTool(params);
+    },
+};
