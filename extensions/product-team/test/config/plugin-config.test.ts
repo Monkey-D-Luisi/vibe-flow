@@ -32,7 +32,7 @@ describe('resolveGithubConfig', () => {
         autoTransition: {
           enabled: false,
           toStatus: null,
-          agentId: 'infra',
+          agentId: 'devops',
         },
       },
     });

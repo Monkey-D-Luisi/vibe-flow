@@ -264,6 +264,20 @@ function run(): void {
   const registeredTools = collectRegisteredTools();
   const errors: string[] = [];
 
+  const configAgentIds = new Set(agents.map((a) => a.id));
+  const policyAgentIds = new Set(Object.keys(EXPECTED_TOOLS_BY_AGENT));
+
+  for (const id of policyAgentIds) {
+    if (!configAgentIds.has(id)) {
+      errors.push(`Agent "${id}" is defined in validator policy but missing from openclaw.json`);
+    }
+  }
+  for (const id of configAgentIds) {
+    if (!policyAgentIds.has(id)) {
+      errors.push(`Agent "${id}" is in openclaw.json but not defined in validator policy`);
+    }
+  }
+
   for (const agent of agents) {
     errors.push(...validateAgent(agent, registeredTools));
   }

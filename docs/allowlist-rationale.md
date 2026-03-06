@@ -3,6 +3,10 @@
 This document explains why each agent in `openclaw.json` can access each tool.
 It is used together with `scripts/validate-allowlists.ts`.
 
+> **Naming convention:** Tool names below use dot notation (matching source code).
+> Configuration files (`openclaw.json`, `scripts/validate-allowlists.ts`) use
+> underscore notation (e.g., `pipeline_advance` instead of `pipeline.advance`).
+
 ## pm (Product Manager)
 
 | Tool | Rationale |
@@ -22,7 +26,7 @@ It is used together with `scripts/validate-allowlists.ts`.
 | `team.reply` | Respond to agent messages |
 | `pipeline.start` | Initiate the roadmap-to-release pipeline from an idea |
 | `pipeline.status` | Monitor pipeline progress |
-| `pipeline.advance` | Advance pipeline stages that PM owns (IDEA, ROADMAP) |
+| `pipeline.advance` | Coordinate advancement of any pipeline stage (PM has coordinator access alongside stage owners and tech-lead) |
 | `pipeline.metrics` | Review stage timing for planning |
 | `pipeline.timeline` | View per-task stage timeline for delivery tracking |
 | `decision.evaluate` | Make product decisions (scope, priority, conflict) |
@@ -77,7 +81,7 @@ It is used together with `scripts/validate-allowlists.ts`.
 | `decision.evaluate` | Make scope and conflict decisions |
 | `decision.log` | Review decision history |
 | `decision.outcome` | Tag decision outcomes |
-| `pipeline.advance` | Advance pipeline through REFINEMENT stage |
+| `pipeline.advance` | Request pipeline advancement (enforced by caller authorization — only stage owner, pm, or tech-lead can advance) |
 
 ## designer (UI/UX Designer)
 
@@ -92,7 +96,7 @@ It is used together with `scripts/validate-allowlists.ts`.
 | `team.inbox` | Read design feedback |
 | `team.reply` | Respond to design discussions |
 | `decision.evaluate` | Make design decisions |
-| `pipeline.advance` | Advance pipeline through DESIGN stage |
+| `pipeline.advance` | Request pipeline advancement (enforced by caller authorization — only stage owner, pm, or tech-lead can advance) |
 
 ## back-1 (Backend Developer)
 
@@ -112,7 +116,7 @@ It is used together with `scripts/validate-allowlists.ts`.
 | `team.inbox` | Read review feedback |
 | `team.reply` | Respond to reviews |
 | `decision.evaluate` | Make implementation decisions |
-| `pipeline.advance` | Advance pipeline through IMPLEMENTATION stage |
+| `pipeline.advance` | Request pipeline advancement (enforced by caller authorization — only stage owner, pm, or tech-lead can advance) |
 
 ## front-1 (Frontend Developer)
 
@@ -132,7 +136,7 @@ It is used together with `scripts/validate-allowlists.ts`.
 | `team.inbox` | Read review feedback |
 | `team.reply` | Respond to reviews |
 | `decision.evaluate` | Make implementation decisions |
-| `pipeline.advance` | Advance pipeline through IMPLEMENTATION stage |
+| `pipeline.advance` | Request pipeline advancement (enforced by caller authorization — only stage owner, pm, or tech-lead can advance) |
 
 ## qa (QA Engineer)
 
@@ -153,7 +157,7 @@ It is used together with `scripts/validate-allowlists.ts`.
 | `team.inbox` | Read QA assignments |
 | `team.reply` | Respond to QA discussions |
 | `decision.evaluate` | Make quality decisions |
-| `pipeline.advance` | Advance pipeline through QA stage |
+| `pipeline.advance` | Request pipeline advancement (enforced by caller authorization — only stage owner, pm, or tech-lead can advance) |
 
 ## devops (DevOps Engineer)
 
@@ -175,5 +179,5 @@ It is used together with `scripts/validate-allowlists.ts`.
 | `team.inbox` | Read deploy requests |
 | `team.reply` | Respond to deployment queries |
 | `pipeline.status` | Monitor pipeline for shipping readiness |
-| `pipeline.advance` | Advance pipeline through SHIPPING stage |
+| `pipeline.advance` | Request pipeline advancement (enforced by caller authorization — only stage owner, pm, or tech-lead can advance) |
 | `decision.evaluate` | Make infrastructure decisions |

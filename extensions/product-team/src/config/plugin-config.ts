@@ -107,7 +107,7 @@ export function resolveGithubConfig(
       autoTransition: {
         enabled: asBoolean(autoTransition?.enabled) ?? false,
         toStatus: asTaskStatus(autoTransition?.toStatus),
-        agentId: asNonEmptyString(autoTransition?.agentId) ?? 'infra',
+        agentId: asNonEmptyString(autoTransition?.agentId) ?? 'devops',
       },
     },
   };
