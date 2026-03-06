@@ -51,9 +51,9 @@ an individual is officially representing the community in public spaces.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the project maintainers via
-[GitHub Security Advisories](https://github.com/Monkey-D-Luisi/vibe-flow/security/advisories/new)
-or by contacting the repository owner directly.
+reported to the project maintainers by contacting the repository owner
+directly through GitHub or via the contact methods listed in this
+repository.
 
 All complaints will be reviewed and investigated promptly and fairly.
 

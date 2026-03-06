@@ -32,7 +32,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: "Package version (run `pnpm list @openclaw/product-team`)"
+      description: "Package version (check `version` in the extension's `package.json` or `CHANGELOG.md`)"
       placeholder: "0.1.0"
     validations:
       required: true

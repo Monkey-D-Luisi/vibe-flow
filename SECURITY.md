@@ -50,5 +50,5 @@ This policy covers:
 For details on the security model (tool allow-lists, transition guards,
 sandboxing, prompt injection mitigations), see:
 
-- [docs/allowlist-rationale.md](docs/allowlist-rationale.md)
-- [docs/transition-guard-evidence.md](docs/transition-guard-evidence.md)
+- [Tool Allow-List Rationale](docs/allowlist-rationale.md)
+- [Transition Guard Evidence Reference](docs/transition-guard-evidence.md)
