@@ -62,12 +62,15 @@ Create a `.env.docker` file in the repo root with these values:
 OPENAI_API_KEY=sk-proj-...      # For gpt-4o-mini-transcribe. NOT used by agents.
 
 # -- GitHub --
-GITHUB_TOKEN=gho_...          # From: gh auth token
+GITHUB_TOKEN=ghp_...          # From: gh auth token
 GITHUB_OWNER=Monkey-D-Luisi
 GITHUB_REPO=vibe-flow
+GITHUB_WEBHOOK_SECRET=...     # For CI feedback webhook (when ciFeedback.enabled=true)
 
-# -- Telegram --
-TELEGRAM_BOT_TOKEN=...        # From @BotFather
+# -- Telegram (3 separate bot tokens -- one per persona) --
+TELEGRAM_BOT_TOKEN_PM=...        # From @BotFather (PM bot)
+TELEGRAM_BOT_TOKEN_TL=...        # From @BotFather (Tech Lead bot)
+TELEGRAM_BOT_TOKEN_DESIGNER=...  # From @BotFather (Designer bot)
 TELEGRAM_GROUP_ID=-100...     # Prefix with -100, e.g. web URL #-5177552677 -> -1005177552677
 
 # -- Stitch (design tool MCP bridge) --
@@ -75,6 +78,9 @@ STITCH_API_KEY=AQ....
 
 # -- Gateway Auth Token (any random string) --
 OPENCLAW_GATEWAY_TOKEN=ocgw_...
+
+# -- Health check (optional) --
+HEALTH_CHECK_SECRET=...
 ```
 
 > **Note**: Provider tokens (Anthropic, OpenAI Codex, GitHub Copilot) are NOT stored in env vars. They live in `auth-profiles.json` inside the Docker volume. See [Auth Credentials](#auth-credentials). `OPENAI_API_KEY` is only for audio transcription.
