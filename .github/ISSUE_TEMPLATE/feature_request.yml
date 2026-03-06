@@ -1,0 +1,40 @@
+name: Feature Request
+description: Suggest an enhancement or new feature
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem does this solve? Why is it needed?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe your ideal solution.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative approaches you've considered.
+    validations:
+      required: false
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the project does this relate to?
+      options:
+        - product-team extension
+        - quality-gate extension
+        - Skills
+        - CI/CD
+        - Documentation
+        - Other
+    validations:
+      required: true

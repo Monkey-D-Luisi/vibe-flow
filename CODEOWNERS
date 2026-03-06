@@ -1,0 +1,10 @@
+# Default owner for everything
+* @Monkey-D-Luisi
+
+# Extensions
+extensions/product-team/ @Monkey-D-Luisi
+extensions/quality-gate/ @Monkey-D-Luisi
+packages/quality-contracts/ @Monkey-D-Luisi
+
+# CI/CD
+.github/ @Monkey-D-Luisi

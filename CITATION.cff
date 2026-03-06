@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "vibe-flow"
+type: software
+authors:
+  - name: "Monkey-D-Luisi"
+repository-code: "https://github.com/Monkey-D-Luisi/vibe-flow"
+license: MIT
+version: "0.1.0"
+date-released: "2026-03-06"
+keywords:
+  - OpenClaw
+  - agents
+  - autonomous
+  - pipeline
+  - quality-gate
+  - product-team
