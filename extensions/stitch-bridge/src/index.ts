@@ -369,19 +369,19 @@ export default {
     logger.info('stitch-bridge: Registered project management tools (project_create, project_list, screens_list)');
 
     // Discover available Stitch tools in the background (non-blocking).
-    if (process.env['STITCH_API_KEY']) {
-      listTools(config).then(
-        (result) => {
+    if (process.env['STITCH_API_KEY'] && typeof listTools === 'function') {
+      Promise.resolve()
+        .then(() => listTools(config))
+        .then((result) => {
           const tools = (result as Record<string, unknown>)?.['tools'];
           if (Array.isArray(tools)) {
             const names = tools.map((t: Record<string, unknown>) => t['name']).join(', ');
             logger.info(`stitch-bridge: Discovered ${tools.length} Stitch tools: ${names}`);
           }
-        },
-        (err) => {
+        })
+        .catch((err: unknown) => {
           logger.warn(`stitch-bridge: Could not discover Stitch tools: ${String(err)}`);
-        },
-      );
+        });
     }
   },
 };
