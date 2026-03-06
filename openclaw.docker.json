@@ -302,7 +302,6 @@
         },
         "tools": {
           "allow": [
-            "group:fs", "group:runtime",
             "task_create", "task_get", "task_search", "task_update",
             "task_transition", "workflow_events_query",
             "project_list", "project_switch",

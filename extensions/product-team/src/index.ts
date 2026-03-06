@@ -42,6 +42,7 @@ import { createGracefulShutdown } from './hooks/graceful-shutdown.js';
 import { registerAutoSpawnHooks } from './hooks/auto-spawn.js';
 import { injectOriginIntoTeamMessage } from './hooks/origin-injection.js';
 import { injectAgentIdIntoDecisionEvaluate } from './hooks/agent-id-injection.js';
+import { injectCallerIntoPipelineAdvance } from './hooks/pipeline-caller-injection.js';
 import { registerHttpRoutes } from './registration/http-routes.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
@@ -307,6 +308,15 @@ export function register(api: OpenClawPluginApi): void {
     return injectAgentIdIntoDecisionEvaluate(typedEvent, typedCtx);
   });
   api.logger.info('registered agent-id-injection before_tool_call hook for decision_evaluate');
+
+  // Pipeline caller injection hook: auto-populates _callerAgentId in
+  // pipeline_advance calls so the tool can validate stage ownership.
+  api.on('before_tool_call', (event, ctx) => {
+    const typedEvent = event as { toolName: string; params: Record<string, unknown> };
+    const typedCtx = ctx as { agentId?: string; sessionKey?: string };
+    return injectCallerIntoPipelineAdvance(typedEvent, typedCtx);
+  });
+  api.logger.info('registered caller-injection before_tool_call hook for pipeline_advance');
 
   // Auto-spawn hooks: when an agent sends a team_message or escalates a decision,
   // inject a system directive into the caller's session to spawn the target agent.

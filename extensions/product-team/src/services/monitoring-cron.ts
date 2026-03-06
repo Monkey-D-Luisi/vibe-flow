@@ -2,6 +2,8 @@ import type { SqliteEventRepository } from '../persistence/event-repository.js';
 import type { HealthCheckDeps, HealthCheckResult } from './health-check.js';
 import { getHealthStatus } from './health-check.js';
 import { buildCostSummary } from '../cost/cost-summary.js';
+import { readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
 interface Logger {
   readonly info: (message: string) => void;
@@ -13,6 +15,7 @@ export interface MonitoringCronDeps {
   readonly eventRepo: SqliteEventRepository;
   readonly logger: Logger;
   readonly telegramChatId?: string;
+  readonly stateDir?: string;
 }
 
 interface TelegramConfig {
@@ -23,6 +26,9 @@ interface TelegramConfig {
 const HEALTH_INTERVAL_MS = 5 * 60 * 1000;   // 5 minutes
 const ACTIVITY_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 const COST_INTERVAL_MS = 24 * 60 * 60 * 1000; // 1 day
+const SESSION_CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+const SESSION_SIZE_WARN_BYTES = 200 * 1024;  // 200KB
+const SESSION_SIZE_CRITICAL_BYTES = 400 * 1024; // 400KB
 
 function resolveTelegramConfig(deps: MonitoringCronDeps): TelegramConfig | null {
   const token = process.env['TELEGRAM_BOT_TOKEN_PM'] ?? process.env['TELEGRAM_BOT_TOKEN'] ?? '';
@@ -126,6 +132,15 @@ export class MonitoringCron {
       }, COST_INTERVAL_MS).unref(),
     );
 
+    // Every 15 minutes: session size check
+    if (this.deps.stateDir) {
+      this.timers.push(
+        setInterval(() => {
+          void this.runSessionSizeCheck();
+        }, SESSION_CHECK_INTERVAL_MS).unref(),
+      );
+    }
+
     this.deps.logger.info('monitoring-cron: started');
   }
 
@@ -199,6 +214,59 @@ export class MonitoringCron {
       );
     } catch (err: unknown) {
       this.deps.logger.warn(`monitoring-cron: cost summary failed: ${String(err)}`);
+    }
+  }
+
+  private async runSessionSizeCheck(): Promise<void> {
+    if (!this.deps.stateDir) return;
+    const config = resolveTelegramConfig(this.deps);
+
+    try {
+      const agentsDir = join(this.deps.stateDir, 'agents');
+      let agents: string[];
+      try {
+        agents = readdirSync(agentsDir, { withFileTypes: true })
+          .filter(d => d.isDirectory())
+          .map(d => d.name);
+      } catch {
+        return; // No agents directory
+      }
+
+      const warnings: string[] = [];
+
+      for (const agentId of agents) {
+        const sessDir = join(agentsDir, agentId, 'sessions');
+        try {
+          const files = readdirSync(sessDir).filter(f => f.endsWith('.jsonl'));
+          for (const file of files) {
+            const stat = statSync(join(sessDir, file));
+            if (stat.size > SESSION_SIZE_CRITICAL_BYTES) {
+              warnings.push(`  CRITICAL ${agentId}: ${(stat.size / 1024).toFixed(0)}KB`);
+            } else if (stat.size > SESSION_SIZE_WARN_BYTES) {
+              warnings.push(`  WARN ${agentId}: ${(stat.size / 1024).toFixed(0)}KB`);
+            }
+          }
+        } catch {
+          // No sessions dir for this agent
+        }
+      }
+
+      if (warnings.length > 0) {
+        const message = [
+          '*Session Size Alert*',
+          '',
+          ...warnings,
+          '',
+          `_${new Date().toISOString()}_`,
+        ].join('\n');
+
+        this.deps.logger.warn(`monitoring-cron: session size warnings:\n${warnings.join('\n')}`);
+        if (config) {
+          await postTelegram(config, message);
+        }
+      }
+    } catch (err: unknown) {
+      this.deps.logger.warn(`monitoring-cron: session size check failed: ${String(err)}`);
     }
   }
 }

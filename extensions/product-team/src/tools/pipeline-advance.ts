@@ -71,6 +71,22 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
       const currentStage = String(meta.pipelineStage ?? 'IDEA');
       const now = deps.now();
 
+      // Caller validation: only the current stage owner (or pm/tech-lead as
+      // coordinators) may advance the pipeline. The _callerAgentId field is
+      // injected by the pipeline-caller-injection before_tool_call hook.
+      const callerAgentId = (params as Record<string, unknown>)['_callerAgentId'] as string | undefined;
+      if (callerAgentId) {
+        const currentOwner = STAGE_OWNERS[currentStage as PipelineStage] ?? 'system';
+        const allowedCallers = new Set([currentOwner, 'pm', 'tech-lead']);
+        if (!allowedCallers.has(callerAgentId)) {
+          const reason = `Caller "${callerAgentId}" is not authorized to advance stage ${currentStage} (owner: ${currentOwner})`;
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify({ advanced: false, reason }) }],
+            details: { advanced: false, reason },
+          };
+        }
+      }
+
       // Task 0064: Per-stage retry limit enforcement
       const maxRetries = deps.orchestratorConfig?.maxRetriesPerStage ?? 1;
       const stageRetryKey = `${currentStage}_retries`;

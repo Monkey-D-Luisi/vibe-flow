@@ -4,6 +4,7 @@ import {
   handleTeamMessageAutoSpawn,
   handleTeamReplyAutoSpawn,
   handleDecisionEscalationAutoSpawn,
+  handlePipelineAdvanceAutoSpawn,
   registerAutoSpawnHooks,
   resetDedupCache,
   rebuildSessionKeyForAgent,
@@ -760,10 +761,185 @@ describe('handleTeamReplyAutoSpawn', () => {
   });
 });
 
+// ── handlePipelineAdvanceAutoSpawn ─────────────────────────────────────────
+
+describe('handlePipelineAdvanceAutoSpawn', () => {
+  let deps: AutoSpawnDeps;
+
+  beforeEach(() => {
+    deps = createDeps();
+    resetDedupCache();
+  });
+
+  it('does nothing for non-pipeline_advance events', () => {
+    const event = makeEvent({ toolName: 'task_update' });
+    handlePipelineAdvanceAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when event has an error', () => {
+    const event = makeEvent({ toolName: 'pipeline_advance', error: new Error('fail') });
+    handlePipelineAdvanceAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when advance was not successful', () => {
+    const event = makeEvent({
+      toolName: 'pipeline_advance',
+      result: { details: { advanced: false, reason: 'Task not found' } },
+    });
+    handlePipelineAdvanceAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when no nextAction present (DONE stage)', () => {
+    const event = makeEvent({
+      toolName: 'pipeline_advance',
+      result: {
+        details: {
+          advanced: true,
+          taskId: 'T-1',
+          currentStage: 'DONE',
+        },
+      },
+    });
+    handlePipelineAdvanceAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when nextAction.action is not spawn_subagent', () => {
+    const event = makeEvent({
+      toolName: 'pipeline_advance',
+      result: {
+        details: {
+          advanced: true,
+          taskId: 'T-2',
+          currentStage: 'REVIEW',
+          nextAction: { action: 'unknown_action', agentId: 'tech-lead' },
+        },
+      },
+    });
+    handlePipelineAdvanceAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when target agent is system', () => {
+    const event = makeEvent({
+      toolName: 'pipeline_advance',
+      result: {
+        details: {
+          advanced: true,
+          taskId: 'T-3',
+          currentStage: 'DONE',
+          nextAction: { action: 'spawn_subagent', agentId: 'system', task: 'Finalize' },
+        },
+      },
+    });
+    handlePipelineAdvanceAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+  });
+
+  it('warns when target agent is not in team config', () => {
+    const event = makeEvent({
+      toolName: 'pipeline_advance',
+      result: {
+        details: {
+          advanced: true,
+          taskId: 'T-4',
+          currentStage: 'QA',
+          nextAction: { action: 'spawn_subagent', agentId: 'unknown-agent', task: 'Run QA' },
+        },
+      },
+    });
+    handlePipelineAdvanceAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+    expect(deps.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('not found in config'),
+    );
+  });
+
+  it('fires agent spawn for valid pipeline advance', () => {
+    const event = makeEvent({
+      toolName: 'pipeline_advance',
+      result: {
+        details: {
+          advanced: true,
+          taskId: 'T-5',
+          currentStage: 'REVIEW',
+          nextAction: { action: 'spawn_subagent', agentId: 'tech-lead', task: 'Execute REVIEW stage' },
+        },
+      },
+    });
+    handlePipelineAdvanceAutoSpawn(deps, event, makeCtx());
+
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+    const [agentId, task] = (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(agentId).toBe('tech-lead');
+    expect(task).toContain('Execute REVIEW stage');
+  });
+
+  it('spawns agent even when sessionKey is missing (SDK never provides it)', () => {
+    const event = makeEvent({
+      toolName: 'pipeline_advance',
+      result: {
+        details: {
+          advanced: true,
+          taskId: 'T-6',
+          currentStage: 'DECOMPOSITION',
+          nextAction: { action: 'spawn_subagent', agentId: 'tech-lead', task: 'Decompose' },
+        },
+      },
+    });
+    handlePipelineAdvanceAutoSpawn(deps, event, makeCtx({ sessionKey: undefined }));
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+  });
+
+  it('deduplicates identical pipeline advance spawns', () => {
+    const event = makeEvent({
+      toolName: 'pipeline_advance',
+      result: {
+        details: {
+          advanced: true,
+          taskId: 'T-7',
+          currentStage: 'IMPLEMENTATION',
+          nextAction: { action: 'spawn_subagent', agentId: 'back-1', task: 'Implement' },
+        },
+      },
+    });
+    handlePipelineAdvanceAutoSpawn(deps, event, makeCtx());
+    handlePipelineAdvanceAutoSpawn(deps, event, makeCtx());
+
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+  });
+
+  it('catches and logs spawnAgent failures', () => {
+    (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new Error('broken');
+    });
+
+    const event = makeEvent({
+      toolName: 'pipeline_advance',
+      result: {
+        details: {
+          advanced: true,
+          taskId: 'T-8',
+          currentStage: 'REVIEW',
+          nextAction: { action: 'spawn_subagent', agentId: 'tech-lead', task: 'Review' },
+        },
+      },
+    });
+    handlePipelineAdvanceAutoSpawn(deps, event, makeCtx());
+
+    expect(deps.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('spawnAgent failed'),
+    );
+  });
+});
+
 // ── registerAutoSpawnHooks ──────────────────────────────────────────────────
 
 describe('registerAutoSpawnHooks', () => {
-  it('registers three after_tool_call hooks (team_message, team_reply, decision_evaluate)', () => {
+  it('registers four after_tool_call hooks (team_message, team_reply, decision_evaluate, pipeline_advance)', () => {
     const mockRunner = { spawnAgent: vi.fn() };
     const api = {
       logger: { info: vi.fn(), warn: vi.fn() },
@@ -773,10 +949,11 @@ describe('registerAutoSpawnHooks', () => {
     const agents = [{ id: 'pm', name: 'PM' }];
     registerAutoSpawnHooks(api, agents, mockRunner);
 
-    expect(api.on).toHaveBeenCalledTimes(3);
+    expect(api.on).toHaveBeenCalledTimes(4);
     expect((api.on as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe('after_tool_call');
     expect((api.on as ReturnType<typeof vi.fn>).mock.calls[1][0]).toBe('after_tool_call');
     expect((api.on as ReturnType<typeof vi.fn>).mock.calls[2][0]).toBe('after_tool_call');
+    expect((api.on as ReturnType<typeof vi.fn>).mock.calls[3][0]).toBe('after_tool_call');
   });
 
   it('wraps handlers with try-catch so errors do not propagate', () => {

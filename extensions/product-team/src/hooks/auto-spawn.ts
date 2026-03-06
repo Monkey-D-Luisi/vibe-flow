@@ -383,6 +383,63 @@ export function handleDecisionEscalationAutoSpawn(
   }
 }
 
+// ── Hook: pipeline_advance auto-spawn ────────────────────────────────────────
+
+/**
+ * Handles the after_tool_call event for pipeline_advance.
+ *
+ * When a pipeline stage is advanced, the new stage owner must be spawned
+ * to execute the stage work. The pipeline_advance tool returns a nextAction
+ * with action: 'spawn_subagent' and the target agentId, but does NOT
+ * actually spawn the agent. This hook closes that gap.
+ */
+export function handlePipelineAdvanceAutoSpawn(
+  deps: AutoSpawnDeps,
+  event: { toolName: string; error?: unknown; result?: unknown; params?: Record<string, unknown> },
+  ctx: { agentId?: string; sessionKey?: string },
+): void {
+  if (event.toolName !== 'pipeline_advance') return;
+  if (event.error) return;
+
+  const details = extractDetails(event.result);
+  if (!details || details['advanced'] !== true) return;
+
+  const nextAction = details['nextAction'] as Record<string, unknown> | undefined;
+  if (!nextAction || nextAction['action'] !== 'spawn_subagent') return;
+
+  const targetAgentId = String(nextAction['agentId'] ?? '');
+  const taskMessage = String(nextAction['task'] ?? '');
+  const taskId = String(details['taskId'] ?? '');
+  const targetStage = String(details['currentStage'] ?? '');
+
+  if (!targetAgentId || targetAgentId === 'system') return;
+
+  // Deduplicate: the SDK fires after_tool_call from multiple code paths
+  const dedupKey = `pa:${taskId}:${targetStage}:${targetAgentId}`;
+  if (isDuplicate(dedupKey)) return;
+
+  // Only spawn agents that exist in the team config
+  const targetExists = deps.agents.some(a => a.id === targetAgentId);
+  if (!targetExists) {
+    deps.logger.warn(
+      `pipeline-advance-hook: target agent "${targetAgentId}" not found in config, skipping spawn`,
+    );
+    return;
+  }
+
+  const callerAgent = String(ctx.agentId ?? 'unknown');
+
+  try {
+    deps.agentRunner.spawnAgent(targetAgentId, taskMessage);
+    deps.logger.info(
+      `pipeline-advance-hook: agent turn fired for "${targetAgentId}" ` +
+      `(task: ${taskId}, stage: ${targetStage}, caller: ${callerAgent})`,
+    );
+  } catch (err: unknown) {
+    deps.logger.warn(`pipeline-advance-hook: spawnAgent failed: ${String(err)}`);
+  }
+}
+
 // ── Gateway-direct agent trigger ─────────────────────────────────────────────
 
 /**
@@ -599,5 +656,13 @@ export function registerAutoSpawnHooks(
     }
   });
 
-  api.logger.info('registered auto-spawn hooks for team_message, team_reply, and decision escalation');
+  api.on('after_tool_call', (_event, _ctx) => {
+    try {
+      handlePipelineAdvanceAutoSpawn(deps, _event, _ctx);
+    } catch (err: unknown) {
+      api.logger.warn(`pipeline-advance-hook: unhandled error: ${String(err)}`);
+    }
+  });
+
+  api.logger.info('registered auto-spawn hooks for team_message, team_reply, decision escalation, and pipeline_advance');
 }

@@ -190,6 +190,54 @@ describe('pipeline-advance tools', () => {
       expect(d.currentStage).toBe('DONE');
       expect(d.nextAction).toBeUndefined();
     });
+
+    it('allows current stage owner to advance', async () => {
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('c11', { taskId, _callerAgentId: 'back-1' });
+      const d = result.details as { advanced: boolean };
+
+      expect(d.advanced).toBe(true);
+    });
+
+    it('allows pm to advance any stage', async () => {
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('c12', { taskId, _callerAgentId: 'pm' });
+      const d = result.details as { advanced: boolean };
+
+      expect(d.advanced).toBe(true);
+    });
+
+    it('allows tech-lead to advance any stage', async () => {
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('c13', { taskId, _callerAgentId: 'tech-lead' });
+      const d = result.details as { advanced: boolean };
+
+      expect(d.advanced).toBe(true);
+    });
+
+    it('rejects unauthorized caller', async () => {
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('c14', { taskId, _callerAgentId: 'designer' });
+      const d = result.details as { advanced: boolean; reason: string };
+
+      expect(d.advanced).toBe(false);
+      expect(d.reason).toContain('designer');
+      expect(d.reason).toContain('not authorized');
+    });
+
+    it('skips caller validation when _callerAgentId is not present', async () => {
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('c15', { taskId });
+      const d = result.details as { advanced: boolean };
+
+      // No _callerAgentId means no validation — backwards compatible
+      expect(d.advanced).toBe(true);
+    });
   });
 
   describe('pipeline.metrics', () => {
