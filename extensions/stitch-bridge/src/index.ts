@@ -137,6 +137,7 @@ export default {
           screenName: { type: 'string', description: 'Name for the screen (used as filename)' },
           description: { type: 'string', description: 'Natural language description of the screen' },
           modelId: { type: 'string', description: 'Stitch model (defaults to GEMINI_3_PRO)' },
+          deviceType: { type: 'string', description: 'Device type: DESKTOP (default), MOBILE, TABLET, AGNOSTIC', enum: ['DESKTOP', 'MOBILE', 'TABLET', 'AGNOSTIC'] },
         },
         required: ['screenName', 'description'],
       },
@@ -145,11 +146,13 @@ export default {
         const screenName = sanitizeScreenName(String(params['screenName']));
         const description = String(params['description']);
         const modelId = String(params['modelId'] ?? config.defaultModel);
+        const deviceType = String(params['deviceType'] ?? 'DESKTOP');
 
         const result = await callStitchMcp(config, 'generate_screen_from_text', {
           projectId,
           prompt: description,
           modelId,
+          deviceType,
         });
 
         const html = await extractHtml(result);
