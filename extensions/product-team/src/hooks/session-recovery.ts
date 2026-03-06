@@ -8,6 +8,8 @@
  * - "No tool call found for function call output" — orphaned function_call_output in .jsonl
  * - "role_ordering" — SDK error kind for sequence violations
  * - "Unexpected non-whitespace character after JSON" — truncated/malformed session
+ * - "Expected ',' or ']' after array element in JSON" — truncated JSON array in session
+ * - "Unexpected end of JSON input" — incomplete session file
  */
 
 import { join } from 'node:path';
@@ -24,6 +26,8 @@ const CORRUPTION_PATTERNS: ReadonlyArray<string> = [
   'No tool call found for function call output',
   'role_ordering',
   'Unexpected non-whitespace character after JSON',
+  "Expected ',' or ']' after array element in JSON",
+  'Unexpected end of JSON input',
 ];
 
 /**
@@ -85,12 +89,17 @@ export function clearAgentSessions(
   }
 }
 
+export interface SessionRecoveryEventEmitter {
+  emit(eventType: string, agentId: string, payload: Record<string, unknown>): void;
+}
+
 /**
  * Register the `agent_end` hook that auto-clears corrupted sessions.
  */
 export function registerSessionRecoveryHook(
   api: OpenClawPluginApi,
   stateDir: string,
+  eventEmitter?: SessionRecoveryEventEmitter,
 ): void {
   api.on('agent_end', (event, ctx) => {
     const typedEvent = event as {
@@ -126,6 +135,18 @@ export function registerSessionRecoveryHook(
       clearAgentSessions(stateDir, agentId, api.logger);
     } catch (err: unknown) {
       api.logger.warn(`session-recovery: failed to clear sessions for "${agentId}": ${String(err)}`);
+    }
+
+    // Emit event for observability
+    if (eventEmitter) {
+      try {
+        eventEmitter.emit('session.recovered', agentId, {
+          error: errorMsg.slice(0, 200),
+          sessionId: typedCtx.sessionId,
+        });
+      } catch {
+        // best effort — event logging should never block recovery
+      }
     }
   });
 

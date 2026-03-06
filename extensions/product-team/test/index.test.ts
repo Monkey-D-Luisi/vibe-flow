@@ -160,10 +160,10 @@ describe('product-team plugin', () => {
     expect(api.logger.info).toHaveBeenCalledWith('product-team plugin loaded');
   });
 
-  it('registers exactly 34 task/workflow/quality/vcs/messaging/decision/pipeline tools', () => {
+  it('registers exactly 35 task/workflow/quality/vcs/messaging/decision/pipeline tools', () => {
     const api = createMockApi();
     register(api);
-    expect(api.registerTool).toHaveBeenCalledTimes(34);
+    expect(api.registerTool).toHaveBeenCalledTimes(35);
   });
 
   it('registers tools with expected names', () => {
@@ -208,6 +208,7 @@ describe('product-team plugin', () => {
     expect(toolNames).toContain('pipeline_skip');
     expect(toolNames).toContain('pipeline_advance');
     expect(toolNames).toContain('pipeline_metrics');
+    expect(toolNames).toContain('pipeline_timeline');
     expect(toolNames).toContain('decision_outcome');
   });
 
@@ -215,7 +216,7 @@ describe('product-team plugin', () => {
     const api = createMockApi();
     register(api);
     expect(api.logger.info).toHaveBeenCalledWith(
-      'registered 34 task/workflow/quality/vcs/messaging/decision/pipeline tools',
+      'registered 35 task/workflow/quality/vcs/messaging/decision/pipeline tools',
     );
   });
 

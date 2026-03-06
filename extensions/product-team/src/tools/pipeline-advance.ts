@@ -22,6 +22,10 @@ const PipelineMetricsParams = Type.Object({
   taskId: Type.Optional(Type.String({ description: 'Specific task ID, or all pipeline tasks if omitted' })),
 });
 
+const PipelineTimelineParams = Type.Object({
+  taskId: Type.String({ minLength: 1, description: 'Task ID to get the pipeline timeline for' }),
+});
+
 /** Sync the pipeline_stage indexed column with the metadata value. */
 function syncPipelineStageColumn(deps: ToolDeps, taskId: string, stage: string): void {
   try {
@@ -281,6 +285,87 @@ export function pipelineMetricsToolDef(deps: ToolDeps): ToolDef {
       }));
 
       const result = { stages, taskCount: tasks.length };
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    },
+  };
+}
+
+/**
+ * Pipeline timeline tool.
+ * Returns a per-task ordered list of stages with timestamps and durations.
+ */
+export function pipelineTimelineToolDef(deps: ToolDeps): ToolDef {
+  return {
+    name: 'pipeline.timeline',
+    label: 'Pipeline Timeline',
+    description: 'Get an ordered timeline of pipeline stages for a task with timestamps and durations',
+    parameters: PipelineTimelineParams,
+    execute: async (_toolCallId, params) => {
+      const input = deps.validate<{ taskId: string }>(PipelineTimelineParams, params);
+
+      const task = deps.taskRepo.getById(input.taskId);
+      if (!task) {
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ error: 'Task not found' }) }],
+          details: { error: 'Task not found' },
+        };
+      }
+
+      const meta = (task.metadata ?? {}) as Record<string, unknown>;
+      const currentStage = String(meta.pipelineStage ?? 'IDEA');
+
+      const stages: Array<{
+        stage: string;
+        startedAt: string | null;
+        completedAt: string | null;
+        durationMs: number | null;
+        owner: string;
+        status: 'completed' | 'skipped' | 'active' | 'pending';
+      }> = [];
+
+      let totalDurationMs = 0;
+
+      for (const stage of PIPELINE_STAGES) {
+        const startedAt = typeof meta[`${stage}_startedAt`] === 'string'
+          ? meta[`${stage}_startedAt`] as string : null;
+        const completedAt = typeof meta[`${stage}_completedAt`] === 'string'
+          ? meta[`${stage}_completedAt`] as string : null;
+        const durationMs = typeof meta[`${stage}_durationMs`] === 'number'
+          ? meta[`${stage}_durationMs`] as number : null;
+        const skipped = meta[`${stage}_skipped`] === true;
+        const owner = STAGE_OWNERS[stage] ?? 'system';
+
+        let status: 'completed' | 'skipped' | 'active' | 'pending';
+        if (skipped) {
+          status = 'skipped';
+        } else if (completedAt) {
+          status = 'completed';
+        } else if (stage === currentStage && startedAt) {
+          status = 'active';
+        } else if (startedAt && !completedAt) {
+          status = 'active';
+        } else {
+          status = 'pending';
+        }
+
+        if (durationMs !== null) {
+          totalDurationMs += durationMs;
+        }
+
+        stages.push({ stage, startedAt, completedAt, durationMs, owner, status });
+      }
+
+      const result = {
+        taskId: input.taskId,
+        title: task.title,
+        currentStage,
+        stages,
+        totalDurationMs: totalDurationMs > 0 ? totalDurationMs : null,
+      };
+
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
         details: result,

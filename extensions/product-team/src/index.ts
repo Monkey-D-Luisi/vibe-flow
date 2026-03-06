@@ -42,6 +42,7 @@ import { createGracefulShutdown } from './hooks/graceful-shutdown.js';
 import { registerAutoSpawnHooks, fireAgentViaGatewayWs } from './hooks/auto-spawn.js';
 import type { AgentSpawnSink } from './hooks/auto-spawn.js';
 import { registerSessionRecoveryHook, clearAgentSessions } from './hooks/session-recovery.js';
+import type { SessionRecoveryEventEmitter } from './hooks/session-recovery.js';
 import { injectOriginIntoTeamMessage } from './hooks/origin-injection.js';
 import { injectAgentIdIntoDecisionEvaluate } from './hooks/agent-id-injection.js';
 import { injectCallerIntoPipelineAdvance } from './hooks/pipeline-caller-injection.js';
@@ -341,7 +342,21 @@ export function register(api: OpenClawPluginApi): void {
   // (e.g. orphaned function_call_output, role_ordering). Without this, corrupted
   // sessions cause infinite failure loops on every spawn retry.
   const stateDir = process.env['OPENCLAW_STATE_DIR'] || '/root/.openclaw';
-  registerSessionRecoveryHook(api, stateDir);
+  const sessionRecoveryEventEmitter: SessionRecoveryEventEmitter = {
+    emit(eventType, agentId, payload) {
+      try {
+        const id = generateId();
+        const timestamp = now();
+        db.prepare(`
+          INSERT INTO event_log (id, task_id, event_type, agent_id, payload, created_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(id, null, eventType, agentId, JSON.stringify(payload), timestamp);
+      } catch {
+        // event_log table may not exist yet
+      }
+    },
+  };
+  registerSessionRecoveryHook(api, stateDir, sessionRecoveryEventEmitter);
 
   // Start decision timeout cron (re-escalates stalled decisions)
   const decisionTimeoutCron = new DecisionTimeoutCron({

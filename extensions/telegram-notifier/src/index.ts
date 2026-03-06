@@ -5,6 +5,8 @@ import {
   formatPrCreation,
   formatQualityGate,
   formatAgentError,
+  formatPipelineAdvance,
+  formatPipelineComplete,
 } from './formatting.js';
 
 /**
@@ -93,6 +95,18 @@ export default {
               `⚡ Decision \`${decisionId}\` escalated to *${approver}*`,
               'high',
             );
+          }
+        }
+      } else if (toolName === 'pipeline_advance') {
+        const res = (result && typeof result === 'object')
+          ? (result as Record<string, unknown>)
+          : {};
+        const details = ((res['details'] ?? res) as Record<string, unknown>);
+        if (details['advanced'] === true) {
+          if (details['currentStage'] === 'DONE') {
+            enqueue(formatPipelineComplete(details), 'high');
+          } else {
+            enqueue(formatPipelineAdvance(details), 'normal');
           }
         }
       }

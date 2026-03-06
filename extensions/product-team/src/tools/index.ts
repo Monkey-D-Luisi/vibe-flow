@@ -94,7 +94,7 @@ import { projectRegisterToolDef } from './project-register.js';
 import { teamMessageToolDef, teamInboxToolDef, teamReplyToolDef, teamStatusToolDef, teamAssignToolDef } from './team-messaging.js';
 import { decisionEvaluateToolDef, decisionLogToolDef, decisionOutcomeToolDef } from './decision-engine.js';
 import { pipelineStartToolDef, pipelineStatusToolDef, pipelineRetryToolDef, pipelineSkipToolDef } from './pipeline.js';
-import { pipelineAdvanceToolDef, pipelineMetricsToolDef } from './pipeline-advance.js';
+import { pipelineAdvanceToolDef, pipelineMetricsToolDef, pipelineTimelineToolDef } from './pipeline-advance.js';
 
 export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
   const toolDefs = [
@@ -132,6 +132,7 @@ export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
     pipelineSkipToolDef(deps),
     pipelineAdvanceToolDef(deps),
     pipelineMetricsToolDef(deps),
+    pipelineTimelineToolDef(deps),
   ];
 
   return toolDefs.map((tool) => withCostTracking(tool, deps));

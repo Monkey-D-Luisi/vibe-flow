@@ -133,3 +133,74 @@ describe('Telegram Notifier command handlers', () => {
     expect(result.text).toContain('Usage:');
   });
 });
+
+describe('Telegram Notifier after_tool_call hooks', () => {
+  it('enqueues a message on pipeline_advance stage transition', () => {
+    const { api, hooks } = createMockApi();
+    plugin.register(api as never);
+
+    const afterToolCallHandlers = hooks['after_tool_call'] ?? [];
+    expect(afterToolCallHandlers.length).toBeGreaterThan(0);
+
+    // Simulate a pipeline_advance call that advanced to ROADMAP
+    afterToolCallHandlers[0]!({
+      toolName: 'pipeline_advance',
+      params: { taskId: 'TASK1' },
+      result: {
+        details: {
+          advanced: true,
+          taskId: 'TASK1',
+          previousStage: 'IDEA',
+          currentStage: 'ROADMAP',
+          owner: 'pm',
+          durationMs: 5000,
+        },
+      },
+    });
+
+    // We can't directly inspect the queue, but this should not throw
+  });
+
+  it('enqueues a high-priority message on pipeline DONE', () => {
+    const { api, hooks } = createMockApi();
+    plugin.register(api as never);
+
+    const afterToolCallHandlers = hooks['after_tool_call'] ?? [];
+
+    afterToolCallHandlers[0]!({
+      toolName: 'pipeline_advance',
+      params: { taskId: 'TASK1' },
+      result: {
+        details: {
+          advanced: true,
+          taskId: 'TASK1',
+          previousStage: 'SHIPPING',
+          currentStage: 'DONE',
+          owner: 'system',
+          durationMs: 120000,
+        },
+      },
+    });
+
+    // Should not throw — message enqueued
+  });
+
+  it('does not enqueue when pipeline_advance did not advance', () => {
+    const { api, hooks } = createMockApi();
+    plugin.register(api as never);
+
+    const afterToolCallHandlers = hooks['after_tool_call'] ?? [];
+
+    // This should be a no-op
+    afterToolCallHandlers[0]!({
+      toolName: 'pipeline_advance',
+      params: { taskId: 'TASK1' },
+      result: {
+        details: {
+          advanced: false,
+          reason: 'Task not found',
+        },
+      },
+    });
+  });
+});

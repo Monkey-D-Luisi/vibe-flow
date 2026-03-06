@@ -5,6 +5,8 @@ import {
   formatPrCreation,
   formatQualityGate,
   formatAgentError,
+  formatPipelineAdvance,
+  formatPipelineComplete,
 } from '../src/formatting.js';
 
 describe('escapeMarkdownV2', () => {
@@ -142,5 +144,91 @@ describe('formatAgentError', () => {
     const result = formatAgentError({});
     expect(result).toContain('unknown');
     expect(result).toContain('Unknown error');
+  });
+
+  it('includes sessionKey when provided', () => {
+    const result = formatAgentError({
+      agentId: 'qa',
+      error: 'crash',
+      sessionKey: 'agent:qa:main',
+    });
+    expect(result).toContain('session');
+    expect(result).toContain('agent:qa:main');
+  });
+});
+
+describe('formatPipelineAdvance', () => {
+  it('formats a stage transition with duration', () => {
+    const result = formatPipelineAdvance({
+      taskId: '01KK1R87G7BFHX8WGFTD8799KN',
+      previousStage: 'IDEA',
+      currentStage: 'ROADMAP',
+      owner: 'pm',
+      durationMs: 10500,
+    });
+    expect(result).toContain('IDEA');
+    expect(result).toContain('ROADMAP');
+    expect(result).toContain('pm');
+    expect(result).toContain('11s');
+  });
+
+  it('formats without duration when not available', () => {
+    const result = formatPipelineAdvance({
+      taskId: 'ABC123',
+      previousStage: 'QA',
+      currentStage: 'REVIEW',
+      owner: 'tech-lead',
+    });
+    expect(result).toContain('QA');
+    expect(result).toContain('REVIEW');
+    expect(result).toContain('tech\\-lead');
+  });
+
+  it('shows last 8 chars of task ID', () => {
+    const result = formatPipelineAdvance({
+      taskId: '01KK1R87G7BFHX8WGFTD8799KN',
+      previousStage: 'IDEA',
+      currentStage: 'ROADMAP',
+      owner: 'pm',
+    });
+    expect(result).toContain('D8799KN');
+  });
+
+  it('formats duration in minutes for longer durations', () => {
+    const result = formatPipelineAdvance({
+      taskId: 'TASK1',
+      previousStage: 'IMPLEMENTATION',
+      currentStage: 'QA',
+      owner: 'qa',
+      durationMs: 252000, // 4m12s
+    });
+    expect(result).toContain('4m12s');
+  });
+});
+
+describe('formatPipelineComplete', () => {
+  it('formats pipeline completion with task ID', () => {
+    const result = formatPipelineComplete({
+      taskId: '01KK1R87G7BFHX8WGFTD8799KN',
+    });
+    expect(result).toContain('DONE');
+    expect(result).toContain('01KK1R87G7BFHX8WGFTD8799KN');
+    expect(result).toContain('completed all stages');
+  });
+
+  it('includes stage duration when available', () => {
+    const result = formatPipelineComplete({
+      taskId: 'TASK1',
+      durationMs: 126000,
+    });
+    expect(result).toContain('DONE');
+    expect(result).toContain('2m6s');
+  });
+
+  it('omits duration when not available', () => {
+    const result = formatPipelineComplete({
+      taskId: 'TASK1',
+    });
+    expect(result).not.toContain('Total');
   });
 });

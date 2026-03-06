@@ -207,5 +207,93 @@ describe('session-recovery', () => {
       // Session should NOT be cleared for a rate limit error
       expect(existsSync(join(sessDir, 'good.jsonl'))).toBe(true);
     });
+
+    it('clears session on truncated JSON array error', async () => {
+      const { registerSessionRecoveryHook } = await import('../../src/hooks/session-recovery.js');
+      const handlers: Array<(event: unknown, ctx: unknown) => void> = [];
+      const api = {
+        on: vi.fn((name: string, handler: (event: unknown, ctx: unknown) => void) => {
+          handlers.push(handler);
+        }),
+        logger: { info: vi.fn(), warn: vi.fn() },
+      };
+
+      registerSessionRecoveryHook(api as never, stateDir);
+
+      const sessDir = createAgentSessionDir(stateDir, 'qa');
+      writeFileSync(join(sessDir, 'truncated.jsonl'), '{}');
+
+      handlers[0]!(
+        {
+          success: false,
+          error: "Expected ',' or ']' after array element in JSON at position 2038",
+          messages: [],
+        },
+        { agentId: 'qa', sessionId: 'truncated' },
+      );
+
+      const remaining = readdirSync(sessDir).filter(f => f.endsWith('.jsonl'));
+      expect(remaining).toHaveLength(0);
+    });
+
+    it('clears session on unexpected end of JSON input', async () => {
+      const { registerSessionRecoveryHook } = await import('../../src/hooks/session-recovery.js');
+      const handlers: Array<(event: unknown, ctx: unknown) => void> = [];
+      const api = {
+        on: vi.fn((name: string, handler: (event: unknown, ctx: unknown) => void) => {
+          handlers.push(handler);
+        }),
+        logger: { info: vi.fn(), warn: vi.fn() },
+      };
+
+      registerSessionRecoveryHook(api as never, stateDir);
+
+      const sessDir = createAgentSessionDir(stateDir, 'back-1');
+      writeFileSync(join(sessDir, 'incomplete.jsonl'), '{}');
+
+      handlers[0]!(
+        {
+          success: false,
+          error: 'Unexpected end of JSON input',
+          messages: [],
+        },
+        { agentId: 'back-1', sessionId: 'incomplete' },
+      );
+
+      const remaining = readdirSync(sessDir).filter(f => f.endsWith('.jsonl'));
+      expect(remaining).toHaveLength(0);
+    });
+
+    it('emits event via eventEmitter on recovery', async () => {
+      const { registerSessionRecoveryHook } = await import('../../src/hooks/session-recovery.js');
+      const handlers: Array<(event: unknown, ctx: unknown) => void> = [];
+      const api = {
+        on: vi.fn((name: string, handler: (event: unknown, ctx: unknown) => void) => {
+          handlers.push(handler);
+        }),
+        logger: { info: vi.fn(), warn: vi.fn() },
+      };
+
+      const eventEmitter = { emit: vi.fn() };
+      registerSessionRecoveryHook(api as never, stateDir, eventEmitter);
+
+      const sessDir = createAgentSessionDir(stateDir, 'devops');
+      writeFileSync(join(sessDir, 'broken.jsonl'), '{}');
+
+      handlers[0]!(
+        {
+          success: false,
+          error: 'No tool call found for function call output with call_id toolu_abc',
+          messages: [],
+        },
+        { agentId: 'devops', sessionId: 'broken' },
+      );
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'session.recovered',
+        'devops',
+        expect.objectContaining({ sessionId: 'broken' }),
+      );
+    });
   });
 });
