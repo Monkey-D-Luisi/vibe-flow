@@ -293,7 +293,7 @@
         "name": "Product Manager",
         "default": true,
         "identity": { "name": "PM" },
-        "model": { "primary": "openai-codex/gpt-5.2", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
+        "model": { "primary": "openai-codex/gpt-5.4", "fallbacks": ["anthropic/claude-sonnet-4-6", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
         "agentDir": ".agent/agents/pm",
         "skills": ["requirements-grooming"],
