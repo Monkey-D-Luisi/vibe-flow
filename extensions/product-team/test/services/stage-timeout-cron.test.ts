@@ -221,4 +221,135 @@ describe('stage-timeout-cron', () => {
       expect(deps.logger.info).toHaveBeenCalledWith('stage-timeout-cron: stopped');
     });
   });
+
+  describe('agent spawning', () => {
+    it('spawns stage owner on first timeout when agentSpawner is provided', () => {
+      const spawnAgent = vi.fn();
+      const pastTime = new Date(Date.now() - 5000).toISOString();
+      const meta = {
+        pipelineStage: 'IMPLEMENTATION',
+        pipelineOwner: 'back-1',
+        IMPLEMENTATION_startedAt: pastTime,
+      };
+      deps.db.prepare(`
+        INSERT INTO task_records (id, title, tags, metadata, pipeline_stage, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('spawn-1', 'Spawn test', '["pipeline"]', JSON.stringify(meta), 'IMPLEMENTATION', 'in_progress');
+
+      deps = createDeps({ db: deps.db, agentSpawner: { spawnAgent } });
+      sweepStageTimeouts(deps);
+
+      expect(spawnAgent).toHaveBeenCalledTimes(1);
+      expect(spawnAgent.mock.calls[0]![0]).toBe('back-1');
+      expect(spawnAgent.mock.calls[0]![1]).toContain('pipeline_advance');
+    });
+
+    it('spawns tech-lead on second escalation', () => {
+      const spawnAgent = vi.fn();
+      const pastTime = new Date(Date.now() - 5000).toISOString();
+      const meta = {
+        pipelineStage: 'IMPLEMENTATION',
+        pipelineOwner: 'back-1',
+        IMPLEMENTATION_startedAt: pastTime,
+        IMPLEMENTATION_timeoutEscalated: true,
+        IMPLEMENTATION_timeoutEscalationCount: 1,
+      };
+      deps.db.prepare(`
+        INSERT INTO task_records (id, title, tags, metadata, pipeline_stage, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('spawn-2', 'Escalation test', '["pipeline"]', JSON.stringify(meta), 'IMPLEMENTATION', 'in_progress');
+
+      deps = createDeps({ db: deps.db, agentSpawner: { spawnAgent } });
+      sweepStageTimeouts(deps);
+
+      expect(spawnAgent).toHaveBeenCalledTimes(1);
+      expect(spawnAgent.mock.calls[0]![0]).toBe('tech-lead');
+      expect(spawnAgent.mock.calls[0]![1]).toContain('Stage Timeout Recovery');
+    });
+
+    it('does not spawn when agentSpawner is not provided (backwards compat)', () => {
+      const pastTime = new Date(Date.now() - 5000).toISOString();
+      const meta = {
+        pipelineStage: 'IMPLEMENTATION',
+        pipelineOwner: 'back-1',
+        IMPLEMENTATION_startedAt: pastTime,
+      };
+      deps.db.prepare(`
+        INSERT INTO task_records (id, title, tags, metadata, pipeline_stage, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('spawn-3', 'No spawn test', '["pipeline"]', JSON.stringify(meta), 'IMPLEMENTATION', 'in_progress');
+
+      // deps has no agentSpawner — no crash expected
+      const count = sweepStageTimeouts(deps);
+      expect(count).toBe(1); // still escalated via DB message
+    });
+  });
+
+  describe('stall guard', () => {
+    it('marks task as stalled after maxTimeoutEscalations', () => {
+      const pastTime = new Date(Date.now() - 5000).toISOString();
+      const meta = {
+        pipelineStage: 'IMPLEMENTATION',
+        pipelineOwner: 'back-1',
+        IMPLEMENTATION_startedAt: pastTime,
+        IMPLEMENTATION_timeoutEscalated: true,
+        IMPLEMENTATION_timeoutEscalationCount: 3,
+      };
+      deps.db.prepare(`
+        INSERT INTO task_records (id, title, tags, metadata, pipeline_stage, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('stall-1', 'Stall test', '["pipeline"]', JSON.stringify(meta), 'IMPLEMENTATION', 'in_progress');
+
+      deps = createDeps({
+        db: deps.db,
+        orchestratorConfig: { stageTimeouts: { IMPLEMENTATION: 1000 }, maxTimeoutEscalations: 3 },
+      });
+      const count = sweepStageTimeouts(deps);
+
+      expect(count).toBe(0); // not counted as an escalation
+      const task = deps.db.prepare('SELECT metadata FROM task_records WHERE id = ?').get('stall-1') as { metadata: string };
+      const updated = JSON.parse(task.metadata);
+      expect(updated.IMPLEMENTATION_stalled).toBe(true);
+    });
+
+    it('stops firing for already-stalled tasks', () => {
+      const pastTime = new Date(Date.now() - 5000).toISOString();
+      const meta = {
+        pipelineStage: 'IMPLEMENTATION',
+        pipelineOwner: 'back-1',
+        IMPLEMENTATION_startedAt: pastTime,
+        IMPLEMENTATION_stalled: true,
+      };
+      deps.db.prepare(`
+        INSERT INTO task_records (id, title, tags, metadata, pipeline_stage, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('stall-2', 'Already stalled', '["pipeline"]', JSON.stringify(meta), 'IMPLEMENTATION', 'in_progress');
+
+      const count = sweepStageTimeouts(deps);
+      expect(count).toBe(0);
+
+      // No messages inserted
+      const msgs = deps.db.prepare('SELECT COUNT(*) as c FROM agent_messages').get() as { c: number };
+      expect(msgs.c).toBe(0);
+    });
+
+    it('increments escalation count on each timeout', () => {
+      const pastTime = new Date(Date.now() - 5000).toISOString();
+      const meta = {
+        pipelineStage: 'IMPLEMENTATION',
+        pipelineOwner: 'back-1',
+        IMPLEMENTATION_startedAt: pastTime,
+      };
+      deps.db.prepare(`
+        INSERT INTO task_records (id, title, tags, metadata, pipeline_stage, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('stall-3', 'Count test', '["pipeline"]', JSON.stringify(meta), 'IMPLEMENTATION', 'in_progress');
+
+      sweepStageTimeouts(deps);
+
+      const task = deps.db.prepare('SELECT metadata FROM task_records WHERE id = ?').get('stall-3') as { metadata: string };
+      const updated = JSON.parse(task.metadata);
+      expect(updated.IMPLEMENTATION_timeoutEscalationCount).toBe(1);
+    });
+  });
 });

@@ -39,7 +39,8 @@ import { MonitoringCron } from './services/monitoring-cron.js';
 import { DecisionTimeoutCron } from './services/decision-timeout-cron.js';
 import { StageTimeoutCron } from './services/stage-timeout-cron.js';
 import { createGracefulShutdown } from './hooks/graceful-shutdown.js';
-import { registerAutoSpawnHooks } from './hooks/auto-spawn.js';
+import { registerAutoSpawnHooks, fireAgentViaGatewayWs } from './hooks/auto-spawn.js';
+import type { AgentSpawnSink } from './hooks/auto-spawn.js';
 import { injectOriginIntoTeamMessage } from './hooks/origin-injection.js';
 import { injectAgentIdIntoDecisionEvaluate } from './hooks/agent-id-injection.js';
 import { injectCallerIntoPipelineAdvance } from './hooks/pipeline-caller-injection.js';
@@ -318,10 +319,22 @@ export function register(api: OpenClawPluginApi): void {
   });
   api.logger.info('registered caller-injection before_tool_call hook for pipeline_advance');
 
+  // Shared spawn sink: used by both auto-spawn hooks and stage-timeout cron
+  const sharedSpawnSink: AgentSpawnSink = {
+    spawnAgent(agentId: string, message: string): void {
+      try {
+        fireAgentViaGatewayWs(agentId, message, api.logger);
+        api.logger.info(`shared-spawn: triggered agent "${agentId}"`);
+      } catch (err: unknown) {
+        api.logger.warn(`shared-spawn: failed for "${agentId}": ${String(err)}`);
+      }
+    },
+  };
+
   // Auto-spawn hooks: when an agent sends a team_message or escalates a decision,
   // inject a system directive into the caller's session to spawn the target agent.
   const deliveryConfig = resolveDeliveryConfig(pluginConfig);
-  registerAutoSpawnHooks(api, agentConfig, undefined, deliveryConfig);
+  registerAutoSpawnHooks(api, agentConfig, sharedSpawnSink, deliveryConfig);
 
   // Start decision timeout cron (re-escalates stalled decisions)
   const decisionTimeoutCron = new DecisionTimeoutCron({
@@ -333,7 +346,7 @@ export function register(api: OpenClawPluginApi): void {
   });
   decisionTimeoutCron.start();
 
-  // Start stage timeout cron (escalates stalled pipeline stages)
+  // Start stage timeout cron (escalates stalled pipeline stages AND spawns agents)
   const orchestratorConfig = resolveOrchestratorConfig(pluginConfig);
   const stageTimeoutCron = new StageTimeoutCron({
     db,
@@ -341,6 +354,7 @@ export function register(api: OpenClawPluginApi): void {
     now,
     logger: api.logger,
     orchestratorConfig,
+    agentSpawner: sharedSpawnSink,
   });
   stageTimeoutCron.start();
 

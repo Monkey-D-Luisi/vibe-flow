@@ -3,14 +3,16 @@
  *
  * Periodically checks all in-flight pipeline tasks for stage timeout violations.
  * When a stage has exceeded its configured timeout:
- * 1. First violation: sends an urgent message to the stage owner
- * 2. Second check (still timed out): escalates to tech-lead
+ * 1. First violation: sends an urgent message to the stage owner AND spawns them
+ * 2. Second check (still timed out): escalates to tech-lead AND spawns them
+ * 3. After maxTimeoutEscalations: marks task as stalled, stops firing
  *
  * Config consumed: orchestratorConfig.stageTimeouts (e.g. { IMPLEMENTATION: 1800000 })
  */
 
 import type Database from 'better-sqlite3';
 import { MESSAGES_TABLE } from '../tools/shared-db.js';
+import type { AgentSpawnSink } from '../hooks/auto-spawn.js';
 
 interface StageTimeoutLogger {
   readonly info: (message: string) => void;
@@ -25,10 +27,13 @@ export interface StageTimeoutDeps {
   readonly orchestratorConfig?: {
     stageTimeouts?: Record<string, number>;
     autoEscalateAfterRetries?: boolean;
+    maxTimeoutEscalations?: number;
   };
+  readonly agentSpawner?: AgentSpawnSink;
 }
 
 const SWEEP_INTERVAL_MS = 60_000; // 1 minute
+const DEFAULT_MAX_ESCALATIONS = 3;
 
 interface PipelineTask {
   id: string;
@@ -67,6 +72,7 @@ export function sweepStageTimeouts(deps: StageTimeoutDeps): number {
 
   ensureMessagesTableForCron(deps.db);
   const now = Date.now();
+  const maxEscalations = deps.orchestratorConfig?.maxTimeoutEscalations ?? DEFAULT_MAX_ESCALATIONS;
   let escalatedCount = 0;
 
   // Find all pipeline tasks (those with tags containing 'pipeline')
@@ -104,6 +110,30 @@ export function sweepStageTimeouts(deps: StageTimeoutDeps): number {
     const elapsed = now - startedAt;
     if (elapsed < timeoutMs) continue;
 
+    // Check if task is already stalled — stop firing for it
+    if (meta[`${stage}_stalled`] === true) continue;
+
+    // Check escalation count against max
+    const escalationCountKey = `${stage}_timeoutEscalationCount`;
+    const escalationCount = typeof meta[escalationCountKey] === 'number'
+      ? meta[escalationCountKey] as number
+      : 0;
+
+    if (escalationCount >= maxEscalations) {
+      // Mark as stalled and stop
+      try {
+        const updated = { ...meta, [`${stage}_stalled`]: true };
+        deps.db.prepare('UPDATE task_records SET metadata = ? WHERE id = ?')
+          .run(JSON.stringify(updated), row.id);
+      } catch {
+        // best effort
+      }
+      deps.logger.warn(
+        `stage-timeout: Task ${row.id} marked as stalled at ${stage} after ${escalationCount} escalations`,
+      );
+      continue;
+    }
+
     // Stage has timed out
     const alreadyEscalated = meta[`${stage}_timeoutEscalated`] === true;
     const owner = String(meta.pipelineOwner ?? 'system');
@@ -129,14 +159,36 @@ export function sweepStageTimeouts(deps: StageTimeoutDeps): number {
       VALUES (?, ?, ?, ?, ?, 'urgent', ?, ?)
     `).run(msgId, 'pipeline-cron', target, subject, body, row.id, msgNow);
 
-    // Mark as escalated in metadata so next sweep does second-level escalation
-    if (!alreadyEscalated) {
+    // Update metadata: mark escalated + increment count
+    try {
+      const updated = {
+        ...meta,
+        [`${stage}_timeoutEscalated`]: true,
+        [escalationCountKey]: escalationCount + 1,
+      };
+      deps.db.prepare('UPDATE task_records SET metadata = ? WHERE id = ?')
+        .run(JSON.stringify(updated), row.id);
+    } catch {
+      // best effort
+    }
+
+    // Spawn the target agent so it actually runs to handle the timeout
+    if (deps.agentSpawner) {
+      const spawnMessage = alreadyEscalated
+        ? `[Stage Timeout Recovery] Task ${row.id} has been stuck at ${stage} beyond the timeout. ` +
+          `The stage owner (${owner}) did not complete in time. Please investigate using ` +
+          `pipeline_status and task_get({ id: "${row.id}" }), then either complete the work and call ` +
+          `pipeline_advance({ taskId: "${row.id}" }), or use pipeline_skip/pipeline_retry.`
+        : `[Stage Timeout] Your pipeline stage ${stage} for task ${row.id} has timed out ` +
+          `(${Math.round(elapsed / 1000)}s elapsed). Please complete the stage work and call ` +
+          `pipeline_advance({ taskId: "${row.id}" }) to move forward. If blocked, use ` +
+          `decision_evaluate to escalate.`;
+
       try {
-        const updated = { ...meta, [`${stage}_timeoutEscalated`]: true };
-        deps.db.prepare('UPDATE task_records SET metadata = ? WHERE id = ?')
-          .run(JSON.stringify(updated), row.id);
-      } catch {
-        // best effort
+        deps.agentSpawner.spawnAgent(target, spawnMessage);
+        deps.logger.info(`stage-timeout: spawned agent "${target}" for task ${row.id}`);
+      } catch (err: unknown) {
+        deps.logger.warn(`stage-timeout: failed to spawn "${target}": ${String(err)}`);
       }
     }
 

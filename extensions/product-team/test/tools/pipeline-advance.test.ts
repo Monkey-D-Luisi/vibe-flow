@@ -8,7 +8,7 @@ import { SqliteLeaseRepository } from '../../src/persistence/lease-repository.js
 import { EventLog } from '../../src/orchestrator/event-log.js';
 import { createValidator } from '../../src/schemas/validator.js';
 import type { ToolDeps } from '../../src/tools/index.js';
-import { pipelineAdvanceToolDef, pipelineMetricsToolDef } from '../../src/tools/pipeline-advance.js';
+import { pipelineAdvanceToolDef, pipelineMetricsToolDef, buildStageSpawnMessage } from '../../src/tools/pipeline-advance.js';
 import { pipelineStartToolDef } from '../../src/tools/pipeline.js';
 import { DEFAULT_TRANSITION_GUARD_CONFIG } from '../../src/orchestrator/transition-guards.js';
 
@@ -237,6 +237,53 @@ describe('pipeline-advance tools', () => {
 
       // No _callerAgentId means no validation — backwards compatible
       expect(d.advanced).toBe(true);
+    });
+
+    it('includes task title in spawn message', async () => {
+      const taskId = await createPipelineTask('REFINEMENT');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('sm1', { taskId });
+      const d = result.details as { advanced: boolean; nextAction?: { task: string } };
+
+      expect(d.advanced).toBe(true);
+      expect(d.nextAction?.task).toContain('Test pipeline advance');
+    });
+
+    it('includes stage-specific instructions in spawn message', async () => {
+      const taskId = await createPipelineTask('REFINEMENT');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('sm2', { taskId });
+      const d = result.details as { nextAction?: { task: string } };
+
+      // REFINEMENT -> DECOMPOSITION: should contain architecture/subtasks instruction
+      expect(d.nextAction?.task).toContain('Break requirements into technical subtasks');
+    });
+
+    it('includes explicit pipeline_advance call in spawn message', async () => {
+      const taskId = await createPipelineTask('DESIGN');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('sm3', { taskId });
+      const d = result.details as { nextAction?: { task: string } };
+
+      expect(d.nextAction?.task).toContain(`pipeline_advance({ taskId: "${taskId}" })`);
+      expect(d.nextAction?.task).toContain('Do NOT wait for instructions');
+    });
+  });
+
+  describe('buildStageSpawnMessage', () => {
+    it('includes task title and stage instructions', () => {
+      const msg = buildStageSpawnMessage('task-1', 'IMPLEMENTATION', 'My Feature', { ideaText: 'Build a landing page' });
+      expect(msg).toContain('My Feature');
+      expect(msg).toContain('Implement the solution');
+      expect(msg).toContain('Build a landing page');
+      expect(msg).toContain('pipeline_advance({ taskId: "task-1" })');
+    });
+
+    it('handles missing ideaText gracefully', () => {
+      const msg = buildStageSpawnMessage('task-2', 'QA', 'Test Task', {});
+      expect(msg).toContain('Test Task');
+      expect(msg).toContain('Run test suites');
+      expect(msg).not.toContain('Idea:');
     });
   });
 

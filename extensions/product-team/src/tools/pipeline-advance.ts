@@ -31,6 +31,39 @@ function syncPipelineStageColumn(deps: ToolDeps, taskId: string, stage: string):
   }
 }
 
+const STAGE_INSTRUCTIONS: Readonly<Record<string, string>> = {
+  ROADMAP: 'Create a roadmap. Define milestones, scope, and success criteria.',
+  REFINEMENT: 'Refine requirements into user stories with acceptance criteria.',
+  DECOMPOSITION: 'Break requirements into technical subtasks. Define architecture.',
+  DESIGN: 'Create UI/UX designs for user-facing components using design tools.',
+  IMPLEMENTATION: 'Implement the solution. Write code and tests. Run quality checks.',
+  QA: 'Run test suites. Verify acceptance criteria. Produce a qa_report.',
+  REVIEW: 'Review implementation for quality and correctness. Run quality_gate.',
+  SHIPPING: 'Create branch, open PR, prepare for deployment.',
+};
+
+/** Build a context-rich spawn message for the next stage owner. */
+export function buildStageSpawnMessage(
+  taskId: string,
+  stage: string,
+  title: string,
+  meta: Record<string, unknown>,
+): string {
+  const ideaText = typeof meta['ideaText'] === 'string' ? (meta['ideaText'] as string).slice(0, 500) : '';
+  const instruction = STAGE_INSTRUCTIONS[stage] ?? `Execute the ${stage} stage work.`;
+
+  return [
+    `Pipeline task ${taskId} has advanced to ${stage}.`,
+    `Task: "${title}"`,
+    ideaText ? `Idea: ${ideaText}` : '',
+    '',
+    `You are the ${stage} stage owner. ${instruction}`,
+    '',
+    `When done, call pipeline_advance({ taskId: "${taskId}" }) to advance to the next stage.`,
+    'Do NOT wait for instructions. Do NOT ask what to do next.',
+  ].filter(Boolean).join('\n');
+}
+
 /** Emit a stage transition event to the event log for observability (Task 0074). */
 function emitStageEvent(
   deps: ToolDeps,
@@ -176,6 +209,8 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
 
       deps.logger?.info(`pipeline.advance: ${input.taskId} ${currentStage} → ${targetStage}`);
 
+      const spawnMessage = buildStageSpawnMessage(input.taskId, targetStage, task.title ?? 'Untitled', meta);
+
       const result = {
         advanced: true,
         taskId: input.taskId,
@@ -186,9 +221,7 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
         nextAction: targetStage !== 'DONE' ? {
           action: 'spawn_subagent',
           agentId: STAGE_OWNERS[targetStage] ?? 'system',
-          task: `Pipeline task ${input.taskId} has advanced to ${targetStage}. ` +
-            `You are the stage owner. Execute the ${targetStage} stage work, ` +
-            `then call pipeline_advance to move to the next stage.`,
+          task: spawnMessage,
         } : undefined,
       };
 

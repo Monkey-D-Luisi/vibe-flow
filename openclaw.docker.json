@@ -343,6 +343,7 @@
         "identity": { "name": "PO" },
         "model": { "primary": "github-copilot/gpt-4.1", "fallbacks": ["anthropic/claude-sonnet-4-6", "openai-codex/gpt-5.2"] },
         "workspace": "/workspaces/active",
+        "agentDir": ".agent/agents/po",
         "skills": ["product-owner", "requirements-grooming"],
         "tools": {
           "allow": [
@@ -350,7 +351,8 @@
             "task_create", "task_get", "task_search", "task_update",
             "task_transition", "workflow_step_run", "workflow_state_get",
             "team_message", "team_inbox", "team_reply", "team_status",
-            "decision_evaluate", "decision_log", "decision_outcome"
+            "decision_evaluate", "decision_log", "decision_outcome",
+            "pipeline_advance"
           ]
         }
       },
@@ -360,6 +362,7 @@
         "identity": { "name": "Designer" },
         "model": { "primary": "github-copilot/gpt-4o", "fallbacks": ["anthropic/claude-sonnet-4-6", "openai-codex/gpt-5.2"] },
         "workspace": "/workspaces/active",
+        "agentDir": ".agent/agents/designer",
         "skills": ["ui-designer"],
         "tools": {
           "allow": [
@@ -369,7 +372,8 @@
             "design_generate", "design_edit", "design_get", "design_list",
             "design_project_create", "design_project_list", "design_screens_list",
             "team_message", "team_inbox", "team_reply",
-            "decision_evaluate"
+            "decision_evaluate",
+            "pipeline_advance"
           ]
         }
       },
@@ -379,6 +383,7 @@
         "identity": { "name": "Back-1" },
         "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
+        "agentDir": ".agent/agents/back-1",
         "skills": ["backend-dev", "tdd-implementation", "patterns"],
         "tools": {
           "allow": [
@@ -388,7 +393,8 @@
             "quality_tests", "quality_coverage", "quality_lint",
             "quality_complexity", "quality_gate",
             "team_message", "team_inbox", "team_reply",
-            "decision_evaluate"
+            "decision_evaluate",
+            "pipeline_advance"
           ]
         }
       },
@@ -398,6 +404,7 @@
         "identity": { "name": "Front-1" },
         "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
+        "agentDir": ".agent/agents/front-1",
         "skills": ["frontend-dev", "tdd-implementation"],
         "tools": {
           "allow": [
@@ -408,7 +415,8 @@
             "quality_complexity", "quality_gate",
             "design_get", "design_list",
             "team_message", "team_inbox", "team_reply",
-            "decision_evaluate"
+            "decision_evaluate",
+            "pipeline_advance"
           ]
         }
       },
@@ -418,6 +426,7 @@
         "identity": { "name": "QA" },
         "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
+        "agentDir": ".agent/agents/qa",
         "skills": ["qa-testing"],
         "tools": {
           "allow": [
@@ -428,7 +437,8 @@
             "quality_complexity", "quality_gate",
             "workflow_events_query",
             "team_message", "team_inbox", "team_reply",
-            "decision_evaluate"
+            "decision_evaluate",
+            "pipeline_advance"
           ]
         }
       },
@@ -438,6 +448,7 @@
         "identity": { "name": "DevOps" },
         "model": { "primary": "anthropic/claude-sonnet-4-6", "fallbacks": ["openai-codex/gpt-5.2", "github-copilot/gpt-4o"] },
         "workspace": "/workspaces/active",
+        "agentDir": ".agent/agents/devops",
         "skills": ["devops", "github-automation"],
         "tools": {
           "allow": [
@@ -448,7 +459,8 @@
             "project_list", "project_switch",
             "team_message", "team_inbox", "team_reply",
             "pipeline_status",
-            "decision_evaluate"
+            "decision_evaluate",
+            "pipeline_advance"
           ]
         }
       }
