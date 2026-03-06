@@ -22,6 +22,13 @@ flowchart LR
   CI[Local/CI pipeline] --> QG[quality-gate CLI]
 ```
 
+## Prerequisites
+
+- [OpenClaw](https://openclaw.ai)
+- Node.js 22+
+- pnpm 10+
+- `gh` CLI (GitHub CLI)
+
 ## Quick Start (local)
 
 ```bash
@@ -85,12 +92,6 @@ Agents consume LLM provider tokens (Anthropic, OpenAI Codex, GitHub Copilot). Co
 
 **Alpha (v0.1.0)** -- the API surface is functional but may change. See [docs/roadmap.md](docs/roadmap.md) for the full execution history and upcoming milestones.
 
-## Prerequisites
-
-- [OpenClaw](https://openclaw.ai)
-- Node.js 22+
-- pnpm 10+
-
 ## Development
 
 ```bash
@@ -101,6 +102,8 @@ pnpm build
 ```
 
 ## Project Structure
+
+> High-level overview. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full project tree.
 
 ```
 vibe-flow/
@@ -144,7 +147,11 @@ The `site/` directory contains a static landing page deployed via GitHub Pages.
 
 **Live site:** https://monkey-d-luisi.github.io/vibe-flow/
 
-See the [landing page section in the old setup guide](docs/docker-setup.md) for forking and custom domain instructions.
+To use this landing page for your own fork:
+
+1. Fork this repository and push any changes to the `site/` directory.
+2. In your fork, go to **Settings → Pages** and set **Source** to GitHub Actions (uses `.github/workflows/deploy-pages.yml`).
+3. (Optional) Copy `site/CNAME.example` → `site/CNAME`, set it to your domain, and add a CNAME DNS record pointing to `<your-user>.github.io`.
 
 ## Contributing
 

@@ -62,10 +62,10 @@ Create a `.env.docker` file in the repo root with these values:
 OPENAI_API_KEY=sk-proj-...      # For gpt-4o-mini-transcribe. NOT used by agents.
 
 # -- GitHub --
-GITHUB_TOKEN=ghp_...          # From: gh auth token
+GITHUB_TOKEN=...               # GitHub token from `gh auth token` or a classic PAT
 GITHUB_OWNER=Monkey-D-Luisi
 GITHUB_REPO=vibe-flow
-GITHUB_WEBHOOK_SECRET=...     # For CI feedback webhook (when ciFeedback.enabled=true)
+GITHUB_WEBHOOK_SECRET=...     # For CI feedback webhook (when github.ciFeedback.enabled=true)
 
 # -- Telegram (3 separate bot tokens -- one per persona) --
 TELEGRAM_BOT_TOKEN_PM=...        # From @BotFather (PM bot)

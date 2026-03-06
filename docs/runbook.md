@@ -125,14 +125,18 @@ When `github.ciFeedback.enabled=true`, `github.ciFeedback.webhookSecret` is requ
 - `gh` CLI can use `GH_TOKEN` in non-interactive environments.
 - Do not store tokens/secrets in task metadata or logs.
 
-For Docker deployments, the following env vars are required in `.env.docker`:
+For Docker deployments, the following env vars are needed in `.env.docker`:
 
+**Required:**
 - `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO` -- VCS operations
-- `GITHUB_WEBHOOK_SECRET` -- CI feedback webhook (when `ciFeedback.enabled=true`)
 - `TELEGRAM_BOT_TOKEN_PM`, `TELEGRAM_BOT_TOKEN_TL`, `TELEGRAM_BOT_TOKEN_DESIGNER` -- 3 Telegram bot tokens (one per persona)
 - `TELEGRAM_GROUP_ID` -- Telegram group (prefix `-100` to the raw ID)
-- `HEALTH_CHECK_SECRET` -- optional health endpoint auth
 - `OPENCLAW_GATEWAY_TOKEN` -- gateway LAN bind auth
+
+**Optional:**
+- `GITHUB_WEBHOOK_SECRET` -- CI feedback webhook (when `github.ciFeedback.enabled=true`)
+- `STITCH_API_KEY` -- Stitch MCP design bridge (when `stitch-bridge` is enabled)
+- `HEALTH_CHECK_SECRET` -- health endpoint auth
 
 See `.env.docker.example` for the full template.
 
@@ -212,7 +216,8 @@ CI enforces vulnerability policy through `pnpm verify:vuln-policy`.
     `pipeline_status`. Retry failed steps with `pipeline_retry`.
 12. Skip a step with `pipeline_skip`. Advance to next stage with
     `pipeline_advance`. Query metrics with `pipeline_metrics`.
-    View a per-task stage timeline with `pipeline_timeline`.
+    View a per-task stage timeline with `pipeline_timeline` (requires the tool
+    to be allow-listed for the calling agent role, e.g., in `openclaw.docker.json`).
 
 ## Troubleshooting
 

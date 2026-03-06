@@ -6,6 +6,7 @@
 
 - Node.js 22+
 - pnpm 10+
+- `gh` CLI (GitHub CLI)
 - Docker (optional, for full-stack deployment -- see `docs/docker-setup.md`)
 
 ### Installation
