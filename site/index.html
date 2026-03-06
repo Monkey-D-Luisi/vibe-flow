@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -6,16 +6,41 @@
 
   <title>vibe-flow — an 8‑agent autonomous product team for OpenClaw</title>
   <meta name="description" content="vibe-flow is a monorepo of OpenClaw extensions, skills, and quality tooling that runs an 8‑agent autonomous product team through a 10‑stage pipeline — from idea to merged PR." />
+  <meta name="robots" content="index,follow" />
+  <meta name="color-scheme" content="dark light" />
+
+  <link rel="canonical" href="https://monkey-d-luisi.github.io/vibe-flow/" />
 
   <meta property="og:type" content="website" />
   <meta property="og:title" content="vibe-flow — autonomous product team" />
   <meta property="og:description" content="8 AI agents. 10 pipeline stages. 5 extensions. Zero frameworks. Built to ship." />
   <meta property="og:url" content="https://monkey-d-luisi.github.io/vibe-flow/" />
+  <meta property="og:image" content="https://monkey-d-luisi.github.io/vibe-flow/og-image.svg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="vibe-flow — autonomous product team" />
+  <meta name="twitter:description" content="8 AI agents. 10 pipeline stages. 5 extensions. Zero frameworks. Built to ship." />
+  <meta name="twitter:image" content="https://monkey-d-luisi.github.io/vibe-flow/og-image.svg" />
 
   <meta name="theme-color" content="#6366f1" />
 
   <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./style.css" />
+
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareSourceCode",
+      "name": "vibe-flow",
+      "description": "An 8-agent autonomous product team for OpenClaw that ships through a 10-stage pipeline.",
+      "codeRepository": "https://github.com/Monkey-D-Luisi/vibe-flow",
+      "license": "https://opensource.org/licenses/MIT",
+      "programmingLanguage": ["TypeScript", "JavaScript"],
+      "keywords": ["OpenClaw", "agents", "autonomy", "pipeline", "quality-gate"]
+    }
+  </script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -35,11 +60,11 @@
       </a>
 
       <nav class="nav" aria-label="Primary">
-        <a href="#team">Team</a>
-        <a href="#pipeline">Pipeline</a>
-        <a href="#extensions">Extensions</a>
-        <a href="#tooling">Tooling</a>
-        <a href="#quickstart">Quick start</a>
+        <a href="#features">Features</a>
+        <a href="#quickstart">Install</a>
+        <a href="#docs">Docs</a>
+        <a href="#screenshots">Screenshots</a>
+        <a href="#roadmap">Roadmap</a>
       </nav>
 
       <div class="topbar__cta">
@@ -54,11 +79,11 @@
 
     <div class="mobile-nav" id="mobileNav" hidden>
       <div class="container mobile-nav__inner">
-        <a href="#team">Team</a>
-        <a href="#pipeline">Pipeline</a>
-        <a href="#extensions">Extensions</a>
-        <a href="#tooling">Tooling</a>
-        <a href="#quickstart">Quick start</a>
+        <a href="#features">Features</a>
+        <a href="#quickstart">Install</a>
+        <a href="#docs">Docs</a>
+        <a href="#screenshots">Screenshots</a>
+        <a href="#roadmap">Roadmap</a>
         <a href="https://github.com/Monkey-D-Luisi/vibe-flow" target="_blank" rel="noreferrer">GitHub</a>
       </div>
     </div>
@@ -77,7 +102,7 @@
             It runs a full product team inside an AI gateway — taking ideas from chat to merged PRs.
           </p>
 
-          <div class="hero__stats">
+          <div class="hero__stats" aria-label="Key metrics">
             <div class="stat">
               <div class="stat__k">8</div>
               <div class="stat__v">agents</div>
@@ -94,7 +119,7 @@
 
           <div class="hero__actions">
             <a class="btn" href="#quickstart">Quick start</a>
-            <a class="btn btn--ghost" href="#pipeline">See the pipeline</a>
+            <a class="btn btn--ghost" href="https://github.com/Monkey-D-Luisi/vibe-flow" target="_blank" rel="noreferrer">Star on GitHub</a>
           </div>
 
           <p class="muted small">
@@ -119,54 +144,166 @@
       <div class="hero__glow" aria-hidden="true"></div>
     </section>
 
-    <section class="section" id="team">
+    <section class="section" id="features">
       <div class="container">
         <header class="section__header">
-          <h2>Meet the autonomous team (8 agents)</h2>
-          <p class="muted">Each agent has a role, a model, and a tool allow‑list. This is the roster used in our Docker deployment.</p>
+          <h2>Key features</h2>
+          <p class="muted">What you get when you run vibe-flow with OpenClaw.</p>
+        </header>
+
+        <div class="grid grid--two">
+          <article class="card reveal">
+            <h3>Evidence‑driven workflow</h3>
+            <p>Stages advance only when required evidence is present (tests, lint, QA report, review result).</p>
+          </article>
+          <article class="card reveal">
+            <h3>Safe tool surface</h3>
+            <p>Each agent uses a strict allow‑list: tasks, workflow, quality, decisions, messaging, and pipeline tools.</p>
+          </article>
+          <article class="card reveal">
+            <h3>Quality gate engine</h3>
+            <p>Parse artifacts (Vitest/ESLint/coverage/complexity) and evaluate a policy with alerting + auto‑tuning.</p>
+          </article>
+          <article class="card reveal">
+            <h3>Human‑supervised autonomy</h3>
+            <p>Status updates route to chat so humans can supervise outcomes without micromanaging execution.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="docs">
+      <div class="container">
+        <header class="section__header">
+          <h2>Docs</h2>
+          <p class="muted">Start here if you’re evaluating or contributing.</p>
         </header>
 
         <div class="grid grid--cards">
           <article class="card reveal">
-            <h3><code>pm</code> — Product Manager</h3>
-            <p class="meta">Model: <code>openai/gpt-5.3</code></p>
-            <p>Roadmap definition, prioritization, stakeholder comms.</p>
+            <h3>README</h3>
+            <p class="meta">Overview + repo structure</p>
+            <p><a class="link" href="https://github.com/Monkey-D-Luisi/vibe-flow#readme" target="_blank" rel="noreferrer">Open README →</a></p>
           </article>
           <article class="card reveal">
-            <h3><code>tech-lead</code> — Tech Lead</h3>
-            <p class="meta">Model: <code>anthropic/claude-opus-4.6</code></p>
-            <p>Architecture, decomposition, review authority.</p>
+            <h3>Docker setup</h3>
+            <p class="meta">Run the full stack locally</p>
+            <p><a class="link" href="https://github.com/Monkey-D-Luisi/vibe-flow/blob/main/docs/docker-setup.md" target="_blank" rel="noreferrer">docs/docker-setup.md →</a></p>
           </article>
           <article class="card reveal">
-            <h3><code>po</code> — Product Owner</h3>
-            <p class="meta">Model: <code>openai/gpt-4.1</code></p>
-            <p>User story refinement, acceptance criteria, scope negotiation.</p>
+            <h3>API reference</h3>
+            <p class="meta">Tool surface</p>
+            <p><a class="link" href="https://github.com/Monkey-D-Luisi/vibe-flow/blob/main/docs/api-reference.md" target="_blank" rel="noreferrer">docs/api-reference.md →</a></p>
           </article>
           <article class="card reveal">
-            <h3><code>designer</code> — UI/UX Designer</h3>
-            <p class="meta">Model: <code>google/gemini-3-pro</code></p>
-            <p>Stitch designs, system, component specs, responsive layouts.</p>
+            <h3>Roadmap</h3>
+            <p class="meta">Where this is going</p>
+            <p><a class="link" href="https://github.com/Monkey-D-Luisi/vibe-flow/blob/main/docs/roadmap.md" target="_blank" rel="noreferrer">docs/roadmap.md →</a></p>
           </article>
-          <article class="card reveal">
-            <h3><code>back-1</code> — Backend Dev (Senior)</h3>
-            <p class="meta">Model: <code>anthropic/claude-sonnet-4.6</code></p>
-            <p>API implementation, database design, server-side logic.</p>
-          </article>
-          <article class="card reveal">
-            <h3><code>front-1</code> — Frontend Dev (Senior)</h3>
-            <p class="meta">Model: <code>anthropic/claude-sonnet-4.6</code></p>
-            <p>UI implementation, Stitch→code, web interactions.</p>
-          </article>
-          <article class="card reveal">
-            <h3><code>qa</code> — QA Engineer</h3>
-            <p class="meta">Model: <code>anthropic/claude-sonnet-4.6</code></p>
-            <p>Test plans, regression, quality reports.</p>
-          </article>
-          <article class="card reveal">
-            <h3><code>devops</code> — DevOps Engineer</h3>
-            <p class="meta">Model: <code>anthropic/claude-sonnet-4.6</code></p>
-            <p>CI/CD, GitHub automation, shipping and deployment.</p>
-          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="screenshots">
+      <div class="container">
+        <header class="section__header">
+          <h2>Screenshots (placeholders)</h2>
+          <p class="muted">Swap these with real images (UI, logs, pipeline view) as the launch matures.</p>
+        </header>
+
+        <div class="grid grid--three">
+          <figure class="shot reveal">
+            <div class="shot__img" role="img" aria-label="Placeholder screenshot: OpenClaw Control UI"></div>
+            <figcaption class="muted small">OpenClaw Control UI</figcaption>
+          </figure>
+          <figure class="shot reveal">
+            <div class="shot__img" role="img" aria-label="Placeholder screenshot: Pipeline status updates in chat"></div>
+            <figcaption class="muted small">Pipeline updates in chat</figcaption>
+          </figure>
+          <figure class="shot reveal">
+            <div class="shot__img" role="img" aria-label="Placeholder screenshot: Quality gate summary"></div>
+            <figcaption class="muted small">Quality gate summary</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="roadmap">
+      <div class="container">
+        <header class="section__header">
+          <h2>Roadmap (high level)</h2>
+          <p class="muted">A few near‑term milestones for the OSS launch.</p>
+        </header>
+
+        <div class="card reveal">
+          <ul class="bullets">
+            <li><strong>Polish docs</strong>: contributor guide + examples of end‑to‑end runs.</li>
+            <li><strong>More evidence types</strong>: performance budgets, RGR caps, and security checks.</li>
+            <li><strong>Reliability</strong>: retry policies + partial failure handling.</li>
+            <li><strong>Launch pack</strong>: demo script, screenshots, and a short explainer video.</li>
+          </ul>
+        </div>
+
+        <div class="callout reveal">
+          <div class="callout__title">Call to action</div>
+          <div class="callout__body">
+            If you like the idea of a product team that can ship while you sleep, star the repo and follow along.
+            <div class="callout__actions">
+              <a class="btn" href="https://github.com/Monkey-D-Luisi/vibe-flow" target="_blank" rel="noreferrer">View on GitHub</a>
+              <a class="btn btn--ghost" href="#quickstart">Run locally</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="quickstart">
+      <div class="container">
+        <header class="section__header">
+          <h2>Install / Quick start</h2>
+          <p class="muted">Clone the repo and run with Docker. No web framework required.</p>
+        </header>
+
+        <div class="grid grid--two">
+          <div class="card reveal">
+            <h3>Clone</h3>
+            <div class="codeblock" data-copy>
+              <div class="codeblock__bar">
+                <span class="codeblock__title">Shell</span>
+                <button class="btn btn--tiny" type="button" data-copy-btn>Copy</button>
+              </div>
+              <pre><code>git clone https://github.com/Monkey-D-Luisi/vibe-flow
+cd vibe-flow</code></pre>
+            </div>
+          </div>
+
+          <div class="card reveal">
+            <h3>Run (Docker)</h3>
+            <div class="codeblock" data-copy>
+              <div class="codeblock__bar">
+                <span class="codeblock__title">Shell</span>
+                <button class="btn btn--tiny" type="button" data-copy-btn>Copy</button>
+              </div>
+              <pre><code>cp .env.docker.example .env.docker
+# edit .env.docker
+docker compose build
+docker compose up -d
+
+docker exec openclaw-product-team pnpm exec openclaw models list
+docker exec openclaw-product-team pnpm exec openclaw doctor</code></pre>
+            </div>
+            <p class="muted small">Docs: <a class="link" href="https://github.com/Monkey-D-Luisi/vibe-flow/blob/main/docs/docker-setup.md" target="_blank" rel="noreferrer">docker-setup.md</a></p>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <h3>What you get</h3>
+          <ul class="bullets">
+            <li>Control UI: <code>http://localhost:28789/</code></li>
+            <li>8 agents + 5 plugins loaded</li>
+            <li>Chat integration for human oversight</li>
+            <li>Quality gate CLI for local/CI validation</li>
+          </ul>
         </div>
       </div>
     </section>
@@ -193,24 +330,23 @@
               <li><span class="stage">9</span> SHIPPING</li>
               <li><span class="stage">10</span> DONE</li>
             </ol>
-            <p class="muted small">Each stage posts updates back to the Telegram group — so humans can supervise without micromanaging.</p>
+            <p class="muted small">Each stage can post updates back to chat — so humans can supervise without micromanaging.</p>
           </div>
 
           <div class="card reveal">
-            <h3>End‑to‑end flow (from EP08)</h3>
+            <h3>End‑to‑end flow</h3>
             <div class="mermaid" data-mermaid>
 flowchart TD
-  A[Human posts idea in Telegram] --> B[PM receives idea → creates roadmap item]
+  A[Human posts idea in chat] --> B[PM receives idea → creates roadmap item]
   B --> C[PM breaks roadmap item into epics]
   C --> D[PO refines into user stories + acceptance criteria]
   D --> E[Tech Lead decomposes into technical tasks]
-  E --> F[Designer creates Stitch designs]
+  E --> F[Designer creates designs]
   F --> G[Tech Lead assigns tasks to dev agents]
   G --> H[Devs implement (Backend & Frontend in parallel)]
   H --> I[QA runs automated test suites]
   I --> J[Tech Lead reviews code]
   J --> K[DevOps creates PR, manages CI]
-  K --> L[All status updates → Telegram group]
             </div>
           </div>
         </div>
@@ -236,27 +372,7 @@ stateDiagram-v2
   qa --> done : requires qa_report
   qa --> in_progress : rework loop
           </div>
-          <p class="muted small">Source: <code>docs/transition-guard-evidence.md</code></p>
-        </div>
-
-        <div class="card reveal">
-          <h3>Epic dependency graph</h3>
-          <div class="mermaid" data-mermaid>
-graph TD
-  EP01[EP01: OpenClaw Foundation]
-  EP02[EP02: Task Engine]
-  EP03[EP03: Role Execution] --> EP02
-  EP04[EP04: GitHub Integration] --> EP02
-  EP05[EP05: Quality & Observability] --> EP02
-  EP05 --> EP03
-  EP06[EP06: Hardening] --> EP03
-  EP06 --> EP04
-  AR01[AR01: Audit Remediation Program] --> EP06
-  EP07[EP07: DX & Platform Ops] --> AR01
-  EP08[EP08: Autonomous Product Team] --> EP07
-  EP09[EP09: Pipeline Intelligence & Reliability] --> EP08
-          </div>
-          <p class="muted small">Source: <code>docs/roadmap.md</code></p>
+          <p class="muted small">Source: <a class="link" href="https://github.com/Monkey-D-Luisi/vibe-flow/blob/main/docs/transition-guard-evidence.md" target="_blank" rel="noreferrer">transition-guard-evidence.md</a></p>
         </div>
       </div>
     </section>
@@ -265,7 +381,7 @@ graph TD
       <div class="container">
         <header class="section__header">
           <h2>5 extensions, one cohesive runtime</h2>
-          <p class="muted">The landing page you’re reading is just static files — but the system behind it is modular and composable.</p>
+          <p class="muted">This landing page is just static files — but the system behind it is modular and composable.</p>
         </header>
 
         <div class="grid grid--cards">
@@ -279,7 +395,7 @@ graph TD
           </article>
           <article class="card reveal">
             <h3><code>telegram-notifier</code></h3>
-            <p class="muted">Lifecycle → Telegram notifications & routing.</p>
+            <p class="muted">Lifecycle → chat notifications & routing.</p>
           </article>
           <article class="card reveal">
             <h3><code>model-router</code></h3>
@@ -308,94 +424,6 @@ flowchart TD
   SB --> Stitch[Google Stitch MCP]
   CI[Local/CI shell] --> QG[quality-gate CLI]
           </div>
-          <p class="muted small">Source: <code>docs/extension-integration.md</code></p>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="tooling">
-      <div class="container">
-        <header class="section__header">
-          <h2>Tooling that makes autonomy practical</h2>
-          <p class="muted">The product-team extension exposes a tool surface that agents can use safely: tasks, workflow steps, quality gates, VCS automation, team messaging, decisions, and pipeline orchestration.</p>
-        </header>
-
-        <div class="grid grid--two">
-          <div class="card reveal">
-            <h3>Tool categories</h3>
-            <ul class="bullets">
-              <li><strong>Task lifecycle</strong>: <code>task.create</code>, <code>task.transition</code>, <code>task.update</code>, …</li>
-              <li><strong>Workflow evidence</strong>: <code>workflow.step.run</code>, <code>workflow.state.get</code>, …</li>
-              <li><strong>Quality</strong>: <code>quality.tests</code>, <code>quality.lint</code>, <code>quality.gate</code>, …</li>
-              <li><strong>VCS</strong>: <code>vcs.branch.create</code>, <code>vcs.pr.create</code>, …</li>
-              <li><strong>Team</strong>: <code>team.message</code>, <code>team.assign</code>, <code>team.inbox</code>, …</li>
-              <li><strong>Decisions</strong>: <code>decision.evaluate</code>, <code>decision.log</code>, …</li>
-              <li><strong>Pipeline</strong>: <code>pipeline.start</code>, <code>pipeline.advance</code>, <code>pipeline.metrics</code></li>
-            </ul>
-            <p class="muted small">Source: <code>docs/api-reference.md</code></p>
-          </div>
-
-          <div class="card reveal">
-            <h3>Why it works</h3>
-            <ul class="bullets">
-              <li><strong>Guard rails</strong>: transitions enforce evidence requirements.</li>
-              <li><strong>Audit trail</strong>: decisions and events are queryable.</li>
-              <li><strong>Composable</strong>: extensions layer cleanly without monolith glue.</li>
-            </ul>
-            <div class="hr"></div>
-            <p class="muted">Brand seam color: <span class="swatch" aria-label="Seam color #6366f1"></span> <code>#6366f1</code> (from <code>openclaw.docker.json</code>)</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="quickstart">
-      <div class="container">
-        <header class="section__header">
-          <h2>Quick start (Docker)</h2>
-          <p class="muted">Run the autonomous team locally via the OpenClaw gateway + extensions bundle.</p>
-        </header>
-
-        <div class="grid grid--two">
-          <div class="card reveal">
-            <h3>Start</h3>
-            <div class="codeblock" data-copy>
-              <div class="codeblock__bar">
-                <span class="codeblock__title">Shell</span>
-                <button class="btn btn--tiny" type="button" data-copy-btn>Copy</button>
-              </div>
-              <pre><code>cp .env.docker.example .env.docker
-# edit .env.docker
-docker compose build
-docker compose up -d
-
-docker exec openclaw-product-team pnpm exec openclaw models list
-docker exec openclaw-product-team pnpm exec openclaw doctor</code></pre>
-            </div>
-            <p class="muted small">Source: <code>docs/docker-setup.md</code></p>
-          </div>
-
-          <div class="card reveal">
-            <h3>What you get</h3>
-            <ul class="bullets">
-              <li>Control UI: <code>http://localhost:28789/</code></li>
-              <li>8 agents + 5 plugins loaded</li>
-              <li>Telegram integration for human oversight</li>
-              <li>Quality gate CLI for local/CI validation</li>
-            </ul>
-            <p class="muted small">Tip: set <code>LOG_LEVEL=debug</code> when tuning cache hit/miss behavior.</p>
-          </div>
-        </div>
-
-        <div class="callout reveal">
-          <div class="callout__title">Want to contribute?</div>
-          <div class="callout__body">
-            Start with docs, grab a task, and let the pipeline do the coordination.
-            <div class="callout__actions">
-              <a class="btn" href="https://github.com/Monkey-D-Luisi/vibe-flow" target="_blank" rel="noreferrer">Open the repo</a>
-              <a class="btn btn--ghost" href="#tooling">Explore tools</a>
-            </div>
-          </div>
         </div>
       </div>
     </section>
@@ -417,6 +445,12 @@ docker exec openclaw-product-team pnpm exec openclaw doctor</code></pre>
       </div>
     </div>
   </footer>
+
+  <noscript>
+    <div class="noscript">
+      This page uses a small amount of JavaScript for mobile navigation, copy buttons, and Mermaid diagrams.
+    </div>
+  </noscript>
 
   <script type="module" src="./script.js"></script>
 </body>
