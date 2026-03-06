@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="tbg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2d2d2d"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Window chrome -->
+  <rect width="800" height="500" rx="12" fill="url(#tbg)"/>
+  <rect width="800" height="36" rx="12" fill="#3a3a4a"/>
+  <rect y="24" width="800" height="12" fill="#3a3a4a"/>
+  <circle cx="20" cy="18" r="6" fill="#ff5f57"/>
+  <circle cx="40" cy="18" r="6" fill="#febc2e"/>
+  <circle cx="60" cy="18" r="6" fill="#28c840"/>
+  <text x="400" y="22" font-family="monospace" font-size="13" fill="rgba(255,255,255,0.6)" text-anchor="middle">pnpm q:gate --scope minor</text>
+
+  <!-- Terminal content -->
+  <g font-family="'Cascadia Code', 'Fira Code', 'SF Mono', Menlo, monospace" font-size="13">
+    <!-- Prompt -->
+    <text x="20" y="62" fill="#7c7fff">$</text>
+    <text x="35" y="62" fill="#e0e0e0"> pnpm q:gate --source artifacts --scope minor</text>
+
+    <!-- Header -->
+    <text x="20" y="92" fill="#6366f1">┌─────────────────────────────────────────────────────┐</text>
+    <text x="20" y="110" fill="#6366f1">│</text><text x="42" y="110" fill="#c7c8ff">  Quality Gate Report  ·  scope: minor  ·  v0.1.0</text><text x="545" y="110" fill="#6366f1">│</text>
+    <text x="20" y="128" fill="#6366f1">└─────────────────────────────────────────────────────┘</text>
+
+    <!-- Checks -->
+    <text x="20" y="158" fill="#22c55e">  ✓</text><text x="55" y="158" fill="#e0e0e0"> coverage</text><text x="200" y="158" fill="#a0a0a0">84.2%</text><text x="290" y="158" fill="#555">threshold: 70%</text>
+    <text x="20" y="180" fill="#22c55e">  ✓</text><text x="55" y="180" fill="#e0e0e0"> lint-errors</text><text x="200" y="180" fill="#a0a0a0">0</text><text x="290" y="180" fill="#555">threshold: 0</text>
+    <text x="20" y="202" fill="#22c55e">  ✓</text><text x="55" y="202" fill="#e0e0e0"> lint-warnings</text><text x="200" y="202" fill="#a0a0a0">3</text><text x="290" y="202" fill="#555">threshold: 20</text>
+    <text x="20" y="224" fill="#22c55e">  ✓</text><text x="55" y="224" fill="#e0e0e0"> complexity</text><text x="200" y="224" fill="#a0a0a0">4.2</text><text x="290" y="224" fill="#555">threshold: 20</text>
+    <text x="20" y="246" fill="#22c55e">  ✓</text><text x="55" y="246" fill="#e0e0e0"> tests</text><text x="200" y="246" fill="#a0a0a0">1193 passed</text><text x="290" y="246" fill="#555"></text>
+    <text x="20" y="268" fill="#a0a0a0">  ○</text><text x="55" y="268" fill="#888"> rgr-count</text><text x="200" y="268" fill="#555">skipped</text>
+
+    <!-- Separator -->
+    <text x="20" y="298" fill="#444">  ─────────────────────────────────────────────────</text>
+
+    <!-- Verdict -->
+    <text x="20" y="328" fill="#22c55e">  Gate PASSED</text><text x="150" y="328" fill="#a0a0a0"> · 5/5 checks passed · 1 skipped</text>
+
+    <!-- Stats -->
+    <text x="20" y="360" fill="#555">  Policy: minor · Coverage ≥70% · Lint errors =0 · Complexity ≤20</text>
+
+    <!-- Test breakdown -->
+    <text x="20" y="396" fill="#6366f1">  Test suites:</text>
+    <text x="20" y="416" fill="#a0a0a0">    product-team</text><text x="200" y="416" fill="#22c55e">892 passed</text><text x="320" y="416" fill="#555">92 files</text>
+    <text x="20" y="436" fill="#a0a0a0">    quality-gate</text><text x="200" y="436" fill="#22c55e">149 passed</text><text x="320" y="436" fill="#555">19 files</text>
+    <text x="20" y="456" fill="#a0a0a0">    quality-contracts</text><text x="200" y="456" fill="#22c55e">79 passed</text><text x="320" y="456" fill="#555">5 files</text>
+    <text x="20" y="476" fill="#a0a0a0">    others</text><text x="200" y="476" fill="#22c55e">73 passed</text><text x="320" y="476" fill="#555">9 files</text>
+  </g>
+</svg>

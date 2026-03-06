@@ -13,7 +13,7 @@
   <a href="https://github.com/Monkey-D-Luisi/vibe-flow/actions/workflows/ci.yml"><img src="https://github.com/Monkey-D-Luisi/vibe-flow/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://github.com/Monkey-D-Luisi/vibe-flow/actions/workflows/quality-gate.yml"><img src="https://github.com/Monkey-D-Luisi/vibe-flow/actions/workflows/quality-gate.yml/badge.svg" alt="Quality Gate" /></a>
   <a href="https://github.com/Monkey-D-Luisi/vibe-flow/releases"><img src="https://img.shields.io/github/v/release/Monkey-D-Luisi/vibe-flow?include_prereleases&label=release" alt="Release" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Monkey-D-Luisi/vibe-flow" alt="License" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
 </p>
 
 <p align="center">
