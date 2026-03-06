@@ -289,6 +289,77 @@ export default {
 
     logger.info('stitch-bridge: Registered design tools (generate, edit, get, list)');
 
+    // ── design.project_create ──
+    api.registerTool({
+      name: 'design_project_create',
+      label: 'Create Stitch Project',
+      description: 'Create a new Stitch project to hold screen designs',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Project title' },
+        },
+        required: ['title'],
+      },
+      async execute(_toolCallId: string, params: Record<string, unknown>) {
+        const title = String(params['title']);
+        const result = await callStitchMcp(config, 'create_project', { title });
+        const obj = result as Record<string, unknown>;
+        const output = {
+          projectId: String(obj?.['name'] ?? ''),
+          title: String(obj?.['title'] ?? title),
+          raw: result,
+        };
+        logger.info(`stitch-bridge: Created project "${title}" → ${output.projectId}`);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(output, null, 2) }],
+          details: output,
+        };
+      },
+    });
+
+    // ── design.project_list ──
+    api.registerTool({
+      name: 'design_project_list',
+      label: 'List Stitch Projects',
+      description: 'List all Stitch projects',
+      parameters: {
+        type: 'object',
+        properties: {},
+      },
+      async execute() {
+        const result = await callStitchMcp(config, 'list_projects', {});
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+          details: result,
+        };
+      },
+    });
+
+    // ── design.screens_list ──
+    api.registerTool({
+      name: 'design_screens_list',
+      label: 'List Stitch Screens',
+      description: 'List all screens in a Stitch project (from Stitch API, not local files)',
+      parameters: {
+        type: 'object',
+        properties: {
+          projectId: { type: 'string', description: 'Stitch project ID' },
+        },
+        required: ['projectId'],
+      },
+      async execute(_toolCallId: string, params: Record<string, unknown>) {
+        const projectId = String(params['projectId']);
+        const result = await callStitchMcp(config, 'list_screens', { projectId });
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+          details: result,
+        };
+      },
+    });
+
+    logger.info('stitch-bridge: Registered project management tools (project_create, project_list, screens_list)');
+
     // Discover available Stitch tools in the background (non-blocking).
     if (process.env['STITCH_API_KEY']) {
       listTools(config).then(

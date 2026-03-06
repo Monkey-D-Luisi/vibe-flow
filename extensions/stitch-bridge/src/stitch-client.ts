@@ -37,9 +37,10 @@ const BASE_DELAY_MS = 500;
 
 function isTransientError(err: unknown): boolean {
   if (err instanceof Error) {
+    // AbortError from timeout is deterministic — retrying won't help.
+    if (err.name === 'AbortError') return false;
     const msg = err.message.toLowerCase();
     return (
-      err.name === 'AbortError' ||
       msg.includes('network') ||
       msg.includes('econnreset') ||
       msg.includes('etimedout') ||

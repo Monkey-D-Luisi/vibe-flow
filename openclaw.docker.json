@@ -212,9 +212,9 @@
         "enabled": true,
         "config": {
           "endpoint": "https://stitch.googleapis.com/mcp",
-          "defaultProjectId": "16786124142182555397",
+          "defaultProjectId": "",
           "defaultModel": "GEMINI_3_PRO",
-          "timeoutMs": 60000,
+          "timeoutMs": 180000,
           "designDir": ".stitch-html"
         }
       },
@@ -368,6 +368,7 @@
             "task_get", "task_update", "task_transition",
             "workflow_step_run", "workflow_state_get",
             "design_generate", "design_edit", "design_get", "design_list",
+            "design_project_create", "design_project_list", "design_screens_list",
             "team_message", "team_inbox", "team_reply",
             "decision_evaluate"
           ]
