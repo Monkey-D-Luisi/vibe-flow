@@ -142,7 +142,7 @@ describe('workflow.step.run tool', () => {
     transitioned = await transitionTool.execute('tr-2', {
       id: taskId,
       toStatus: 'design',
-      agentId: 'architect',
+      agentId: 'tech-lead',
       rev: (transitioned.details as { orchestratorState: { rev: number } }).orchestratorState.rev,
     });
 
@@ -154,7 +154,7 @@ describe('workflow.step.run tool', () => {
     const workflowTool = workflowStepRunToolDef(deps);
     const result = await workflowTool.execute('run-3', {
       id: taskId,
-      agentId: 'architect',
+      agentId: 'tech-lead',
       rev: currentTask!.rev,
       orchestratorRev: currentOrch!.rev,
       toStatus: 'in_progress',
@@ -162,7 +162,7 @@ describe('workflow.step.run tool', () => {
         {
           id: 'step-arch',
           type: 'llm-task',
-          role: 'architect',
+          role: 'tech-lead',
           schemaKey: 'architecture_plan',
           output: {
             modules: ['api'],
@@ -194,7 +194,7 @@ describe('workflow.step.run tool', () => {
     transitioned = await transitionTool.execute('tr-2', {
       id: taskId,
       toStatus: 'design',
-      agentId: 'architect',
+      agentId: 'tech-lead',
       rev: (transitioned.details as { orchestratorState: { rev: number } }).orchestratorState.rev,
     });
 
@@ -209,7 +209,7 @@ describe('workflow.step.run tool', () => {
     await expect(
       workflowTool.execute('run-atomic', {
         id: taskId,
-        agentId: 'architect',
+        agentId: 'tech-lead',
         rev: currentTask!.rev,
         orchestratorRev: currentOrch!.rev,
         toStatus: 'in_progress',
@@ -217,7 +217,7 @@ describe('workflow.step.run tool', () => {
           {
             id: 'step-bad-arch',
             type: 'llm-task',
-            role: 'architect',
+            role: 'tech-lead',
             schemaKey: 'architecture_plan',
             output: {
               modules: ['api'],

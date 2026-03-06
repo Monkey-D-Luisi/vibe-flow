@@ -12,10 +12,13 @@ const RoleSchemaKeyUnion = Type.Union(
 
 const RoleUnion = Type.Union([
   Type.Literal('pm'),
-  Type.Literal('architect'),
-  Type.Literal('dev'),
+  Type.Literal('tech-lead'),
+  Type.Literal('po'),
+  Type.Literal('designer'),
+  Type.Literal('back-1'),
+  Type.Literal('front-1'),
   Type.Literal('qa'),
-  Type.Literal('reviewer'),
+  Type.Literal('devops'),
 ]);
 
 const LlmStepCostSchema = Type.Object({

@@ -126,16 +126,16 @@ describe('state-machine transition', () => {
       let result = transition(TASK_ID, 'grooming', 'pm', 0, deps);
       expect(result.task.status).toBe('grooming');
 
-      result = transition(TASK_ID, 'design', 'architect', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'design', 'tech-lead', result.orchestratorState.rev, deps);
       expect(result.task.status).toBe('design');
 
-      result = transition(TASK_ID, 'in_progress', 'dev', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'in_progress', 'back-1', result.orchestratorState.rev, deps);
       expect(result.task.status).toBe('in_progress');
 
-      result = transition(TASK_ID, 'in_review', 'dev', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'in_review', 'back-1', result.orchestratorState.rev, deps);
       expect(result.task.status).toBe('in_review');
 
-      result = transition(TASK_ID, 'qa', 'reviewer', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'qa', 'tech-lead', result.orchestratorState.rev, deps);
       expect(result.task.status).toBe('qa');
 
       result = transition(TASK_ID, 'done', 'qa', result.orchestratorState.rev, deps);
@@ -159,7 +159,7 @@ describe('state-machine transition', () => {
       const result = transition(
         minorTaskId,
         'design',
-        'architect',
+        'tech-lead',
         grooming.orchestratorState.rev,
         deps,
       );
@@ -195,7 +195,7 @@ describe('state-machine transition', () => {
   describe('transition guards', () => {
     it('should block design -> in_progress when architecture evidence is incomplete', () => {
       let result = transition(TASK_ID, 'grooming', 'pm', 0, deps);
-      result = transition(TASK_ID, 'design', 'architect', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'design', 'tech-lead', result.orchestratorState.rev, deps);
 
       const currentTask = taskRepo.getById(TASK_ID);
       expect(currentTask).not.toBeNull();
@@ -212,7 +212,7 @@ describe('state-machine transition', () => {
       );
 
       expect(() =>
-        transition(TASK_ID, 'in_progress', 'dev', result.orchestratorState.rev, deps),
+        transition(TASK_ID, 'in_progress', 'back-1', result.orchestratorState.rev, deps),
       ).toThrow(TransitionGuardError);
     });
 
@@ -241,15 +241,15 @@ describe('state-machine transition', () => {
       );
 
       expect(() =>
-        transition(minorTaskId, 'in_review', 'dev', result.orchestratorState.rev, deps),
+        transition(minorTaskId, 'in_review', 'back-1', result.orchestratorState.rev, deps),
       ).toThrow(TransitionGuardError);
     });
 
     it('should block in_review -> qa when max review rounds is reached', () => {
       let result = transition(TASK_ID, 'grooming', 'pm', 0, deps);
-      result = transition(TASK_ID, 'design', 'architect', result.orchestratorState.rev, deps);
-      result = transition(TASK_ID, 'in_progress', 'dev', result.orchestratorState.rev, deps);
-      result = transition(TASK_ID, 'in_review', 'reviewer', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'design', 'tech-lead', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'in_progress', 'back-1', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'in_review', 'tech-lead', result.orchestratorState.rev, deps);
 
       const cappedState = orchestratorRepo.update(
         TASK_ID,
@@ -259,7 +259,7 @@ describe('state-machine transition', () => {
       );
 
       expect(() =>
-        transition(TASK_ID, 'qa', 'reviewer', cappedState.rev, deps),
+        transition(TASK_ID, 'qa', 'tech-lead', cappedState.rev, deps),
       ).toThrow(TransitionGuardError);
     });
   });
@@ -282,7 +282,7 @@ describe('state-machine transition', () => {
       transition(TASK_ID, 'grooming', 'pm', 0, deps);
 
       expect(() =>
-        transition(TASK_ID, 'design', 'architect', 0, deps),
+        transition(TASK_ID, 'design', 'tech-lead', 0, deps),
       ).toThrow(/[Ss]tale/);
     });
   });
@@ -290,13 +290,13 @@ describe('state-machine transition', () => {
   describe('review rejection counter', () => {
     it('should increment roundsReview on in_review -> in_progress', () => {
       let result = transition(TASK_ID, 'grooming', 'pm', 0, deps);
-      result = transition(TASK_ID, 'design', 'architect', result.orchestratorState.rev, deps);
-      result = transition(TASK_ID, 'in_progress', 'dev', result.orchestratorState.rev, deps);
-      result = transition(TASK_ID, 'in_review', 'reviewer', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'design', 'tech-lead', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'in_progress', 'back-1', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'in_review', 'tech-lead', result.orchestratorState.rev, deps);
 
       expect(result.orchestratorState.roundsReview).toBe(0);
 
-      result = transition(TASK_ID, 'in_progress', 'reviewer', result.orchestratorState.rev, deps);
+      result = transition(TASK_ID, 'in_progress', 'tech-lead', result.orchestratorState.rev, deps);
       expect(result.orchestratorState.roundsReview).toBe(1);
     });
   });
@@ -306,7 +306,7 @@ describe('state-machine transition', () => {
       deps.leaseRepo.acquire(TASK_ID, 'pm', NOW, '2026-02-24T12:05:00.000Z');
 
       expect(() =>
-        transition(TASK_ID, 'grooming', 'dev', 0, deps),
+        transition(TASK_ID, 'grooming', 'back-1', 0, deps),
       ).toThrow(LeaseConflictError);
     });
 
