@@ -54,11 +54,56 @@ demonstrating the system's own capabilities. Target URL: `https://monkey-d-luisi
 **Goal**: Produce a technical architecture document.
 
 **Output**:
-- **File structure**: `site/` directory at repo root with 4 files
-- **Technology**: Vanilla HTML/CSS/JS, no build step, Mermaid CDN (cdn.jsdelivr.net)
-- **Components**: Single-page HTML, CSS design system with CSS custom properties, JS for nav/reveal/copy/Mermaid
-- **Deployment**: GitHub Actions Pages workflow (`.github/workflows/deploy-pages.yml`)
-- **Implementation owner**: `back-1` (this agent)
+
+### Technical architecture (static, no build)
+
+**Repo layout**
+- `site/`
+  - `index.html` — single-page landing (all sections)
+  - `style.css` — dark-theme design system + responsive layout
+  - `script.js` — progressive enhancements (Mermaid render, copy-to-clipboard, nav)
+  - `favicon.svg` — inline SVG icon
+- `.github/workflows/deploy-pages.yml` — GitHub Pages deployment (no build step)
+
+**Technology decisions**
+- Vanilla **HTML/CSS/JS** only (no React/Vue/Tailwind, no bundler)
+- **System font stack** (no external fonts)
+- **Mermaid** via CDN (ESM) for diagrams (render client-side)
+- Prefer progressive enhancement: content readable without JS; JS enhances only
+
+**HTML component/section breakdown (single page)**
+- `<header>`: logo/title + nav (mobile toggle)
+- Hero: value prop + CTAs (GitHub / Docs)
+- “Why vibe-flow”: short bullets
+- Agent roster: 8 agent cards (ID, model, responsibilities)
+- Pipeline: stage list + Mermaid pipeline diagram + state machine diagram
+- Extensions: cards + Mermaid integration topology diagram
+- Tooling: categorized tool list (from docs)
+- Quick start: docker commands + copy button
+- Roadmap: epic dependency Mermaid diagram
+- `<footer>`: license, links
+
+**CSS design system**
+- CSS custom properties (colors, spacing, radii, typography)
+- Dark theme by default; ensure contrast and focus outlines
+- Responsive grid utilities (card grids that collapse to 1-col on small screens)
+- `prefers-reduced-motion` disables reveals/smooth scrolling
+
+**JS interactions (minimal + accessible)**
+- Mobile nav toggle (`aria-expanded`, `aria-controls`)
+- Copy-to-clipboard with fallback (selection-based) + brief success feedback
+- Mermaid render pipeline:
+  - Read diagram source from `[data-mermaid]` elements
+  - Render with a dark theme; fall back to preformatted text on failure
+
+**Deployment architecture (GitHub Pages)**
+- Use GitHub Actions to upload `site/` as Pages artifact and deploy
+- Keep permissions minimal (`pages: write`, `id-token: write`)
+
+### Work assignment
+- **front-1**: implement `site/index.html`, `site/style.css`, `site/script.js`, `site/favicon.svg` per spec/constraints
+- **devops**: implement/verify `.github/workflows/deploy-pages.yml` + Pages settings notes
+- **tech-lead**: ensure content accuracy + final review (SEO/a11y/perf)
 
 ---
 
@@ -77,7 +122,7 @@ demonstrating the system's own capabilities. Target URL: `https://monkey-d-luisi
 
 ---
 
-## STAGE 6: IMPLEMENTATION (back-1)
+## STAGE 6: IMPLEMENTATION (front-1)
 
 **Goal**: Build the actual site files.
 
