@@ -63,3 +63,4 @@ Thumbs.db
 *.swo
 
 actions-runner/
+.mcp.json
