@@ -26,7 +26,7 @@ jobs:
           node-version: '22'
 
       - name: Install html-validate
-        run: npm install --global html-validate
+        run: npm install --global html-validate@8
 
       - name: Validate site/index.html
         run: html-validate site/index.html

@@ -21,6 +21,7 @@ function initMobileNav() {
 
   // close on click
   menu.addEventListener('click', (e) => {
+    if (!(e.target instanceof Element)) return;
     const a = e.target.closest('a');
     if (a) setOpen(false);
   });
@@ -67,12 +68,13 @@ function initCopyToClipboard() {
           btn.disabled = false;
         }, 900);
       } catch {
-        // fallback: select text
+        // fallback: select + execCommand
         const range = document.createRange();
         range.selectNodeContents(code);
         const sel = window.getSelection();
         sel?.removeAllRanges();
         sel?.addRange(range);
+        try { document.execCommand('copy'); } catch { /* user can Ctrl+C */ }
       }
     });
   }
@@ -83,7 +85,7 @@ async function initMermaid() {
   if (nodes.length === 0) return;
 
   // Mermaid ESM CDN (no build step)
-  const mermaid = await import('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs');
+  const mermaid = await import('https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs');
 
   mermaid.default.initialize({
     startOnLoad: false,
@@ -134,4 +136,4 @@ function escapeHtml(s) {
 initMobileNav();
 initRevealOnScroll();
 initCopyToClipboard();
-initMermaid();
+initMermaid().catch((err) => console.warn('Mermaid init failed:', err));
