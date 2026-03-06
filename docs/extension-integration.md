@@ -22,7 +22,7 @@ flowchart TD
 
 ```
 OpenClaw Gateway (port 28789)
-  -> product-team plugin (34 tools, 6 hooks, SQLite persistence)
+  -> product-team plugin (35 tools, 10 hooks, SQLite persistence)
       -> Task lifecycle tools (task.*)
       -> Workflow tools (workflow.*)
       -> Quality tools (quality.*)

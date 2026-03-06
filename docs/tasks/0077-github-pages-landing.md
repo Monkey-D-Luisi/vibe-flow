@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | IN_REVIEW |
 | Epic | Open Source Launch |
 | Priority | HIGH |
 | Scope | MAJOR |

@@ -7,7 +7,7 @@
 
 ## 1. Overview
 
-The **product-team** plugin is an OpenClaw gateway plugin that turns a set of 8 AI agents into a structured software-delivery team. It registers with the gateway at startup, injects 34 custom tools into every agent session, and coordinates the full task lifecycle from triage to release.
+The **product-team** plugin is an OpenClaw gateway plugin that turns a set of 8 AI agents into a structured software-delivery team. It registers with the gateway at startup, injects 35 custom tools into every agent session, and coordinates the full task lifecycle from triage to release.
 
 ### Plugin manifest
 
@@ -26,11 +26,12 @@ Gateway starts
   → SDK loads openclaw.docker.json
   → SDK validates plugin config against configSchema
   → SDK calls plugin entrypoint (index.ts)
-  → Plugin registers 34 tools via api.tool(name, schema, handler)
-  → Plugin registers before_tool_call hooks (origin-injection, agent-id-injection)
-  → Plugin registers after_tool_call hooks (auto-spawn, delivery, PR-Bot)
+  → Plugin registers 35 tools via api.tool(name, schema, handler)
+  → Plugin registers before_tool_call hooks (origin-injection, agent-id-injection, pipeline-caller-injection)
+  → Plugin registers after_tool_call hooks (auto-spawn, delivery, PR-Bot, pipeline-done-cleanup)
+  → Plugin registers agent_end hook (session-recovery)
   → Plugin opens SQLite database, runs pending migrations (4 migrations)
-  → Plugin starts services (decision-timeout-cron, stage-timeout-cron, spawn-service)
+  → Plugin starts services (decision-timeout-cron, stage-timeout-cron, monitoring-cron)
   → Gateway starts Telegram polling for each named account (pm, tl, designer)
 ```
 
@@ -52,6 +53,8 @@ Gateway starts
 ## 2. Tool Inventory
 
 34 tools grouped by domain. Tool names use underscores (dots rewritten at registration).
+
+> **Updated 2026-03-06**: 35 tools (added `pipeline_timeline`).
 
 ### Task management (6)
 
@@ -108,16 +111,17 @@ Gateway starts
 | `decision_log`     | Record a decision for audit                        |
 | `decision_outcome` | Tag decisions for a completed task with success/overridden/failed outcome |
 
-### Pipeline (6)
+### Pipeline (7)
 
 | Tool               | Purpose                                           |
 |--------------------|---------------------------------------------------|
-| `pipeline_start`   | Start a CI/CD pipeline                            |
+| `pipeline_start`   | Start a CI/CD pipeline (with dedup guard)         |
 | `pipeline_status`  | Get pipeline status and step results              |
 | `pipeline_retry`   | Retry a failed pipeline step                      |
 | `pipeline_skip`    | Skip a pipeline step with justification           |
 | `pipeline_advance` | Advance a pipeline to its next stage              |
 | `pipeline_metrics` | Get pipeline stage timing and throughput metrics  |
+| `pipeline_timeline`| Per-task ordered timeline of stages with timestamps and durations |
 
 ### Project (3)
 
@@ -251,16 +255,20 @@ All mutations use **optimistic locking** on `rev` (integer counter). Concurrent 
 
 ## 5. Hook System
 
-The plugin registers six hooks across two lifecycle events. All hooks are wrapped with try/catch so a failing hook never kills the parent agent turn.
+The plugin registers ten hooks across three lifecycle events. All hooks are wrapped with try/catch so a failing hook never kills the parent agent turn.
 
 | Hook                            | Lifecycle event    | Condition            |
 |---------------------------------|--------------------|----------------------|
 | Origin injection                | `before_tool_call` | Always               |
 | Agent-ID injection              | `before_tool_call` | Always               |
+| Pipeline caller injection       | `before_tool_call` | Always               |
 | Team message auto-spawn         | `after_tool_call`  | Always               |
 | Team reply auto-spawn           | `after_tool_call`  | Always               |
 | Decision escalation auto-spawn  | `after_tool_call`  | Always               |
+| Pipeline advance auto-spawn     | `after_tool_call`  | Always               |
+| Pipeline DONE cleanup           | `after_tool_call`  | Always               |
 | PR-Bot                          | `after_tool_call`  | `prBot.enabled` only |
+| Session recovery                | `agent_end`        | Always               |
 
 ### Origin-injection hook
 

@@ -115,6 +115,7 @@ pnpm q:complexity
 | `pipeline_skip` | Skip a pipeline step |
 | `pipeline_advance` | Advance a pipeline to its next stage |
 | `pipeline_metrics` | Get pipeline stage timing and throughput metrics |
+| `pipeline_timeline` | Per-task ordered timeline of stages with timestamps and durations |
 
 ### quality-gate extension (standalone, stateless, no task lifecycle)
 
