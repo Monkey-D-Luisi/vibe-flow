@@ -111,6 +111,41 @@ vibe-flow/
     walkthroughs/
 ```
 
+## Landing Page (GitHub Pages)
+
+The `site/` directory contains a static landing page that is deployed via GitHub Pages.
+
+**Live site:** https://monkey-d-luisi.github.io/vibe-flow/
+
+### Enabling GitHub Pages
+
+If you fork this repo, enable Pages in **Settings → Pages**:
+
+- **Source**: GitHub Actions (recommended — uses `.github/workflows/deploy-pages.yml`)
+- Alternatively: set **Source** to `Deploy from a branch`, branch `main`, folder `/site`
+
+The deployment workflow runs automatically on every push to `main` that touches `site/**`.
+
+### HTML validation
+
+Every PR that changes `site/` runs `.github/workflows/validate-html.yml`, which validates
+`site/index.html` using [html-validate](https://html-validate.org/). Config lives in `.htmlvalidate.json`.
+
+To run locally:
+
+```bash
+npx html-validate site/index.html
+```
+
+### Custom domain (optional)
+
+To use a custom domain:
+
+1. Copy `site/CNAME.example` → `site/CNAME` (no extension)
+2. Set the file content to your domain (e.g. `vibe-flow.example.com`)
+3. Add a CNAME DNS record pointing to `monkey-d-luisi.github.io`
+4. Enable **Enforce HTTPS** in repo Settings → Pages
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).

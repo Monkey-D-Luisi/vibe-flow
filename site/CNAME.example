@@ -1,0 +1,10 @@
+# Optional: custom domain for GitHub Pages
+#
+# To use a custom domain:
+# 1. Rename this file to CNAME (no extension)
+# 2. Replace the placeholder below with your domain
+# 3. Configure your DNS: CNAME record pointing to monkey-d-luisi.github.io
+# 4. Enable "Enforce HTTPS" in repo Settings → Pages
+#
+# Example content of the final CNAME file (one line, no hash):
+#   vibe-flow.example.com
