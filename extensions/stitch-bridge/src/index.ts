@@ -96,6 +96,11 @@ async function extractHtml(result: unknown): Promise<string> {
   throw new Error(`Stitch MCP response missing html field. Keys: ${Object.keys(obj ?? {}).join(', ')}`);
 }
 
+/** Strip "projects/" prefix from Stitch resource names so tools receive bare numeric IDs. */
+function normalizeProjectId(raw: string): string {
+  return raw.replace(/^projects\//, '');
+}
+
 /** Validate workspace is an absolute path with no traversal segments. */
 function validateWorkspace(raw: string): string {
   if (!isAbsolute(raw)) {
@@ -136,7 +141,7 @@ export default {
         required: ['screenName', 'description'],
       },
       async execute(_toolCallId: string, params: Record<string, unknown>) {
-        const projectId = String(params['projectId'] ?? config.defaultProjectId);
+        const projectId = normalizeProjectId(String(params['projectId'] ?? config.defaultProjectId));
         const screenName = sanitizeScreenName(String(params['screenName']));
         const description = String(params['description']);
         const modelId = String(params['modelId'] ?? config.defaultModel);
@@ -186,7 +191,7 @@ export default {
         required: ['screenId', 'editPrompt'],
       },
       async execute(_toolCallId: string, params: Record<string, unknown>) {
-        const projectId = String(params['projectId'] ?? config.defaultProjectId);
+        const projectId = normalizeProjectId(String(params['projectId'] ?? config.defaultProjectId));
         const screenId = String(params['screenId']);
         const screenName = sanitizeScreenName(String(params['screenName'] ?? screenId));
         const editPrompt = String(params['editPrompt']);
@@ -306,7 +311,7 @@ export default {
         const result = await callStitchMcp(config, 'create_project', { title });
         const obj = result as Record<string, unknown>;
         const output = {
-          projectId: String(obj?.['name'] ?? ''),
+          projectId: normalizeProjectId(String(obj?.['name'] ?? '')),
           title: String(obj?.['title'] ?? title),
           raw: result,
         };
@@ -349,7 +354,7 @@ export default {
         required: ['projectId'],
       },
       async execute(_toolCallId: string, params: Record<string, unknown>) {
-        const projectId = String(params['projectId']);
+        const projectId = normalizeProjectId(String(params['projectId']));
         const result = await callStitchMcp(config, 'list_screens', { projectId });
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
