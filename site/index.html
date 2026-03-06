@@ -342,16 +342,16 @@ docker exec openclaw-product-team pnpm exec openclaw doctor</code></pre>
             <h3>End‑to‑end flow</h3>
             <div class="mermaid" data-mermaid>
 flowchart TD
-  A[Human posts idea in chat] --> B[PM receives idea → creates roadmap item]
+  A[Human posts idea in chat] --> B["PM receives idea, creates roadmap item"]
   B --> C[PM breaks roadmap item into epics]
   C --> D[PO refines into user stories + acceptance criteria]
   D --> E[Tech Lead decomposes into technical tasks]
   E --> F[Designer creates designs]
   F --> G[Tech Lead assigns tasks to dev agents]
-  G --> H[Devs implement (Backend & Frontend in parallel)]
+  G --> H["Devs implement (Backend &amp; Frontend in parallel)"]
   H --> I[QA runs automated test suites]
   I --> J[Tech Lead reviews code]
-  J --> K[DevOps creates PR, manages CI]
+  J --> K["DevOps creates PR, manages CI"]
             </div>
           </div>
         </div>
