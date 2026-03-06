@@ -10,7 +10,7 @@ function makeApi() {
   let registeredPath = '';
   let registeredHandler: RouteHandler | null = null;
   const api = {
-    registerHttpRoute: vi.fn(({ path, handler }: { path: string; handler: RouteHandler }) => {
+    registerHttpRoute: vi.fn(({ path, handler }: { path: string; auth: string; handler: RouteHandler }) => {
       registeredPath = path;
       registeredHandler = handler;
     }),

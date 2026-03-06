@@ -12,6 +12,7 @@ export interface Logger {
 export interface RouteRegistrar {
   registerHttpRoute: (params: {
     path: string;
+    auth: 'gateway' | 'plugin';
     handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
   }) => void;
 }

@@ -50,6 +50,7 @@ export function registerCiWebhookRoute(
 
   api.registerHttpRoute({
     path: githubConfig.ciFeedback.routePath,
+    auth: 'gateway',
     handler: async (req, res) => {
       if (req.method !== 'POST') {
         writeJson(res, 405, { ok: false, error: 'method_not_allowed' });

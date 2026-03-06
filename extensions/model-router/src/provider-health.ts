@@ -129,6 +129,7 @@ export function registerProviderHealthRoute(
 ): void {
   api.registerHttpRoute({
     path: '/api/providers/health',
+    auth: 'plugin',
     handler: async (req: IncomingMessage, res: ServerResponse) => {
       if (req.method !== 'GET' && req.method !== 'HEAD') {
         writeJson(req, res, 405, { ok: false, error: 'method_not_allowed' });

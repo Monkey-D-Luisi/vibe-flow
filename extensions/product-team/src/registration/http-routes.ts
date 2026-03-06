@@ -32,6 +32,7 @@ export function registerHttpRoutes(
   // Register production health check endpoint: GET /health
   api.registerHttpRoute({
     path: '/health',
+    auth: 'plugin',
     handler: createHealthCheckHandler(config.healthCheck),
   });
   api.logger.info('registered GET /health endpoint');
