@@ -3,6 +3,12 @@
 This document lists every registered tool from
 `extensions/product-team/src/tools/index.ts`.
 
+> **Naming convention:** Tool names are registered with dot notation in source
+> (e.g., `pipeline.timeline`) but exposed with underscore notation at runtime
+> (e.g., `pipeline_timeline`). Configuration files (`openclaw.json`, agent
+> allow-lists, CLAUDE.md) use underscores. This document uses dot notation to
+> match the source-of-truth in `extensions/product-team/src/tools/`.
+
 ## Tool Index
 
 | Tool | Primary Agent(s) | Purpose |
@@ -41,6 +47,7 @@ This document lists every registered tool from
 | `pipeline.skip` | tech-lead | Skip a pipeline step with justification |
 | `pipeline.advance` | pm, tech-lead | Advance a pipeline to its next stage |
 | `pipeline.metrics` | pm, tech-lead, po | Get pipeline stage timing and throughput metrics |
+| `pipeline.timeline` | pm, tech-lead | Per-task ordered timeline of stages with timestamps and durations (add `pipeline_timeline` to agent allow-lists in `openclaw.docker.json` if using Docker) |
 
 ## Task Tools
 
@@ -700,3 +707,29 @@ This document lists every registered tool from
 - Parameters: optional `taskId`
 - Returns: `{ stages: Record<string, { count, avgDurationMs, minMs, maxMs }>, totalPipelines }`
 - Aggregates per-stage timing metrics from pipeline metadata across all tasks or a specific task
+
+### `pipeline.timeline`
+
+- Parameters: `taskId`
+- Returns: `{ taskId, title, currentStage, stages[], totalDurationMs }`
+- Each stage entry: `stage`, `startedAt`, `completedAt`, `durationMs`, `owner`, `status` (`completed` | `skipped` | `active` | `pending`)
+- `totalDurationMs` may be `null` when no stage durations are available; per-stage `startedAt`, `completedAt`, and `durationMs` may be `null` for pending/active stages. If the task is not found, the tool returns `{ "error": "Task not found" }` instead of the timeline object.
+
+```json
+{
+  "input": {
+    "taskId": "01TASK0001"
+  },
+  "output": {
+    "taskId": "01TASK0001",
+    "title": "Implement feature X",
+    "currentStage": "QA",
+    "stages": [
+      { "stage": "IDEA", "status": "completed", "owner": "pm", "startedAt": "2026-03-01T10:00:00Z", "completedAt": "2026-03-01T10:02:00Z", "durationMs": 120000 },
+      { "stage": "ROADMAP", "status": "completed", "owner": "pm", "startedAt": "2026-03-01T10:02:00Z", "completedAt": "2026-03-01T10:05:00Z", "durationMs": 180000 },
+      { "stage": "QA", "status": "active", "owner": "qa", "startedAt": "2026-03-01T11:00:00Z", "completedAt": null, "durationMs": null }
+    ],
+    "totalDurationMs": 300000
+  }
+}
+```

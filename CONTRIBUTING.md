@@ -5,7 +5,9 @@
 ### Prerequisites
 
 - Node.js 22+
-- pnpm
+- pnpm 10+
+- `gh` CLI (GitHub CLI)
+- Docker (optional, for full-stack deployment -- see `docs/docker-setup.md`)
 
 ### Installation
 
@@ -102,7 +104,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 - `product-team` -- Product-team plugin
 - `quality-gate` -- Quality gate extension
-- `schemas` -- JSON Schemas
+- `quality-contracts` -- Quality contracts package
 - `skills` -- Skill definitions
 - `docs` -- Documentation
 - `ci` -- CI/CD workflows
@@ -154,15 +156,21 @@ extensions/quality-gate/       # Standalone quality-gate CLI/engine
 skills/                        # OpenClaw skills
   adr/                         # ADR management
   architecture-design/         # Architecture design workflow
+  backend-dev/                 # Backend development
   code-review/                 # Code review workflow
+  devops/                      # DevOps and infrastructure
+  frontend-dev/                # Frontend development
   github-automation/           # GitHub automation workflow
   patterns/                    # Architecture patterns
+  product-owner/               # Product owner workflow
   qa-testing/                  # QA/testing workflow
   requirements-grooming/       # Requirements workflow
   tdd-implementation/          # TDD workflow
+  tech-lead/                   # Tech lead workflow
+  ui-designer/                 # UI design workflow
 
 packages/
-  schemas/                     # Shared JSON Schemas
+  quality-contracts/           # Shared parsers, gate policy, complexity analysis, validation contracts
 
 docs/
   roadmap.md                   # Development roadmap
