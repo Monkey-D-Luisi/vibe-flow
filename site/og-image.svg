@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b0d14"/>
+      <stop offset="100%" stop-color="#0f1422"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="15%" cy="20%" r="55%">
+      <stop offset="0%" stop-color="rgba(99,102,241,0.35)"/>
+      <stop offset="100%" stop-color="rgba(99,102,241,0)"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="85%" cy="75%" r="45%">
+      <stop offset="0%" stop-color="rgba(34,197,94,0.20)"/>
+      <stop offset="100%" stop-color="rgba(34,197,94,0)"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c7c8ff"/>
+      <stop offset="50%" stop-color="#7c7fff"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow1)"/>
+  <rect width="1200" height="630" fill="url(#glow2)"/>
+
+  <!-- Logo mark -->
+  <g transform="translate(80, 80)">
+    <rect width="52" height="52" rx="16" fill="rgba(99,102,241,0.18)" stroke="rgba(99,102,241,0.40)" stroke-width="1.5"/>
+    <polyline points="26,10 44,20 44,36 26,46 8,36 8,20 26,10"
+      fill="none" stroke="rgba(213,214,255,0.85)" stroke-width="2.2" stroke-linejoin="round"/>
+    <polyline points="16,26 26,31 36,26"
+      fill="none" stroke="rgba(213,214,255,0.85)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="26" y1="31" x2="26" y2="43"
+      stroke="rgba(213,214,255,0.85)" stroke-width="2.2" stroke-linecap="round"/>
+  </g>
+
+  <!-- Brand name -->
+  <text x="152" y="120" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="36" font-weight="800" fill="rgba(255,255,255,0.92)" letter-spacing="-1">vibe-flow</text>
+
+  <!-- OSS badge -->
+  <rect x="310" y="97" width="100" height="30" rx="15" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1.2"/>
+  <text x="360" y="116" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="13" fill="rgba(255,255,255,0.55)" text-anchor="middle">OSS launch</text>
+
+  <!-- Main headline -->
+  <text x="80" y="270" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="72" font-weight="900" letter-spacing="-3" fill="url(#accent)">8-agent</text>
+  <text x="80" y="355" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="72" font-weight="900" letter-spacing="-3" fill="rgba(255,255,255,0.90)">autonomous</text>
+  <text x="80" y="440" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="72" font-weight="900" letter-spacing="-3" fill="rgba(255,255,255,0.90)">product team.</text>
+
+  <!-- Sub-copy -->
+  <text x="80" y="510" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="26" fill="rgba(255,255,255,0.58)">10 pipeline stages. 5 extensions. Zero frameworks.</text>
+
+  <!-- Stats cluster (right side) -->
+  <g transform="translate(820, 200)">
+    <!-- Stage card -->
+    <rect width="300" height="90" rx="16" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>
+    <text x="24" y="42" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="42" font-weight="800" fill="rgba(255,255,255,0.92)">10</text>
+    <text x="24" y="68" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="16" fill="rgba(255,255,255,0.52)">pipeline stages</text>
+  </g>
+  <g transform="translate(820, 306)">
+    <rect width="300" height="90" rx="16" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>
+    <text x="24" y="42" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="42" font-weight="800" fill="rgba(255,255,255,0.92)">5</text>
+    <text x="24" y="68" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="16" fill="rgba(255,255,255,0.52)">extensions</text>
+  </g>
+  <g transform="translate(820, 412)">
+    <rect width="300" height="90" rx="16" fill="rgba(99,102,241,0.15)" stroke="rgba(99,102,241,0.40)" stroke-width="1"/>
+    <text x="24" y="42" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="42" font-weight="800" fill="#d5d6ff">8</text>
+    <text x="24" y="68" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="16" fill="rgba(213,214,255,0.65)">AI agents</text>
+  </g>
+
+  <!-- URL watermark -->
+  <text x="80" y="595" font-family="ui-sans-serif, system-ui, -apple-system, Helvetica, Arial" font-size="18" fill="rgba(255,255,255,0.28)">github.com/Monkey-D-Luisi/vibe-flow</text>
+</svg>
