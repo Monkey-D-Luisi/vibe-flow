@@ -53,7 +53,8 @@ describe('pipeline-advance tools', () => {
   /** Helper: create a pipeline task at a given stage */
   async function createPipelineTask(stage: string, extraMeta?: Record<string, unknown>): Promise<string> {
     const startTool = pipelineStartToolDef(deps);
-    const result = await startTool.execute('setup', { ideaText: 'Test pipeline advance' });
+    const uniqueIdea = `Test pipeline advance ${++idCounter}`;
+    const result = await startTool.execute('setup', { ideaText: uniqueIdea });
     const details = result.details as { taskId: string };
     const taskId = details.taskId;
 

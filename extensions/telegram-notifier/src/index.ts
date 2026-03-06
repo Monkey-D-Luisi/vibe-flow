@@ -320,7 +320,15 @@ export default {
                 Promise.resolve(sendTg(config.groupId, msg.text, {
                   textMode: 'markdown',
                 })).catch((err: unknown) => {
-                  logger.error(`telegram-notifier: Failed to send message: ${String(err)}`);
+                  const errStr = String(err);
+                  logger.error(`telegram-notifier: Failed to send message: ${errStr}`);
+                  // Fallback: log the notification content to stdout so it's visible in docker logs
+                  if (errStr.includes('chat not found') || errStr.includes('bot was blocked') || errStr.includes('Forbidden')) {
+                    const plain = msg.text
+                      .replace(/\\([_*[\]()~`>#+\-=|{}.!])/g, '$1')
+                      .replace(/\*/g, '');
+                    logger.info(`telegram-notifier [FALLBACK] [${msg.priority}]: ${plain}`);
+                  }
                 });
               }
             } catch (err) {

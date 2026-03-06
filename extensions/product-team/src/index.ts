@@ -358,6 +358,37 @@ export function register(api: OpenClawPluginApi): void {
   };
   registerSessionRecoveryHook(api, stateDir, sessionRecoveryEventEmitter);
 
+  // Pipeline DONE hook: clear all agent sessions when a pipeline completes
+  // so the next pipeline run starts with a clean slate (no stale context).
+  api.on('after_tool_call', (event) => {
+    try {
+      const typedEvent = event as { toolName: string; result?: unknown };
+      if (typedEvent.toolName !== 'pipeline_advance') return;
+
+      const result = typedEvent.result as Record<string, unknown> | undefined;
+      if (!result) return;
+      const details = (result['details'] ?? result) as Record<string, unknown>;
+      if (details['advanced'] !== true || details['currentStage'] !== 'DONE') return;
+
+      const taskId = String(details['taskId'] ?? 'unknown');
+      api.logger.info(
+        `pipeline-done-cleanup: pipeline reached DONE for task ${taskId}. Clearing all agent sessions.`,
+      );
+
+      for (const agent of agentConfig) {
+        try {
+          clearAgentSessions(stateDir, agent.id, api.logger);
+        } catch {
+          // best effort per agent
+        }
+      }
+
+      api.logger.info(`pipeline-done-cleanup: cleared sessions for ${agentConfig.length} agents`);
+    } catch (err: unknown) {
+      api.logger.warn(`pipeline-done-cleanup: error: ${String(err)}`);
+    }
+  });
+
   // Start decision timeout cron (re-escalates stalled decisions)
   const decisionTimeoutCron = new DecisionTimeoutCron({
     db,

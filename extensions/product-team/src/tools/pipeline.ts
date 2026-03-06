@@ -46,6 +46,38 @@ export function pipelineStartToolDef(deps: ToolDeps): ToolDef {
     execute: async (_toolCallId, params) => {
       const input = deps.validate<{ ideaText: string; projectId?: string }>(PipelineStartParams, params);
 
+      // Dedup guard: reject if there's already a pipeline with the same idea text
+      // that hasn't completed yet. This prevents duplicate runs when agents
+      // re-process the same idea from stale session context.
+      try {
+        const duplicates = deps.db.prepare(
+          `SELECT id, title, pipeline_stage FROM task_records
+           WHERE pipeline_stage IS NOT NULL
+           AND pipeline_stage != 'DONE'
+           AND title = ?
+           LIMIT 1`,
+        ).all(input.ideaText.slice(0, 200)) as Array<{ id: string; title: string; pipeline_stage: string }>;
+
+        if (duplicates.length > 0) {
+          const dup = duplicates[0]!;
+          const dedupResult = {
+            error: 'duplicate',
+            reason: `Duplicate pipeline rejected: task "${dup.id}" with the same idea is already at stage ${dup.pipeline_stage}.`,
+            existingTaskId: dup.id,
+            existingStage: dup.pipeline_stage,
+          };
+          deps.logger?.warn(
+            `pipeline.start: rejected duplicate idea — existing task ${dup.id} at ${dup.pipeline_stage}`,
+          );
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify(dedupResult, null, 2) }],
+            details: dedupResult,
+          };
+        }
+      } catch {
+        // pipeline_stage column may not exist — proceed without guard
+      }
+
       const id = deps.generateId();
       const now = deps.now();
       const task = createTaskRecord(
