@@ -10,6 +10,10 @@ node_modules/
 coverage/
 extensions/**/dist/
 extensions/**/coverage/
+# In-place TS→JS artifacts (quality-gate has no outDir)
+extensions/quality-gate/src/**/*.js
+extensions/quality-gate/cli/**/*.js
+packages/**/src/**/*.js
 
 # TypeScript
 *.tsbuildinfo
