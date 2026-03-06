@@ -352,4 +352,87 @@ describe('stage-timeout-cron', () => {
       expect(updated.IMPLEMENTATION_timeoutEscalationCount).toBe(1);
     });
   });
+
+  describe('session clearing on retry', () => {
+    it('calls sessionCleaner on escalation > 0 before re-spawn', () => {
+      const spawnAgent = vi.fn();
+      const clearAgentSessions = vi.fn();
+      const pastTime = new Date(Date.now() - 5000).toISOString();
+      const meta = {
+        pipelineStage: 'IMPLEMENTATION',
+        pipelineOwner: 'back-1',
+        IMPLEMENTATION_startedAt: pastTime,
+        IMPLEMENTATION_timeoutEscalated: true,
+        IMPLEMENTATION_timeoutEscalationCount: 1, // already escalated once
+      };
+      deps.db.prepare(`
+        INSERT INTO task_records (id, title, tags, metadata, pipeline_stage, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('sess-clear-1', 'Session clear test', '["pipeline"]', JSON.stringify(meta), 'IMPLEMENTATION', 'in_progress');
+
+      deps = createDeps({
+        db: deps.db,
+        agentSpawner: { spawnAgent },
+        sessionCleaner: { clearAgentSessions },
+      });
+      sweepStageTimeouts(deps);
+
+      // Session should be cleared for tech-lead (escalation target)
+      expect(clearAgentSessions).toHaveBeenCalledWith('tech-lead');
+      expect(spawnAgent).toHaveBeenCalledTimes(1);
+    });
+
+    it('does NOT call sessionCleaner on first timeout (escalation === 0)', () => {
+      const spawnAgent = vi.fn();
+      const clearAgentSessions = vi.fn();
+      const pastTime = new Date(Date.now() - 5000).toISOString();
+      const meta = {
+        pipelineStage: 'IMPLEMENTATION',
+        pipelineOwner: 'back-1',
+        IMPLEMENTATION_startedAt: pastTime,
+        // No escalation flags — this is the first timeout
+      };
+      deps.db.prepare(`
+        INSERT INTO task_records (id, title, tags, metadata, pipeline_stage, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('sess-clear-2', 'First timeout test', '["pipeline"]', JSON.stringify(meta), 'IMPLEMENTATION', 'in_progress');
+
+      deps = createDeps({
+        db: deps.db,
+        agentSpawner: { spawnAgent },
+        sessionCleaner: { clearAgentSessions },
+      });
+      sweepStageTimeouts(deps);
+
+      // Session should NOT be cleared on first timeout
+      expect(clearAgentSessions).not.toHaveBeenCalled();
+      expect(spawnAgent).toHaveBeenCalledTimes(1);
+    });
+
+    it('is backwards-compatible when sessionCleaner is undefined', () => {
+      const spawnAgent = vi.fn();
+      const pastTime = new Date(Date.now() - 5000).toISOString();
+      const meta = {
+        pipelineStage: 'IMPLEMENTATION',
+        pipelineOwner: 'back-1',
+        IMPLEMENTATION_startedAt: pastTime,
+        IMPLEMENTATION_timeoutEscalated: true,
+        IMPLEMENTATION_timeoutEscalationCount: 1,
+      };
+      deps.db.prepare(`
+        INSERT INTO task_records (id, title, tags, metadata, pipeline_stage, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('sess-clear-3', 'Compat test', '["pipeline"]', JSON.stringify(meta), 'IMPLEMENTATION', 'in_progress');
+
+      deps = createDeps({
+        db: deps.db,
+        agentSpawner: { spawnAgent },
+        // sessionCleaner intentionally not provided
+      });
+      sweepStageTimeouts(deps);
+
+      // Should still spawn without crashing
+      expect(spawnAgent).toHaveBeenCalledTimes(1);
+    });
+  });
 });

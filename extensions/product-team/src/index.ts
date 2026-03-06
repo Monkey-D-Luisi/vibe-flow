@@ -41,6 +41,7 @@ import { StageTimeoutCron } from './services/stage-timeout-cron.js';
 import { createGracefulShutdown } from './hooks/graceful-shutdown.js';
 import { registerAutoSpawnHooks, fireAgentViaGatewayWs } from './hooks/auto-spawn.js';
 import type { AgentSpawnSink } from './hooks/auto-spawn.js';
+import { registerSessionRecoveryHook, clearAgentSessions } from './hooks/session-recovery.js';
 import { injectOriginIntoTeamMessage } from './hooks/origin-injection.js';
 import { injectAgentIdIntoDecisionEvaluate } from './hooks/agent-id-injection.js';
 import { injectCallerIntoPipelineAdvance } from './hooks/pipeline-caller-injection.js';
@@ -336,6 +337,12 @@ export function register(api: OpenClawPluginApi): void {
   const deliveryConfig = resolveDeliveryConfig(pluginConfig);
   registerAutoSpawnHooks(api, agentConfig, sharedSpawnSink, deliveryConfig);
 
+  // Session recovery hook: auto-clears corrupted session files on agent_end errors
+  // (e.g. orphaned function_call_output, role_ordering). Without this, corrupted
+  // sessions cause infinite failure loops on every spawn retry.
+  const stateDir = process.env['OPENCLAW_STATE_DIR'] || '/root/.openclaw';
+  registerSessionRecoveryHook(api, stateDir);
+
   // Start decision timeout cron (re-escalates stalled decisions)
   const decisionTimeoutCron = new DecisionTimeoutCron({
     db,
@@ -355,6 +362,9 @@ export function register(api: OpenClawPluginApi): void {
     logger: api.logger,
     orchestratorConfig,
     agentSpawner: sharedSpawnSink,
+    sessionCleaner: {
+      clearAgentSessions: (agentId) => clearAgentSessions(stateDir, agentId, api.logger),
+    },
   });
   stageTimeoutCron.start();
 

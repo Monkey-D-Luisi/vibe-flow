@@ -30,6 +30,9 @@ export interface StageTimeoutDeps {
     maxTimeoutEscalations?: number;
   };
   readonly agentSpawner?: AgentSpawnSink;
+  readonly sessionCleaner?: {
+    clearAgentSessions(agentId: string): void;
+  };
 }
 
 const SWEEP_INTERVAL_MS = 60_000; // 1 minute
@@ -174,6 +177,17 @@ export function sweepStageTimeouts(deps: StageTimeoutDeps): number {
 
     // Spawn the target agent so it actually runs to handle the timeout
     if (deps.agentSpawner) {
+      // Defense-in-depth: clear corrupted sessions before retry so the agent
+      // gets a fresh session. Without this, a corrupt .jsonl causes every retry
+      // to crash with "No tool call found" until the stall guard kicks in.
+      if (escalationCount > 0 && deps.sessionCleaner) {
+        try {
+          deps.sessionCleaner.clearAgentSessions(target);
+          deps.logger.info(`stage-timeout: cleared sessions for "${target}" before retry`);
+        } catch (err: unknown) {
+          deps.logger.warn(`stage-timeout: session clear failed for "${target}": ${String(err)}`);
+        }
+      }
       const spawnMessage = alreadyEscalated
         ? `[Stage Timeout Recovery] Task ${row.id} has been stuck at ${stage} beyond the timeout. ` +
           `The stage owner (${owner}) did not complete in time. Please investigate using ` +
