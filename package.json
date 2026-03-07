@@ -23,6 +23,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.4.3",
     "@commitlint/config-conventional": "^20.4.3",
+    "@vitest/coverage-v8": "4.0.18",
     "conventional-changelog-cli": "^5.0.0",
     "husky": "^9.1.7",
     "tsx": "^4.21.0"

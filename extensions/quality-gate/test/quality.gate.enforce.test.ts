@@ -8,12 +8,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * violation details.
  */
 
-vi.mock('../src/fs/read.js', () => ({
+vi.mock('@openclaw/quality-contracts/fs/read', () => ({
   readFileSafe: vi.fn(),
   readJsonFile: vi.fn(),
 }));
 
-import { readJsonFile } from '../src/fs/read.js';
+import { readJsonFile } from '@openclaw/quality-contracts/fs/read';
 
 const mockReadJsonFile = vi.mocked(readJsonFile);
 
