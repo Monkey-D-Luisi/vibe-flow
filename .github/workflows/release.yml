@@ -10,7 +10,6 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  id-token: write
   contents: read
 
 jobs:
@@ -61,13 +60,12 @@ jobs:
           pnpm --filter @openclaw/product-team test:coverage || exit 1
           pnpm --filter @openclaw/quality-contracts test:coverage || exit 1
 
-  publish:
-    name: Publish to npm
+  github-release:
+    name: GitHub Release
     needs: quality-gate
     runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
     permissions:
       contents: write
-      id-token: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -81,21 +79,12 @@ jobs:
         with:
           node-version: '22'
           cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Generate CHANGELOG.md
         run: pnpm changelog
-
-      - name: Dry-run publish (verify all packages can be published)
-        run: node scripts/publish-packages.mjs --dry-run
-
-      - name: Publish to npm with provenance
-        run: node scripts/publish-packages.mjs
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
         env:
