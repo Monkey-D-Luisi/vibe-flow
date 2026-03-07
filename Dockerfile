@@ -65,9 +65,9 @@ ENV OPENCLAW_CONFIG_PATH=/root/.openclaw/openclaw.json
 ENV OPENCLAW_STATE_DIR=/root/.openclaw
 EXPOSE 28789
 
-# Health check: verify gateway responds (use root path, no auth needed)
+# Health check: verify gateway responds
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-  CMD curl -sf http://localhost:28789/ || exit 1
+  CMD curl -sf http://localhost:28789/health || exit 1
 
 # Start gateway in foreground mode (no systemd in containers)
 RUN sed -i 's/\r$//' /app/scripts/docker-entrypoint.sh && chmod +x /app/scripts/docker-entrypoint.sh

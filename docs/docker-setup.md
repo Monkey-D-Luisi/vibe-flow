@@ -307,11 +307,10 @@ On every container start:
 ### Control UI
 - URL: `http://localhost:28789/`
 - Provides: Chat, Config editing, Sessions, Channels, Cron, Skills, Nodes, Exec approvals, Logs, Debug, Update
-- First visit requires device pairing:
-  1. Open the URL in browser
-  2. The gateway will show a pairing request
-  3. Approve it: `docker exec openclaw-product-team pnpm exec openclaw devices approve <request-id>`
-  4. Pairing persists in the `openclaw-state` volume
+- Device pairing is disabled for Docker (`dangerouslyDisableDeviceAuth: true` in `openclaw.docker.json`)
+  because Docker bridge networking prevents the gateway from recognizing browser connections as loopback.
+  Token auth (`gateway.auth.mode: "token"`) and the `127.0.0.1` port binding still protect access.
+- On first visit, paste the dashboard URL from container startup logs (includes the token hash fragment).
 
 ## Telegram
 
@@ -345,14 +344,10 @@ Check group policy in `openclaw.docker.json`:
 }
 ```
 
-### Control UI shows "Disconnected / pairing required"
-```bash
-# List pending device requests
-docker exec openclaw-product-team pnpm exec openclaw devices list
-
-# Approve the request
-docker exec openclaw-product-team pnpm exec openclaw devices approve <request-id>
-```
+### Control UI shows "Disconnected"
+Verify that `/root/.openclaw/openclaw.json` inside the container includes
+`"dangerouslyDisableDeviceAuth": true` in the `controlUi` block. If missing,
+rebuild the image (`docker compose build && docker compose up -d`).
 
 ### Plugin ID mismatch warnings
 These are cosmetic warnings from OpenClaw's path-based plugin ID inference. They don't affect functionality. The plugin IDs in the manifest files and source code are consistent.

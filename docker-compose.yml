@@ -30,7 +30,7 @@ services:
       - OPENCLAW_STATE_DIR=/root/.openclaw
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:28789/"]
+      test: ["CMD", "curl", "-sf", "http://localhost:28789/health"]
       interval: 30s
       timeout: 10s
       retries: 3

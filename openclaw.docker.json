@@ -5,7 +5,10 @@
     "bind": "lan",
     "controlUi": {
       "enabled": true,
-      "basePath": "/"
+      "basePath": "/",
+      "root": "/root/.openclaw/control-ui",
+      "dangerouslyDisableDeviceAuth": true,
+      "allowedOrigins": ["http://localhost:28789", "http://127.0.0.1:28789"]
     },
     "auth": {
       "mode": "token",

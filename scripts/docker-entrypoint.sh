@@ -230,6 +230,19 @@ for ws in "${WORKSPACES[@]}"; do
   fi
 done
 
+# ── Copy Control UI assets to break pnpm hardlinks ──
+# pnpm hoisted mode creates hardlinks (nlink > 1) from node_modules to the
+# content-addressable store. The OpenClaw SDK's boundary file opener rejects
+# hardlinked files as a security measure. Copying the dist to a regular
+# directory with nlink=1 files works around this.
+CONTROL_UI_SRC="/app/node_modules/openclaw/dist/control-ui"
+CONTROL_UI_DST="/root/.openclaw/control-ui"
+if [ -d "$CONTROL_UI_SRC" ]; then
+  rm -rf "$CONTROL_UI_DST"
+  cp -r "$CONTROL_UI_SRC" "$CONTROL_UI_DST"
+  echo "[entrypoint] Copied Control UI assets to $CONTROL_UI_DST (hardlink workaround)"
+fi
+
 # Start gateway in foreground
 # Config is resolved via OPENCLAW_CONFIG_PATH env var (set above).
 # The gateway CLI does NOT accept --config; it reads the env var directly.
