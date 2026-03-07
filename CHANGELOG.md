@@ -1,3 +1,16 @@
+## [0.1.1](https://github.com/Monkey-D-Luisi/vibe-flow/compare/v0.1.0...v0.1.1) (2026-03-07)
+
+
+### Bug Fixes
+
+* add auth param to registerHttpRoute for openclaw 2026.3.2 ([a5a0391](https://github.com/Monkey-D-Luisi/vibe-flow/commit/a5a03914de04435a599307482231687122f1d960))
+* **docker:** resolve Control UI 404 after openclaw SDK 2026.3.2 ([9c2dd82](https://github.com/Monkey-D-Luisi/vibe-flow/commit/9c2dd822f695e57afaa84bf75f07940ec7db7099))
+* **quality-gate:** remove accidentally committed .js build artifacts ([fc669e1](https://github.com/Monkey-D-Luisi/vibe-flow/commit/fc669e106aa5824e0651c22e0c529cbe845956e1))
+* resolve CI vuln policy, badges, landing screenshots, and og-image ([829416c](https://github.com/Monkey-D-Luisi/vibe-flow/commit/829416c088970a246faa0e2dc5756426da047dab))
+* **site:** replace broken dashboard PNG with SVG mockup ([02153c6](https://github.com/Monkey-D-Luisi/vibe-flow/commit/02153c625a02bf9b4253a4f9ad5624fda9ee4813))
+
+
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
