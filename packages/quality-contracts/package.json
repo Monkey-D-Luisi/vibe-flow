@@ -82,11 +82,11 @@
   },
   "dependencies": {
     "fast-glob": "^3.3.2",
-    "picomatch": "2.3.1"
+    "picomatch": "4.0.3"
   },
   "devDependencies": {
     "@types/node": "^22.5.4",
-    "@types/picomatch": "^3.0.2",
+    "@types/picomatch": "^4.0.2",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@vitest/coverage-v8": "^4.0.18",

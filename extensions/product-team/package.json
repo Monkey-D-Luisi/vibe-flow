@@ -21,7 +21,7 @@
     "better-sqlite3": "^11.10.0",
     "fast-glob": "^3.3.2",
     "openclaw": "2026.3.2",
-    "picomatch": "2.3.1",
+    "picomatch": "4.0.3",
     "ts-morph": "^27.0.2",
     "typhonjs-escomplex": "^0.1.0",
     "ulid": "^2.3.0"
