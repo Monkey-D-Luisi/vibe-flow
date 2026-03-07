@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
  * a unified coverage report.
  */
 
-vi.mock('../src/fs/read.js', () => ({
+vi.mock('@openclaw/quality-contracts/fs/read', () => ({
   readFileSafe: vi.fn(),
   readJsonFile: vi.fn(),
 }));
@@ -19,7 +19,7 @@ vi.mock('../src/parsers/istanbul.js', () => ({
   computeLcovSummary: vi.fn(),
 }));
 
-import { readFileSafe } from '../src/fs/read.js';
+import { readFileSafe } from '@openclaw/quality-contracts/fs/read';
 import { parseCoverageSummary, parseLcov, computeLcovSummary } from '../src/parsers/istanbul.js';
 
 const mockReadFileSafe = vi.mocked(readFileSafe);

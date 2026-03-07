@@ -107,6 +107,7 @@ describe('monitoring-cron', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.clearAllMocks();
 
     // Save and clear relevant env vars
     savedEnv = {};
