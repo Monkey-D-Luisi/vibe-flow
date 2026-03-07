@@ -1,0 +1,121 @@
+# vibe-flow — Publicacion del Repo: Resumen de Sesion
+**Fecha:** 2026-03-06 (noche)
+**Estado:** El repo es publico y el CI esta en verde.
+
+---
+
+## Lo que se ha hecho (automatizado)
+
+### Configuracion del repositorio en GitHub
+- **About:** descripcion, homepage (GitHub Pages), 15 topics
+- **Badges CI/Quality Gate/Release/License** en README.md
+- **Wiki** desactivado
+- **Discussions** activado con post de bienvenida (#238)
+- **43 labels** (11 nuevas: triage, security, performance, breaking-change, ci, dependencies, area:*)
+- **Branch protection** en main (requiere PR + CI + Quality Gate status checks)
+- **Auto-merge** activado
+- **Release v0.1.0** creada
+
+### README.md
+- Reescrito con estructura profesional: hero image, badges, diagrama Mermaid, tabla de agentes, tabla de extensiones, Star History, links de navegacion
+- Badge de licencia cambiado a estatico (el dinamico daba "repo not found" por cache de shields.io)
+
+### .github/FUNDING.yml
+- Creado con `github: Monkey-D-Luisi` para el boton de Sponsors
+
+### Dependabot PRs
+- 5 mergeados (#225-229): actions/checkout v6, actions/setup-node v6, bump minor-and-patch
+- 8 restantes tienen conflictos de lockfile (ver seccion pendientes)
+
+### CI fixes (3 rondas hasta verde)
+1. **Vulnerabilidades:** 3 excepciones de minimatch (ts-morph transitivo) anadidas al ledger
+2. **TypeScript error:** openclaw SDK 2026.3.2 requiere `auth: 'gateway' | 'plugin'` en registerHttpRoute
+   - Corregido en model-router (auth: 'plugin')
+   - Corregido en product-team: /health (auth: 'plugin'), ci-webhook (auth: 'gateway')
+   - Actualizado types.ts de RouteRegistrar
+   - pnpm-lock.yaml sincronizado a openclaw 2026.3.2
+3. **Coverage 0%:** 18 archivos .js (build artifacts de TypeScript) estaban committeados en quality-gate
+   - Eliminados de git con `git rm --cached`
+   - Anadidas reglas en .gitignore para prevenir re-commit
+
+### Landing page (site/)
+- 3 imagenes SVG creadas: openclaw-dashboard.svg, pipeline-chat.svg, quality-gate.svg
+- HTML actualizado para referenciar SVGs
+- og-image.png generado desde SVG via Puppeteer (1200x630)
+
+### Profile README (Monkey-D-Luisi/Monkey-D-Luisi)
+- Repo creado, publico, branch main
+- Contenido: intro .NET/microservicios, vibe-flow como proyecto destacado, tech stack con badges, LinkedIn
+
+### Seguridad
+- Secret scan ejecutado: limpio
+- Vulnerability audit policy pasando en CI
+
+---
+
+## Lo que queda pendiente (acciones manuales)
+
+### Critico / Alta prioridad
+1. **Verificar profile README** — Ir a https://github.com/Monkey-D-Luisi y confirmar que se muestra. Si no aparece tras unas horas, verificar que el repo `Monkey-D-Luisi/Monkey-D-Luisi` es publico y tiene README.md en la rama main. Puede ser cache de GitHub.
+
+2. **Social preview image** — Ir a Settings > General del repo > Social preview > Upload `site/og-image.png` (ya existe en el repo). Esto hace que los links compartidos muestren la imagen og de vibe-flow.
+
+3. **Screenshots de la landing (mejor opcion)** — Las 3 capturas actuales son SVGs creados por mi como mockups. Si prefieres capturas reales:
+   - **Dashboard:** Haz una captura de OpenClaw con los agentes cargados y guardala como `site/img/openclaw-dashboard.png`, luego cambia el .svg por .png en index.html
+   - **Chat:** Haz una captura del chat de Telegram con los agentes y guardala como `site/img/pipeline-chat.png`
+   - **Quality gate:** Para la terminal, ejecuta desde tu PowerShell:
+     ```powershell
+     docker compose exec openclaw pnpm q:gate --source artifacts --scope minor
+     ```
+     Si los agentes no estan en Docker o el comando falla, ejecuta localmente:
+     ```powershell
+     pnpm q:gate --source artifacts --scope minor
+     ```
+     Haz captura del resultado.
+
+4. **Dependabot PRs con conflictos** — 8 PRs restantes tienen conflictos de lockfile. Para resolverlos:
+   ```bash
+   # Para cada PR conflictiva:
+   gh pr checkout <numero>
+   pnpm install
+   git add pnpm-lock.yaml
+   git commit -m "chore: resolve lockfile conflict"
+   git push
+   gh pr merge <numero> --squash
+   ```
+
+### Media prioridad
+5. **GitHub profile bio/website** — El token actual no tiene scope `user`. Para configurarlo:
+   - Ir a https://github.com/settings/profile
+   - Bio: ya configurada
+   - Website: anadir `https://monkey-d-luisi.github.io/vibe-flow/`
+
+6. **Pinned repos** — Ir a tu perfil > "Customize your pins" > fijar `vibe-flow` y otros repos relevantes
+
+7. **GitHub Sponsors** — Ir a https://github.com/sponsors/accounts y completar el onboarding si quieres recibir sponsors
+
+### Baja prioridad / Futuro
+8. **Landing page revisada** — Con las capturas reales reemplazando los SVGs, hacer un commit y push. El deploy es automatico via GitHub Pages.
+
+9. **Custom domain** — No tienes dominio custom. Si quieres uno en el futuro: Settings > Pages > Custom domain
+
+10. **Remaining Dependabot PRs** — Mantener Dependabot activo y ir mergeando semanalmente
+
+---
+
+## Estado final del CI
+- **CI (ci.yml):** Verde (run 22785643409)
+- **Quality Gate (quality-gate.yml):** Configurado, pasa con el badge
+- **Deploy Pages (deploy-pages.yml):** Activo, despliega automaticamente en push a main
+
+## Commits de esta sesion
+```
+fc669e1 fix(quality-gate): remove accidentally committed .js build artifacts
+a5a0391 fix: resolve CI vuln policy, badges, landing screenshots, and og-image
+829416c (anterior, ya estaba) fix: resolve CI vuln policy, badges, landing screenshots, and og-image
+02153c6 fix(site): replace broken dashboard PNG with SVG mockup
+```
+
+---
+
+**NOTA:** Este archivo NO esta en git. Es solo para referencia local.

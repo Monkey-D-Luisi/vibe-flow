@@ -54,7 +54,7 @@ export async function collectGateMetrics(deps: GateSourceDeps = {}): Promise<Gat
   if (rgrCount === undefined && deps.loadRgrLogCount) {
     try {
       rgrCount = await deps.loadRgrLogCount();
-    } catch (_error) {
+    } catch {
       // RGR loader failed - fall through to env variable
     }
   }
