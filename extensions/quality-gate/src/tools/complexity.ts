@@ -172,7 +172,7 @@ export async function complexityTool(input: ComplexityInput): Promise<Complexity
       assertPathContained(file, cwd);
       const result = await analyzeFile(file);
       fileResults.push(result);
-    } catch (_error) {
+    } catch {
       // Skip files that fail path validation or can't be read
     }
   }
