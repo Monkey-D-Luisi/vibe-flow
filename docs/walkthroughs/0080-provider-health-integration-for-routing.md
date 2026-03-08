@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0080-provider-health-integration-for-routing.md`
 - Epic: EP10 -- Dynamic Model Routing
 - Branch: `feat/provider-health-cache`
-- PR: TBD
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/241
 
 ---
 
