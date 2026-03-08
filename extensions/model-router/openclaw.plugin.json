@@ -10,6 +10,18 @@
       "healthCheckSecret": {
         "type": "string",
         "description": "Bearer token required to access GET /api/providers/health. If omitted the endpoint is unauthenticated (suitable for internal/Docker networks only)."
+      },
+      "dynamicRouting": {
+        "type": "object",
+        "description": "Configuration for dynamic model routing (Task 0081+).",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Enable dynamic per-request model routing based on complexity, health, and budget.",
+            "default": false
+          }
+        }
       }
     }
   }
