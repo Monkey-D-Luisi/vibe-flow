@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | PENDING |
+| Status | DONE |
 | Epic | [EP10 -- Dynamic Model Routing](../backlog/EP10-dynamic-model-routing.md) |
 | Priority | HIGH |
 | Scope | MINOR |
@@ -60,12 +60,12 @@ that hook. Pipeline metadata (scope, stage, durations) is already captured in
 
 ## Acceptance Criteria
 
-- [ ] AC1: `scoreComplexity()` returns a `ComplexityScore` with score, tier, and factors
-- [ ] AC2: Score is clamped to [0, 100] regardless of extreme inputs
-- [ ] AC3: All scoring weights are overridable via `ComplexityConfig`
-- [ ] AC4: Missing metadata fields are handled gracefully (default to neutral score)
-- [ ] AC5: >= 90% test coverage for complexity-scorer module
-- [ ] AC6: Function is pure — no side effects verified in tests
+- [x] AC1: `scoreComplexity()` returns a `ComplexityScore` with score, tier, and factors
+- [x] AC2: Score is clamped to [0, 100] regardless of extreme inputs
+- [x] AC3: All scoring weights are overridable via `ComplexityConfig`
+- [x] AC4: Missing metadata fields are handled gracefully (default to neutral score)
+- [x] AC5: >= 90% test coverage for complexity-scorer module
+- [x] AC6: Function is pure — no side effects verified in tests
 
 ---
 
@@ -99,12 +99,12 @@ that hook. Pipeline metadata (scope, stage, durations) is already captured in
 
 ## Definition of Done
 
-- [ ] All Acceptance Criteria met
-- [ ] Tests written and passing
-- [ ] Coverage meets threshold (>= 90%)
-- [ ] Lint passes with zero errors
-- [ ] TypeScript compiles without errors
-- [ ] Walkthrough updated
+- [x] All Acceptance Criteria met
+- [x] Tests written and passing
+- [x] Coverage meets threshold (>= 90%)
+- [x] Lint passes with zero errors
+- [x] TypeScript compiles without errors
+- [x] Walkthrough updated
 - [ ] PR created and linked
 
 ---

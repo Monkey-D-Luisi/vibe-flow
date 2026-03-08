@@ -282,7 +282,7 @@ Key deliverables:
 
 #### Tasks
 
-- Task 0079: Task Complexity Scoring Engine -- IN_PROGRESS (EP10, 10A)
+- Task 0079: Task Complexity Scoring Engine -- DONE (EP10, 10A)
 - Task 0080: Provider Health Integration for Routing -- PENDING (EP10, 10A)
 - Task 0081: Dynamic Model Resolver Hook -- PENDING (EP10, 10B)
 - Task 0082: Cost-Aware Model Tier Downgrade -- PENDING (EP10, 10B)
@@ -836,7 +836,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 ### Phase 10A: Dynamic Model Routing (EP10)
 
-- Task 0079: Task Complexity Scoring Engine -- IN_PROGRESS
+- Task 0079: Task Complexity Scoring Engine -- DONE
 - Task 0080: Provider Health Integration for Routing -- PENDING
 - Task 0081: Dynamic Model Resolver Hook -- PENDING
 - Task 0082: Cost-Aware Model Tier Downgrade -- PENDING
