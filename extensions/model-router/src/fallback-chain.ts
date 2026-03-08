@@ -18,7 +18,7 @@ import type { ModelCandidate, ModelTier, AgentModelConfig } from './model-resolv
 /* ------------------------------------------------------------------ */
 
 /** Why a candidate was skipped during fallback resolution. */
-export type SkipReason = 'provider-down' | 'not-in-catalog' | 'tier-unavailable';
+export type SkipReason = 'provider-down' | 'not-in-catalog';
 
 /** A single attempt in the fallback resolution chain. */
 export interface FallbackAttempt {
@@ -81,22 +81,32 @@ function isProviderUsable(healthCache: ProviderHealthCache, providerId: string):
   return { usable: state.status !== 'DOWN', status: state.status };
 }
 
+/** Result of trying a single model candidate. */
+interface TryCandidateResult {
+  attempt: FallbackAttempt;
+  candidate: ModelCandidate | undefined;
+}
+
 /**
- * Try a single model candidate. Returns a FallbackAttempt.
+ * Try a single model candidate. Returns the attempt record and the
+ * resolved candidate (if found and healthy).
  */
 function tryCandidate(
   modelId: string,
   catalog: ReadonlyMap<string, ModelCandidate>,
   healthCache: ProviderHealthCache,
-): FallbackAttempt {
+): TryCandidateResult {
   const candidate = catalog.get(modelId);
 
   if (!candidate) {
     return {
-      modelId,
-      providerId: undefined,
-      selected: false,
-      skipReason: 'not-in-catalog',
+      attempt: {
+        modelId,
+        providerId: undefined,
+        selected: false,
+        skipReason: 'not-in-catalog',
+      },
+      candidate: undefined,
     };
   }
 
@@ -104,19 +114,25 @@ function tryCandidate(
 
   if (!usable) {
     return {
-      modelId,
-      providerId: candidate.providerId,
-      selected: false,
-      skipReason: 'provider-down',
-      providerStatus: status,
+      attempt: {
+        modelId,
+        providerId: candidate.providerId,
+        selected: false,
+        skipReason: 'provider-down',
+        providerStatus: status,
+      },
+      candidate: undefined,
     };
   }
 
   return {
-    modelId,
-    providerId: candidate.providerId,
-    selected: true,
-    providerStatus: status,
+    attempt: {
+      modelId,
+      providerId: candidate.providerId,
+      selected: true,
+      providerStatus: status,
+    },
+    candidate,
   };
 }
 
@@ -169,11 +185,10 @@ export function resolveFallbackChain(
 
   // 1. Try primary model
   if (agentModelConfig?.primary) {
-    const attempt = tryCandidate(agentModelConfig.primary, catalog, healthCache);
+    const { attempt, candidate } = tryCandidate(agentModelConfig.primary, catalog, healthCache);
     chain.push(attempt);
 
-    if (attempt.selected) {
-      const candidate = catalog.get(agentModelConfig.primary)!;
+    if (candidate) {
       return {
         model: { modelId: candidate.modelId, providerId: candidate.providerId, tier: candidate.tier },
         fallbackLevel: 'primary',
@@ -184,17 +199,17 @@ export function resolveFallbackChain(
   }
 
   // 2. Try configured fallbacks in order
+  // Note: configured copilot models are labelled 'configured-fallback', not 'copilot-proxy'.
+  // The 'copilot-proxy' level is reserved for phase 3 (injected ultimate fallbacks).
   if (agentModelConfig?.fallbacks) {
     for (const fallbackId of agentModelConfig.fallbacks) {
-      const attempt = tryCandidate(fallbackId, catalog, healthCache);
+      const { attempt, candidate } = tryCandidate(fallbackId, catalog, healthCache);
       chain.push(attempt);
 
-      if (attempt.selected) {
-        const candidate = catalog.get(fallbackId)!;
-        const isCopilotProvider = candidate.providerId === config.copilotProxyProviderId;
+      if (candidate) {
         return {
           model: { modelId: candidate.modelId, providerId: candidate.providerId, tier: candidate.tier },
-          fallbackLevel: isCopilotProvider ? 'copilot-proxy' : 'configured-fallback',
+          fallbackLevel: 'configured-fallback',
           chain,
           reason: `configured fallback '${candidate.modelId}' is healthy`,
         };
@@ -206,11 +221,10 @@ export function resolveFallbackChain(
   const copilotModels = getCopilotProxyModels(catalog, agentModelConfig, config.copilotProxyProviderId);
 
   for (const copilotModelId of copilotModels) {
-    const attempt = tryCandidate(copilotModelId, catalog, healthCache);
+    const { attempt, candidate } = tryCandidate(copilotModelId, catalog, healthCache);
     chain.push(attempt);
 
-    if (attempt.selected) {
-      const candidate = catalog.get(copilotModelId)!;
+    if (candidate) {
       return {
         model: { modelId: candidate.modelId, providerId: candidate.providerId, tier: candidate.tier },
         fallbackLevel: 'copilot-proxy',

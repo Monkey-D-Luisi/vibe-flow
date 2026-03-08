@@ -81,7 +81,7 @@ model ID with zero guarantee it will work.
 
 - No breaking changes to existing `ResolveResult` shape (additive only)
 - Must work with existing `ProviderHealthCache` interface
-- Copilot-proxy provider ID must be `github-copilot` (matches health cache)
+- Copilot-proxy provider ID defaults to `github-copilot` (configurable via `FallbackChainConfig.copilotProxyProviderId`)
 - No network calls — reads only from in-memory health cache
 
 ---
