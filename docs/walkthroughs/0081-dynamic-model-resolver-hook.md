@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0081-dynamic-model-resolver-hook.md`
 - Epic: EP10 -- Dynamic Model Routing
 - Branch: `feat/0081-dynamic-model-resolver-hook`
-- PR: _pending_
+- PR: #242
 
 ---
 
