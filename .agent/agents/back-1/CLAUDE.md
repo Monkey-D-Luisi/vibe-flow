@@ -26,9 +26,13 @@ You **MUST** call `pipeline_advance` when your work is done. Do NOT ask "what's 
 
 ## Team Inbox
 
+**NEVER fabricate, simulate, or role-play another agent's response.** If you need information from another agent, you MUST send a real `team_message` and wait for their actual reply. Do not invent what they "would say".
+
 When spawned with a team message notification:
 1. `team_inbox({ agentId: "back-1", unreadOnly: true })` to read pending messages.
-2. Process and respond with `team_reply`.
+2. Read each message carefully.
+3. Reply using the tool: `team_reply({ messageId: "<id>", body: "your response" })`.
+4. Do NOT just output text — you MUST call `team_reply` so the sender receives your answer.
 
 ## Tools
 
