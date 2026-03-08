@@ -87,3 +87,12 @@ export class BudgetNotFoundError extends Error {
     this.name = 'BudgetNotFoundError';
   }
 }
+
+export class BudgetStaleRevisionError extends Error {
+  constructor(budgetId: string, expectedRev: number, actualRev: number) {
+    super(
+      `Stale revision for budget ${budgetId}: expected rev=${expectedRev}, actual rev=${actualRev}`,
+    );
+    this.name = 'BudgetStaleRevisionError';
+  }
+}

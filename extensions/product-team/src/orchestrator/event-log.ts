@@ -27,12 +27,14 @@ interface BudgetWarningPayload extends Record<string, unknown> {
   readonly limit: number;
 }
 
+import type { BudgetScope, BudgetStatus } from '../domain/budget.js';
+
 interface BudgetTransitionPayload extends Record<string, unknown> {
   readonly budgetId: string;
-  readonly scope: string;
+  readonly scope: BudgetScope;
   readonly scopeId: string;
-  readonly from: string;
-  readonly to: string;
+  readonly from: BudgetStatus;
+  readonly to: BudgetStatus;
   readonly consumedTokens: number;
   readonly limitTokens: number;
   readonly consumedUsd: number;
