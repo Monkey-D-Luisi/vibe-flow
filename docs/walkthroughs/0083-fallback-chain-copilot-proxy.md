@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0083-fallback-chain-copilot-proxy.md`
 - Epic: EP10 -- Dynamic Model Routing
 - Branch: `feat/0083-fallback-chain-copilot-proxy`
-- PR: TBD
+- PR: #247
 
 ---
 
