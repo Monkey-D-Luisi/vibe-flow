@@ -13,7 +13,7 @@
 
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { spawn } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, openSync, closeSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DeliveryConfig } from '../config/plugin-config.js';
 import { shouldDeliver } from './delivery-policy.js';
@@ -191,8 +191,9 @@ export function handleTeamMessageAutoSpawn(
   const callerAgent = String(ctx.agentId ?? 'unknown');
   const message =
     `You have a new team message from "${callerAgent}" in your inbox (ID: ${messageId}) about: ${subject}. ` +
-    `Read your team inbox with team_inbox({ agentId: "${toAgent}" }) then reply to "${callerAgent}" ` +
-    `using team_reply({ messageId: "${messageId}", body: "<your response>" }).`;
+    `Read your team inbox with team_inbox({ agentId: "${toAgent}" }) to see the full message. ` +
+    `Follow the instructions in the message. If it asks you to contact other agents, use team_message to reach them. ` +
+    `When you have a final answer, reply using team_reply({ messageId: "${messageId}", body: "<your response>" }).`;
 
   // Evaluate delivery policy for the sender agent
   let spawnOptions: AgentSpawnOptions | undefined;
@@ -493,11 +494,15 @@ export function fireAgentViaGatewayWs(
 import { readdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 
+const ts = () => new Date().toISOString();
+const log = (msg) => console.log(ts() + " [spawn:${agentId}] " + msg);
+const err = (msg) => console.error(ts() + " [spawn:${agentId}] " + msg);
+
 // Resolve hashed client-*.js filename at runtime
 const distDir = "/app/node_modules/openclaw/dist/";
 const files = readdirSync(distDir);
 const clientFile = files.filter(f => f.startsWith("client-") && f.endsWith(".js")).sort()[0];
-if (!clientFile) { console.error("auto-spawn: client-*.js not found"); process.exit(1); }
+if (!clientFile) { err("client-*.js not found"); process.exit(1); }
 
 const clientMod = await import(distDir + clientFile);
 
@@ -508,13 +513,14 @@ const GatewayClient = Object.values(clientMod).find(
     && typeof v.prototype.request === "function"
     && typeof v.prototype.start === "function"
 );
-if (!GatewayClient) { console.error("auto-spawn: GatewayClient not found in SDK"); process.exit(1); }
+if (!GatewayClient) { err("GatewayClient not found in SDK"); process.exit(1); }
 
 const agentParams = ${agentParams};
+log("connecting to ws://127.0.0.1:${port}");
 
 await new Promise((resolve, reject) => {
   let done = false;
-  const finish = (err, val) => { if (done) return; done = true; clearTimeout(timer); err ? reject(err) : resolve(val); };
+  const finish = (e, val) => { if (done) return; done = true; clearTimeout(timer); e ? reject(e) : resolve(val); };
 
   const client = new GatewayClient({
     url: "ws://127.0.0.1:${port}",
@@ -527,24 +533,34 @@ await new Promise((resolve, reject) => {
     role: "operator",
     onHelloOk: async () => {
       try {
+        log("connected, sending agent request");
         const result = await client.request("agent", agentParams, {});
+        log("agent request completed");
         client.stop();
         finish(null, result);
-      } catch (e) { client.stop(); finish(e); }
+      } catch (e) { err("agent request failed: " + e); client.stop(); finish(e); }
     },
-    onClose: (code, reason) => { if (!done) { client.stop(); finish(new Error("ws closed: " + code + " " + reason)); } },
-    onConnectError: (e) => { if (!done) { client.stop(); finish(e); } },
+    onClose: (code, reason) => { if (!done) { err("ws closed: " + code + " " + reason); client.stop(); finish(new Error("ws closed: " + code + " " + reason)); } },
+    onConnectError: (e) => { if (!done) { err("connect error: " + e); client.stop(); finish(e); } },
   });
-  const timer = setTimeout(() => { client.stop(); finish(new Error("timeout")); }, 30000);
+  const timer = setTimeout(() => { err("timeout after 30s"); client.stop(); finish(new Error("timeout")); }, 30000);
   client.start();
 });
+log("done");
 process.exit(0);
 `.trim();
 
   try {
+    // Redirect subprocess stdout/stderr to a log file so spawn failures are
+    // visible for debugging. Without this, detached+unref processes silently
+    // swallow all output including error messages.
+    const spawnLogDir = '/tmp/openclaw';
+    mkdirSync(spawnLogDir, { recursive: true });
+    const logFd = openSync(`${spawnLogDir}/spawn-debug.log`, 'a');
+
     const child = spawn('node', ['--input-type=module', '-e', script], {
       detached: true,
-      stdio: 'ignore',
+      stdio: ['ignore', logFd, logFd],
       cwd: '/app',
       env: {
         PATH: process.env['PATH'] ?? '',
@@ -555,6 +571,9 @@ process.exit(0);
       },
     });
     child.unref();
+
+    // Close the FD in the parent — the child inherits its own copy
+    closeSync(logFd);
   } catch (err: unknown) {
     logger.warn(`auto-spawn: WS subprocess spawn failed for "${agentId}": ${String(err)}`);
   }
