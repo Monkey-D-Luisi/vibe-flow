@@ -162,7 +162,7 @@ export function scoreComplexity(
 
   // 1. Base score from scope
   const scope = input.scope ?? 'minor';
-  const baseScore = config.scopeScores[scope] ?? config.scopeScores['minor'] ?? 20;
+  const baseScore = config.scopeScores[scope] ?? config.scopeScores['minor'] ?? DEFAULT_CONFIG.scopeScores.minor;
   factors.push({
     name: 'scope',
     points: baseScore,

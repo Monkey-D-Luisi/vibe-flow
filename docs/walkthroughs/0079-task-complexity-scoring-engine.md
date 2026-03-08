@@ -58,7 +58,7 @@ the implementation was straightforward.
    historical duration overrun, files changed. All weights configurable via
    `ComplexityConfig` with sensible defaults in `DEFAULT_CONFIG`.
 
-2. **`complexity-scorer.test.ts`**: 50 tests organized in 9 describe blocks:
+2. **`complexity-scorer.test.ts`**: 50 tests organized in 11 describe blocks:
    basic behavior, scope scoring, stage modifiers, role modifiers, historical
    duration overrun, files changed, clamping, tier derivation, custom
    configuration, combined scoring, factors documentation, purity verification.

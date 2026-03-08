@@ -251,8 +251,6 @@ Key deliverables:
 
 ---
 
----
-
 ## Phase 10: Adaptive Intelligence (March 2026)
 
 > The dumb agent burns tokens. The intelligent agent invests them.
@@ -842,7 +840,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - Task 0082: Cost-Aware Model Tier Downgrade -- PENDING
 - Task 0083: Fallback Chain with Copilot-Proxy Resolution -- PENDING
 
-### Phase 10A: Budget Intelligence (EP11)
+### Phase 10B: Budget Intelligence (EP11)
 
 - Task 0084: Hard Budget Limits Engine -- PENDING
 - Task 0085: Per-Agent Budget Tracking and Enforcement -- PENDING
@@ -866,7 +864,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - Task 0097: Protocol Version Negotiation -- PENDING
 - Task 0098: Contract Conformance Test Suite -- PENDING
 
-### Phase 11A: Local-First Observability (EP14)
+### Phase 11B: Local-First Observability (EP14)
 
 - Task 0099: Metrics Aggregation Engine (SQLite) -- PENDING
 - Task 0100: /api/metrics System Health Endpoint -- PENDING
@@ -889,7 +887,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - Task 0111: Protocol Regression Test Suite -- PENDING
 - Task 0112: Performance Baseline and CI Guardrails -- PENDING
 
-### Phase 12A: Security & Stability v2 (EP17)
+### Phase 12B: Security & Stability v2 (EP17)
 
 - Task 0113: Secrets Scanning in CI (Gitleaks) -- PENDING
 - Task 0114: Database Migration Rollback Mechanism -- PENDING

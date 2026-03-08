@@ -47,7 +47,7 @@ metadata and produces a numeric score (0-100) used by the model resolver.
 
 ```
 Base score by scope:    minor=20, major=50, critical=80
-Stage modifier:         IDEA/ROADMAP/STORIES=−10, IMPLEMENTATION/CODE_REVIEW=+15, QA=+5
+Stage modifier:         IDEA/ROADMAP/REFINEMENT=−10, IMPLEMENTATION/REVIEW=+15, QA=+5
 Role modifier:          PM/PO=−10, designer=0, backend/frontend=+10, tech-lead=+15
 Historical adjustment:  if avg_duration > 2x median for this stage → +10
 ```
@@ -56,7 +56,7 @@ Historical adjustment:  if avg_duration > 2x median for this stage → +10
 
 **Files to create/modify:**
 - `extensions/model-router/src/complexity-scorer.ts` (new)
-- `extensions/model-router/src/complexity-scorer.test.ts` (new)
+- `extensions/model-router/test/complexity-scorer.test.ts` (new)
 
 **Acceptance criteria:**
 - Score function is pure (no side effects, no DB access)

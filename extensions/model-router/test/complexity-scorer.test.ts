@@ -221,7 +221,7 @@ describe('scoreComplexity', () => {
 
     it('adds bonus proportional to file count', () => {
       const result = scoreComplexity({ scope: 'minor', filesChanged: 35 });
-      // 35 / 10 = 3.5 → floor(3) * 5 = 15
+      // 35 / 10 = 3.5 → floor(3.5) * 5 = 15
       expect(result.score).toBe(20 + 15); // 35
     });
 
