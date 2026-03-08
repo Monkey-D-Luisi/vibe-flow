@@ -105,7 +105,7 @@ that hook. Pipeline metadata (scope, stage, durations) is already captured in
 - [x] Lint passes with zero errors
 - [x] TypeScript compiles without errors
 - [x] Walkthrough updated
-- [ ] PR created and linked
+- [x] PR created and linked
 
 ---
 

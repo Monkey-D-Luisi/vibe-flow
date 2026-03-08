@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0079-task-complexity-scoring-engine.md`
 - Epic: EP10 -- Dynamic Model Routing
 - Branch: `feat/task-complexity-scoring-engine`
-- PR: _pending_
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/240
 
 ---
 
