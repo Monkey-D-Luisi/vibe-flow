@@ -19,7 +19,10 @@ export type ModelTier = 'premium' | 'standard' | 'economy';
 
 /** A single model available for routing. */
 export interface ModelCandidate {
-  /** Model identifier (e.g. 'claude-opus-4', 'gpt-4.1'). */
+  /**
+   * Model identifier — may be bare (e.g. 'claude-opus-4') or
+   * provider-qualified (e.g. 'anthropic/claude-opus-4-6').
+   */
   modelId: string;
   /** Provider that serves this model (must match ProviderHealthCache ids). */
   providerId: string;
@@ -148,7 +151,15 @@ export function createModelResolver(
         desiredTier = downgradeTier(desiredTier);
       }
 
-      // 4. Find a healthy model at the desired tier (or adjacent tiers)
+      // 4. Timeout check before expensive catalog search
+      if (Date.now() - start > config.timeoutMs) {
+        const result = staticFallback(input, correlationId, start, 'resolver timeout exceeded');
+        result.complexity = complexity;
+        logResolution(logger, result);
+        return result;
+      }
+
+      // 5. Find a healthy model at the desired tier (or adjacent tiers)
       const resolved = findHealthyModel(healthCache, config, desiredTier, input.agentModelConfig);
 
       if (resolved) {

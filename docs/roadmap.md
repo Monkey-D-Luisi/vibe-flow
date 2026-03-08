@@ -836,7 +836,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 - Task 0079: Task Complexity Scoring Engine -- DONE
 - Task 0080: Provider Health Integration for Routing -- DONE
-- Task 0081: Dynamic Model Resolver Hook -- PENDING
+- Task 0081: Dynamic Model Resolver Hook -- DONE
 - Task 0082: Cost-Aware Model Tier Downgrade -- PENDING
 - Task 0083: Fallback Chain with Copilot-Proxy Resolution -- PENDING
 
