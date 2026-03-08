@@ -90,9 +90,13 @@ export interface ResolverConfig {
   modelCatalog: ReadonlyMap<string, ModelCandidate>;
   /** Mapping from complexity tier to preferred model tier. */
   tierMapping: Record<ComplexityTier, ModelTier>;
-  /** Budget remaining as a fraction [0, 1]. If < 0.2, downgrades one tier. Placeholder for EP11. */
+  /**
+   * Budget remaining as a normalized fraction [0, 1], used by cost-aware tier routing.
+   * When provided, this value is passed to applyCostAwareTier(), which may downgrade
+   * the selected model tier according to the active costAwareTierConfig (or its defaults).
+   */
   budgetRemainingFraction?: number;
-  /** Cost-aware tier config for Task 0082 multi-threshold downgrade. */
+  /** Cost-aware tier config controlling multi-threshold downgrade behavior. */
   costAwareTierConfig?: CostAwareTierConfig;
 }
 
@@ -293,8 +297,8 @@ function staticFallback(
 /** Log resolution decision to structured logger. */
 function logResolution(logger: ResolverLogger | undefined, result: ResolveResult): void {
   if (!logger) return;
-  const costInfo = result.costAwareTier
-    ? ` budget=${(result.costAwareTier.budgetSnapshot! * 100).toFixed(0)}% downgraded=${result.costAwareTier.downgraded} override=${result.costAwareTier.highComplexityOverride}`
+  const costInfo = (result.costAwareTier && result.costAwareTier.budgetSnapshot !== undefined)
+    ? ` budget=${(result.costAwareTier.budgetSnapshot * 100).toFixed(1)}% downgraded=${result.costAwareTier.downgraded} override=${result.costAwareTier.highComplexityOverride}`
     : '';
   const msg = `model-resolver: [${result.correlationId}] ${result.source} → ${result.modelId} (tier=${result.tier}, provider=${result.providerId}, ${result.resolveTimeMs}ms)${costInfo} reason: ${result.reason}`;
   if (result.source === 'static-fallback') {

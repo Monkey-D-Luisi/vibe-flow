@@ -13,7 +13,7 @@
 
 Replaced the single-threshold budget downgrade placeholder in `model-resolver.ts`
 with a proper multi-threshold cost-aware routing module. The new `cost-aware-router.ts`
-supports configurable tier boundaries (premium > 50%, standard 20-50%, economy < 20%),
+supports configurable tier boundaries (premium >= 50%, standard 20-49.9%, economy < 20%),
 a high-complexity override that resists downgrade by one tier for critical tasks,
 and structured logging of all cost-driven decisions with budget snapshots.
 

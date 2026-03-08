@@ -304,7 +304,7 @@ describe('applyCostAwareTier', () => {
         complexityScore: 50,
       }));
 
-      expect(result.reason).toContain('35%');
+      expect(result.reason).toContain('35.0%');
       expect(result.reason).toContain('standard');
     });
 
@@ -365,6 +365,18 @@ describe('applyCostAwareTier', () => {
 
       expect(result.tier).toBe('premium');
       expect(result.budgetSnapshot).toBe(1);
+    });
+
+    it('treats NaN budget fraction as no budget tracking', () => {
+      const result = applyCostAwareTier(makeInput({
+        desiredTier: 'premium',
+        budgetRemainingFraction: NaN,
+      }));
+
+      expect(result.tier).toBe('premium');
+      expect(result.downgraded).toBe(false);
+      expect(result.budgetSnapshot).toBeUndefined();
+      expect(result.reason).toBe('no budget tracking active');
     });
 
     it('handles complexity score of 0', () => {
