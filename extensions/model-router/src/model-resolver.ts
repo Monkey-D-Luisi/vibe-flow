@@ -9,6 +9,7 @@
 
 import { scoreComplexity, type ComplexityInput, type ComplexityScore, type ComplexityTier } from './complexity-scorer.js';
 import type { ProviderHealthCache, HealthState } from './provider-health-cache.js';
+import { applyCostAwareTier, type CostAwareTierConfig, type CostAwareTierResult } from './cost-aware-router.js';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -62,6 +63,8 @@ export interface ResolveResult {
   source: 'dynamic' | 'static-fallback';
   /** Complexity score that informed the decision (if computed). */
   complexity?: ComplexityScore;
+  /** Cost-aware tier decision details (if budget tracking active). */
+  costAwareTier?: CostAwareTierResult;
   /** Reason for the routing decision. */
   reason: string;
   /** Correlation ID for tracing. */
@@ -89,6 +92,8 @@ export interface ResolverConfig {
   tierMapping: Record<ComplexityTier, ModelTier>;
   /** Budget remaining as a fraction [0, 1]. If < 0.2, downgrades one tier. Placeholder for EP11. */
   budgetRemainingFraction?: number;
+  /** Cost-aware tier config for Task 0082 multi-threshold downgrade. */
+  costAwareTierConfig?: CostAwareTierConfig;
 }
 
 /* ------------------------------------------------------------------ */
@@ -104,13 +109,6 @@ export const DEFAULT_TIER_MAPPING: Readonly<Record<ComplexityTier, ModelTier>> =
 
 /** Ordered model tier precedence (premium > standard > economy). */
 const TIER_ORDER: readonly ModelTier[] = ['premium', 'standard', 'economy'];
-
-/** Downgrade one tier in the precedence order. */
-function downgradeTier(tier: ModelTier): ModelTier {
-  const idx = TIER_ORDER.indexOf(tier);
-  if (idx < 0 || idx >= TIER_ORDER.length - 1) return 'economy';
-  return TIER_ORDER[idx + 1];
-}
 
 /* ------------------------------------------------------------------ */
 /*  Resolver                                                           */
@@ -146,10 +144,13 @@ export function createModelResolver(
       // 2. Determine desired model tier
       let desiredTier = config.tierMapping[complexity.tier];
 
-      // 3. Budget-aware downgrade (placeholder for EP11 Task 0082)
-      if (config.budgetRemainingFraction !== undefined && config.budgetRemainingFraction < 0.2) {
-        desiredTier = downgradeTier(desiredTier);
-      }
+      // 3. Cost-aware tier adjustment (Task 0082)
+      const costResult = applyCostAwareTier({
+        desiredTier,
+        budgetRemainingFraction: config.budgetRemainingFraction,
+        complexityScore: complexity.score,
+      }, config.costAwareTierConfig);
+      desiredTier = costResult.tier;
 
       // 4. Timeout check before expensive catalog search
       if (Date.now() - start > config.timeoutMs) {
@@ -169,6 +170,7 @@ export function createModelResolver(
           tier: resolved.tier,
           source: 'dynamic',
           complexity,
+          costAwareTier: costResult.budgetSnapshot !== undefined ? costResult : undefined,
           reason: resolved.reason,
           correlationId,
           resolveTimeMs: Date.now() - start,
@@ -291,7 +293,10 @@ function staticFallback(
 /** Log resolution decision to structured logger. */
 function logResolution(logger: ResolverLogger | undefined, result: ResolveResult): void {
   if (!logger) return;
-  const msg = `model-resolver: [${result.correlationId}] ${result.source} → ${result.modelId} (tier=${result.tier}, provider=${result.providerId}, ${result.resolveTimeMs}ms) reason: ${result.reason}`;
+  const costInfo = result.costAwareTier
+    ? ` budget=${(result.costAwareTier.budgetSnapshot! * 100).toFixed(0)}% downgraded=${result.costAwareTier.downgraded} override=${result.costAwareTier.highComplexityOverride}`
+    : '';
+  const msg = `model-resolver: [${result.correlationId}] ${result.source} → ${result.modelId} (tier=${result.tier}, provider=${result.providerId}, ${result.resolveTimeMs}ms)${costInfo} reason: ${result.reason}`;
   if (result.source === 'static-fallback') {
     logger.warn(msg);
   } else {

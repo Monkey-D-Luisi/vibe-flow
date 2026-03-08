@@ -283,7 +283,7 @@ Key deliverables:
 - Task 0079: Task Complexity Scoring Engine -- DONE (EP10, 10A)
 - Task 0080: Provider Health Integration for Routing -- DONE (EP10, 10A)
 - Task 0081: Dynamic Model Resolver Hook -- DONE (EP10, 10B)
-- Task 0082: Cost-Aware Model Tier Downgrade -- PENDING (EP10, 10B)
+- Task 0082: Cost-Aware Model Tier Downgrade -- DONE (EP10, 10B)
 - Task 0083: Fallback Chain with Copilot-Proxy Resolution -- PENDING (EP10, 10C)
 
 ### EP11 -- Budget Intelligence
