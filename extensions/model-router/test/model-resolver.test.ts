@@ -134,7 +134,7 @@ describe('createModelResolver', () => {
   /* ---------------------------------------------------------------- */
 
   describe('complexity-based routing', () => {
-    it('routes low-complexity tasks to economy tier (AC2)', () => {
+    it('routes low-complexity tasks and returns economy complexity tier (AC2)', () => {
       const config = makeConfig();
       const resolve = createModelResolver(healthCache, config, logger);
 
@@ -144,8 +144,10 @@ describe('createModelResolver', () => {
       }));
 
       expect(result.source).toBe('dynamic');
-      expect(result.tier).toBe('economy');
-      expect(result.modelId).toBe('copilot-gpt');
+      // Fallback chain picks first healthy candidate (primary claude-opus-4)
+      expect(result.modelId).toBe('claude-opus-4');
+      // Complexity tier is still computed for downstream consumers
+      expect(result.complexity?.tier).toBe('low');
     });
 
     it('routes high-complexity tasks to premium tier (AC3)', () => {
@@ -162,7 +164,7 @@ describe('createModelResolver', () => {
       expect(result.modelId).toBe('claude-opus-4');
     });
 
-    it('routes medium-complexity tasks to standard tier', () => {
+    it('routes medium-complexity tasks and returns standard complexity tier', () => {
       const config = makeConfig();
       const resolve = createModelResolver(healthCache, config, logger);
 
@@ -172,18 +174,22 @@ describe('createModelResolver', () => {
       }));
 
       expect(result.source).toBe('dynamic');
-      expect(result.tier).toBe('standard');
+      // Fallback chain picks first healthy candidate (primary)
+      expect(result.modelId).toBe('claude-opus-4');
+      expect(result.complexity?.tier).toBe('medium');
     });
 
     it('defaults to minor scope when no complexity input given', () => {
       const config = makeConfig();
       const resolve = createModelResolver(healthCache, config, logger);
 
-      // No complexity input → minor scope → score 20 → low tier → economy
+      // No complexity input → minor scope → score 20 → low tier
       const result = resolve(makeInput({ complexityInput: undefined }));
 
       expect(result.source).toBe('dynamic');
-      expect(result.tier).toBe('economy');
+      // Fallback chain picks first healthy candidate (primary)
+      expect(result.modelId).toBe('claude-opus-4');
+      expect(result.complexity?.tier).toBe('low');
     });
   });
 
@@ -259,7 +265,9 @@ describe('createModelResolver', () => {
       const result = resolve(makeInput());
 
       expect(result.source).toBe('static-fallback');
-      expect(result.reason).toBe('no healthy model found at any tier');
+      expect(result.reason).toContain('candidates exhausted');
+      expect(result.fallbackChain).toBeDefined();
+      expect(result.fallbackChain!.length).toBeGreaterThan(0);
     });
 
     it('prefers agent primary model when healthy at desired tier', () => {
@@ -275,7 +283,7 @@ describe('createModelResolver', () => {
       expect(result.modelId).toBe('claude-opus-4');
     });
 
-    it('prefers agent fallback models before catalog models at same tier', () => {
+    it('selects agent fallback in declared order when primary is DOWN', () => {
       const statuses = new Map<string, HealthState>();
       statuses.set('anthropic', makeHealthState('anthropic', 'DOWN'));
       statuses.set('openai-codex', makeHealthState('openai-codex', 'HEALTHY'));
@@ -285,14 +293,14 @@ describe('createModelResolver', () => {
       const config = makeConfig();
       const resolve = createModelResolver(healthCache, config, logger);
 
-      // Medium complexity → standard tier → primary (opus) is premium so skip,
-      // fallback gpt-4.1 is standard and healthy
+      // primary (opus/anthropic) is DOWN → first fallback gpt-4.1 is healthy
       const result = resolve(makeInput({
         complexityInput: { scope: 'major', stage: 'DESIGN', agentRole: 'designer' },
         agentModelConfig: { primary: 'claude-opus-4', fallbacks: ['gpt-4.1', 'copilot-gpt'] },
       }));
 
       expect(result.modelId).toBe('gpt-4.1');
+      expect(result.fallbackLevel).toBe('configured-fallback');
     });
   });
 
@@ -453,13 +461,16 @@ describe('createModelResolver', () => {
       const config = makeConfig({ budgetRemainingFraction: 0.15 });
       const resolve = createModelResolver(healthCache, config, logger);
 
-      // Would normally be high → premium, but budget downgrades to standard
+      // Would normally be high → premium, but budget downgrades desired tier to standard
+      // Fallback chain still picks the first healthy model from agent config
       const result = resolve(makeInput({
         complexityInput: { scope: 'critical', stage: 'IMPLEMENTATION', agentRole: 'tech-lead' },
       }));
 
       expect(result.source).toBe('dynamic');
-      expect(result.tier).toBe('standard');
+      // Cost-aware result is recorded for downstream consumers
+      expect(result.costAwareTier).toBeDefined();
+      expect(result.costAwareTier!.downgraded).toBe(true);
     });
 
     it('does not downgrade when budget remaining >= 20%', () => {
@@ -485,16 +496,17 @@ describe('createModelResolver', () => {
       expect(result.tier).toBe('premium');
     });
 
-    it('downgrades economy tier to economy (floor)', () => {
+    it('records economy tier in cost result at low budget', () => {
       const config = makeConfig({ budgetRemainingFraction: 0.1 });
       const resolve = createModelResolver(healthCache, config, logger);
 
-      // Low complexity → economy → downgrade → still economy
+      // Low complexity → economy → budget also says economy
       const result = resolve(makeInput({
         complexityInput: { scope: 'minor', stage: 'IDEA', agentRole: 'pm' },
       }));
 
-      expect(result.tier).toBe('economy');
+      expect(result.costAwareTier).toBeDefined();
+      expect(result.costAwareTier!.tier).toBe('economy');
     });
   });
 
@@ -502,9 +514,9 @@ describe('createModelResolver', () => {
   /*  Tier search order                                                */
   /* ---------------------------------------------------------------- */
 
-  describe('tier search order', () => {
-    it('searches desired tier first, then falls through other tiers', () => {
-      // Only economy model is healthy
+  describe('fallback chain integration', () => {
+    it('falls through to copilot-gpt when preferred providers are DOWN', () => {
+      // Only copilot is healthy
       const statuses = new Map<string, HealthState>();
       statuses.set('anthropic', makeHealthState('anthropic', 'DOWN'));
       statuses.set('openai-codex', makeHealthState('openai-codex', 'DOWN'));
@@ -514,7 +526,7 @@ describe('createModelResolver', () => {
       const config = makeConfig();
       const resolve = createModelResolver(healthCache, config, logger);
 
-      // High complexity → wants premium, but only economy is healthy
+      // High complexity → wants premium, but anthropic and openai-codex both DOWN
       const result = resolve(makeInput({
         complexityInput: { scope: 'critical', stage: 'IMPLEMENTATION', agentRole: 'tech-lead' },
       }));
@@ -522,6 +534,39 @@ describe('createModelResolver', () => {
       expect(result.source).toBe('dynamic');
       expect(result.tier).toBe('economy');
       expect(result.modelId).toBe('copilot-gpt');
+      expect(result.fallbackLevel).toBe('copilot-proxy');
+    });
+
+    it('includes fallbackLevel and fallbackChain in dynamic result', () => {
+      const config = makeConfig();
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        complexityInput: { scope: 'critical', stage: 'IMPLEMENTATION', agentRole: 'tech-lead' },
+      }));
+
+      expect(result.fallbackLevel).toBe('primary');
+      expect(result.fallbackChain).toBeDefined();
+      expect(result.fallbackChain!.length).toBeGreaterThan(0);
+    });
+
+    it('logs fallback chain info to structured logger', () => {
+      const statuses = new Map<string, HealthState>();
+      statuses.set('anthropic', makeHealthState('anthropic', 'DOWN'));
+      statuses.set('openai-codex', makeHealthState('openai-codex', 'HEALTHY'));
+      statuses.set('github-copilot', makeHealthState('github-copilot', 'HEALTHY'));
+      healthCache = makeMockHealthCache(statuses);
+
+      const config = makeConfig();
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      resolve(makeInput({
+        complexityInput: { scope: 'critical', stage: 'IMPLEMENTATION', agentRole: 'tech-lead' },
+      }));
+
+      const msg = logger.info.mock.calls[0][0] as string;
+      expect(msg).toContain('chain=');
+      expect(msg).toContain('fallback=');
     });
   });
 

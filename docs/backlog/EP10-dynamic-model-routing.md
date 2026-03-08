@@ -1,6 +1,6 @@
 # EP10 -- Dynamic Model Routing
 
-> Status: PENDING
+> Status: DONE
 > Dependencies: EP09
 > Phase: 10 (Adaptive Intelligence)
 > Target: March 2026

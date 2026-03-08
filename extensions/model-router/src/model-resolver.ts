@@ -4,12 +4,13 @@
  * Combines complexity scoring and provider health to select the optimal
  * model for each LLM request. Falls back to static routing on any error.
  *
- * EP10 Task 0081
+ * EP10 Task 0081 + Task 0083 (fallback chain)
  */
 
 import { scoreComplexity, type ComplexityInput, type ComplexityScore, type ComplexityTier } from './complexity-scorer.js';
-import type { ProviderHealthCache, HealthState } from './provider-health-cache.js';
+import type { ProviderHealthCache } from './provider-health-cache.js';
 import { applyCostAwareTier, type CostAwareTierConfig, type CostAwareTierResult } from './cost-aware-router.js';
+import { resolveFallbackChain, type FallbackChainConfig, type FallbackLevel, type FallbackAttempt } from './fallback-chain.js';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -65,6 +66,10 @@ export interface ResolveResult {
   complexity?: ComplexityScore;
   /** Cost-aware tier decision details (if budget tracking active). */
   costAwareTier?: CostAwareTierResult;
+  /** Fallback level that provided the model (Task 0083). */
+  fallbackLevel?: FallbackLevel;
+  /** Full fallback chain attempted during resolution (Task 0083). */
+  fallbackChain?: FallbackAttempt[];
   /** Reason for the routing decision. */
   reason: string;
   /** Correlation ID for tracing. */
@@ -98,6 +103,8 @@ export interface ResolverConfig {
   budgetRemainingFraction?: number;
   /** Cost-aware tier config controlling multi-threshold downgrade behavior. */
   costAwareTierConfig?: CostAwareTierConfig;
+  /** Fallback chain config (copilot-proxy provider ID, etc.). Task 0083. */
+  fallbackChainConfig?: FallbackChainConfig;
 }
 
 /* ------------------------------------------------------------------ */
@@ -110,9 +117,6 @@ export const DEFAULT_TIER_MAPPING: Readonly<Record<ComplexityTier, ModelTier>> =
   medium: 'standard',
   high: 'premium',
 };
-
-/** Ordered model tier precedence (premium > standard > economy). */
-const TIER_ORDER: readonly ModelTier[] = ['premium', 'standard', 'economy'];
 
 /* ------------------------------------------------------------------ */
 /*  Resolver                                                           */
@@ -164,18 +168,25 @@ export function createModelResolver(
         return result;
       }
 
-      // 5. Find a healthy model at the desired tier (or adjacent tiers)
-      const resolved = findHealthyModel(healthCache, config, desiredTier, input.agentModelConfig);
+      // 5. Resolve via ordered fallback chain (Task 0083)
+      const chainResult = resolveFallbackChain(
+        healthCache,
+        config.modelCatalog,
+        input.agentModelConfig,
+        config.fallbackChainConfig,
+      );
 
-      if (resolved) {
+      if (chainResult.model) {
         const result: ResolveResult = {
-          modelId: resolved.modelId,
-          providerId: resolved.providerId,
-          tier: resolved.tier,
+          modelId: chainResult.model.modelId,
+          providerId: chainResult.model.providerId,
+          tier: chainResult.model.tier,
           source: 'dynamic',
           complexity,
           costAwareTier: costResult.budgetSnapshot !== undefined ? costResult : undefined,
-          reason: resolved.reason,
+          fallbackLevel: chainResult.fallbackLevel,
+          fallbackChain: chainResult.chain,
+          reason: chainResult.reason,
           correlationId,
           resolveTimeMs: Date.now() - start,
         };
@@ -183,9 +194,10 @@ export function createModelResolver(
         return result;
       }
 
-      // No healthy model found at any tier — fall back to static
-      const result = staticFallback(input, correlationId, start, 'no healthy model found at any tier');
+      // No healthy model found — structured failure with chain details
+      const result = staticFallback(input, correlationId, start, chainResult.reason);
       result.complexity = complexity;
+      result.fallbackChain = chainResult.chain;
       logResolution(logger, result);
       return result;
     } catch (err: unknown) {
@@ -201,79 +213,6 @@ export function createModelResolver(
 /* ------------------------------------------------------------------ */
 /*  Internals                                                          */
 /* ------------------------------------------------------------------ */
-
-interface FoundModel {
-  modelId: string;
-  providerId: string;
-  tier: ModelTier;
-  reason: string;
-}
-
-/**
- * Search the model catalog for a healthy model, starting at the desired tier
- * and falling through to adjacent tiers if necessary.
- */
-function findHealthyModel(
-  healthCache: ProviderHealthCache,
-  config: ResolverConfig,
-  desiredTier: ModelTier,
-  agentModelConfig?: AgentModelConfig,
-): FoundModel | undefined {
-  // Build ordered tier search: desired first, then remaining in precedence order
-  const searchOrder = [desiredTier, ...TIER_ORDER.filter(t => t !== desiredTier)];
-
-  for (const tier of searchOrder) {
-    // Check agent's configured primary model first if it matches this tier
-    if (agentModelConfig?.primary) {
-      const candidate = config.modelCatalog.get(agentModelConfig.primary);
-      if (candidate && candidate.tier === tier && isProviderUsable(healthCache, candidate.providerId)) {
-        return {
-          modelId: candidate.modelId,
-          providerId: candidate.providerId,
-          tier: candidate.tier,
-          reason: `primary model '${candidate.modelId}' at tier '${tier}' is healthy`,
-        };
-      }
-    }
-
-    // Check agent's configured fallback models at this tier
-    if (agentModelConfig?.fallbacks) {
-      for (const fallbackId of agentModelConfig.fallbacks) {
-        const candidate = config.modelCatalog.get(fallbackId);
-        if (candidate && candidate.tier === tier && isProviderUsable(healthCache, candidate.providerId)) {
-          return {
-            modelId: candidate.modelId,
-            providerId: candidate.providerId,
-            tier: candidate.tier,
-            reason: `fallback model '${candidate.modelId}' at tier '${tier}' is healthy`,
-          };
-        }
-      }
-    }
-
-    // Check all catalog models at this tier
-    for (const [, candidate] of config.modelCatalog) {
-      if (candidate.tier === tier && isProviderUsable(healthCache, candidate.providerId)) {
-        return {
-          modelId: candidate.modelId,
-          providerId: candidate.providerId,
-          tier: candidate.tier,
-          reason: `catalog model '${candidate.modelId}' at tier '${tier}' is healthy`,
-        };
-      }
-    }
-  }
-
-  return undefined;
-}
-
-/** A provider is usable if it's HEALTHY or DEGRADED (DOWN is not usable). */
-function isProviderUsable(healthCache: ProviderHealthCache, providerId: string): boolean {
-  const state: HealthState | undefined = healthCache.getStatus(providerId);
-  // If the provider has never been checked, treat as usable (optimistic)
-  if (!state) return true;
-  return state.status !== 'DOWN';
-}
 
 /** Build a static fallback result when dynamic routing cannot resolve. */
 function staticFallback(
@@ -300,7 +239,11 @@ function logResolution(logger: ResolverLogger | undefined, result: ResolveResult
   const costInfo = (result.costAwareTier && result.costAwareTier.budgetSnapshot !== undefined)
     ? ` budget=${(result.costAwareTier.budgetSnapshot * 100).toFixed(1)}% downgraded=${result.costAwareTier.downgraded} override=${result.costAwareTier.highComplexityOverride}`
     : '';
-  const msg = `model-resolver: [${result.correlationId}] ${result.source} → ${result.modelId} (tier=${result.tier}, provider=${result.providerId}, ${result.resolveTimeMs}ms)${costInfo} reason: ${result.reason}`;
+  const fallbackInfo = result.fallbackLevel ? ` fallback=${result.fallbackLevel}` : '';
+  const chainInfo = result.fallbackChain
+    ? ` chain=[${result.fallbackChain.map(a => `${a.modelId}:${a.selected ? 'OK' : a.skipReason}`).join(',')}]`
+    : '';
+  const msg = `model-resolver: [${result.correlationId}] ${result.source} → ${result.modelId} (tier=${result.tier}, provider=${result.providerId}, ${result.resolveTimeMs}ms)${costInfo}${fallbackInfo}${chainInfo} reason: ${result.reason}`;
   if (result.source === 'static-fallback') {
     logger.warn(msg);
   } else {

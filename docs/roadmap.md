@@ -51,7 +51,7 @@ observability, and extensibility for the community.
 | 7     | EP07 | DX & Platform Ops                    | AR01         | March 2026 | DONE    |
 | 8     | EP08 | Autonomous Product Team              | EP07         | March 2026 | DONE    |
 | 9     | EP09 | Pipeline Intelligence & Reliability  | EP08         | March 2026 | DONE    |
-| 10    | EP10 | Dynamic Model Routing                | EP09         | March 2026 | PENDING |
+| 10    | EP10 | Dynamic Model Routing                | EP09         | March 2026 | DONE    |
 | 10    | EP11 | Budget Intelligence                  | EP09         | March 2026 | PENDING |
 | 10    | EP12 | Agent Learning Loop                  | EP10, EP11   | April 2026 | PENDING |
 | 11    | EP13 | Stable Agent Protocol                | EP09         | April 2026 | PENDING |
@@ -284,7 +284,7 @@ Key deliverables:
 - Task 0080: Provider Health Integration for Routing -- DONE (EP10, 10A)
 - Task 0081: Dynamic Model Resolver Hook -- DONE (EP10, 10B)
 - Task 0082: Cost-Aware Model Tier Downgrade -- DONE (EP10, 10B)
-- Task 0083: Fallback Chain with Copilot-Proxy Resolution -- PENDING (EP10, 10C)
+- Task 0083: Fallback Chain with Copilot-Proxy Resolution -- DONE (EP10, 10C)
 
 ### EP11 -- Budget Intelligence
 
@@ -837,8 +837,8 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - Task 0079: Task Complexity Scoring Engine -- DONE
 - Task 0080: Provider Health Integration for Routing -- DONE
 - Task 0081: Dynamic Model Resolver Hook -- DONE
-- Task 0082: Cost-Aware Model Tier Downgrade -- PENDING
-- Task 0083: Fallback Chain with Copilot-Proxy Resolution -- PENDING
+- Task 0082: Cost-Aware Model Tier Downgrade -- DONE
+- Task 0083: Fallback Chain with Copilot-Proxy Resolution -- IN_PROGRESS
 
 ### Phase 10B: Budget Intelligence (EP11)
 
