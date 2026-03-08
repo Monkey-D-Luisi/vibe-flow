@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0084-hard-budget-limits-engine.md`
 - Epic: [EP11 -- Budget Intelligence](../backlog/EP11-budget-intelligence.md)
 - Branch: `feat/0084-hard-budget-limits-engine`
-- PR: TBD
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/248
 
 ---
 
