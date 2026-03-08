@@ -66,3 +66,24 @@ export class TransitionGuardError extends Error {
     this.name = 'TransitionGuardError';
   }
 }
+
+export class BudgetExhaustedError extends Error {
+  constructor(
+    scope: string,
+    scopeId: string,
+    consumedTokens: number,
+    limitTokens: number,
+  ) {
+    super(
+      `Budget exhausted for ${scope}/${scopeId}: consumed ${consumedTokens} of ${limitTokens} tokens`,
+    );
+    this.name = 'BudgetExhaustedError';
+  }
+}
+
+export class BudgetNotFoundError extends Error {
+  constructor(budgetId: string) {
+    super(`Budget not found: ${budgetId}`);
+    this.name = 'BudgetNotFoundError';
+  }
+}
