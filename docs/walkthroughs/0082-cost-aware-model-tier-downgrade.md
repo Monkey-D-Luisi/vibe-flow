@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0082-cost-aware-model-tier-downgrade.md`
 - Epic: EP10 -- Dynamic Model Routing
 - Branch: `feat/0082-cost-aware-model-tier-downgrade`
-- PR: TBD
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/246
 
 ---
 
