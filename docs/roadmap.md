@@ -307,7 +307,7 @@ Key deliverables:
 
 #### Tasks
 
-- Task 0084: Hard Budget Limits Engine -- PENDING (EP11, 10A)
+- Task 0084: Hard Budget Limits Engine -- DONE (EP11, 10A)
 - Task 0085: Per-Agent Budget Tracking and Enforcement -- PENDING (EP11, 10A)
 - Task 0086: Budget-Triggered Model Tier Auto-Downgrade -- PENDING (EP11, 10B)
 - Task 0087: Telegram /budget Real-Time Dashboard -- PENDING (EP11, 10B)
@@ -842,7 +842,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 ### Phase 10B: Budget Intelligence (EP11)
 
-- Task 0084: Hard Budget Limits Engine -- PENDING
+- Task 0084: Hard Budget Limits Engine -- DONE
 - Task 0085: Per-Agent Budget Tracking and Enforcement -- PENDING
 - Task 0086: Budget-Triggered Model Tier Auto-Downgrade -- PENDING
 - Task 0087: Telegram /budget Real-Time Dashboard -- PENDING

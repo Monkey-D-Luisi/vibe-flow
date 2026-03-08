@@ -92,6 +92,29 @@ CREATE TABLE IF NOT EXISTS spawn_queue (
 CREATE INDEX IF NOT EXISTS idx_spawn_queue_status ON spawn_queue(status);
 `;
 
+const MIGRATION_005 = `
+-- EP11: Hard budget limits engine (Task 0084).
+-- Hierarchical budget tracking: global > pipeline > stage > agent.
+CREATE TABLE IF NOT EXISTS budget_records (
+  id                TEXT PRIMARY KEY,
+  scope             TEXT NOT NULL CHECK(scope IN ('global', 'pipeline', 'stage', 'agent')),
+  scope_id          TEXT NOT NULL,
+  limit_tokens      INTEGER NOT NULL DEFAULT 0,
+  consumed_tokens   INTEGER NOT NULL DEFAULT 0,
+  limit_usd         REAL NOT NULL DEFAULT 0.0,
+  consumed_usd      REAL NOT NULL DEFAULT 0.0,
+  status            TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'warning', 'exhausted')),
+  warning_threshold REAL NOT NULL DEFAULT 0.8,
+  created_at        TEXT NOT NULL,
+  updated_at        TEXT NOT NULL,
+  rev               INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_budget_records_scope ON budget_records(scope, scope_id);
+CREATE INDEX IF NOT EXISTS idx_budget_records_status ON budget_records(status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_records_scope_unique ON budget_records(scope, scope_id);
+`;
+
 interface Migration {
   readonly version: number;
   readonly sql: string;
@@ -102,6 +125,7 @@ const MIGRATIONS: readonly Migration[] = [
   { version: 2, sql: MIGRATION_002 },
   { version: 3, sql: MIGRATION_003 },
   { version: 4, sql: MIGRATION_004 },
+  { version: 5, sql: MIGRATION_005 },
 ];
 
 /**

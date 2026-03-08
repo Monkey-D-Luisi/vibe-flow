@@ -27,6 +27,18 @@ interface BudgetWarningPayload extends Record<string, unknown> {
   readonly limit: number;
 }
 
+interface BudgetTransitionPayload extends Record<string, unknown> {
+  readonly budgetId: string;
+  readonly scope: string;
+  readonly scopeId: string;
+  readonly from: string;
+  readonly to: string;
+  readonly consumedTokens: number;
+  readonly limitTokens: number;
+  readonly consumedUsd: number;
+  readonly limitUsd: number;
+}
+
 /**
  * High-level facade over EventRepository with typed logging methods.
  * All events are append-only.
@@ -239,6 +251,23 @@ export class EventLog {
       id: this.generateId(),
       taskId,
       eventType: 'cost.warning',
+      agentId,
+      payload,
+      createdAt: this.now(),
+    };
+    this.eventRepo.append(event);
+    return event;
+  }
+
+  logBudgetTransition(
+    taskId: string,
+    agentId: string | null,
+    payload: BudgetTransitionPayload,
+  ): EventRecord {
+    const event: EventRecord = {
+      id: this.generateId(),
+      taskId,
+      eventType: 'budget.transition',
       agentId,
       payload,
       createdAt: this.now(),
