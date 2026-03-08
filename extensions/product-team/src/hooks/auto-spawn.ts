@@ -482,25 +482,33 @@ export function fireAgentViaGatewayWs(
     ...(options?.deliver ? { deliver: true, channel: options.channel, ...(options.accountId ? { accountId: options.accountId } : {}), ...(options.to ? { to: options.to } : {}) } : {}),
   });
 
+  // The inline ESM script discovers the GatewayClient class dynamically by
+  // checking prototype shape, NOT by hardcoded minified symbol names. This
+  // makes it resilient to SDK version updates that change minification.
+  //
+  // GatewayClient's constructor already defaults minProtocol, maxProtocol,
+  // scopes, and deviceIdentity internally — we omit them and let the class
+  // use its own PROTOCOL_VERSION constant and loadOrCreateDeviceIdentity().
   const script = `
 import { readdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 
-// Resolve hashed filenames at runtime
+// Resolve hashed client-*.js filename at runtime
 const distDir = "/app/node_modules/openclaw/dist/";
 const files = readdirSync(distDir);
 const clientFile = files.filter(f => f.startsWith("client-") && f.endsWith(".js")).sort()[0];
-const callFile = files.filter(f => f.startsWith("call-") && f.endsWith(".js")).sort()[0];
+if (!clientFile) { console.error("auto-spawn: client-*.js not found"); process.exit(1); }
 
 const clientMod = await import(distDir + clientFile);
-const callMod = await import(distDir + callFile);
 
-const GatewayClient = clientMod.t;
-const PROTOCOL_VERSION = clientMod.kt;
-const loadOrCreateDeviceIdentity = clientMod.Xt;
-const ADMIN_SCOPE = callMod.s;
-const WRITE_SCOPE = "operator.write";
-const READ_SCOPE = callMod.c;
+// Find GatewayClient by prototype shape (has sendConnect + request + start)
+const GatewayClient = Object.values(clientMod).find(
+  v => typeof v === "function" && v.prototype
+    && typeof v.prototype.sendConnect === "function"
+    && typeof v.prototype.request === "function"
+    && typeof v.prototype.start === "function"
+);
+if (!GatewayClient) { console.error("auto-spawn: GatewayClient not found in SDK"); process.exit(1); }
 
 const agentParams = ${agentParams};
 
@@ -517,10 +525,6 @@ await new Promise((resolve, reject) => {
     platform: "linux",
     mode: "cli",
     role: "operator",
-    scopes: [ADMIN_SCOPE, READ_SCOPE, WRITE_SCOPE],
-    deviceIdentity: loadOrCreateDeviceIdentity(),
-    minProtocol: PROTOCOL_VERSION,
-    maxProtocol: PROTOCOL_VERSION,
     onHelloOk: async () => {
       try {
         const result = await client.request("agent", agentParams, {});
