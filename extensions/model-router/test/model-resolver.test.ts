@@ -534,7 +534,7 @@ describe('createModelResolver', () => {
       expect(result.source).toBe('dynamic');
       expect(result.tier).toBe('economy');
       expect(result.modelId).toBe('copilot-gpt');
-      expect(result.fallbackLevel).toBe('copilot-proxy');
+      expect(result.fallbackLevel).toBe('configured-fallback');
     });
 
     it('includes fallbackLevel and fallbackChain in dynamic result', () => {

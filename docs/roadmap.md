@@ -838,7 +838,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - Task 0080: Provider Health Integration for Routing -- DONE
 - Task 0081: Dynamic Model Resolver Hook -- DONE
 - Task 0082: Cost-Aware Model Tier Downgrade -- DONE
-- Task 0083: Fallback Chain with Copilot-Proxy Resolution -- IN_PROGRESS
+- Task 0083: Fallback Chain with Copilot-Proxy Resolution -- DONE
 
 ### Phase 10B: Budget Intelligence (EP11)
 

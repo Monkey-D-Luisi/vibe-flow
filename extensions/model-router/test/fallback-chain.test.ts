@@ -2,10 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   resolveFallbackChain,
   DEFAULT_COPILOT_PROXY_PROVIDER_ID,
-  type FallbackChainConfig,
-  type FallbackChainResult,
 } from '../src/fallback-chain.js';
-import type { ModelCandidate, AgentModelConfig } from '../src/model-resolver.js';
+import type { ModelCandidate } from '../src/model-resolver.js';
 import type { ProviderHealthCache, HealthState, ProviderHealthStatus } from '../src/provider-health-cache.js';
 
 /* ------------------------------------------------------------------ */
@@ -166,7 +164,7 @@ describe('resolveFallbackChain', () => {
       expect(result.chain[2].selected).toBe(true);
     });
 
-    it('labels copilot-proxy in configured fallbacks as copilot-proxy level', () => {
+    it('labels copilot in configured fallbacks as configured-fallback level', () => {
       const statuses = new Map<string, HealthState>();
       statuses.set('anthropic', makeHealthState('anthropic', 'DOWN'));
       statuses.set('openai-codex', makeHealthState('openai-codex', 'DOWN'));
@@ -179,7 +177,8 @@ describe('resolveFallbackChain', () => {
       );
 
       expect(result.model!.modelId).toBe('copilot-gpt');
-      expect(result.fallbackLevel).toBe('copilot-proxy');
+      // Configured copilot fallbacks use 'configured-fallback', not 'copilot-proxy'
+      expect(result.fallbackLevel).toBe('configured-fallback');
     });
   });
 
@@ -221,21 +220,20 @@ describe('resolveFallbackChain', () => {
         { primary: 'claude-opus-4', fallbacks: ['gpt-4.1', 'copilot-gpt'] },
       );
 
-      // copilot-gpt should be picked from configured fallbacks, not injection
+      // copilot-gpt is picked from configured fallbacks (not injection)
       expect(result.model!.modelId).toBe('copilot-gpt');
-      expect(result.fallbackLevel).toBe('copilot-proxy');
+      expect(result.fallbackLevel).toBe('configured-fallback');
 
       // Verify no duplicate copilot-gpt in the chain
       const copilotGptAttempts = result.chain.filter(a => a.modelId === 'copilot-gpt');
       expect(copilotGptAttempts).toHaveLength(1);
     });
 
-    it('tries injected copilot-gpt4o when copilot-gpt is DOWN (from configured)', () => {
+    it('injects only copilot models not already in configured fallbacks', () => {
       const statuses = new Map<string, HealthState>();
       statuses.set('anthropic', makeHealthState('anthropic', 'DOWN'));
       statuses.set('openai-codex', makeHealthState('openai-codex', 'DOWN'));
-      // All github-copilot models are healthy but let's test specifically
-      statuses.set('github-copilot', makeHealthState('github-copilot', 'HEALTHY'));
+      statuses.set('github-copilot', makeHealthState('github-copilot', 'DOWN'));
 
       const catalog = makeModelCatalog(
         { modelId: 'claude-opus-4', providerId: 'anthropic', tier: 'premium' },
@@ -244,15 +242,19 @@ describe('resolveFallbackChain', () => {
         { modelId: 'copilot-gpt4o', providerId: 'github-copilot', tier: 'economy' },
       );
 
-      // Agent has copilot-gpt in fallbacks, so injection adds copilot-gpt4o
+      // copilot-gpt is in configured fallbacks; injection should add only copilot-gpt4o
       const result = resolveFallbackChain(
         makeMockHealthCache(statuses),
         catalog,
         { primary: 'claude-opus-4', fallbacks: ['gpt-4.1', 'copilot-gpt'] },
       );
 
-      // copilot-gpt is picked from configured fallbacks (healthy)
-      expect(result.model!.modelId).toBe('copilot-gpt');
+      // All DOWN, but chain should include copilot-gpt4o from injection (not copilot-gpt again)
+      expect(result.model).toBeUndefined();
+      const injectedIds = result.chain.map(a => a.modelId);
+      // copilot-gpt appears once (from configured), copilot-gpt4o once (from injection)
+      expect(injectedIds.filter(id => id === 'copilot-gpt')).toHaveLength(1);
+      expect(injectedIds.filter(id => id === 'copilot-gpt4o')).toHaveLength(1);
     });
   });
 
