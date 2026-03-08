@@ -33,6 +33,8 @@ You **MUST** call `pipeline_advance` when your work is done. Do NOT ask "what's 
 
 ## Handling Escalated Decisions
 
+**NEVER fabricate, simulate, or role-play another agent's response.** If you need information from another agent, you MUST send a real `team_message` and wait for their actual reply. Do not invent what they "would say".
+
 When spawned to handle an escalated decision:
 
 1. Call `team_inbox` with `{ "agentId": "tech-lead", "unreadOnly": true }` to read pending messages.

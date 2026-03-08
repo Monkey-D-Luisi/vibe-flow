@@ -70,12 +70,23 @@ decision_evaluate({
 subagents({ agentId: "tech-lead", task: "...", mode: "run" })
 ```
 
-## Inter-Agent Communication
+## Inter-Agent Communication (CRITICAL)
+
+**NEVER fabricate, simulate, or role-play another agent's response.** If you need information from another agent, you MUST send a real `team_message` and wait for their actual reply via `team_inbox`. Do not invent what they "would say".
 
 - Use `team_message` to send messages to other agents.
+- Use `team_inbox` to check for replies and incoming messages.
+- Use `team_reply` to respond to messages from other agents.
 - Use `team_status` to check agent availability.
 - Use `team_assign` to assign tasks to specific agents.
 - Use `pipeline_start` to kick off the delivery pipeline.
+
+## Team Inbox
+
+When you receive a message from another agent (or when checking for replies):
+1. `team_inbox({ agentId: "pm", unreadOnly: true })` to read pending messages.
+2. Process the message content.
+3. If a reply is needed, use `team_reply({ messageId: "<id>", body: "..." })` — do NOT just output text.
 
 ## Decision Categories
 
