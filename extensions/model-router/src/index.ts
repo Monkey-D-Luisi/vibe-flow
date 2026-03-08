@@ -1,7 +1,7 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
-import { registerProviderHealthRoute } from './provider-health.js';
+import { registerProviderHealthRoute, PROVIDERS } from './provider-health.js';
 import { ProviderHealthCache } from './provider-health-cache.js';
-import { createModelResolver, DEFAULT_TIER_MAPPING, type ModelCandidate, type ResolverConfig } from './model-resolver.js';
+import { createModelResolver, DEFAULT_TIER_MAPPING, type ModelCandidate, type ResolverConfig, type AgentModelConfig } from './model-resolver.js';
 
 /**
  * Model Router Plugin
@@ -15,70 +15,142 @@ import { createModelResolver, DEFAULT_TIER_MAPPING, type ModelCandidate, type Re
  * complexity scoring, provider health, and budget state.
  */
 
+/** Known provider IDs from the health check system. */
+const KNOWN_PROVIDER_IDS = new Set(PROVIDERS.map(p => p.id));
+
+/**
+ * Classify a model ID into a ModelCandidate.
+ *
+ * Handles both bare IDs ('claude-opus-4') and provider-qualified IDs
+ * ('anthropic/claude-opus-4-6'). When a provider prefix is present,
+ * it is extracted and normalised to match health cache provider IDs.
+ */
+
+// Known provider prefix → health-cache provider ID mapping
+const PROVIDER_PREFIX_MAP: ReadonlyMap<string, string> = new Map([
+  ['anthropic', 'anthropic'],
+  ['openai', 'openai-codex'],
+  ['openai-codex', 'openai-codex'],
+  ['github-copilot', 'github-copilot'],
+]);
+
+// Tier rules applied to the model portion (after stripping provider prefix)
+const TIER_RULES: ReadonlyArray<{ pattern: RegExp; providerId: string; tier: ModelCandidate['tier'] }> = [
+  { pattern: /^claude-opus/i, providerId: 'anthropic', tier: 'premium' },
+  { pattern: /^claude-sonnet/i, providerId: 'anthropic', tier: 'standard' },
+  { pattern: /^claude-haiku/i, providerId: 'anthropic', tier: 'economy' },
+  { pattern: /^gpt-5/i, providerId: 'openai-codex', tier: 'premium' },
+  { pattern: /^gpt-4/i, providerId: 'openai-codex', tier: 'standard' },
+  { pattern: /^gpt-3/i, providerId: 'openai-codex', tier: 'economy' },
+  { pattern: /^o[1-9]/i, providerId: 'openai-codex', tier: 'premium' },
+  { pattern: /^copilot/i, providerId: 'github-copilot', tier: 'economy' },
+];
+
+function classifyModel(fullModelId: string): ModelCandidate {
+  let providerId: string | undefined;
+  let modelPart = fullModelId;
+
+  // Split on first '/' to extract potential provider prefix
+  const slashIdx = fullModelId.indexOf('/');
+  if (slashIdx > 0) {
+    const prefix = fullModelId.slice(0, slashIdx);
+    providerId = PROVIDER_PREFIX_MAP.get(prefix);
+    modelPart = fullModelId.slice(slashIdx + 1);
+  }
+
+  // Match tier rules against the model portion
+  for (const rule of TIER_RULES) {
+    if (rule.pattern.test(modelPart)) {
+      return {
+        modelId: fullModelId,
+        providerId: providerId ?? rule.providerId,
+        tier: rule.tier,
+      };
+    }
+  }
+
+  // Unrecognised model — use extracted provider or 'unknown'
+  return { modelId: fullModelId, providerId: providerId ?? 'unknown', tier: 'standard' };
+}
+
 /**
  * Build a model catalog from the gateway's agents configuration.
  *
- * Each agent has a `model` field with `{ primary, fallbacks }`. We collect
- * all unique model IDs and classify them into tiers based on known prefixes.
- * This is a heuristic — Task 0082/0083 will refine tier assignment.
+ * Agents live at `api.config.agents.list` (not `api.config.agents` directly).
+ * Each agent has a `model` field that may be a string or `{ primary, fallbacks }`.
  */
 function buildModelCatalog(api: OpenClawPluginApi): ReadonlyMap<string, ModelCandidate> {
   const catalog = new Map<string, ModelCandidate>();
 
-  // Known provider/tier mappings by model ID prefix
-  const tierRules: Array<{ pattern: RegExp; providerId: string; tier: ModelCandidate['tier'] }> = [
-    { pattern: /^claude-opus/i, providerId: 'anthropic', tier: 'premium' },
-    { pattern: /^claude-sonnet/i, providerId: 'anthropic', tier: 'standard' },
-    { pattern: /^claude-haiku/i, providerId: 'anthropic', tier: 'economy' },
-    { pattern: /^gpt-5/i, providerId: 'openai-codex', tier: 'premium' },
-    { pattern: /^gpt-4/i, providerId: 'openai-codex', tier: 'standard' },
-    { pattern: /^gpt-3/i, providerId: 'openai-codex', tier: 'economy' },
-    { pattern: /^o[1-9]/i, providerId: 'openai-codex', tier: 'premium' },
-    { pattern: /^copilot/i, providerId: 'github-copilot', tier: 'economy' },
-  ];
-
-  function classify(modelId: string): ModelCandidate {
-    for (const rule of tierRules) {
-      if (rule.pattern.test(modelId)) {
-        return { modelId, providerId: rule.providerId, tier: rule.tier };
-      }
-    }
-    // Unknown model defaults to standard tier with generic provider
-    return { modelId, providerId: 'unknown', tier: 'standard' };
-  }
-
   // Extract model IDs from agent configs via the global OpenClaw config
-  const agentList = (api.config as Record<string, unknown>)?.agents as Array<Record<string, unknown>> | undefined;
+  // Config shape: api.config.agents.list[] (validated at runtime)
+  const agents = (api.config as Record<string, unknown>)?.agents;
+  const agentList = agents != null && typeof agents === 'object' && 'list' in agents
+    ? (agents as Record<string, unknown>).list
+    : undefined;
 
   if (Array.isArray(agentList)) {
     for (const agent of agentList) {
-      const model = agent.model as { primary?: string; fallbacks?: string[] } | undefined;
-      if (model?.primary && !catalog.has(model.primary)) {
-        catalog.set(model.primary, classify(model.primary));
-      }
-      if (Array.isArray(model?.fallbacks)) {
-        for (const fb of model.fallbacks) {
-          if (typeof fb === 'string' && !catalog.has(fb)) {
-            catalog.set(fb, classify(fb));
+      if (agent == null || typeof agent !== 'object') continue;
+      const model = (agent as Record<string, unknown>).model;
+
+      // model may be a string or { primary, fallbacks }
+      if (typeof model === 'string') {
+        if (!catalog.has(model)) catalog.set(model, classifyModel(model));
+      } else if (model != null && typeof model === 'object') {
+        const modelObj = model as Record<string, unknown>;
+        if (typeof modelObj.primary === 'string' && !catalog.has(modelObj.primary)) {
+          catalog.set(modelObj.primary, classifyModel(modelObj.primary));
+        }
+        if (Array.isArray(modelObj.fallbacks)) {
+          for (const fb of modelObj.fallbacks) {
+            if (typeof fb === 'string' && !catalog.has(fb)) {
+              catalog.set(fb, classifyModel(fb));
+            }
           }
         }
       }
     }
   }
 
-  // Ensure at least the well-known models are in the catalog
-  const wellKnown = [
-    { modelId: 'claude-opus-4', providerId: 'anthropic', tier: 'premium' as const },
-    { modelId: 'claude-sonnet-4', providerId: 'anthropic', tier: 'standard' as const },
-    { modelId: 'copilot-gpt', providerId: 'github-copilot', tier: 'economy' as const },
-  ];
-  for (const wk of wellKnown) {
-    if (!catalog.has(wk.modelId)) {
-      catalog.set(wk.modelId, wk);
+  return catalog;
+}
+
+/**
+ * Look up the agent model config by agentId from the global config.
+ */
+function lookupAgentModelConfig(
+  api: OpenClawPluginApi,
+  agentId: string,
+): AgentModelConfig | undefined {
+  const agents = (api.config as Record<string, unknown>)?.agents;
+  const agentList = agents != null && typeof agents === 'object' && 'list' in agents
+    ? (agents as Record<string, unknown>).list
+    : undefined;
+
+  if (!Array.isArray(agentList)) return undefined;
+
+  for (const agent of agentList) {
+    if (agent == null || typeof agent !== 'object') continue;
+    const a = agent as Record<string, unknown>;
+    if (a.id !== agentId) continue;
+
+    const model = a.model;
+    if (typeof model === 'string') {
+      return { primary: model };
+    }
+    if (model != null && typeof model === 'object') {
+      const m = model as Record<string, unknown>;
+      const primary = typeof m.primary === 'string' ? m.primary : undefined;
+      if (!primary) return undefined;
+      const fallbacks = Array.isArray(m.fallbacks)
+        ? m.fallbacks.filter((f): f is string => typeof f === 'string')
+        : undefined;
+      return { primary, fallbacks };
     }
   }
 
-  return catalog;
+  return undefined;
 }
 
 export default {
@@ -103,8 +175,15 @@ export default {
     healthCache.start();
 
     // Dynamic model routing (Task 0081)
-    const pluginConfig = api.pluginConfig as { dynamicRouting?: { enabled?: boolean } } | undefined;
-    const dynamicEnabled = pluginConfig?.dynamicRouting?.enabled === true;
+    const pluginConfig = api.pluginConfig;
+    const dynamicEnabled =
+      pluginConfig != null &&
+      typeof pluginConfig === 'object' &&
+      'dynamicRouting' in pluginConfig &&
+      pluginConfig.dynamicRouting != null &&
+      typeof pluginConfig.dynamicRouting === 'object' &&
+      'enabled' in pluginConfig.dynamicRouting &&
+      (pluginConfig.dynamicRouting as Record<string, unknown>).enabled === true;
 
     if (dynamicEnabled) {
       const modelCatalog = buildModelCatalog(api);
@@ -123,14 +202,22 @@ export default {
       });
 
       api.on('before_model_resolve', (_event, ctx) => {
+        const agentId = ctx.agentId ?? 'unknown';
+        const agentModelConfig = lookupAgentModelConfig(api, agentId);
+
         const result = resolveModel({
-          agentId: ctx.agentId ?? 'unknown',
-          complexityInput: {},
+          agentId,
+          complexityInput: { agentRole: agentId as 'pm' | 'po' | 'tech-lead' | 'designer' | 'back-1' | 'front-1' | 'qa' | 'devops' | 'system' },
+          agentModelConfig,
           correlationId: undefined,
         });
 
         if (result.source === 'dynamic') {
-          return { modelOverride: result.modelId, providerOverride: result.providerId };
+          // Only set providerOverride when the provider is a known, healthy provider ID
+          if (KNOWN_PROVIDER_IDS.has(result.providerId)) {
+            return { modelOverride: result.modelId, providerOverride: result.providerId };
+          }
+          return { modelOverride: result.modelId };
         }
 
         // Static fallback — return undefined to let the runtime use its default

@@ -301,7 +301,7 @@ describe('createModelResolver', () => {
   /* ---------------------------------------------------------------- */
 
   describe('error fallback', () => {
-    it('falls back to static routing when scorer throws', () => {
+    it('falls back to static routing when model catalog iteration throws', () => {
       // Force an error by passing a config with a catalog that throws on iteration
       const brokenCatalog = {
         get: () => undefined,
@@ -356,6 +356,31 @@ describe('createModelResolver', () => {
       const result = resolve(makeInput({ agentModelConfig: undefined }));
 
       expect(result.modelId).toBe('unknown');
+    });
+
+    it('falls back to static routing when resolution exceeds timeoutMs', () => {
+      // Advance Date.now() by 600ms after start, so elapsed time exceeds
+      // the configured timeoutMs (500ms) before catalog search.
+      const realDateNow = Date.now;
+      let callCount = 0;
+      vi.spyOn(Date, 'now').mockImplementation(() => {
+        callCount++;
+        // First call is the start timestamp; subsequent calls return 600ms later
+        if (callCount <= 1) return realDateNow.call(Date);
+        return realDateNow.call(Date) + 600;
+      });
+
+      const config = makeConfig({ timeoutMs: 500 });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        complexityInput: { scope: 'critical', stage: 'IMPLEMENTATION', agentRole: 'tech-lead' },
+      }));
+
+      expect(result.source).toBe('static-fallback');
+      expect(result.reason).toBe('resolver timeout exceeded');
+
+      vi.restoreAllMocks();
     });
   });
 
