@@ -110,9 +110,8 @@ CREATE TABLE IF NOT EXISTS budget_records (
   rev               INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE INDEX IF NOT EXISTS idx_budget_records_scope ON budget_records(scope, scope_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_records_scope ON budget_records(scope, scope_id);
 CREATE INDEX IF NOT EXISTS idx_budget_records_status ON budget_records(status);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_records_scope_unique ON budget_records(scope, scope_id);
 `;
 
 interface Migration {

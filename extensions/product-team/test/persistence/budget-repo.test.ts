@@ -3,7 +3,7 @@ import type Database from 'better-sqlite3';
 import { createTestDatabase } from '../helpers.js';
 import { SqliteBudgetRepository } from '../../src/persistence/budget-repo.js';
 import { createBudgetRecord, BudgetScope, BudgetStatus } from '../../src/domain/budget.js';
-import { BudgetNotFoundError, StaleRevisionError } from '../../src/domain/errors.js';
+import { BudgetNotFoundError, BudgetStaleRevisionError } from '../../src/domain/errors.js';
 
 const TEST_NOW = '2026-03-08T12:00:00.000Z';
 const TEST_LATER = '2026-03-08T13:00:00.000Z';
@@ -187,7 +187,7 @@ describe('SqliteBudgetRepository', () => {
       // Attempt update with stale rev 0
       expect(() =>
         repo.updateConsumption('budget-051', 200, 0, BudgetStatus.Active, 0, TEST_LATER),
-      ).toThrow(StaleRevisionError);
+      ).toThrow(BudgetStaleRevisionError);
     });
   });
 

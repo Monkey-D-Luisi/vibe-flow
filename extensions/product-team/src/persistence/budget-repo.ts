@@ -4,7 +4,10 @@ import type {
   BudgetScope,
   BudgetStatus,
 } from '../domain/budget.js';
-import { BudgetNotFoundError, StaleRevisionError } from '../domain/errors.js';
+import {
+  BudgetNotFoundError,
+  BudgetStaleRevisionError,
+} from '../domain/errors.js';
 
 interface BudgetRow {
   id: string;
@@ -83,7 +86,7 @@ export class SqliteBudgetRepository {
   listByScope(scope: BudgetScope): BudgetRecord[] {
     const rows = this.db
       .prepare(
-        'SELECT * FROM budget_records WHERE scope = ? ORDER BY created_at ASC',
+        'SELECT * FROM budget_records WHERE scope = ? ORDER BY created_at ASC, id ASC',
       )
       .all(scope) as BudgetRow[];
     return rows.map(rowToBudget);
@@ -92,7 +95,7 @@ export class SqliteBudgetRepository {
   listByStatus(status: BudgetStatus): BudgetRecord[] {
     const rows = this.db
       .prepare(
-        'SELECT * FROM budget_records WHERE status = ? ORDER BY created_at ASC',
+        'SELECT * FROM budget_records WHERE status = ? ORDER BY created_at ASC, id ASC',
       )
       .all(status) as BudgetRow[];
     return rows.map(rowToBudget);
@@ -118,10 +121,12 @@ export class SqliteBudgetRepository {
     if (result.changes === 0) {
       const existing = this.getById(id);
       if (!existing) throw new BudgetNotFoundError(id);
-      throw new StaleRevisionError(id, expectedRev, existing.rev);
+      throw new BudgetStaleRevisionError(id, expectedRev, existing.rev);
     }
 
-    return this.getById(id)!;
+    const updated = this.getById(id);
+    if (!updated) throw new BudgetNotFoundError(id);
+    return updated;
   }
 
   replenish(
@@ -146,10 +151,12 @@ export class SqliteBudgetRepository {
     if (result.changes === 0) {
       const existing = this.getById(id);
       if (!existing) throw new BudgetNotFoundError(id);
-      throw new StaleRevisionError(id, expectedRev, existing.rev);
+      throw new BudgetStaleRevisionError(id, expectedRev, existing.rev);
     }
 
-    return this.getById(id)!;
+    const updated = this.getById(id);
+    if (!updated) throw new BudgetNotFoundError(id);
+    return updated;
   }
 
   resetConsumption(id: string, expectedRev: number, now: string): BudgetRecord {
@@ -165,10 +172,16 @@ export class SqliteBudgetRepository {
     if (result.changes === 0) {
       const existing = this.getById(id);
       if (!existing) throw new BudgetNotFoundError(id);
-      throw new StaleRevisionError(id, expectedRev, existing.rev);
+      throw new BudgetStaleRevisionError(id, expectedRev, existing.rev);
     }
 
-    return this.getById(id)!;
+    const updated = this.getById(id);
+    if (!updated) throw new BudgetNotFoundError(id);
+    return updated;
+  }
+
+  withTransaction<T>(fn: () => T): T {
+    return this.db.transaction(fn)();
   }
 
   delete(id: string): boolean {

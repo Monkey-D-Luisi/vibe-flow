@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type Database from 'better-sqlite3';
 import { createTestDatabase } from '../helpers.js';
 import { SqliteBudgetRepository } from '../../src/persistence/budget-repo.js';
@@ -32,7 +32,6 @@ function createDeps(db: Database.Database): BudgetGuardDeps {
   return {
     budgetRepo,
     eventLog,
-    generateId: () => `id-${++idCounter}`,
     now: () => TEST_NOW,
   };
 }

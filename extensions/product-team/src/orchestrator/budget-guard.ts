@@ -11,8 +11,11 @@ import type {
   BudgetScope,
 } from '../domain/budget.js';
 import {
+  consumptionRatio as domainConsumptionRatio,
   computeBudgetStatus,
   isBudgetExhausted,
+  remainingTokens as domainRemainingTokens,
+  BudgetScope as Scope,
   BudgetStatus,
 } from '../domain/budget.js';
 import { BudgetExhaustedError } from '../domain/errors.js';
@@ -24,14 +27,15 @@ export interface BudgetCheckResult {
   readonly scope: BudgetScope;
   readonly scopeId: string;
   readonly remainingTokens: number;
+  readonly consumedTokens: number;
+  readonly limitTokens: number;
   readonly consumptionRatio: number;
-  readonly status: string;
+  readonly status: BudgetStatus;
 }
 
 export interface BudgetGuardDeps {
   readonly budgetRepo: SqliteBudgetRepository;
   readonly eventLog: EventLog;
-  readonly generateId: () => string;
   readonly now: () => string;
 }
 
@@ -54,11 +58,10 @@ export function checkBudget(
         allowed: false,
         scope: record.scope,
         scopeId: record.scopeId,
-        remainingTokens: Math.max(0, record.limitTokens - record.consumedTokens),
-        consumptionRatio:
-          record.limitTokens > 0
-            ? record.consumedTokens / record.limitTokens
-            : 1,
+        remainingTokens: domainRemainingTokens(record),
+        consumedTokens: record.consumedTokens,
+        limitTokens: record.limitTokens,
+        consumptionRatio: domainConsumptionRatio(record),
         status: record.status,
       };
     }
@@ -67,9 +70,11 @@ export function checkBudget(
   // All scopes pass -- return the most constrained scope info
   let mostConstrained: BudgetCheckResult = {
     allowed: true,
-    scope: 'global' as BudgetScope,
+    scope: Scope.Global,
     scopeId: 'default',
     remainingTokens: Infinity,
+    consumedTokens: 0,
+    limitTokens: 0,
     consumptionRatio: 0,
     status: BudgetStatus.Active,
   };
@@ -77,17 +82,16 @@ export function checkBudget(
   for (const { scope, scopeId } of scopes) {
     const record = deps.budgetRepo.getByScope(scope, scopeId);
     if (!record) continue;
-    const remaining = Math.max(0, record.limitTokens - record.consumedTokens);
+    const remaining = domainRemainingTokens(record);
     if (remaining < mostConstrained.remainingTokens) {
       mostConstrained = {
         allowed: true,
         scope: record.scope,
         scopeId: record.scopeId,
         remainingTokens: remaining,
-        consumptionRatio:
-          record.limitTokens > 0
-            ? record.consumedTokens / record.limitTokens
-            : 0,
+        consumedTokens: record.consumedTokens,
+        limitTokens: record.limitTokens,
+        consumptionRatio: domainConsumptionRatio(record),
         status: record.status,
       };
     }
@@ -98,6 +102,7 @@ export function checkBudget(
 
 /**
  * Enforce budget: throw BudgetExhaustedError if any scope is exhausted.
+ * Uses data from the initial check to avoid re-querying the DB (no TOCTOU).
  */
 export function enforceBudget(
   deps: BudgetGuardDeps,
@@ -108,35 +113,15 @@ export function enforceBudget(
     throw new BudgetExhaustedError(
       result.scope,
       result.scopeId,
-      result.remainingTokens === 0
-        ? getBudgetConsumed(deps, result.scope, result.scopeId)
-        : 0,
-      getBudgetLimit(deps, result.scope, result.scopeId),
+      result.consumedTokens,
+      result.limitTokens,
     );
   }
   return result;
 }
 
-function getBudgetConsumed(
-  deps: BudgetGuardDeps,
-  scope: BudgetScope,
-  scopeId: string,
-): number {
-  const record = deps.budgetRepo.getByScope(scope, scopeId);
-  return record?.consumedTokens ?? 0;
-}
-
-function getBudgetLimit(
-  deps: BudgetGuardDeps,
-  scope: BudgetScope,
-  scopeId: string,
-): number {
-  const record = deps.budgetRepo.getByScope(scope, scopeId);
-  return record?.limitTokens ?? 0;
-}
-
 /**
- * Record consumption against all applicable budget scopes.
+ * Record consumption against all applicable budget scopes atomically.
  * Emits structured events on status transitions.
  * Returns all transitions that occurred.
  */
@@ -147,30 +132,32 @@ export function recordConsumption(
   taskId: string,
   agentId: string | null,
 ): BudgetStatusTransition[] {
-  const transitions: BudgetStatusTransition[] = [];
+  return deps.budgetRepo.withTransaction(() => {
+    const transitions: BudgetStatusTransition[] = [];
 
-  for (const { scope, scopeId } of scopes) {
-    const record = deps.budgetRepo.getByScope(scope, scopeId);
-    if (!record) continue;
+    for (const { scope, scopeId } of scopes) {
+      const record = deps.budgetRepo.getByScope(scope, scopeId);
+      if (!record) continue;
 
-    const { status, transition } = computeBudgetStatus(record, consumption);
+      const { status, transition } = computeBudgetStatus(record, consumption);
 
-    deps.budgetRepo.updateConsumption(
-      record.id,
-      record.consumedTokens + consumption.tokens,
-      record.consumedUsd + consumption.usd,
-      status,
-      record.rev,
-      deps.now(),
-    );
+      deps.budgetRepo.updateConsumption(
+        record.id,
+        record.consumedTokens + consumption.tokens,
+        record.consumedUsd + consumption.usd,
+        status,
+        record.rev,
+        deps.now(),
+      );
 
-    if (transition) {
-      transitions.push(transition);
-      emitBudgetTransitionEvent(deps, transition, taskId, agentId);
+      if (transition) {
+        transitions.push(transition);
+        emitBudgetTransitionEvent(deps, transition, taskId, agentId);
+      }
     }
-  }
 
-  return transitions;
+    return transitions;
+  });
 }
 
 function emitBudgetTransitionEvent(
@@ -202,22 +189,19 @@ export function buildScopeChain(context: {
   agentId?: string;
 }): Array<{ scope: BudgetScope; scopeId: string }> {
   const chain: Array<{ scope: BudgetScope; scopeId: string }> = [
-    { scope: 'global' as BudgetScope, scopeId: 'default' },
+    { scope: Scope.Global, scopeId: 'default' },
   ];
 
   if (context.pipelineId) {
-    chain.push({
-      scope: 'pipeline' as BudgetScope,
-      scopeId: context.pipelineId,
-    });
+    chain.push({ scope: Scope.Pipeline, scopeId: context.pipelineId });
   }
 
   if (context.stageName) {
-    chain.push({ scope: 'stage' as BudgetScope, scopeId: context.stageName });
+    chain.push({ scope: Scope.Stage, scopeId: context.stageName });
   }
 
   if (context.agentId) {
-    chain.push({ scope: 'agent' as BudgetScope, scopeId: context.agentId });
+    chain.push({ scope: Scope.Agent, scopeId: context.agentId });
   }
 
   return chain;
