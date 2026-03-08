@@ -124,8 +124,8 @@ export function applyCostAwareTier(
 ): CostAwareTierResult {
   const { desiredTier, budgetRemainingFraction, complexityScore } = input;
 
-  // No budget tracking — pass through
-  if (budgetRemainingFraction === undefined) {
+  // No budget tracking — pass through (treat NaN as undefined)
+  if (budgetRemainingFraction === undefined || !Number.isFinite(budgetRemainingFraction)) {
     return {
       tier: desiredTier,
       downgraded: false,
@@ -150,7 +150,7 @@ export function applyCostAwareTier(
       budgetAllowedTier: allowed,
       highComplexityOverride: false,
       budgetSnapshot: fraction,
-      reason: `budget ${(fraction * 100).toFixed(0)}% allows ${allowed} tier`,
+      reason: `budget ${(fraction * 100).toFixed(1)}% allows ${allowed} tier`,
     };
   }
 
@@ -180,6 +180,6 @@ export function applyCostAwareTier(
     budgetAllowedTier: allowed,
     highComplexityOverride,
     budgetSnapshot: fraction,
-    reason: `budget ${(fraction * 100).toFixed(0)}% → ${allowed} tier, final ${finalTier}${overrideNote}`,
+    reason: `budget ${(fraction * 100).toFixed(1)}% → ${allowed} tier, final ${finalTier}${overrideNote}`,
   };
 }

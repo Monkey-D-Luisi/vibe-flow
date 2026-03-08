@@ -61,7 +61,7 @@ This task replaces the placeholder with a proper cost-aware routing module.
 ## Requirements
 
 1. Tier boundaries must be configurable via `CostAwareTierConfig`
-2. Default thresholds: premium > 50%, standard 20-50%, economy < 20%
+2. Default thresholds: premium >= 50%, standard >= 20% (below premium), economy < 20%
 3. High-complexity tasks (score > 70) resist downgrade by one tier
 4. Economy is the absolute floor — no task goes below economy
 5. Every cost-driven decision is logged with budget snapshot
@@ -73,7 +73,7 @@ This task replaces the placeholder with a proper cost-aware routing module.
 
 - [x] AC1: Tier thresholds are configurable via `CostAwareTierConfig`
 - [x] AC2: Premium tasks downgrade to standard when budget 20-50%
-- [x] AC3: All tasks downgrade to economy when budget < 20%
+- [x] AC3: Non-high-complexity tasks downgrade to economy when budget < 20% (AC4 may override for high-complexity)
 - [x] AC4: High-complexity tasks (score > 70) resist one level of downgrade
 - [x] AC5: Downgrade decisions include budget snapshot in structured log
 - [x] AC6: >= 90% test coverage on cost-aware-router module
