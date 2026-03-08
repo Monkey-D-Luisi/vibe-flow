@@ -40,7 +40,7 @@ import { DecisionTimeoutCron } from './services/decision-timeout-cron.js';
 import { StageTimeoutCron } from './services/stage-timeout-cron.js';
 import { createGracefulShutdown } from './hooks/graceful-shutdown.js';
 import { registerAutoSpawnHooks, fireAgentViaGatewayWs } from './hooks/auto-spawn.js';
-import type { AgentSpawnSink } from './hooks/auto-spawn.js';
+import type { AgentSpawnSink, AgentSpawnOptions } from './hooks/auto-spawn.js';
 import { registerSessionRecoveryHook, clearAgentSessions } from './hooks/session-recovery.js';
 import type { SessionRecoveryEventEmitter } from './hooks/session-recovery.js';
 import { injectOriginIntoTeamMessage } from './hooks/origin-injection.js';
@@ -323,9 +323,9 @@ export function register(api: OpenClawPluginApi): void {
 
   // Shared spawn sink: used by both auto-spawn hooks and stage-timeout cron
   const sharedSpawnSink: AgentSpawnSink = {
-    spawnAgent(agentId: string, message: string): void {
+    spawnAgent(agentId: string, message: string, options?: AgentSpawnOptions): void {
       try {
-        fireAgentViaGatewayWs(agentId, message, api.logger);
+        fireAgentViaGatewayWs(agentId, message, api.logger, options);
         api.logger.info(`shared-spawn: triggered agent "${agentId}"`);
       } catch (err: unknown) {
         api.logger.warn(`shared-spawn: failed for "${agentId}": ${String(err)}`);
