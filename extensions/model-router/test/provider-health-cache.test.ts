@@ -506,7 +506,7 @@ describe('ProviderHealthCache', () => {
   /* ---------------------------------------------------------------- */
 
   describe('error handling', () => {
-    it('keeps last-known-good status when check throws', async () => {
+    it('marks provider DOWN when check throws', async () => {
       let shouldThrow = false;
       const cache = new ProviderHealthCache({
         config: FAST_CONFIG,
@@ -521,14 +521,13 @@ describe('ProviderHealthCache', () => {
       await cache.refreshAll();
       expect(cache.getStatus('test')!.status).toBe('HEALTHY');
 
-      // Second check: throws — should transition to DOWN (since connected=false on error)
+      // Second check: throws — transitions to DOWN (exceptions are failures, not last-known-good)
       shouldThrow = true;
       await cache.refreshAll();
       const state = cache.getStatus('test')!;
-      // Error sets connected=false → status becomes DOWN
       expect(state.status).toBe('DOWN');
       expect(state.lastError).toBe('network failure');
-      // But latency samples are preserved (error adds timeout-length sample)
+      // Error adds a timeout-length penalty sample alongside the original healthy sample
       expect(state.latencySamples.length).toBeGreaterThan(1);
     });
 
@@ -642,6 +641,7 @@ describe('ProviderHealthCache', () => {
       expect(DEFAULT_CACHE_CONFIG.checkIntervalMs).toBe(120_000);
       expect(DEFAULT_CACHE_CONFIG.maxLatencySamples).toBe(10);
       expect(DEFAULT_CACHE_CONFIG.checkTimeoutMs).toBe(5_000);
+      expect(DEFAULT_CACHE_CONFIG.degradedThreshold).toBe(0.8);
     });
   });
 });

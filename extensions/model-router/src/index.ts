@@ -31,8 +31,7 @@ export default {
     const healthCache = new ProviderHealthCache({
       onStatusChange: (event) => {
         logger.warn(
-          `model-router: Provider '${event.providerId}' status changed: ` +
-          `${event.previousStatus} → ${event.newStatus} (avg latency: ${event.avgLatencyMs}ms)`,
+          `model-router: Provider '${event.providerId}' status changed: ${event.previousStatus} → ${event.newStatus} (avg latency: ${event.avgLatencyMs}ms)`,
         );
       },
     });

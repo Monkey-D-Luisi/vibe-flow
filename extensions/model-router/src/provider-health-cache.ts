@@ -8,7 +8,7 @@
  * EP10 Task 0080
  */
 
-import { checkProvider, PROVIDERS } from './provider-health.js';
+import { checkProvider, PROVIDERS, TIMEOUT_MS } from './provider-health.js';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -27,7 +27,7 @@ export interface HealthState {
   avgLatencyMs: number;
   /** Raw latency samples (most recent last). */
   latencySamples: number[];
-  /** Timestamp of the last successful check (epoch ms). */
+  /** Timestamp of the last health check attempt (epoch ms), whether it succeeded or failed. */
   lastCheckedAt: number;
   /** Timestamp when the cache entry was written (epoch ms). */
   cachedAt: number;
@@ -43,8 +43,10 @@ export interface ProviderHealthCacheConfig {
   checkIntervalMs: number;
   /** Number of latency samples to keep for rolling average. Default: 10. */
   maxLatencySamples: number;
-  /** Timeout per provider health check in milliseconds. Default: 5_000. */
+  /** Timeout per provider health check in milliseconds. Defaults to TIMEOUT_MS from provider-health.ts. */
   checkTimeoutMs: number;
+  /** Fraction of checkTimeoutMs above which a connected provider is considered DEGRADED. Default: 0.8. */
+  degradedThreshold: number;
 }
 
 /** Event emitted when a provider's health status changes. */
@@ -80,17 +82,22 @@ export const DEFAULT_CACHE_CONFIG: Readonly<ProviderHealthCacheConfig> = {
   ttlMs: 60_000,
   checkIntervalMs: 120_000,
   maxLatencySamples: 10,
-  checkTimeoutMs: 5_000,
+  checkTimeoutMs: TIMEOUT_MS,
+  degradedThreshold: 0.8,
 };
 
 /* ------------------------------------------------------------------ */
 /*  Implementation                                                     */
 /* ------------------------------------------------------------------ */
 
-function deriveStatus(connected: boolean, avgLatencyMs: number, checkTimeoutMs: number): ProviderHealthStatus {
+function deriveStatus(
+  connected: boolean,
+  avgLatencyMs: number,
+  checkTimeoutMs: number,
+  degradedThreshold: number,
+): ProviderHealthStatus {
   if (!connected) return 'DOWN';
-  // Degraded if average latency exceeds 80% of timeout threshold
-  if (avgLatencyMs > checkTimeoutMs * 0.8) return 'DEGRADED';
+  if (avgLatencyMs > checkTimeoutMs * degradedThreshold) return 'DEGRADED';
   return 'HEALTHY';
 }
 
@@ -106,7 +113,7 @@ export class ProviderHealthCache {
   private readonly checkFn: CheckProviderFn;
   private readonly onStatusChange?: OnStatusChange;
   private readonly cache = new Map<string, HealthState>();
-  private intervalHandle: ReturnType<typeof setInterval> | null = null;
+  private timeoutHandle: ReturnType<typeof setTimeout> | null = null;
   private pendingRefreshes = new Set<string>();
 
   constructor(options?: {
@@ -121,27 +128,28 @@ export class ProviderHealthCache {
     this.onStatusChange = options?.onStatusChange;
   }
 
-  /** Start the background health check loop. Runs an initial check immediately. */
+  /**
+   * Start the background health check loop. Runs an initial check immediately.
+   *
+   * Uses setTimeout-based scheduling to prevent overlapping executions:
+   * the next check is only scheduled after the current one completes.
+   */
   start(): void {
-    if (this.intervalHandle !== null) return; // already running
-    // Fire initial check (non-blocking)
-    void this.refreshAll();
-    this.intervalHandle = setInterval(() => {
-      void this.refreshAll();
-    }, this.config.checkIntervalMs);
+    if (this.timeoutHandle !== null) return; // already running
+    this.scheduleNext(0); // immediate first check
   }
 
   /** Stop the background health check loop. */
   stop(): void {
-    if (this.intervalHandle !== null) {
-      clearInterval(this.intervalHandle);
-      this.intervalHandle = null;
+    if (this.timeoutHandle !== null) {
+      clearTimeout(this.timeoutHandle);
+      this.timeoutHandle = null;
     }
   }
 
   /** Whether the background loop is running. */
   isRunning(): boolean {
-    return this.intervalHandle !== null;
+    return this.timeoutHandle !== null;
   }
 
   /**
@@ -165,9 +173,13 @@ export class ProviderHealthCache {
     return entry;
   }
 
-  /** Get all cached provider health states. */
+  /**
+   * Get all cached provider health states.
+   *
+   * Side effect: triggers async refresh for any entries past TTL
+   * (stale-while-revalidate). Callers always get a synchronous return.
+   */
   getAllStatuses(): ReadonlyMap<string, HealthState> {
-    // Trigger async refresh for any expired entries
     const now = Date.now();
     for (const [id, entry] of this.cache) {
       if (now - entry.cachedAt > this.config.ttlMs) {
@@ -181,6 +193,21 @@ export class ProviderHealthCache {
   async refreshAll(): Promise<void> {
     const promises = this.providers.map(p => this.refreshProvider(p));
     await Promise.all(promises);
+  }
+
+  /** Schedule the next background refresh after delayMs. */
+  private scheduleNext(delayMs: number): void {
+    this.timeoutHandle = setTimeout(async () => {
+      await this.refreshAll();
+      // Only schedule next if still running (not stopped during refresh)
+      if (this.timeoutHandle !== null) {
+        this.scheduleNext(this.config.checkIntervalMs);
+      }
+    }, delayMs);
+    // Unref so the timer doesn't keep the process alive during shutdown
+    if (typeof this.timeoutHandle === 'object' && 'unref' in this.timeoutHandle) {
+      this.timeoutHandle.unref();
+    }
   }
 
   /** Refresh a single provider by ID. */
@@ -198,7 +225,9 @@ export class ProviderHealthCache {
       latencyMs = result.latencyMs;
       error = result.error;
     } catch (err: unknown) {
-      // On check failure, keep last-known-good status
+      // On check exception, mark as DOWN with timeout-length penalty sample.
+      // This is not "last-known-good" — exceptions are treated as failures
+      // so the model resolver can route away from this provider.
       connected = false;
       latencyMs = this.config.checkTimeoutMs;
       error = err instanceof Error ? err.message : String(err);
@@ -212,7 +241,7 @@ export class ProviderHealthCache {
     }
 
     const avgLatencyMs = computeRollingAverage(samples);
-    const newStatus = deriveStatus(connected, avgLatencyMs, this.config.checkTimeoutMs);
+    const newStatus = deriveStatus(connected, avgLatencyMs, this.config.checkTimeoutMs, this.config.degradedThreshold);
     const previousStatus = existing?.status;
 
     const state: HealthState = {
