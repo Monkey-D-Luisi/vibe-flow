@@ -10,6 +10,7 @@
 | Scope | MINOR |
 | Created | 2026-03-09 |
 | Branch | `feat/0086-budget-model-downgrade` |
+| PR | [#250](https://github.com/Monkey-D-Luisi/vibe-flow/pull/250) |
 
 ---
 
@@ -98,7 +99,7 @@ The cost-aware router (`extensions/model-router/src/cost-aware-router.ts`) alrea
 - [x] Lint passes with zero errors
 - [x] TypeScript compiles without errors
 - [x] Walkthrough updated
-- [ ] PR created and linked
+- [x] PR created and linked
 
 ---
 

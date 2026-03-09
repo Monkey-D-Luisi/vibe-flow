@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0086-budget-model-downgrade.md`
 - Epic: EP11 -- Budget Intelligence
 - Branch: `feat/0086-budget-model-downgrade`
-- PR: TBD
+- PR: [#250](https://github.com/Monkey-D-Luisi/vibe-flow/pull/250)
 
 ---
 
