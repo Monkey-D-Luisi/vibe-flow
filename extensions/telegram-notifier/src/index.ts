@@ -18,19 +18,26 @@ import { handleBudgetCommand, type BudgetDataSource, type BudgetRecord } from '.
  * to control the autonomous team.
  */
 
+/** Safely convert an unknown value to a finite number, with a fallback. */
+function safeNumber(val: unknown, fallback = 0): number {
+  if (typeof val === 'number' && Number.isFinite(val)) return val;
+  const num = Number(val);
+  return Number.isFinite(num) ? num : fallback;
+}
+
 /** Map a budget_records DB row to a BudgetRecord. */
 function mapRow(row: Record<string, unknown>): BudgetRecord {
   return {
-    id: String(row['id']),
-    scope: String(row['scope']),
-    scopeId: String(row['scope_id']),
-    limitTokens: Number(row['limit_tokens']),
-    consumedTokens: Number(row['consumed_tokens']),
-    limitUsd: Number(row['limit_usd']),
-    consumedUsd: Number(row['consumed_usd']),
-    status: String(row['status']),
-    warningThreshold: Number(row['warning_threshold']),
-    rev: Number(row['rev']),
+    id: String(row['id'] ?? ''),
+    scope: String(row['scope'] ?? ''),
+    scopeId: String(row['scope_id'] ?? ''),
+    limitTokens: safeNumber(row['limit_tokens']),
+    consumedTokens: safeNumber(row['consumed_tokens']),
+    limitUsd: safeNumber(row['limit_usd']),
+    consumedUsd: safeNumber(row['consumed_usd']),
+    status: String(row['status'] ?? 'unknown'),
+    warningThreshold: safeNumber(row['warning_threshold'], 0.8),
+    rev: safeNumber(row['rev']),
   };
 }
 

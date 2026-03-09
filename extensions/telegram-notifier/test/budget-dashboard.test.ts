@@ -337,6 +337,13 @@ describe('handleBudgetCommand replenish', () => {
     expect(result.text).toContain('Invalid amount');
   });
 
+  it('rejects decimal amount (tokens must be integers)', () => {
+    const ds = createMockDs([]);
+    const result = handleBudgetCommand('replenish global default 1.5', ds, fixedNow);
+    expect(result.text).toContain('Invalid amount');
+    expect(result.text).toContain('positive integer');
+  });
+
   it('returns error when no budget record found', () => {
     const ds = createMockDs([]);
     const result = handleBudgetCommand('replenish pipeline PL999 10000', ds, fixedNow);
