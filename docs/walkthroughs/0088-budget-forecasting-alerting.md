@@ -14,8 +14,8 @@
 Added a budget forecasting engine that calculates burn rate from consumption
 history, estimates remaining token needs based on average per-stage consumption,
 and generates actionable alerts with model tier downgrade recommendations.
-Proactive Telegram alerts notify operators of warning thresholds, forecast
-overspend, budget exhaustion, and replenishment events.
+Prepared Telegram alert formatters for warning thresholds, forecast
+overspend, budget exhaustion, and replenishment events, ready to be wired into the notifier pipeline.
 
 ---
 

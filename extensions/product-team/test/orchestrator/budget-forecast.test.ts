@@ -72,6 +72,11 @@ describe('calculateBurnRate', () => {
   it('returns 0 when end is before start', () => {
     expect(calculateBurnRate(1000, '2026-03-09T12:00:00.000Z', BASE_TIME)).toBe(0);
   });
+
+  it('returns 0 for invalid timestamp strings', () => {
+    expect(calculateBurnRate(1000, 'not-a-date', BASE_TIME)).toBe(0);
+    expect(calculateBurnRate(1000, BASE_TIME, 'garbage')).toBe(0);
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -194,6 +199,16 @@ describe('forecastBudget', () => {
   it('handles nearly complete pipeline with no remaining stages', () => {
     const budget = makeRecord({ consumedTokens: 90000, limitTokens: 100000 });
     const ctx = makeCtx({ completedStages: 10, totalStages: 10 });
+
+    const forecast = forecastBudget(budget, ctx);
+
+    expect(forecast.estimatedRemainingTokens).toBe(0);
+    expect(forecast.willOverspend).toBe(false);
+  });
+
+  it('clamps remainingStages when completedStages exceeds totalStages', () => {
+    const budget = makeRecord({ consumedTokens: 90000, limitTokens: 100000 });
+    const ctx = makeCtx({ completedStages: 12, totalStages: 10 });
 
     const forecast = forecastBudget(budget, ctx);
 
