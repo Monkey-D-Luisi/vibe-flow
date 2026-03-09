@@ -2,6 +2,8 @@ import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { registerProviderHealthRoute, PROVIDERS } from './provider-health.js';
 import { ProviderHealthCache } from './provider-health-cache.js';
 import { createModelResolver, DEFAULT_TIER_MAPPING, type ModelCandidate, type ResolverConfig, type AgentModelConfig } from './model-resolver.js';
+import { DEFAULT_COST_AWARE_CONFIG } from './cost-aware-router.js';
+import { getBudgetRemainingFraction } from './budget-integration.js';
 
 /**
  * Model Router Plugin
@@ -193,6 +195,7 @@ export default {
         timeoutMs: 500,
         modelCatalog,
         tierMapping: { ...DEFAULT_TIER_MAPPING },
+        costAwareTierConfig: { ...DEFAULT_COST_AWARE_CONFIG },
       };
 
       const resolveModel = createModelResolver(healthCache, resolverConfig, {
@@ -204,6 +207,9 @@ export default {
       api.on('before_model_resolve', (_event, ctx) => {
         const agentId = ctx.agentId ?? 'unknown';
         const agentModelConfig = lookupAgentModelConfig(api, agentId);
+
+        // Inject per-agent budget state into resolver config (Task 0086)
+        resolverConfig.budgetRemainingFraction = getBudgetRemainingFraction(agentId);
 
         const result = resolveModel({
           agentId,

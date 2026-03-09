@@ -16,10 +16,16 @@ import {
   checkAgentBudget,
 } from '../orchestrator/agent-budget-tracker.js';
 
+/** Optional cross-extension budget state publisher (Task 0086). */
+export interface BudgetStatePublisher {
+  (state: { agentId: string; consumptionRatio: number; status: string; updatedAt: string }): void;
+}
+
 export function registerBudgetHooks(
   api: OpenClawPluginApi,
   deps: AgentBudgetTrackerDeps,
   knownAgentIds: readonly string[],
+  budgetStatePublisher?: BudgetStatePublisher,
 ): void {
   // Ensure agent budgets are created when a pipeline starts
   api.on('after_tool_call', (event) => {
@@ -83,6 +89,21 @@ export function registerBudgetHooks(
         usage.provider,
         usage.model,
       );
+
+      // Publish updated budget state for cross-extension consumption (Task 0086)
+      if (budgetStatePublisher) {
+        try {
+          const check = checkAgentBudget(deps, agentId, pipelineId);
+          budgetStatePublisher({
+            agentId,
+            consumptionRatio: check.consumptionRatio,
+            status: check.status,
+            updatedAt: deps.now(),
+          });
+        } catch {
+          // Non-critical: budget state publish failure should not block tracking
+        }
+      }
     } catch (err: unknown) {
       api.logger.warn(`agent-budget-tracking: error: ${String(err)}`);
     }

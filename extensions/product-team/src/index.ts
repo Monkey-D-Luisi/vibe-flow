@@ -404,6 +404,13 @@ export function register(api: OpenClawPluginApi): void {
   });
 
   // Agent budget hooks (EP11, Task 0085): ensure, enforce, and track per-agent consumption
+  // Budget state publisher (Task 0086): writes to globalThis registry for model-router
+  const budgetStatePublisher = (state: { agentId: string; consumptionRatio: number; status: string; updatedAt: string }) => {
+    const registryKey = Symbol.for('openclaw:budget-state-registry');
+    const g = globalThis as Record<symbol, unknown>;
+    if (!g[registryKey]) g[registryKey] = new Map<string, unknown>();
+    (g[registryKey] as Map<string, unknown>).set(state.agentId, state);
+  };
   const agentBudgetTrackerDeps = {
     budgetRepo,
     budgetGuardDeps,
@@ -412,7 +419,7 @@ export function register(api: OpenClawPluginApi): void {
     now,
     allocations: agentAllocations,
   };
-  registerBudgetHooks(api, agentBudgetTrackerDeps, agentConfig.map(a => a.id));
+  registerBudgetHooks(api, agentBudgetTrackerDeps, agentConfig.map(a => a.id), budgetStatePublisher);
 
   // Start decision timeout cron (re-escalates stalled decisions)
   const decisionTimeoutCron = new DecisionTimeoutCron({
