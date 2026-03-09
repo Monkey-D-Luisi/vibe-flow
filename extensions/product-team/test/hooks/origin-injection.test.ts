@@ -38,7 +38,7 @@ describe('injectOriginIntoTeamMessage', () => {
     sessionKey: 'agent:pm:main',
   };
 
-  it('injects originChannel and originSessionKey for telegram session', () => {
+  it('injects from, originChannel, and originSessionKey for telegram session', () => {
     const event = {
       toolName: 'team_message',
       params: { to: 'tech-lead', subject: 'Test', body: 'Hello' },
@@ -49,6 +49,7 @@ describe('injectOriginIntoTeamMessage', () => {
         to: 'tech-lead',
         subject: 'Test',
         body: 'Hello',
+        from: 'pm',
         originChannel: 'telegram',
         originSessionKey: 'agent:pm:telegram:group:-5177552677',
       },
@@ -63,10 +64,10 @@ describe('injectOriginIntoTeamMessage', () => {
     expect(injectOriginIntoTeamMessage(event, telegramCtx)).toBeUndefined();
   });
 
-  it('overrides LLM-provided originChannel with session context', () => {
+  it('overrides LLM-provided originChannel and from with session context', () => {
     const event = {
       toolName: 'team_message',
-      params: { to: 'tech-lead', subject: 'Test', body: 'Hello', originChannel: 'slack', originSessionKey: 'stale:value' },
+      params: { to: 'tech-lead', subject: 'Test', body: 'Hello', from: 'wrong', originChannel: 'slack', originSessionKey: 'stale:value' },
     };
     const result = injectOriginIntoTeamMessage(event, telegramCtx);
     expect(result).toEqual({
@@ -74,26 +75,51 @@ describe('injectOriginIntoTeamMessage', () => {
         to: 'tech-lead',
         subject: 'Test',
         body: 'Hello',
+        from: 'pm',
         originChannel: 'telegram',
         originSessionKey: 'agent:pm:telegram:group:-5177552677',
       },
     });
   });
 
-  it('does not inject when sessionKey is undefined', () => {
+  it('injects from even when sessionKey is undefined', () => {
     const event = {
       toolName: 'team_message',
       params: { to: 'tech-lead', subject: 'Test', body: 'Hello' },
     };
-    expect(injectOriginIntoTeamMessage(event, { agentId: 'pm' })).toBeUndefined();
+    const result = injectOriginIntoTeamMessage(event, { agentId: 'pm' });
+    expect(result).toEqual({
+      params: {
+        to: 'tech-lead',
+        subject: 'Test',
+        body: 'Hello',
+        from: 'pm',
+      },
+    });
   });
 
-  it('does not inject for main session (internal channel)', () => {
+  it('injects from for main session without origin channel', () => {
     const event = {
       toolName: 'team_message',
       params: { to: 'tech-lead', subject: 'Test', body: 'Hello' },
     };
-    expect(injectOriginIntoTeamMessage(event, mainCtx)).toBeUndefined();
+    const result = injectOriginIntoTeamMessage(event, mainCtx);
+    expect(result).toEqual({
+      params: {
+        to: 'tech-lead',
+        subject: 'Test',
+        body: 'Hello',
+        from: 'pm',
+      },
+    });
+  });
+
+  it('returns undefined when no agentId and no sessionKey', () => {
+    const event = {
+      toolName: 'team_message',
+      params: { to: 'tech-lead', subject: 'Test', body: 'Hello' },
+    };
+    expect(injectOriginIntoTeamMessage(event, {})).toBeUndefined();
   });
 
   it('preserves all existing params when injecting', () => {
@@ -108,6 +134,7 @@ describe('injectOriginIntoTeamMessage', () => {
       body: 'Check this',
       priority: 'urgent',
       taskRef: 'TASK-001',
+      from: 'pm',
       originChannel: 'telegram',
       originSessionKey: 'agent:pm:telegram:group:-5177552677',
     });

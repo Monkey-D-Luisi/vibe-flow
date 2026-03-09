@@ -24,15 +24,17 @@ export function parseChannelFromSessionKey(sessionKey: string): string | null {
 }
 
 /**
- * Hook handler for before_tool_call that injects origin channel info
- * into team_message params from the authoritative session context.
+ * Hook handler for before_tool_call that injects caller identity and
+ * origin channel info into team_message params from the authoritative
+ * session context.
  *
- * Always overrides any LLM-provided values for originChannel and
- * originSessionKey — the session context is the trusted source of truth,
- * not the model's guess (which may be stale or incorrect).
+ * Always overrides any LLM-provided values for `from`, originChannel,
+ * and originSessionKey — the session context is the trusted source of
+ * truth, not the model's guess (which may be stale or incorrect).
  *
- * Returns modified params with originChannel and originSessionKey set,
- * or undefined if no modification is needed (non-team_message or no session).
+ * Returns modified params with `from` (always), plus originChannel and
+ * originSessionKey (when an external channel is detected), or undefined
+ * if no modification is needed (non-team_message or missing context).
  */
 export function injectOriginIntoTeamMessage(
   event: { toolName: string; params: Record<string, unknown> },
@@ -41,18 +43,25 @@ export function injectOriginIntoTeamMessage(
   // Only intercept team_message (registered as team_message with underscore)
   if (event.toolName !== 'team_message') return undefined;
 
-  // Need sessionKey to determine origin
-  if (!ctx.sessionKey) return undefined;
+  // Always inject the caller's agentId as `from` — this is critical for
+  // the reply chain to route back to the correct agent instead of 'anonymous'
+  const injected: Record<string, unknown> = { ...event.params };
 
-  const channel = parseChannelFromSessionKey(ctx.sessionKey);
-  if (!channel) return undefined;
+  if (ctx.agentId) {
+    injected.from = ctx.agentId;
+  }
 
-  // Always inject from session context — override any LLM-provided values
-  return {
-    params: {
-      ...event.params,
-      originChannel: channel,
-      originSessionKey: ctx.sessionKey,
-    },
-  };
+  // Inject origin channel if available
+  if (ctx.sessionKey) {
+    const channel = parseChannelFromSessionKey(ctx.sessionKey);
+    if (channel) {
+      injected.originChannel = channel;
+      injected.originSessionKey = ctx.sessionKey;
+    }
+  }
+
+  // Only return modified params if we actually injected something
+  if (!ctx.agentId && !ctx.sessionKey) return undefined;
+
+  return { params: injected };
 }

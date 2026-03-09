@@ -570,13 +570,16 @@ describe('handleTeamReplyAutoSpawn', () => {
     expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
   });
 
-  it('does nothing when target agent is not in team config', () => {
+  it('does nothing and warns when target agent is not in team config', () => {
     const event = makeEvent({
       toolName: 'team_reply',
       result: { details: { replied: true, to: 'unknown-agent', from: 'tech-lead', replyId: 'r-2' } },
     });
     handleTeamReplyAutoSpawn(deps, event, makeCtx());
     expect(deps.agentRunner.spawnAgent).not.toHaveBeenCalled();
+    expect(deps.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('not found in config'),
+    );
   });
 
   it('fires agent spawn without delivery when no deliveryConfig (no legacy fallback)', () => {

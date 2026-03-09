@@ -283,7 +283,10 @@ export function handleTeamReplyAutoSpawn(
 
   // Only spawn agents that exist in the team config
   const targetExists = deps.agents.some(a => a.id === toAgent);
-  if (!targetExists) return;
+  if (!targetExists) {
+    deps.logger.warn(`team-reply-hook: target agent "${toAgent}" not found in config, skipping spawn`);
+    return;
+  }
 
   const message =
     `You have a new reply from "${fromAgent}" in your inbox (ID: ${replyId}). ` +
