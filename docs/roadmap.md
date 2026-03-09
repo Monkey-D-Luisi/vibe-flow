@@ -52,7 +52,7 @@ observability, and extensibility for the community.
 | 8     | EP08 | Autonomous Product Team              | EP07         | March 2026 | DONE    |
 | 9     | EP09 | Pipeline Intelligence & Reliability  | EP08         | March 2026 | DONE    |
 | 10    | EP10 | Dynamic Model Routing                | EP09         | March 2026 | DONE    |
-| 10    | EP11 | Budget Intelligence                  | EP09         | March 2026 | PENDING |
+| 10    | EP11 | Budget Intelligence                  | EP09         | March 2026 | DONE    |
 | 10    | EP12 | Agent Learning Loop                  | EP10, EP11   | April 2026 | PENDING |
 | 11    | EP13 | Stable Agent Protocol                | EP09         | April 2026 | PENDING |
 | 11    | EP14 | Local-First Observability            | EP09         | April 2026 | PENDING |
@@ -311,7 +311,7 @@ Key deliverables:
 - Task 0085: Per-Agent Budget Tracking and Enforcement -- DONE (EP11, 10A)
 - Task 0086: Budget-Triggered Model Tier Auto-Downgrade -- DONE (EP11, 10B)
 - Task 0087: Telegram /budget Real-Time Dashboard -- DONE (EP11, 10B)
-- Task 0088: Budget Forecasting and Overspend Alerting -- PENDING (EP11, 10C)
+- Task 0088: Budget Forecasting and Overspend Alerting -- DONE (EP11, 10C)
 
 ### EP12 -- Agent Learning Loop
 
@@ -845,8 +845,8 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - Task 0084: Hard Budget Limits Engine -- DONE
 - Task 0085: Per-Agent Budget Tracking and Enforcement -- DONE
 - Task 0086: Budget-Triggered Model Tier Auto-Downgrade -- DONE
-- Task 0087: Telegram /budget Real-Time Dashboard -- PENDING
-- Task 0088: Budget Forecasting and Overspend Alerting -- PENDING
+- Task 0087: Telegram /budget Real-Time Dashboard -- DONE
+- Task 0088: Budget Forecasting and Overspend Alerting -- DONE
 
 ### Phase 10B: Agent Learning Loop (EP12)
 
