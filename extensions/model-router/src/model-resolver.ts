@@ -11,6 +11,7 @@ import { scoreComplexity, type ComplexityInput, type ComplexityScore, type Compl
 import type { ProviderHealthCache } from './provider-health-cache.js';
 import { applyCostAwareTier, type CostAwareTierConfig, type CostAwareTierResult } from './cost-aware-router.js';
 import { resolveFallbackChain, type FallbackChainConfig, type FallbackLevel, type FallbackAttempt } from './fallback-chain.js';
+import { getScoringRecommendation, type ScoringRecommendation } from './scoring-integration.js';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -48,6 +49,8 @@ export interface ResolveInput {
   complexityInput?: ComplexityInput;
   /** Static agent model config (primary + fallbacks). */
   agentModelConfig?: AgentModelConfig;
+  /** Task type or pipeline stage for scoring lookup (EP12 Task 0093). */
+  taskType?: string;
   /** Correlation ID for structured logging. */
   correlationId?: string;
 }
@@ -70,6 +73,10 @@ export interface ResolveResult {
   fallbackLevel?: FallbackLevel;
   /** Full fallback chain attempted during resolution (Task 0083). */
   fallbackChain?: FallbackAttempt[];
+  /** Scoring recommendation from performance scorer (EP12 Task 0093). */
+  scoringRecommendation?: ScoringRecommendation;
+  /** Whether the scoring recommendation overrode default routing (EP12 Task 0093). */
+  scoringOverride?: boolean;
   /** Reason for the routing decision. */
   reason: string;
   /** Correlation ID for tracing. */
@@ -105,6 +112,12 @@ export interface ResolverConfig {
   costAwareTierConfig?: CostAwareTierConfig;
   /** Fallback chain config (copilot-proxy provider ID, etc.). Task 0083. */
   fallbackChainConfig?: FallbackChainConfig;
+  /** Enable performance scoring feedback loop (EP12 Task 0093). */
+  scoringFeedbackEnabled?: boolean;
+  /** Minimum confidence for scoring to override routing (default 0.7). */
+  scoringMinConfidence?: number;
+  /** Minimum sample size for scoring to override routing (default 5). */
+  scoringMinSampleSize?: number;
 }
 
 /* ------------------------------------------------------------------ */
@@ -160,7 +173,31 @@ export function createModelResolver(
       }, config.costAwareTierConfig);
       desiredTier = costResult.tier;
 
-      // 4. Timeout check before expensive catalog search
+      // 3b. Performance scoring feedback loop (EP12 Task 0093)
+      let scoringRec: ScoringRecommendation | undefined;
+      let scoringOverride = false;
+      if (config.scoringFeedbackEnabled && input.taskType) {
+        scoringRec = getScoringRecommendation(input.agentId, input.taskType);
+        if (scoringRec) {
+          const minConf = config.scoringMinConfidence ?? 0.7;
+          const minSamples = config.scoringMinSampleSize ?? 5;
+          if (scoringRec.confidence >= minConf && scoringRec.sampleSize >= minSamples) {
+            const scoredCandidate = config.modelCatalog.get(scoringRec.recommendedModelId);
+            if (scoredCandidate) {
+              const health = healthCache.getStatus(scoredCandidate.providerId);
+              if (health?.status !== 'DOWN') {
+                scoringOverride = true;
+                logger?.info(
+                  `model-resolver: [${correlationId}] scoring override → ${scoringRec.recommendedModelId}` +
+                  ` (score=${scoringRec.score}, confidence=${scoringRec.confidence}, samples=${scoringRec.sampleSize})`,
+                );
+              }
+            }
+          }
+        }
+      }
+
+      // 4. Timeout check before expensive operations
       if (Date.now() - start > config.timeoutMs) {
         const result = staticFallback(input, correlationId, start, 'resolver timeout exceeded');
         result.complexity = complexity;
@@ -168,7 +205,27 @@ export function createModelResolver(
         return result;
       }
 
-      // 5. Resolve via ordered fallback chain (Task 0083)
+      // 5. If scoring override is active, return the scored model directly
+      if (scoringOverride && scoringRec) {
+        const scoredCandidate = config.modelCatalog.get(scoringRec.recommendedModelId)!;
+        const result: ResolveResult = {
+          modelId: scoredCandidate.modelId,
+          providerId: scoredCandidate.providerId,
+          tier: scoredCandidate.tier,
+          source: 'dynamic',
+          complexity,
+          costAwareTier: costResult.budgetSnapshot !== undefined ? costResult : undefined,
+          scoringRecommendation: scoringRec,
+          scoringOverride: true,
+          reason: `scoring override: ${scoringRec.recommendedModelId} (score=${scoringRec.score}, confidence=${scoringRec.confidence})`,
+          correlationId,
+          resolveTimeMs: Date.now() - start,
+        };
+        logResolution(logger, result);
+        return result;
+      }
+
+      // 6. Resolve via ordered fallback chain (Task 0083)
       const chainResult = resolveFallbackChain(
         healthCache,
         config.modelCatalog,
@@ -186,6 +243,8 @@ export function createModelResolver(
           costAwareTier: costResult.budgetSnapshot !== undefined ? costResult : undefined,
           fallbackLevel: chainResult.fallbackLevel,
           fallbackChain: chainResult.chain,
+          scoringRecommendation: scoringRec,
+          scoringOverride: false,
           reason: chainResult.reason,
           correlationId,
           resolveTimeMs: Date.now() - start,
@@ -243,7 +302,10 @@ function logResolution(logger: ResolverLogger | undefined, result: ResolveResult
   const chainInfo = result.fallbackChain
     ? ` chain=[${result.fallbackChain.map(a => `${a.modelId}:${a.selected ? 'OK' : a.skipReason}`).join(',')}]`
     : '';
-  const msg = `model-resolver: [${result.correlationId}] ${result.source} → ${result.modelId} (tier=${result.tier}, provider=${result.providerId}, ${result.resolveTimeMs}ms)${costInfo}${fallbackInfo}${chainInfo} reason: ${result.reason}`;
+  const scoringInfo = result.scoringRecommendation
+    ? ` scoring=${result.scoringRecommendation.recommendedModelId}(s=${result.scoringRecommendation.score},c=${result.scoringRecommendation.confidence})${result.scoringOverride ? ' [OVERRIDE]' : ''}`
+    : '';
+  const msg = `model-resolver: [${result.correlationId}] ${result.source} → ${result.modelId} (tier=${result.tier}, provider=${result.providerId}, ${result.resolveTimeMs}ms)${costInfo}${fallbackInfo}${chainInfo}${scoringInfo} reason: ${result.reason}`;
   if (result.source === 'static-fallback') {
     logger.warn(msg);
   } else {
