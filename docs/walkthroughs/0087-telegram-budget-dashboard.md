@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0087-telegram-budget-dashboard.md`
 - Epic: EP11 -- Budget Intelligence
 - Branch: `feat/0087-telegram-budget-dashboard`
-- PR: TBD
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/251
 
 ---
 
