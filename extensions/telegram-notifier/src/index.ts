@@ -8,6 +8,7 @@ import {
   formatPipelineAdvance,
   formatPipelineComplete,
 } from './formatting.js';
+import { handleBudgetCommand, type BudgetDataSource, type BudgetRecord } from './budget-dashboard.js';
 
 /**
  * Telegram Notifier Plugin
@@ -16,6 +17,22 @@ import {
  * errors) to a configured Telegram group. Accepts human commands from the group
  * to control the autonomous team.
  */
+
+/** Map a budget_records DB row to a BudgetRecord. */
+function mapRow(row: Record<string, unknown>): BudgetRecord {
+  return {
+    id: String(row['id']),
+    scope: String(row['scope']),
+    scopeId: String(row['scope_id']),
+    limitTokens: Number(row['limit_tokens']),
+    consumedTokens: Number(row['consumed_tokens']),
+    limitUsd: Number(row['limit_usd']),
+    consumedUsd: Number(row['consumed_usd']),
+    status: String(row['status']),
+    warningThreshold: Number(row['warning_threshold']),
+    rev: Number(row['rev']),
+  };
+}
 
 interface NotifierConfig {
   groupId: string;
@@ -159,11 +176,80 @@ export default {
       },
     });
 
+    // EP11 Task 0087: Real-time budget dashboard
     api.registerCommand({
       name: 'budget',
-      description: 'Cost tracking summary',
-      handler: async () => {
-        return { text: 'Budget tracking coming in Task 0046 (production profile).' };
+      description: 'Real-time budget dashboard with replenish/reset commands',
+      acceptsArgs: true,
+      handler: async (ctx) => {
+        try {
+          const db = (api as unknown as Record<string, unknown>)['_sharedDb'];
+          if (!db || typeof db !== 'object') {
+            return { text: '\u26A0\uFE0F Budget database not available from this context\\.' };
+          }
+
+          const dbAny = db as {
+            prepare: (sql: string) => {
+              get: (...args: unknown[]) => unknown;
+              all: (...args: unknown[]) => unknown[];
+              run: (...args: unknown[]) => { changes: number };
+            };
+          };
+
+          const ds: BudgetDataSource = {
+            getByScope(scope: string, scopeId: string) {
+              const row = dbAny.prepare(
+                'SELECT * FROM budget_records WHERE scope = ? AND scope_id = ?',
+              ).get(scope, scopeId) as Record<string, unknown> | undefined;
+              return row ? mapRow(row) : null;
+            },
+            listByScope(scope: string) {
+              const rows = dbAny.prepare(
+                'SELECT * FROM budget_records WHERE scope = ? ORDER BY created_at ASC, id ASC',
+              ).all(scope) as Record<string, unknown>[];
+              return rows.map(mapRow);
+            },
+            replenish(id, additionalTokens, additionalUsd, expectedRev, now) {
+              const result = dbAny.prepare(
+                `UPDATE budget_records
+                 SET limit_tokens = limit_tokens + ?,
+                     limit_usd = limit_usd + ?,
+                     status = 'active',
+                     updated_at = ?,
+                     rev = rev + 1
+                 WHERE id = ? AND rev = ?`,
+              ).run(additionalTokens, additionalUsd, now, id, expectedRev);
+              if (result.changes === 0) {
+                throw new Error('Record not found or stale revision');
+              }
+              const updated = dbAny.prepare(
+                'SELECT * FROM budget_records WHERE id = ?',
+              ).get(id) as Record<string, unknown>;
+              return mapRow(updated);
+            },
+            resetConsumption(id, expectedRev, now) {
+              const result = dbAny.prepare(
+                `UPDATE budget_records
+                 SET consumed_tokens = 0, consumed_usd = 0, status = 'active',
+                     updated_at = ?, rev = rev + 1
+                 WHERE id = ? AND rev = ?`,
+              ).run(now, id, expectedRev);
+              if (result.changes === 0) {
+                throw new Error('Record not found or stale revision');
+              }
+              const updated = dbAny.prepare(
+                'SELECT * FROM budget_records WHERE id = ?',
+              ).get(id) as Record<string, unknown>;
+              return mapRow(updated);
+            },
+          };
+
+          const args = String(ctx.args ?? '').trim();
+          return handleBudgetCommand(args, ds, () => new Date().toISOString());
+        } catch (err: unknown) {
+          logger.warn(`telegram-notifier: /budget failed: ${String(err)}`);
+          return { text: `\u26A0\uFE0F Budget command failed: ${escapeMarkdownV2(String(err))}` };
+        }
       },
     });
 
