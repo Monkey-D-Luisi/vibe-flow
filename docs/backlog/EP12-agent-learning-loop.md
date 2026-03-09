@@ -1,6 +1,6 @@
 # EP12 -- Agent Learning Loop
 
-> Status: IN_PROGRESS
+> Status: DONE
 > Dependencies: EP10, EP11
 > Phase: 10 (Adaptive Intelligence)
 > Target: April 2026
