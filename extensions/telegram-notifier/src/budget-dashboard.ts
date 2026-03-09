@@ -44,6 +44,8 @@ export interface BudgetDataSource {
 /*  Progress bar rendering                                             */
 /* ------------------------------------------------------------------ */
 
+const ALL_BUDGET_SCOPES = ['global', 'pipeline', 'stage', 'agent'] as const;
+
 const BAR_LENGTH = 10;
 const FILLED = '\u2588'; // █
 const EMPTY = '\u2591';  // ░
@@ -150,7 +152,7 @@ export function renderDashboard(ds: BudgetDataSource): string {
       for (const agent of pipelineAgents) {
         const parsed = parseAgentScopeId(agent.scopeId);
         const agentName = parsed ? parsed.agentId : agent.scopeId;
-        formatAgentLine(lines, agentName, agent);
+        lines.push(formatAgentLine(agentName, agent));
       }
     }
   } else {
@@ -160,14 +162,14 @@ export function renderDashboard(ds: BudgetDataSource): string {
   return lines.join('\n');
 }
 
-function formatAgentLine(lines: string[], agentName: string, record: BudgetRecord): void {
+function formatAgentLine(agentName: string, record: BudgetRecord): string {
   const ratio = consumptionRatio(record);
   const bar = renderProgressBar(ratio);
   const pct = pctString(ratio);
   const warn = warningIndicator(record);
   const cost = budgetLabel(record);
   const padded = escapeMarkdownV2(agentName.padEnd(10));
-  lines.push(`  ${padded} ${bar} ${pct} \\(${escapeMarkdownV2(cost)}\\)${escapeMarkdownV2(warn)}`);
+  return `  ${padded} ${bar} ${pct} \\(${escapeMarkdownV2(cost)}\\)${escapeMarkdownV2(warn)}`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -225,14 +227,13 @@ function handleReplenish(
   const scopeId = parts[1]!;
   const rawAmount = parts[2]!;
 
-  const validScopes = ['global', 'pipeline', 'stage', 'agent'];
-  if (!validScopes.includes(scope)) {
-    return { text: `Invalid scope: \`${escapeMarkdownV2(scope)}\`\\. Valid: ${validScopes.join(', ')}` };
+  if (!(ALL_BUDGET_SCOPES as readonly string[]).includes(scope)) {
+    return { text: `Invalid scope: \`${escapeMarkdownV2(scope)}\`\\. Valid: ${ALL_BUDGET_SCOPES.join(', ')}` };
   }
 
   const amount = Number(rawAmount);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return { text: `Invalid amount: \`${escapeMarkdownV2(rawAmount)}\`\\. Must be a positive number\\.` };
+  if (!Number.isFinite(amount) || !Number.isInteger(amount) || amount <= 0) {
+    return { text: `Invalid amount: \`${escapeMarkdownV2(rawAmount)}\`\\. Must be a positive integer\\.` };
   }
 
   const record = ds.getByScope(scope, scopeId);

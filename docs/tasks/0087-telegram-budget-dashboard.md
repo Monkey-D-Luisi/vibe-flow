@@ -54,8 +54,8 @@ Related:
 1. Dashboard renders global, pipeline, and per-agent budget data using Unicode progress bars
 2. Warning emoji shown for agents above warning threshold
 3. Replenish/reset commands validate input and update budget records
-4. All budget data read from the budget repository (no direct SQL)
-5. Module is testable in isolation (dependency injection for budget repo)
+4. All budget data accessed via the existing shared `_sharedDb` adapter pattern
+5. Module is testable in isolation (dependency injection for data access layer)
 
 ---
 
