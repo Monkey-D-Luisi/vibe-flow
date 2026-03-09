@@ -105,7 +105,11 @@ export function parsePricingConfig(
       typeof item.provider === 'string' &&
       typeof item.model === 'string' &&
       typeof item.inputPer1KTokens === 'number' &&
-      typeof item.outputPer1KTokens === 'number'
+      Number.isFinite(item.inputPer1KTokens) &&
+      item.inputPer1KTokens >= 0 &&
+      typeof item.outputPer1KTokens === 'number' &&
+      Number.isFinite(item.outputPer1KTokens) &&
+      item.outputPer1KTokens >= 0
     ) {
       result.push({
         provider: item.provider as string,

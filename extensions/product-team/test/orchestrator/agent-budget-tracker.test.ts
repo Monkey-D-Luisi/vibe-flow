@@ -123,6 +123,26 @@ describe('agent-budget-tracker', () => {
       expect(usage!.model).toBeUndefined();
       expect(usage!.provider).toBeUndefined();
     });
+
+    it('clamps negative token values to zero', () => {
+      const usage = extractTokenUsage({
+        toolName: 'test',
+        result: { usage: { inputTokens: -100, outputTokens: 50 } },
+      });
+      // inputTokens clamped to 0, outputTokens = 50, so result is not null
+      expect(usage).not.toBeNull();
+      expect(usage!.inputTokens).toBe(0);
+      expect(usage!.outputTokens).toBe(50);
+    });
+
+    it('clamps NaN/Infinity token values to zero', () => {
+      const usage = extractTokenUsage({
+        toolName: 'test',
+        result: { usage: { inputTokens: NaN, outputTokens: Infinity } },
+      });
+      // Both clamped to 0 → returns null
+      expect(usage).toBeNull();
+    });
   });
 
   describe('agentScopeId', () => {

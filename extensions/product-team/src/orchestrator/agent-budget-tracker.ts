@@ -57,8 +57,10 @@ function extractUsageFromRecord(
   const usage = record.usage as Record<string, unknown> | undefined;
   if (!usage) return null;
 
-  const inputTokens = typeof usage.inputTokens === 'number' ? usage.inputTokens : 0;
-  const outputTokens = typeof usage.outputTokens === 'number' ? usage.outputTokens : 0;
+  const rawInput = usage.inputTokens;
+  const rawOutput = usage.outputTokens;
+  const inputTokens = typeof rawInput === 'number' && Number.isFinite(rawInput) && rawInput >= 0 ? rawInput : 0;
+  const outputTokens = typeof rawOutput === 'number' && Number.isFinite(rawOutput) && rawOutput >= 0 ? rawOutput : 0;
 
   if (inputTokens === 0 && outputTokens === 0) return null;
 
