@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0085-per-agent-budget-tracking.md`
 - Epic: EP11 -- Budget Intelligence
 - Branch: `feat/0085-per-agent-budget-tracking`
-- PR: TBD
+- PR: https://github.com/Monkey-D-Luisi/vibe-flow/pull/249
 
 ---
 

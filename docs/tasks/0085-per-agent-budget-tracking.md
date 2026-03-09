@@ -99,7 +99,7 @@ Task 0084 built the hard budget limits engine: domain model, SQLite persistence,
 - [x] Lint passes with zero errors
 - [x] TypeScript compiles without errors
 - [x] Walkthrough updated
-- [ ] PR created and linked
+- [x] PR created and linked
 
 ---
 
