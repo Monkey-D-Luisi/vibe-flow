@@ -1,6 +1,6 @@
 # EP11 -- Budget Intelligence
 
-> Status: PENDING
+> Status: DONE
 > Dependencies: EP09
 > Phase: 10 (Adaptive Intelligence)
 > Target: March 2026
