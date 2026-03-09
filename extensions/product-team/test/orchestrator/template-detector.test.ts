@@ -118,8 +118,6 @@ describe('TemplateDetector', () => {
 
   describe('detectTemplates', () => {
     it('detects template when outputs share the same structure', () => {
-      const commonPayload = { result: { title: '', priority: 0, tags: [''] } };
-
       for (let i = 0; i < 5; i++) {
         insertStepEvent(db, {
           agentId: 'po',

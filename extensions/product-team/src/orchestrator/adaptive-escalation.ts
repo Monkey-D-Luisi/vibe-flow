@@ -74,10 +74,11 @@ export class AdaptiveEscalationEngine {
     for (const rec of report.recommendations) {
       if (rec.action !== 'change_policy') continue;
 
-      const category = (rec.details as { category?: string }).category;
-      const agentId = (rec.details as { agentId?: string }).agentId;
-      const newPolicy = (rec.details as { newPolicy?: string }).newPolicy;
+      const category = typeof rec.details.category === 'string' ? rec.details.category : undefined;
+      const agentId = typeof rec.details.agentId === 'string' ? rec.details.agentId : undefined;
+      const newPolicy = typeof rec.details.newPolicy === 'string' ? rec.details.newPolicy : undefined;
       if (!category || !agentId || !newPolicy) continue;
+      if (newPolicy !== 'auto' && newPolicy !== 'escalate') continue;
 
       const cacheKey = `${category}::${agentId}`;
       if (changedCategories.has(cacheKey)) continue;
@@ -93,7 +94,7 @@ export class AdaptiveEscalationEngine {
       const change = this.upsertPolicy({
         category,
         agentId,
-        action: newPolicy as 'auto' | 'escalate',
+        action: newPolicy,
         target: newPolicy === 'escalate' ? 'tech-lead' : undefined,
         confidence: rec.confidence,
         evidence: JSON.stringify(rec.details),

@@ -176,15 +176,16 @@ export function createModelResolver(
       // 3b. Performance scoring feedback loop (EP12 Task 0093)
       let scoringRec: ScoringRecommendation | undefined;
       let scoringOverride = false;
+      let scoredCandidateForOverride: ModelCandidate | undefined;
       if (config.scoringFeedbackEnabled && input.taskType) {
         scoringRec = getScoringRecommendation(input.agentId, input.taskType);
         if (scoringRec) {
           const minConf = config.scoringMinConfidence ?? 0.7;
           const minSamples = config.scoringMinSampleSize ?? 5;
           if (scoringRec.confidence >= minConf && scoringRec.sampleSize >= minSamples) {
-            const scoredCandidate = config.modelCatalog.get(scoringRec.recommendedModelId);
-            if (scoredCandidate) {
-              const health = healthCache.getStatus(scoredCandidate.providerId);
+            scoredCandidateForOverride = config.modelCatalog.get(scoringRec.recommendedModelId);
+            if (scoredCandidateForOverride) {
+              const health = healthCache.getStatus(scoredCandidateForOverride.providerId);
               if (health?.status !== 'DOWN') {
                 scoringOverride = true;
                 logger?.info(
@@ -206,12 +207,11 @@ export function createModelResolver(
       }
 
       // 5. If scoring override is active, return the scored model directly
-      if (scoringOverride && scoringRec) {
-        const scoredCandidate = config.modelCatalog.get(scoringRec.recommendedModelId)!;
+      if (scoringOverride && scoredCandidateForOverride && scoringRec) {
         const result: ResolveResult = {
-          modelId: scoredCandidate.modelId,
-          providerId: scoredCandidate.providerId,
-          tier: scoredCandidate.tier,
+          modelId: scoredCandidateForOverride.modelId,
+          providerId: scoredCandidateForOverride.providerId,
+          tier: scoredCandidateForOverride.tier,
           source: 'dynamic',
           complexity,
           costAwareTier: costResult.budgetSnapshot !== undefined ? costResult : undefined,

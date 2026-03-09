@@ -31,7 +31,7 @@ export const RecommendationAction = Type.Union([
 ], { description: 'Recommended action type' });
 
 export const Recommendation = Type.Object({
-  patternType: Type.String({ description: 'Source pattern type' }),
+  patternType: PatternType,
   action: RecommendationAction,
   details: Type.Record(Type.String(), Type.Unknown(), { description: 'Action-specific details' }),
   confidence: Type.Number({ minimum: 0, maximum: 1, description: 'Confidence score' }),
