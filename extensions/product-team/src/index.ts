@@ -47,6 +47,14 @@ import { injectOriginIntoTeamMessage } from './hooks/origin-injection.js';
 import { injectAgentIdIntoDecisionEvaluate } from './hooks/agent-id-injection.js';
 import { injectCallerIntoPipelineAdvance } from './hooks/pipeline-caller-injection.js';
 import { registerHttpRoutes } from './registration/http-routes.js';
+import { SqliteBudgetRepository } from './persistence/budget-repo.js';
+import { PricingTable, parsePricingConfig, parseAllocationConfig } from './domain/pricing-table.js';
+import {
+  extractTokenUsage,
+  trackAgentConsumption,
+  resolveAllocations,
+} from './orchestrator/agent-budget-tracker.js';
+import type { BudgetGuardDeps } from './orchestrator/budget-guard.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 export { resolveConcurrencyConfig } from './config/plugin-config.js';
@@ -97,6 +105,15 @@ export function register(api: OpenClawPluginApi): void {
   });
   const eventLog = new EventLog(eventRepo, generateId, now);
   const leaseManager = new LeaseManager(leaseRepo, eventLog, now, undefined, concurrencyConfig);
+
+  // Budget infrastructure (EP11): pricing table, budget repo, and guard deps
+  const budgetRepo = new SqliteBudgetRepository(db);
+  const rawBudgetConfig = typeof pluginConfig?.budget === 'object' && pluginConfig.budget !== null
+    ? pluginConfig.budget as Record<string, unknown>
+    : {};
+  const pricingTable = new PricingTable(parsePricingConfig(rawBudgetConfig['pricing']));
+  const agentAllocations = resolveAllocations(parseAllocationConfig(rawBudgetConfig['agentAllocations']));
+  const budgetGuardDeps: BudgetGuardDeps = { budgetRepo, eventLog, now };
 
   // Shared event-log health probe used by both monitoring cron and /health handler.
   // Queries event_log directly so it can fail independently of the generic DB check.
@@ -388,6 +405,50 @@ export function register(api: OpenClawPluginApi): void {
       api.logger.warn(`pipeline-done-cleanup: error: ${String(err)}`);
     }
   });
+
+  // Agent budget tracking hook (EP11, Task 0085): record per-agent token consumption
+  // after every tool call that includes LLM usage metadata.
+  const agentBudgetTrackerDeps = {
+    budgetRepo,
+    budgetGuardDeps,
+    pricingTable,
+    generateId,
+    now,
+    allocations: agentAllocations,
+  };
+  api.on('after_tool_call', (event, ctx) => {
+    try {
+      const typedEvent = event as { toolName: string; result?: unknown };
+      const typedCtx = ctx as { agentId?: string; sessionKey?: string };
+      const agentId = typedCtx.agentId;
+      if (!agentId) return;
+
+      const usage = extractTokenUsage(typedEvent);
+      if (!usage) return;
+
+      // Resolve taskId from event result (best effort)
+      const result = typedEvent.result as Record<string, unknown> | undefined;
+      const details = (result?.['details'] ?? result) as Record<string, unknown> | undefined;
+      const taskId = String(details?.['taskId'] ?? details?.['pipelineId'] ?? 'unknown');
+      const pipelineId = typeof details?.['pipelineId'] === 'string'
+        ? details['pipelineId'] as string
+        : undefined;
+
+      trackAgentConsumption(
+        agentBudgetTrackerDeps,
+        agentId,
+        pipelineId,
+        taskId,
+        usage.inputTokens,
+        usage.outputTokens,
+        usage.provider,
+        usage.model,
+      );
+    } catch (err: unknown) {
+      api.logger.warn(`agent-budget-tracking: error: ${String(err)}`);
+    }
+  });
+  api.logger.info('registered agent-budget-tracking after_tool_call hook');
 
   // Start decision timeout cron (re-escalates stalled decisions)
   const decisionTimeoutCron = new DecisionTimeoutCron({
