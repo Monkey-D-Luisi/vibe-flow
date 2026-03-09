@@ -18,7 +18,7 @@ import {
 
 /** Optional cross-extension budget state publisher (Task 0086). */
 export interface BudgetStatePublisher {
-  (state: { agentId: string; consumptionRatio: number; status: string; updatedAt: string }): void;
+  (state: { agentId: string; consumptionRatio: number; status: 'active' | 'warning' | 'exhausted'; updatedAt: string }): void;
 }
 
 export function registerBudgetHooks(
@@ -100,8 +100,8 @@ export function registerBudgetHooks(
             status: check.status,
             updatedAt: deps.now(),
           });
-        } catch {
-          // Non-critical: budget state publish failure should not block tracking
+        } catch (publishErr: unknown) {
+          api.logger.warn(`agent-budget-publish: error: ${String(publishErr)}`);
         }
       }
     } catch (err: unknown) {

@@ -398,6 +398,12 @@ export function register(api: OpenClawPluginApi): void {
       }
 
       api.logger.info(`pipeline-done-cleanup: cleared sessions for ${agentConfig.length} agents`);
+
+      // Clear stale budget state from globalThis registry (Task 0086 CR)
+      const registryKey = Symbol.for('openclaw:budget-state-registry');
+      const g = globalThis as Record<symbol, unknown>;
+      const registry = g[registryKey] as Map<string, unknown> | undefined;
+      if (registry) registry.clear();
     } catch (err: unknown) {
       api.logger.warn(`pipeline-done-cleanup: error: ${String(err)}`);
     }
@@ -405,7 +411,7 @@ export function register(api: OpenClawPluginApi): void {
 
   // Agent budget hooks (EP11, Task 0085): ensure, enforce, and track per-agent consumption
   // Budget state publisher (Task 0086): writes to globalThis registry for model-router
-  const budgetStatePublisher = (state: { agentId: string; consumptionRatio: number; status: string; updatedAt: string }) => {
+  const budgetStatePublisher = (state: { agentId: string; consumptionRatio: number; status: 'active' | 'warning' | 'exhausted'; updatedAt: string }) => {
     const registryKey = Symbol.for('openclaw:budget-state-registry');
     const g = globalThis as Record<symbol, unknown>;
     if (!g[registryKey]) g[registryKey] = new Map<string, unknown>();
