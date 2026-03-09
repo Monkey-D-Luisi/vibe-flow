@@ -336,7 +336,7 @@ Key deliverables:
 
 - Task 0089: Decision Outcome Pattern Analyzer -- DONE (EP12, 10A)
 - Task 0090: Adaptive Escalation Policy Engine -- DONE (EP12, 10A)
-- Task 0091: Agent-Model Performance Scorer -- PENDING (EP12, 10B)
+- Task 0091: Agent-Model Performance Scorer -- DONE (EP12, 10B)
 - Task 0092: Dynamic Template Pre-Loading -- PENDING (EP12, 10B)
 - Task 0093: Routing Feedback Loop Integration -- PENDING (EP12, 10C)
 
@@ -852,7 +852,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 - Task 0089: Decision Outcome Pattern Analyzer -- DONE
 - Task 0090: Adaptive Escalation Policy Engine -- DONE
-- Task 0091: Agent-Model Performance Scorer -- PENDING
+- Task 0091: Agent-Model Performance Scorer -- DONE
 - Task 0092: Dynamic Template Pre-Loading -- PENDING
 - Task 0093: Routing Feedback Loop Integration -- PENDING
 
