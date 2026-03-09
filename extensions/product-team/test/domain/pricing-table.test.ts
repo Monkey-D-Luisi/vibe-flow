@@ -133,6 +133,17 @@ describe('parsePricingConfig', () => {
     ]);
     expect(result).toHaveLength(1);
   });
+
+  it('rejects negative and non-finite pricing rates', () => {
+    const result = parsePricingConfig([
+      { provider: 'a', model: 'neg', inputPer1KTokens: -0.01, outputPer1KTokens: 0.02 },
+      { provider: 'b', model: 'inf', inputPer1KTokens: Infinity, outputPer1KTokens: 0.02 },
+      { provider: 'c', model: 'nan', inputPer1KTokens: 0.01, outputPer1KTokens: NaN },
+      { provider: 'd', model: 'ok', inputPer1KTokens: 0.01, outputPer1KTokens: 0.02 },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result![0].provider).toBe('d');
+  });
 });
 
 describe('parseAllocationConfig', () => {

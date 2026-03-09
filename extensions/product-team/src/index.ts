@@ -49,11 +49,8 @@ import { injectCallerIntoPipelineAdvance } from './hooks/pipeline-caller-injecti
 import { registerHttpRoutes } from './registration/http-routes.js';
 import { SqliteBudgetRepository } from './persistence/budget-repo.js';
 import { PricingTable, parsePricingConfig, parseAllocationConfig } from './domain/pricing-table.js';
-import {
-  extractTokenUsage,
-  trackAgentConsumption,
-  resolveAllocations,
-} from './orchestrator/agent-budget-tracker.js';
+import { resolveAllocations } from './orchestrator/agent-budget-tracker.js';
+import { registerBudgetHooks } from './hooks/budget-hooks.js';
 import type { BudgetGuardDeps } from './orchestrator/budget-guard.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
@@ -406,8 +403,7 @@ export function register(api: OpenClawPluginApi): void {
     }
   });
 
-  // Agent budget tracking hook (EP11, Task 0085): record per-agent token consumption
-  // after every tool call that includes LLM usage metadata.
+  // Agent budget hooks (EP11, Task 0085): ensure, enforce, and track per-agent consumption
   const agentBudgetTrackerDeps = {
     budgetRepo,
     budgetGuardDeps,
@@ -416,39 +412,7 @@ export function register(api: OpenClawPluginApi): void {
     now,
     allocations: agentAllocations,
   };
-  api.on('after_tool_call', (event, ctx) => {
-    try {
-      const typedEvent = event as { toolName: string; result?: unknown };
-      const typedCtx = ctx as { agentId?: string; sessionKey?: string };
-      const agentId = typedCtx.agentId;
-      if (!agentId) return;
-
-      const usage = extractTokenUsage(typedEvent);
-      if (!usage) return;
-
-      // Resolve taskId from event result (best effort)
-      const result = typedEvent.result as Record<string, unknown> | undefined;
-      const details = (result?.['details'] ?? result) as Record<string, unknown> | undefined;
-      const taskId = String(details?.['taskId'] ?? details?.['pipelineId'] ?? 'unknown');
-      const pipelineId = typeof details?.['pipelineId'] === 'string'
-        ? details['pipelineId'] as string
-        : undefined;
-
-      trackAgentConsumption(
-        agentBudgetTrackerDeps,
-        agentId,
-        pipelineId,
-        taskId,
-        usage.inputTokens,
-        usage.outputTokens,
-        usage.provider,
-        usage.model,
-      );
-    } catch (err: unknown) {
-      api.logger.warn(`agent-budget-tracking: error: ${String(err)}`);
-    }
-  });
-  api.logger.info('registered agent-budget-tracking after_tool_call hook');
+  registerBudgetHooks(api, agentBudgetTrackerDeps, agentConfig.map(a => a.id));
 
   // Start decision timeout cron (re-escalates stalled decisions)
   const decisionTimeoutCron = new DecisionTimeoutCron({
