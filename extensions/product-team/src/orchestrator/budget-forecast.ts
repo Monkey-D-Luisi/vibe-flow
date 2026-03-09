@@ -77,7 +77,7 @@ const MIN_STAGES_FOR_FORECAST = 1;
  * Standard tier uses ~60% of premium tokens (cheaper models are more concise).
  * Economy tier uses ~30% of premium tokens.
  */
-const TIER_SAVINGS_MULTIPLIER: Readonly<Record<string, number>> = {
+const TIER_SAVINGS_MULTIPLIER: Readonly<Record<'standard' | 'economy', number>> = {
   standard: 0.6,
   economy: 0.3,
 };
@@ -96,7 +96,7 @@ export function calculateBurnRate(
   now: string,
 ): number {
   const elapsedMs = new Date(now).getTime() - new Date(startedAt).getTime();
-  if (elapsedMs <= 0 || consumedTokens <= 0) return 0;
+  if (!Number.isFinite(elapsedMs) || elapsedMs <= 0 || consumedTokens <= 0) return 0;
   return consumedTokens / elapsedMs;
 }
 
@@ -123,7 +123,7 @@ export function forecastBudget(
   budget: BudgetRecord,
   ctx: PipelineContext,
 ): BudgetForecast {
-  const remainingStages = ctx.totalStages - ctx.completedStages;
+  const remainingStages = Math.max(0, ctx.totalStages - ctx.completedStages);
   const remaining = Math.max(0, budget.limitTokens - budget.consumedTokens);
 
   const burnRate = calculateBurnRate(
@@ -139,7 +139,8 @@ export function forecastBudget(
 
   const estimatedRemaining = avgPerStage * remainingStages;
   const surplus = remaining - estimatedRemaining;
-  const willOverspend = surplus < 0;
+  const roundedSurplus = Math.round(surplus);
+  const willOverspend = roundedSurplus < 0;
 
   // Confidence: scales linearly from 0.4 at 1 stage to 1.0 at 5+ stages
   const confidence =
@@ -152,15 +153,15 @@ export function forecastBudget(
   let estimatedSavings = 0;
 
   if (willOverspend && ctx.completedStages >= MIN_STAGES_FOR_FORECAST) {
-    const deficit = Math.abs(surplus);
+    const deficit = Math.abs(roundedSurplus);
     // Check if downgrading to standard tier would fix the deficit
-    const standardSavings = estimatedRemaining * (1 - TIER_SAVINGS_MULTIPLIER.standard!);
+    const standardSavings = estimatedRemaining * (1 - TIER_SAVINGS_MULTIPLIER.standard);
     if (standardSavings >= deficit) {
       recommendedTier = 'standard';
       estimatedSavings = Math.round(standardSavings);
     } else {
       // Need economy tier
-      const economySavings = estimatedRemaining * (1 - TIER_SAVINGS_MULTIPLIER.economy!);
+      const economySavings = estimatedRemaining * (1 - TIER_SAVINGS_MULTIPLIER.economy);
       recommendedTier = 'economy';
       estimatedSavings = Math.round(economySavings);
     }
@@ -171,7 +172,7 @@ export function forecastBudget(
     avgTokensPerStage: Math.round(avgPerStage),
     estimatedRemainingTokens: Math.round(estimatedRemaining),
     remainingBudgetTokens: remaining,
-    projectedSurplusTokens: Math.round(surplus),
+    projectedSurplusTokens: roundedSurplus,
     willOverspend,
     confidence,
     recommendedTier,

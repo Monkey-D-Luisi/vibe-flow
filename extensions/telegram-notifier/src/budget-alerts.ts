@@ -31,7 +31,7 @@ export interface BudgetAlert {
     readonly remainingBudgetTokens: number;
     readonly projectedSurplusTokens: number;
     readonly confidence: number;
-    readonly recommendedTier: string | null;
+    readonly recommendedTier: 'standard' | 'economy' | null;
     readonly estimatedSavingsTokens: number;
   } | null;
 }
@@ -118,5 +118,9 @@ export function alertPriority(kind: ForecastAlertKind): 'high' | 'normal' | 'low
       return 'normal';
     case 'BUDGET_REPLENISHED':
       return 'normal';
+    default: {
+      const _exhaustive: never = kind;
+      return _exhaustive;
+    }
   }
 }
