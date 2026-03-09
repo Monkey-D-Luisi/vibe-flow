@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0088-budget-forecasting-alerting.md`
 - Epic: EP11 -- Budget Intelligence
 - Branch: `feat/0088-budget-forecasting-alerting`
-- PR: TBD
+- PR: #252
 
 ---
 
