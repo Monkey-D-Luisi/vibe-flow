@@ -60,6 +60,7 @@ ci: add coverage threshold check to PR workflow
 | Command | Rule file |
 |---------|-----------|
 | `next task` | `.agent/rules/autonomous-workflow.md` |
+| `next epic` | `.agent/rules/next-epic-workflow.md` |
 | `code review` | `.agent/rules/code-review-workflow.md` |
 | `fast track: <X>` | `.agent/rules/fast-track-workflow.md` |
 | `full audit` | `.agent/rules/full-audit-workflow.md` |

@@ -44,6 +44,7 @@ Monorepo of extensions, skills, and quality tooling for [OpenClaw](https://openc
 | Command | Action |
 |---------|--------|
 | `next task` | Read `.agent/rules/autonomous-workflow.md`, execute |
+| `next epic` | Read `.agent/rules/next-epic-workflow.md`, execute |
 | `code review` | Read `.agent/rules/code-review-workflow.md`, execute |
 | `fast track: <X>` | Read `.agent/rules/fast-track-workflow.md`, execute |
 | `full audit` | Read `.agent/rules/full-audit-workflow.md`, execute |
