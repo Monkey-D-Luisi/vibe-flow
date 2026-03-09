@@ -93,6 +93,7 @@ import { projectSwitchToolDef } from './project-switch.js';
 import { projectRegisterToolDef } from './project-register.js';
 import { teamMessageToolDef, teamInboxToolDef, teamReplyToolDef, teamStatusToolDef, teamAssignToolDef } from './team-messaging.js';
 import { decisionEvaluateToolDef, decisionLogToolDef, decisionOutcomeToolDef } from './decision-engine.js';
+import { decisionPatternsToolDef } from './decision-patterns.js';
 import { pipelineStartToolDef, pipelineStatusToolDef, pipelineRetryToolDef, pipelineSkipToolDef } from './pipeline.js';
 import { pipelineAdvanceToolDef, pipelineMetricsToolDef, pipelineTimelineToolDef } from './pipeline-advance.js';
 
@@ -126,6 +127,7 @@ export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
     decisionEvaluateToolDef(deps),
     decisionLogToolDef(deps),
     decisionOutcomeToolDef(deps),
+    decisionPatternsToolDef(deps),
     pipelineStartToolDef(deps),
     pipelineStatusToolDef(deps),
     pipelineRetryToolDef(deps),
