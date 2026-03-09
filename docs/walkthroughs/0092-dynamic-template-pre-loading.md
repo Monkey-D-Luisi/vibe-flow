@@ -21,7 +21,7 @@ Agents often produce outputs with similar structure across pipeline runs (e.g., 
 
 ## Key Decisions
 
-1. **Skeleton extraction**: Pure function `extractSkeleton()` replaces concrete values with type placeholders (`<string>`, `<number>`, `<boolean>`, `<null>`, `<array[N]>`, `<object{keys}>`). This normalizes outputs for structural comparison.
+1. **Skeleton extraction**: Pure function `extractSkeleton()` replaces concrete values with type placeholders (`<string>`, `<number>`, `<boolean>`, `<null>`, `<unknown>`). Arrays are recursively skeletonized using the first element as representative. Objects are recursively expanded. This normalizes outputs for structural comparison.
 2. **80% dominance threshold**: A skeleton must appear in ≥80% of recent outputs to qualify as a template. This avoids premature template lock-in.
 3. **Expiry mechanism**: Templates expire after 20 unused pipeline runs, preventing stale templates from persisting.
 4. **Version bumping**: When the dominant skeleton changes, the template version increments rather than replacing, preserving audit trail.

@@ -93,7 +93,7 @@ export class AgentModelScorer {
     private readonly now: () => string,
     config?: Partial<ScorerConfig>,
   ) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.config = { ...DEFAULT_CONFIG, ...config, weights: { ...DEFAULT_CONFIG.weights, ...config?.weights } };
     this.ensureTable();
   }
 
@@ -322,7 +322,7 @@ export class AgentModelScorer {
         const p = JSON.parse(r.payload) as { inputTokens?: number; outputTokens?: number };
         return (p.inputTokens ?? 0) + (p.outputTokens ?? 0);
       });
-      const sorted = allTokens.sort((a, b) => a - b);
+      const sorted = [...allTokens].sort((a, b) => a - b);
       const median = sorted[Math.floor(sorted.length / 2)];
 
       if (median === 0) return { efficiency: 50, sampleSize: agentRows.length };
@@ -370,7 +370,7 @@ export class AgentModelScorer {
 
       if (allDurations.length === 0) return 50;
 
-      const sorted = allDurations.sort((a, b) => a - b);
+      const sorted = [...allDurations].sort((a, b) => a - b);
       const median = sorted[Math.floor(sorted.length / 2)];
 
       if (median === 0) return 50;
