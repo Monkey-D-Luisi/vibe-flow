@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   createModelResolver,
   DEFAULT_TIER_MAPPING,
@@ -10,6 +10,7 @@ import {
   type AgentModelConfig,
 } from '../src/model-resolver.js';
 import type { ProviderHealthCache, HealthState, ProviderHealthStatus } from '../src/provider-health-cache.js';
+import { publishScoringRecommendation, clearScoringStates, type ScoringRecommendation } from '../src/scoring-integration.js';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -95,12 +96,17 @@ describe('createModelResolver', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    clearScoringStates();
     const statuses = new Map<string, HealthState>();
     statuses.set('anthropic', makeHealthState('anthropic', 'HEALTHY'));
     statuses.set('openai-codex', makeHealthState('openai-codex', 'HEALTHY'));
     statuses.set('github-copilot', makeHealthState('github-copilot', 'HEALTHY'));
     healthCache = makeMockHealthCache(statuses);
     logger = makeLogger();
+  });
+
+  afterEach(() => {
+    clearScoringStates();
   });
 
   /* ---------------------------------------------------------------- */
@@ -609,6 +615,248 @@ describe('createModelResolver', () => {
       expect(result.reason).toBeTruthy();
       expect(result.correlationId).toBe('test-correlation-id');
       expect(typeof result.resolveTimeMs).toBe('number');
+    });
+  });
+
+  /* ---------------------------------------------------------------- */
+  /*  Scoring feedback loop (EP12 Task 0093)                           */
+  /* ---------------------------------------------------------------- */
+
+  describe('scoring feedback loop', () => {
+    const scoringRec: ScoringRecommendation = {
+      agentId: 'back-1',
+      taskType: 'IMPLEMENTATION',
+      recommendedModelId: 'gpt-4.1',
+      score: 85,
+      sampleSize: 10,
+      confidence: 0.9,
+      updatedAt: new Date().toISOString(),
+    };
+
+    it('overrides routing when scoring recommendation meets thresholds', () => {
+      publishScoringRecommendation(scoringRec);
+
+      const config = makeConfig({ scoringFeedbackEnabled: true });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        taskType: 'IMPLEMENTATION',
+        complexityInput: { scope: 'critical', stage: 'IMPLEMENTATION', agentRole: 'tech-lead' },
+      }));
+
+      expect(result.scoringOverride).toBe(true);
+      expect(result.modelId).toBe('gpt-4.1');
+      expect(result.providerId).toBe('openai-codex');
+      expect(result.source).toBe('dynamic');
+      expect(result.scoringRecommendation).toBeDefined();
+      expect(result.scoringRecommendation!.recommendedModelId).toBe('gpt-4.1');
+      expect(result.reason).toContain('scoring override');
+    });
+
+    it('does not override when scoring is disabled', () => {
+      publishScoringRecommendation(scoringRec);
+
+      const config = makeConfig({ scoringFeedbackEnabled: false });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        taskType: 'IMPLEMENTATION',
+        complexityInput: { scope: 'critical', stage: 'IMPLEMENTATION', agentRole: 'tech-lead' },
+      }));
+
+      expect(result.scoringOverride).toBeFalsy();
+      expect(result.modelId).toBe('claude-opus-4'); // normal routing
+    });
+
+    it('does not override when taskType is not provided', () => {
+      publishScoringRecommendation(scoringRec);
+
+      const config = makeConfig({ scoringFeedbackEnabled: true });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        taskType: undefined,
+        complexityInput: { scope: 'critical', stage: 'IMPLEMENTATION', agentRole: 'tech-lead' },
+      }));
+
+      expect(result.scoringOverride).toBeFalsy();
+    });
+
+    it('does not override when no recommendation exists for agent+taskType', () => {
+      publishScoringRecommendation(scoringRec); // published for back-1::IMPLEMENTATION
+
+      const config = makeConfig({ scoringFeedbackEnabled: true });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        agentId: 'front-1', // different agent
+        taskType: 'IMPLEMENTATION',
+      }));
+
+      expect(result.scoringOverride).toBeFalsy();
+    });
+
+    it('does not override when confidence is below threshold', () => {
+      publishScoringRecommendation({ ...scoringRec, confidence: 0.3 });
+
+      const config = makeConfig({ scoringFeedbackEnabled: true, scoringMinConfidence: 0.7 });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        taskType: 'IMPLEMENTATION',
+      }));
+
+      expect(result.scoringOverride).toBe(false);
+      // Recommendation is still attached for observability even without override
+      expect(result.scoringRecommendation).toBeDefined();
+      expect(result.scoringRecommendation!.confidence).toBe(0.3);
+      expect(result.modelId).toBe('claude-opus-4'); // normal routing, not gpt-4.1
+    });
+
+    it('does not override when sample size is below threshold', () => {
+      publishScoringRecommendation({ ...scoringRec, sampleSize: 2 });
+
+      const config = makeConfig({ scoringFeedbackEnabled: true, scoringMinSampleSize: 5 });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        taskType: 'IMPLEMENTATION',
+      }));
+
+      expect(result.scoringOverride).toBe(false);
+      expect(result.scoringRecommendation).toBeDefined();
+      expect(result.modelId).toBe('claude-opus-4'); // normal routing
+    });
+
+    it('does not override when recommended model provider is DOWN', () => {
+      publishScoringRecommendation(scoringRec); // recommends gpt-4.1 (openai-codex)
+
+      const statuses = new Map<string, HealthState>();
+      statuses.set('anthropic', makeHealthState('anthropic', 'HEALTHY'));
+      statuses.set('openai-codex', makeHealthState('openai-codex', 'DOWN'));
+      statuses.set('github-copilot', makeHealthState('github-copilot', 'HEALTHY'));
+      healthCache = makeMockHealthCache(statuses);
+
+      const config = makeConfig({ scoringFeedbackEnabled: true });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        taskType: 'IMPLEMENTATION',
+        complexityInput: { scope: 'critical', stage: 'IMPLEMENTATION', agentRole: 'tech-lead' },
+      }));
+
+      expect(result.scoringOverride).toBeFalsy();
+      // Falls back to normal chain (anthropic is healthy)
+      expect(result.modelId).toBe('claude-opus-4');
+    });
+
+    it('does not override when recommended model is not in catalog', () => {
+      publishScoringRecommendation({ ...scoringRec, recommendedModelId: 'unknown-model-xyz' });
+
+      const config = makeConfig({ scoringFeedbackEnabled: true });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        taskType: 'IMPLEMENTATION',
+      }));
+
+      expect(result.scoringOverride).toBeFalsy();
+    });
+
+    it('respects custom confidence and sample thresholds', () => {
+      publishScoringRecommendation({ ...scoringRec, confidence: 0.5, sampleSize: 3 });
+
+      const config = makeConfig({
+        scoringFeedbackEnabled: true,
+        scoringMinConfidence: 0.4, // lower than default
+        scoringMinSampleSize: 2,   // lower than default
+      });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        taskType: 'IMPLEMENTATION',
+      }));
+
+      expect(result.scoringOverride).toBe(true);
+      expect(result.modelId).toBe('gpt-4.1');
+    });
+
+    it('attaches scoring recommendation to normal chain result when not overriding', () => {
+      // Publish with low confidence — won't override but should still be visible
+      publishScoringRecommendation({ ...scoringRec, confidence: 0.3 });
+
+      const config = makeConfig({ scoringFeedbackEnabled: true });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        taskType: 'IMPLEMENTATION',
+        complexityInput: { scope: 'critical', stage: 'IMPLEMENTATION', agentRole: 'tech-lead' },
+      }));
+
+      expect(result.scoringOverride).toBe(false);
+      expect(result.modelId).toBe('claude-opus-4'); // normal routing
+    });
+
+    it('logs scoring info in structured log when override happens', () => {
+      publishScoringRecommendation(scoringRec);
+
+      const config = makeConfig({ scoringFeedbackEnabled: true });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      resolve(makeInput({
+        taskType: 'IMPLEMENTATION',
+        complexityInput: { scope: 'critical', stage: 'IMPLEMENTATION', agentRole: 'tech-lead' },
+      }));
+
+      // First logger.info call is the scoring override notice, second is the resolution log
+      expect(logger.info).toHaveBeenCalled();
+      const calls = logger.info.mock.calls.map(c => c[0] as string);
+      const overrideLog = calls.find(m => m.includes('scoring override'));
+      expect(overrideLog).toBeDefined();
+      expect(overrideLog).toContain('gpt-4.1');
+
+      // Resolution log should contain scoring info
+      const resolutionLog = calls.find(m => m.includes('[OVERRIDE]'));
+      expect(resolutionLog).toBeDefined();
+    });
+
+    it('allows DEGRADED provider for scoring override (optimistic)', () => {
+      publishScoringRecommendation(scoringRec);
+
+      const statuses = new Map<string, HealthState>();
+      statuses.set('anthropic', makeHealthState('anthropic', 'HEALTHY'));
+      statuses.set('openai-codex', makeHealthState('openai-codex', 'DEGRADED'));
+      statuses.set('github-copilot', makeHealthState('github-copilot', 'HEALTHY'));
+      healthCache = makeMockHealthCache(statuses);
+
+      const config = makeConfig({ scoringFeedbackEnabled: true });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        taskType: 'IMPLEMENTATION',
+      }));
+
+      // DEGRADED is not DOWN — override should still happen
+      expect(result.scoringOverride).toBe(true);
+      expect(result.modelId).toBe('gpt-4.1');
+    });
+
+    it('allows unchecked provider for scoring override (optimistic)', () => {
+      publishScoringRecommendation(scoringRec);
+
+      // Empty health cache — no providers checked
+      healthCache = makeMockHealthCache(new Map());
+
+      const config = makeConfig({ scoringFeedbackEnabled: true });
+      const resolve = createModelResolver(healthCache, config, logger);
+
+      const result = resolve(makeInput({
+        taskType: 'IMPLEMENTATION',
+      }));
+
+      // Unchecked provider (health === undefined) should still allow override
+      expect(result.scoringOverride).toBe(true);
+      expect(result.modelId).toBe('gpt-4.1');
     });
   });
 });
