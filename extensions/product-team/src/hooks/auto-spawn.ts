@@ -72,6 +72,15 @@ function isDuplicate(key: string): boolean {
   for (const [k, ts] of recentSpawns) {
     if (now - ts > DEDUP_TTL_MS) recentSpawns.delete(k);
   }
+  // Hard cap: if map exceeds max size after TTL eviction, drop oldest entries
+  if (recentSpawns.size >= DEDUP_MAX_SIZE) {
+    const excess = recentSpawns.size - DEDUP_MAX_SIZE + 1;
+    const iter = recentSpawns.keys();
+    for (let i = 0; i < excess; i++) {
+      const oldest = iter.next();
+      if (!oldest.done) recentSpawns.delete(oldest.value);
+    }
+  }
   if (recentSpawns.has(key)) return true;
   recentSpawns.set(key, now);
   return false;
@@ -446,18 +455,193 @@ export function handlePipelineAdvanceAutoSpawn(
 
 // ── Gateway-direct agent trigger ─────────────────────────────────────────────
 
+/** Maximum entries in the dedup map before forced eviction. */
+const DEDUP_MAX_SIZE = 1000;
+
+/** Gateway protocol version (must match the server). */
+const GATEWAY_PROTOCOL_VERSION = 3;
+
+/**
+ * Build the JSON-serialised agent params object for the gateway `agent` method.
+ *
+ * IMPORTANT: Do NOT pass agentId — the gateway's listAgentIds() check
+ * rejects known agent IDs during concurrent runs.  Instead, pass only
+ * sessionKey; the gateway resolves the agent config from the session key
+ * via loadSessionEntry(), which sets cfgForAgent and loads plugin tools.
+ */
+export function buildAgentParams(
+  agentId: string,
+  sessionKey: string,
+  message: string,
+  options?: AgentSpawnOptions,
+): string {
+  return JSON.stringify({
+    sessionKey,
+    message,
+    idempotencyKey: options?.idempotencyKey ?? `auto-spawn:${agentId}:${Date.now()}`,
+    ...(options?.deliver ? {
+      deliver: true,
+      channel: options.channel,
+      ...(options.accountId ? { accountId: options.accountId } : {}),
+      ...(options.to ? { to: options.to } : {}),
+    } : {}),
+  });
+}
+
+/**
+ * Build the inline ESM script that opens a raw WebSocket to the gateway,
+ * authenticates via the JSON-RPC protocol, and sends an `agent` request.
+ *
+ * **Zero SDK dependencies** — uses only `node:crypto` and the built-in
+ * `WebSocket` global (Node 22+) or falls back to the `ws` package.
+ *
+ * Protocol flow:
+ *   1. WS open → server sends event `connect.challenge` with `payload.nonce`
+ *   2. Client sends `req` frame: method=`connect`, params={auth, protocol, client info}
+ *   3. Server responds with `ok: true` (hello_ok)
+ *   4. Client sends `req` frame: method=`agent`, params={sessionKey, message, …}
+ *   5. Server responds → client closes
+ */
+export function buildRawWsSpawnScript(
+  agentId: string,
+  agentParams: string,
+  port: string,
+): string {
+  return `
+import { randomUUID } from "node:crypto";
+
+const ts = () => new Date().toISOString();
+const log = (msg) => console.log(ts() + " [spawn:${agentId}] " + msg);
+const err = (msg) => console.error(ts() + " [spawn:${agentId}] " + msg);
+
+// Resolve WebSocket: Node 22+ has global WebSocket, older versions need 'ws'
+const WS = typeof WebSocket !== "undefined"
+  ? WebSocket
+  : (await import("ws")).default;
+
+const agentParams = ${agentParams};
+const url = "ws://127.0.0.1:${port}";
+log("connecting to " + url);
+
+let reqCounter = 0;
+
+function sendReq(ws, method, params) {
+  const id = randomUUID();
+  const frame = JSON.stringify({ type: "req", id, method, params });
+  ws.send(frame);
+  return id;
+}
+
+await new Promise((resolve, reject) => {
+  let done = false;
+  const finish = (e, v) => { if (done) return; done = true; clearTimeout(timer); e ? reject(e) : resolve(v); };
+
+  const pendingRequests = new Map();
+  let connectDone = false;
+
+  const ws = new WS(url);
+
+  ws.onopen = () => log("ws open, waiting for challenge");
+
+  ws.onmessage = (evt) => {
+    try {
+      const msg = JSON.parse(typeof evt.data === "string" ? evt.data : evt.data.toString());
+
+      // Event frames have an "event" field
+      if (msg.event === "connect.challenge") {
+        const nonce = msg.payload?.nonce;
+        if (!nonce) { err("missing nonce"); ws.close(); finish(new Error("missing nonce")); return; }
+
+        log("got challenge, sending connect");
+        const connectId = sendReq(ws, "connect", {
+          minProtocol: ${GATEWAY_PROTOCOL_VERSION},
+          maxProtocol: ${GATEWAY_PROTOCOL_VERSION},
+          client: {
+            id: "cli",
+            version: "spawn-v2",
+            platform: "linux",
+            mode: "cli",
+            instanceId: randomUUID(),
+          },
+          auth: { token: process.env.OPENCLAW_GATEWAY_TOKEN || "" },
+          role: "operator",
+          scopes: ["operator.admin"],
+          caps: [],
+        });
+        pendingRequests.set(connectId, "connect");
+        return;
+      }
+
+      // Response frames have an "id" field matching our request
+      if (msg.id && pendingRequests.has(msg.id)) {
+        const reqType = pendingRequests.get(msg.id);
+        pendingRequests.delete(msg.id);
+
+        if (!msg.ok) {
+          const errMsg = msg.error?.message || "unknown error";
+          err(reqType + " failed: " + errMsg);
+          ws.close();
+          finish(new Error(reqType + " failed: " + errMsg));
+          return;
+        }
+
+        if (reqType === "connect") {
+          connectDone = true;
+          log("connected, sending agent request");
+          const agentId = sendReq(ws, "agent", agentParams);
+          pendingRequests.set(agentId, "agent");
+          return;
+        }
+
+        if (reqType === "agent") {
+          log("agent request completed");
+          ws.close();
+          finish(null, msg.payload);
+          return;
+        }
+      }
+
+      // Ignore other events (tick, etc.)
+    } catch (e) {
+      err("parse error: " + e);
+    }
+  };
+
+  ws.onerror = (e) => {
+    if (!done) { err("ws error: " + (e.message || e)); finish(e instanceof Error ? e : new Error(String(e))); }
+  };
+
+  ws.onclose = (evt) => {
+    if (!done) { err("ws closed: " + (evt.code || "?") + " " + (evt.reason || "")); finish(new Error("ws closed: " + evt.code)); }
+  };
+
+  const timer = setTimeout(() => {
+    err("timeout after 30s");
+    try { ws.close(); } catch {}
+    finish(new Error("timeout"));
+  }, 30000);
+});
+
+log("done");
+process.exit(0);
+`.trim();
+}
+
 /**
  * Fire-and-forget agent trigger via a detached Node.js subprocess that opens
- * a raw WebSocket to the gateway and sends the `agent` method with both
- * `agentId` and `sessionKey`.
+ * a raw WebSocket to the gateway and sends the `agent` method.
  *
- * The CLI subprocess approach does NOT work because:
- * - `--agent` alone: gateway rejects with "unknown agent id" during concurrent runs
- * - `--session-id` alone: gateway doesn't resolve agentId → wrong tool config
- * - `--agent` + `--session-id`: still rejected by agent ID validation
+ * **v2 (Task 0094)**: Uses a raw WebSocket client with zero SDK dependencies.
+ * The gateway protocol is simple JSON-RPC: challenge → connect → request.
  *
- * A raw WS with both params goes through the same code path as Telegram inbound,
- * ensuring the agent gets its plugin tools (team_inbox, team_reply, etc.).
+ * The subprocess approach is preserved for config state isolation —
+ * GatewayClient's constructor triggers loadConfig() which resets the
+ * gateway's in-memory Telegram bindings when run in-process.
+ *
+ * IMPORTANT: Do NOT pass agentId in the agent request — the gateway's
+ * listAgentIds() check rejects known agent IDs during concurrent runs.
+ * Instead, pass only sessionKey; the gateway resolves the agent config
+ * from the session key via loadSessionEntry().
  */
 export function fireAgentViaGatewayWs(
   agentId: string,
@@ -467,32 +651,54 @@ export function fireAgentViaGatewayWs(
 ): void {
   const port = process.env['OPENCLAW_GATEWAY_PORT'] || '28789';
   const sessionKey = options?.sessionKey ?? `agent:${agentId}:main`;
+  const agentParams = buildAgentParams(agentId, sessionKey, message, options);
+  const script = buildRawWsSpawnScript(agentId, agentParams, port);
 
-  // ESM script using the SDK's GatewayClient directly (NOT callGatewayFromCli).
-  // callGatewayFromCli triggers loadConfig() which causes config state changes
-  // that reset the gateway's in-memory Telegram bindings.
-  //
-  // By using GatewayClient + loadOrCreateDeviceIdentity() directly, we get
-  // proper device-authenticated WS with full scopes without config side effects.
-  //
-  // IMPORTANT: Do NOT pass agentId — the gateway's listAgentIds() check
-  // rejects known agent IDs during concurrent runs. Instead, pass only
-  // sessionKey; the gateway resolves the agent config from the session key
-  // via loadSessionEntry(), which sets cfgForAgent and loads plugin tools.
-  const agentParams = JSON.stringify({
-    sessionKey,
-    message,
-    idempotencyKey: options?.idempotencyKey ?? `auto-spawn:${agentId}:${Date.now()}`,
-    ...(options?.deliver ? { deliver: true, channel: options.channel, ...(options.accountId ? { accountId: options.accountId } : {}), ...(options.to ? { to: options.to } : {}) } : {}),
-  });
+  try {
+    const spawnLogDir = process.env['OPENCLAW_SPAWN_LOG_DIR'] || '/tmp/openclaw';
+    mkdirSync(spawnLogDir, { recursive: true });
+    const logFd = openSync(`${spawnLogDir}/spawn-debug.log`, 'a');
 
-  // The inline ESM script discovers the GatewayClient class dynamically by
-  // checking prototype shape, NOT by hardcoded minified symbol names. This
-  // makes it resilient to SDK version updates that change minification.
-  //
-  // GatewayClient's constructor already defaults minProtocol, maxProtocol,
-  // scopes, and deviceIdentity internally — we omit them and let the class
-  // use its own PROTOCOL_VERSION constant and loadOrCreateDeviceIdentity().
+    const cwd = process.env['OPENCLAW_APP_DIR'] || process.cwd();
+
+    const child = spawn('node', ['--input-type=module', '-e', script], {
+      detached: true,
+      stdio: ['ignore', logFd, logFd],
+      cwd,
+      env: {
+        PATH: process.env['PATH'] ?? '',
+        HOME: process.env['HOME'] ?? '',
+        OPENCLAW_GATEWAY_TOKEN: process.env['OPENCLAW_GATEWAY_TOKEN'] ?? '',
+        OPENCLAW_GATEWAY_PORT: process.env['OPENCLAW_GATEWAY_PORT'] ?? '',
+      },
+    });
+    child.on('error', (e) => {
+      logger.warn(`auto-spawn: subprocess error for "${agentId}": ${String(e)}`);
+    });
+    child.unref();
+
+    // Close the FD in the parent — the child inherits its own copy
+    closeSync(logFd);
+  } catch (err: unknown) {
+    logger.warn(`auto-spawn: WS subprocess spawn failed for "${agentId}": ${String(err)}`);
+  }
+}
+
+/**
+ * Legacy v1 spawn (SDK-internal discovery).  Activated by OPENCLAW_SPAWN_V1=1.
+ * Kept as a rollback mechanism during the v2 transition.
+ * @deprecated Will be removed once v2 is validated in production.
+ */
+export function fireAgentViaGatewayWsV1(
+  agentId: string,
+  message: string,
+  logger: AutoSpawnLogger,
+  options?: AgentSpawnOptions,
+): void {
+  const port = process.env['OPENCLAW_GATEWAY_PORT'] || '28789';
+  const sessionKey = options?.sessionKey ?? `agent:${agentId}:main`;
+  const agentParams = buildAgentParams(agentId, sessionKey, message, options);
+
   const script = `
 import { readdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
@@ -501,7 +707,6 @@ const ts = () => new Date().toISOString();
 const log = (msg) => console.log(ts() + " [spawn:${agentId}] " + msg);
 const err = (msg) => console.error(ts() + " [spawn:${agentId}] " + msg);
 
-// Resolve hashed client-*.js filename at runtime
 const distDir = "/app/node_modules/openclaw/dist/";
 const files = readdirSync(distDir);
 const clientFile = files.filter(f => f.startsWith("client-") && f.endsWith(".js")).sort()[0];
@@ -509,7 +714,6 @@ if (!clientFile) { err("client-*.js not found"); process.exit(1); }
 
 const clientMod = await import(distDir + clientFile);
 
-// Find GatewayClient by prototype shape (has sendConnect + request + start)
 const GatewayClient = Object.values(clientMod).find(
   v => typeof v === "function" && v.prototype
     && typeof v.prototype.sendConnect === "function"
@@ -554,9 +758,6 @@ process.exit(0);
 `.trim();
 
   try {
-    // Redirect subprocess stdout/stderr to a log file so spawn failures are
-    // visible for debugging. Without this, detached+unref processes silently
-    // swallow all output including error messages.
     const spawnLogDir = '/tmp/openclaw';
     mkdirSync(spawnLogDir, { recursive: true });
     const logFd = openSync(`${spawnLogDir}/spawn-debug.log`, 'a');
@@ -573,12 +774,31 @@ process.exit(0);
         OPENCLAW_GATEWAY_PORT: process.env['OPENCLAW_GATEWAY_PORT'] ?? '',
       },
     });
+    child.on('error', (e) => {
+      logger.warn(`auto-spawn: v1 subprocess error for "${agentId}": ${String(e)}`);
+    });
     child.unref();
-
-    // Close the FD in the parent — the child inherits its own copy
     closeSync(logFd);
   } catch (err: unknown) {
-    logger.warn(`auto-spawn: WS subprocess spawn failed for "${agentId}": ${String(err)}`);
+    logger.warn(`auto-spawn: v1 WS subprocess spawn failed for "${agentId}": ${String(err)}`);
+  }
+}
+
+/**
+ * Dispatch agent spawn to the appropriate implementation.
+ * Uses raw WebSocket v2 by default; set OPENCLAW_SPAWN_V1=1 for legacy path.
+ */
+export function dispatchAgentSpawn(
+  agentId: string,
+  message: string,
+  logger: AutoSpawnLogger,
+  options?: AgentSpawnOptions,
+): void {
+  if (process.env['OPENCLAW_SPAWN_V1'] === '1') {
+    logger.info(`auto-spawn: using v1 (legacy SDK) for "${agentId}"`);
+    fireAgentViaGatewayWsV1(agentId, message, logger, options);
+  } else {
+    fireAgentViaGatewayWs(agentId, message, logger, options);
   }
 }
 
@@ -643,7 +863,7 @@ export function registerAutoSpawnHooks(
   const runner: AgentSpawnSink = agentRunner ?? {
     spawnAgent(agentId: string, message: string, options?: AgentSpawnOptions): void {
       try {
-        fireAgentViaGatewayWs(agentId, message, api.logger, options);
+        dispatchAgentSpawn(agentId, message, api.logger, options);
         api.logger.info(`auto-spawn: WS trigger fired for agent "${agentId}"`);
       } catch (err: unknown) {
         api.logger.warn(`auto-spawn: WS trigger failed for "${agentId}": ${String(err)}`);
