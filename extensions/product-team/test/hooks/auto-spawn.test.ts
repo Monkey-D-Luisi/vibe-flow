@@ -7,8 +7,13 @@ import {
   handlePipelineAdvanceAutoSpawn,
   registerAutoSpawnHooks,
   resetDedupCache,
+  getDedupSize,
+  DEDUP_MAX_SIZE,
   rebuildSessionKeyForAgent,
   extractChatIdFromSessionKey,
+  buildAgentParams,
+  buildRawWsSpawnScript,
+  dispatchAgentSpawn,
   type AutoSpawnDeps,
 } from '../../src/hooks/auto-spawn.js';
 import type { OpenClawPluginApi } from '../../src/index.js';
@@ -990,5 +995,231 @@ describe('registerAutoSpawnHooks', () => {
         { agentId: 'pm', sessionKey: 'test-session' },
       ),
     ).not.toThrow();
+  });
+});
+
+// ── buildAgentParams (Task 0094) ────────────────────────────────────────────
+
+describe('buildAgentParams', () => {
+  it('builds basic params with sessionKey and message', () => {
+    const result = JSON.parse(buildAgentParams('tech-lead', 'agent:tech-lead:main', 'Hello'));
+    expect(result.sessionKey).toBe('agent:tech-lead:main');
+    expect(result.message).toBe('Hello');
+    expect(result.idempotencyKey).toMatch(/^auto-spawn:tech-lead:\d+$/);
+  });
+
+  it('uses provided idempotencyKey from options', () => {
+    const result = JSON.parse(buildAgentParams('pm', 'agent:pm:main', 'Hi', {
+      idempotencyKey: 'custom-key-123',
+    }));
+    expect(result.idempotencyKey).toBe('custom-key-123');
+  });
+
+  it('includes delivery params when deliver is true', () => {
+    const result = JSON.parse(buildAgentParams('pm', 'agent:pm:telegram:group:-123', 'Hello', {
+      deliver: true,
+      channel: 'telegram',
+      accountId: 'pm-bot',
+      to: '-123',
+    }));
+    expect(result.deliver).toBe(true);
+    expect(result.channel).toBe('telegram');
+    expect(result.accountId).toBe('pm-bot');
+    expect(result.to).toBe('-123');
+  });
+
+  it('omits delivery params when deliver is false', () => {
+    const result = JSON.parse(buildAgentParams('pm', 'agent:pm:main', 'Hello', {
+      deliver: false,
+      channel: 'telegram',
+    }));
+    expect(result.deliver).toBeUndefined();
+    expect(result.channel).toBeUndefined();
+  });
+
+  it('omits optional accountId and to when not provided', () => {
+    const result = JSON.parse(buildAgentParams('pm', 'agent:pm:main', 'Hello', {
+      deliver: true,
+      channel: 'telegram',
+    }));
+    expect(result.deliver).toBe(true);
+    expect(result.channel).toBe('telegram');
+    expect(result.accountId).toBeUndefined();
+    expect(result.to).toBeUndefined();
+  });
+});
+
+// ── buildRawWsSpawnScript (Task 0094) ───────────────────────────────────────
+
+describe('buildRawWsSpawnScript', () => {
+  it('generates ESM script with no SDK imports', () => {
+    const script = buildRawWsSpawnScript('tech-lead', '{"sessionKey":"agent:tech-lead:main"}', '28789');
+    // Zero SDK imports — only node:crypto and WebSocket
+    expect(script).not.toContain('openclaw');
+    expect(script).not.toContain('clientMod');
+    expect(script).not.toContain('readdirSync');
+    expect(script).toContain('import { randomUUID } from "node:crypto"');
+  });
+
+  it('includes gateway protocol connect frame with correct version', () => {
+    const script = buildRawWsSpawnScript('pm', '{}', '28789');
+    expect(script).toContain('minProtocol: 3');
+    expect(script).toContain('maxProtocol: 3');
+  });
+
+  it('includes connect.challenge handler', () => {
+    const script = buildRawWsSpawnScript('pm', '{}', '28789');
+    expect(script).toContain('connect.challenge');
+    expect(script).toContain('payload?.nonce');
+  });
+
+  it('sends connect then agent request in sequence', () => {
+    const script = buildRawWsSpawnScript('pm', '{}', '28789');
+    expect(script).toContain('sendReq(ws, "connect"');
+    expect(script).toContain('sendReq(ws, "agent"');
+  });
+
+  it('uses correct WebSocket URL with provided port', () => {
+    const script = buildRawWsSpawnScript('tech-lead', '{}', '3000');
+    expect(script).toContain('ws://127.0.0.1:3000');
+  });
+
+  it('embeds agent params in the script', () => {
+    const params = JSON.stringify({ sessionKey: 'agent:qa:main', message: 'Run tests' });
+    const script = buildRawWsSpawnScript('qa', params, '28789');
+    expect(script).toContain('agent:qa:main');
+    expect(script).toContain('Run tests');
+  });
+
+  it('uses WebSocket global with ws fallback for older Node', () => {
+    const script = buildRawWsSpawnScript('pm', '{}', '28789');
+    expect(script).toContain('typeof WebSocket !== "undefined"');
+    expect(script).toContain('await import("ws")');
+  });
+
+  it('includes 30s timeout', () => {
+    const script = buildRawWsSpawnScript('pm', '{}', '28789');
+    expect(script).toContain('30000');
+    expect(script).toContain('timeout after 30s');
+  });
+
+  it('includes correct auth token env var', () => {
+    const script = buildRawWsSpawnScript('pm', '{}', '28789');
+    expect(script).toContain('OPENCLAW_GATEWAY_TOKEN');
+  });
+
+  it('includes operator.admin scope', () => {
+    const script = buildRawWsSpawnScript('pm', '{}', '28789');
+    expect(script).toContain('operator.admin');
+  });
+
+  it('includes spawn-v2 client version identifier', () => {
+    const script = buildRawWsSpawnScript('pm', '{}', '28789');
+    expect(script).toContain('spawn-v2');
+  });
+});
+
+// ── dispatchAgentSpawn feature flag (Task 0094) ─────────────────────────────
+
+describe('dispatchAgentSpawn', () => {
+  const originalEnv = process.env['OPENCLAW_SPAWN_V1'];
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env['OPENCLAW_SPAWN_V1'];
+    } else {
+      process.env['OPENCLAW_SPAWN_V1'] = originalEnv;
+    }
+  });
+
+  it('does not throw when called with default (v2) path', () => {
+    delete process.env['OPENCLAW_SPAWN_V1'];
+    const logger = { info: vi.fn(), warn: vi.fn() };
+    // v2 spawns a detached subprocess — spawn() itself is synchronous and non-throwing;
+    // child errors are emitted asynchronously via child.on('error').
+    expect(() => dispatchAgentSpawn('pm', 'Hello', logger)).not.toThrow();
+  });
+
+  it('logs v1 usage when OPENCLAW_SPAWN_V1=1', () => {
+    process.env['OPENCLAW_SPAWN_V1'] = '1';
+    const logger = { info: vi.fn(), warn: vi.fn() };
+    // spawn() returns synchronously; child may fail async (gateway not running)
+    expect(() => dispatchAgentSpawn('pm', 'Hello', logger)).not.toThrow();
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.stringContaining('using v1 (legacy SDK)'),
+    );
+  });
+
+  it('does not log v1 when OPENCLAW_SPAWN_V1 is not set', () => {
+    delete process.env['OPENCLAW_SPAWN_V1'];
+    const logger = { info: vi.fn(), warn: vi.fn() };
+    expect(() => dispatchAgentSpawn('pm', 'Hello', logger)).not.toThrow();
+    expect(logger.info).not.toHaveBeenCalledWith(
+      expect.stringContaining('using v1'),
+    );
+  });
+});
+
+// ── Dedup map bounding (Task 0094) ──────────────────────────────────────────
+
+describe('dedup map bounding', () => {
+  beforeEach(() => {
+    resetDedupCache();
+  });
+
+  it('deduplicates identical spawns within TTL', () => {
+    const deps = createDeps();
+    const event = makeEvent({
+      result: { details: { delivered: true, messageId: 'dup-test' } },
+      params: { to: 'tech-lead', subject: 'test' },
+    });
+    handleTeamMessageAutoSpawn(deps, event, makeCtx());
+    handleTeamMessageAutoSpawn(deps, event, makeCtx());
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows different spawns (unique dedup keys)', () => {
+    const deps = createDeps();
+    const event1 = makeEvent({
+      result: { details: { delivered: true, messageId: 'msg-A' } },
+      params: { to: 'tech-lead', subject: 'test A' },
+    });
+    const event2 = makeEvent({
+      result: { details: { delivered: true, messageId: 'msg-B' } },
+      params: { to: 'tech-lead', subject: 'test B' },
+    });
+    handleTeamMessageAutoSpawn(deps, event1, makeCtx());
+    handleTeamMessageAutoSpawn(deps, event2, makeCtx());
+    expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(2);
+  });
+
+  it('evicts oldest entries when exceeding DEDUP_MAX_SIZE', () => {
+    const deps = createDeps();
+    // Fill the dedup cache to capacity with unique messages
+    for (let i = 0; i < DEDUP_MAX_SIZE; i++) {
+      const event = makeEvent({
+        result: { details: { delivered: true, messageId: `fill-${i}` } },
+        params: { to: 'tech-lead', subject: `fill-${i}` },
+      });
+      handleTeamMessageAutoSpawn(deps, event, makeCtx());
+    }
+    expect(getDedupSize()).toBe(DEDUP_MAX_SIZE);
+
+    // Insert one more — should evict oldest and make room
+    const overflow = makeEvent({
+      result: { details: { delivered: true, messageId: 'overflow' } },
+      params: { to: 'tech-lead', subject: 'overflow' },
+    });
+    handleTeamMessageAutoSpawn(deps, overflow, makeCtx());
+    expect(getDedupSize()).toBe(DEDUP_MAX_SIZE);
+
+    // The first entry (fill-0) should have been evicted — re-sending it should spawn again
+    const reinsert = makeEvent({
+      result: { details: { delivered: true, messageId: 'fill-0' } },
+      params: { to: 'tech-lead', subject: 'fill-0' },
+    });
+    const callsBefore = (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls.length;
+    handleTeamMessageAutoSpawn(deps, reinsert, makeCtx());
+    expect((deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsBefore + 1);
   });
 });

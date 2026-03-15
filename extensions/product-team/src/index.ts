@@ -39,8 +39,9 @@ import { MonitoringCron } from './services/monitoring-cron.js';
 import { DecisionTimeoutCron } from './services/decision-timeout-cron.js';
 import { StageTimeoutCron } from './services/stage-timeout-cron.js';
 import { createGracefulShutdown } from './hooks/graceful-shutdown.js';
-import { registerAutoSpawnHooks, fireAgentViaGatewayWs } from './hooks/auto-spawn.js';
+import { registerAutoSpawnHooks, dispatchAgentSpawn } from './hooks/auto-spawn.js';
 import type { AgentSpawnSink, AgentSpawnOptions } from './hooks/auto-spawn.js';
+import { SpawnService } from './services/spawn-service.js';
 import { registerSessionRecoveryHook, clearAgentSessions } from './hooks/session-recovery.js';
 import type { SessionRecoveryEventEmitter } from './hooks/session-recovery.js';
 import { injectOriginIntoTeamMessage } from './hooks/origin-injection.js';
@@ -139,6 +140,7 @@ export function register(api: OpenClawPluginApi): void {
   monitoringCron.start();
 
   // Register graceful shutdown: release leases, WAL checkpoint, close DB, stop crons
+  let stopSpawnService = (): void => {};
   const gracefulShutdown = createGracefulShutdown({
     db,
     leaseRepo,
@@ -148,6 +150,7 @@ export function register(api: OpenClawPluginApi): void {
     },
   });
   registerProcessShutdownHooks(() => {
+    stopSpawnService();
     gracefulShutdown();
     try {
       db.close();
@@ -335,17 +338,23 @@ export function register(api: OpenClawPluginApi): void {
   });
   api.logger.info('registered caller-injection before_tool_call hook for pipeline_advance');
 
-  // Shared spawn sink: used by both auto-spawn hooks and stage-timeout cron
-  const sharedSpawnSink: AgentSpawnSink = {
+  // Shared spawn sink: SpawnService wraps the raw WS spawner with a persistent
+  // retry queue and dead-letter handling. Used by auto-spawn hooks and stage-timeout cron.
+  const primarySpawner: AgentSpawnSink = {
     spawnAgent(agentId: string, message: string, options?: AgentSpawnOptions): void {
-      try {
-        fireAgentViaGatewayWs(agentId, message, api.logger, options);
-        api.logger.info(`shared-spawn: triggered agent "${agentId}"`);
-      } catch (err: unknown) {
-        api.logger.warn(`shared-spawn: failed for "${agentId}": ${String(err)}`);
-      }
+      dispatchAgentSpawn(agentId, message, api.logger, options);
     },
   };
+  const spawnService = new SpawnService({
+    db,
+    generateId,
+    now,
+    logger: api.logger,
+    primarySpawner,
+  });
+  spawnService.start();
+  stopSpawnService = () => spawnService.stop();
+  const sharedSpawnSink: AgentSpawnSink = spawnService;
 
   // Auto-spawn hooks: when an agent sends a team_message or escalates a decision,
   // inject a system directive into the caller's session to spawn the target agent.

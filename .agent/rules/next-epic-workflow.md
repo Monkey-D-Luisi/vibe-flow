@@ -5,12 +5,12 @@
 
 ## Execution Contract
 
-Execute the **entire epic** as an **atomic run** — all tasks in the epic are implemented sequentially on a **single feature branch** and submitted in a **single Pull Request**.
+Execute the **entire epic** on a **single feature branch** submitted in a **single Pull Request**. **Plan-first**: present the full epic plan and get user approval before writing any code.
 
-- Complete all tasks in sequence without mid-task pauses.
-- If a step fails: fix it or document the blocker in the walkthrough and continue.
+- Present a plan covering all tasks in the epic before starting implementation.
+- If a step fails: diagnose and ask the user how to proceed.
 - Read only local files. Do not fetch external repos or URLs.
-- **Genuine ambiguity before starting?** Use the questionnaire tool (no requests consumed). Ask once, upfront, not mid-task.
+- **Any doubt or uncertainty?** Use the questionnaire tool (always include a free-text field). Ask early, ask often.
 - Emphasis on **maximum detail, depth, and exhaustive testing** at every step.
 
 ## Key Differences from `next task`
@@ -34,6 +34,17 @@ Execute the **entire epic** as an **atomic run** — all tasks in the epic are i
 2. Read the corresponding `docs/backlog/EPxx-*.md` to get the full task breakdown.
 3. Identify all tasks in the epic, their sub-phases, and dependency ordering.
 4. If no epic is available (all dependencies unmet), report to user and stop.
+
+### Step 0.5: Plan & Confirm
+
+1. Enter plan mode (or present a structured plan in chat)
+2. For the entire epic, outline:
+   - Task execution order and dependencies
+   - Key design decisions and approach for each task
+   - Files that will be created or modified
+   - Risks, open questions, and trade-offs
+3. Wait for user approval before proceeding to Step 1
+4. If the user requests changes, revise the plan and re-confirm
 
 ### Step 1: Sync and Branch
 
