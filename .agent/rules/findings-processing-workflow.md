@@ -9,17 +9,18 @@
 
 ## Execution Contract
 
-- **Implement every resolvable finding in code** before writing artifacts.
+- **Plan-first**: present the findings triage and implementation plan to the user before starting fixes.
 - Process every finding without omission.
 - Preserve source finding IDs for traceability.
 - Generate deterministic task/walkthrough artifacts.
 - No finding is closed without command-backed verification and linked walkthrough evidence.
+- **Any doubt or uncertainty?** Use the questionnaire tool (always include a free-text field).
 
-## Implementation-First Mandate
+## Plan-Then-Implement Mandate
 
 For each finding, execute in order:
 
-1. **Implement** — apply the fix in source code, config, or docs. Do not create planning artifacts first.
+1. **Plan** — outline the fix approach and get user approval. Then apply the fix in source code, config, or docs.
 2. **Verify** — run the relevant command(s) (`pnpm typecheck`, `pnpm lint`, `pnpm test`, etc.) to confirm the fix.
 3. **Commit** — one commit per finding or per theme group. Use `fix(<finding-id>): <description>` format.
 4. **Document** — write the task + walkthrough files recording what was done.

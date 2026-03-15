@@ -3,7 +3,17 @@
 ## Trigger
 User asks to review a PR or address PR comments.
 
+## Execution Contract
+
+Present a review plan and get user approval before making code changes. For any doubt about how to address a finding, use the questionnaire tool (always include a free-text field).
+
 ## Phases
+
+### Phase 0: Plan & Confirm
+1. Fetch PR diff and review comments
+2. Present to the user: summary of changes, identified issues, proposed fix approach for each
+3. Wait for user approval on which items to fix and how
+4. Proceed to detailed phases only after confirmation
 
 ### Phase A: Independent Review
 1. Fetch PR diff: `gh pr diff <PR_NUMBER>`
