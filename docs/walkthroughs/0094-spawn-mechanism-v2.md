@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0094-spawn-mechanism-v2.md`
 - Epic: EP13 -- Stable Agent Protocol
 - Branch: `feat/0094-spawn-mechanism-v2`
-- PR: (pending)
+- PR: [#256](https://github.com/Monkey-D-Luisi/vibe-flow/pull/256)
 
 ---
 
