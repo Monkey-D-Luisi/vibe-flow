@@ -5,12 +5,13 @@
 
 ## Execution Contract
 
-Execute this workflow atomically and do not skip phases.
+Execute this workflow phase by phase. **Plan-first**: after preflight (Phase 1), present the audit scope and approach to the user for confirmation before proceeding to analysis phases.
 
 - Run every mandatory phase in order.
-- If a command fails, retry once. If still failing, record blocker and continue with remaining phases.
+- If a command fails, retry once. If still failing, ask the user how to proceed.
 - Keep command-backed evidence for each phase.
 - Do not mark completion until the report is fully generated and linked in walkthrough evidence.
+- **Any doubt or uncertainty?** Use the questionnaire tool (always include a free-text field).
 
 ## Priority Axis (strict)
 
@@ -39,6 +40,15 @@ Capture repository inventory metrics:
 - file count (global + scoped directories)
 - hotspot list (largest files by line count)
 - coverage summary from available coverage artifacts or coverage runs
+
+## Phase 1.5: Plan & Confirm
+
+Present the preflight results to the user along with:
+1. Proposed audit scope (which extensions, packages, and skills will be covered)
+2. Any areas of concern identified during preflight
+3. Estimated effort and any known limitations
+
+Wait for user approval before proceeding to Phase 2.
 
 ## Phase 2: Product Audit (highest priority)
 

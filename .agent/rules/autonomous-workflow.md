@@ -5,12 +5,12 @@
 
 ## Execution contract
 
-Execute this workflow **atomically** — no blocking "continue" checkpoints, no mid-task pauses.
+Execute this workflow with **plan-first** discipline — always confirm the approach with the user before implementing.
 
-- Complete all steps in a single uninterrupted run.
-- If a step fails: fix it or document the blocker in the walkthrough and continue.
+- Present a plan and get user approval before writing code.
+- If a step fails: diagnose and ask the user how to proceed.
 - Read only local files. Do not fetch external repos or URLs.
-- **Genuine ambiguity before starting?** Use the questionnaire tool (no requests consumed). Ask once, upfront, not mid-task.
+- **Any doubt or uncertainty?** Use the questionnaire tool (always include a free-text field). Ask early, ask often.
 
 ## Workflow Steps
 
@@ -24,6 +24,12 @@ Execute this workflow **atomically** — no blocking "continue" checkpoints, no 
 2. Select the first PENDING task with all dependencies met
 3. Validate dependency epics in `docs/backlog/` are `DONE`
 4. If no task is available, report to user and wait
+
+### Step 1.5: Plan & Confirm
+1. Enter plan mode (or present a structured plan in chat)
+2. Outline: which files will be created/modified, implementation approach, key design decisions, any risks
+3. Wait for user approval before proceeding to Step 2
+4. If the user requests changes to the plan, revise and re-confirm
 
 ### Step 2: Create Task Documentation
 1. Ensure task file exists: `docs/tasks/NNNN-<task-title>.md` (create from `.agent/templates/task-spec.md` if missing)
