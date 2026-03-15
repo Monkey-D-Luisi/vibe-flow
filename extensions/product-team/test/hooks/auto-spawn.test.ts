@@ -7,6 +7,8 @@ import {
   handlePipelineAdvanceAutoSpawn,
   registerAutoSpawnHooks,
   resetDedupCache,
+  getDedupSize,
+  DEDUP_MAX_SIZE,
   rebuildSessionKeyForAgent,
   extractChatIdFromSessionKey,
   buildAgentParams,
@@ -1133,15 +1135,15 @@ describe('dispatchAgentSpawn', () => {
   it('does not throw when called with default (v2) path', () => {
     delete process.env['OPENCLAW_SPAWN_V1'];
     const logger = { info: vi.fn(), warn: vi.fn() };
-    // v2 will try to spawn a subprocess which will fail in test env (no node in
-    // stripped PATH), but the error is caught+logged, not thrown.
+    // v2 spawns a detached subprocess — spawn() itself is synchronous and non-throwing;
+    // child errors are emitted asynchronously via child.on('error').
     expect(() => dispatchAgentSpawn('pm', 'Hello', logger)).not.toThrow();
   });
 
   it('logs v1 usage when OPENCLAW_SPAWN_V1=1', () => {
     process.env['OPENCLAW_SPAWN_V1'] = '1';
     const logger = { info: vi.fn(), warn: vi.fn() };
-    // Will fail to spawn subprocess (ENOENT on test env) but that's caught internally
+    // spawn() returns synchronously; child may fail async (gateway not running)
     expect(() => dispatchAgentSpawn('pm', 'Hello', logger)).not.toThrow();
     expect(logger.info).toHaveBeenCalledWith(
       expect.stringContaining('using v1 (legacy SDK)'),
@@ -1189,5 +1191,35 @@ describe('dedup map bounding', () => {
     handleTeamMessageAutoSpawn(deps, event1, makeCtx());
     handleTeamMessageAutoSpawn(deps, event2, makeCtx());
     expect(deps.agentRunner.spawnAgent).toHaveBeenCalledTimes(2);
+  });
+
+  it('evicts oldest entries when exceeding DEDUP_MAX_SIZE', () => {
+    const deps = createDeps();
+    // Fill the dedup cache to capacity with unique messages
+    for (let i = 0; i < DEDUP_MAX_SIZE; i++) {
+      const event = makeEvent({
+        result: { details: { delivered: true, messageId: `fill-${i}` } },
+        params: { to: 'tech-lead', subject: `fill-${i}` },
+      });
+      handleTeamMessageAutoSpawn(deps, event, makeCtx());
+    }
+    expect(getDedupSize()).toBe(DEDUP_MAX_SIZE);
+
+    // Insert one more — should evict oldest and make room
+    const overflow = makeEvent({
+      result: { details: { delivered: true, messageId: 'overflow' } },
+      params: { to: 'tech-lead', subject: 'overflow' },
+    });
+    handleTeamMessageAutoSpawn(deps, overflow, makeCtx());
+    expect(getDedupSize()).toBe(DEDUP_MAX_SIZE);
+
+    // The first entry (fill-0) should have been evicted — re-sending it should spawn again
+    const reinsert = makeEvent({
+      result: { details: { delivered: true, messageId: 'fill-0' } },
+      params: { to: 'tech-lead', subject: 'fill-0' },
+    });
+    const callsBefore = (deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls.length;
+    handleTeamMessageAutoSpawn(deps, reinsert, makeCtx());
+    expect((deps.agentRunner.spawnAgent as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsBefore + 1);
   });
 });

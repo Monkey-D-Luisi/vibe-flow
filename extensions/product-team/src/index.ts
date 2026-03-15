@@ -140,6 +140,7 @@ export function register(api: OpenClawPluginApi): void {
   monitoringCron.start();
 
   // Register graceful shutdown: release leases, WAL checkpoint, close DB, stop crons
+  let stopSpawnService = (): void => {};
   const gracefulShutdown = createGracefulShutdown({
     db,
     leaseRepo,
@@ -149,6 +150,7 @@ export function register(api: OpenClawPluginApi): void {
     },
   });
   registerProcessShutdownHooks(() => {
+    stopSpawnService();
     gracefulShutdown();
     try {
       db.close();
@@ -345,12 +347,13 @@ export function register(api: OpenClawPluginApi): void {
   };
   const spawnService = new SpawnService({
     db,
-    generateId: () => ulid(),
-    now: () => new Date().toISOString(),
+    generateId,
+    now,
     logger: api.logger,
     primarySpawner,
   });
   spawnService.start();
+  stopSpawnService = () => spawnService.stop();
   const sharedSpawnSink: AgentSpawnSink = spawnService;
 
   // Auto-spawn hooks: when an agent sends a team_message or escalates a decision,

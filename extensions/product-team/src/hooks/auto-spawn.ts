@@ -91,6 +91,11 @@ export function resetDedupCache(): void {
   recentSpawns.clear();
 }
 
+/** @internal Exposed for testing only. */
+export function getDedupSize(): number {
+  return recentSpawns.size;
+}
+
 /**
  * Safely extract `details` (or the result itself) from an after_tool_call event.
  *
@@ -456,7 +461,8 @@ export function handlePipelineAdvanceAutoSpawn(
 // ── Gateway-direct agent trigger ─────────────────────────────────────────────
 
 /** Maximum entries in the dedup map before forced eviction. */
-const DEDUP_MAX_SIZE = 1000;
+/** @internal Exposed for testing only. */
+export const DEDUP_MAX_SIZE = 1000;
 
 /** Gateway protocol version (must match the server). */
 const GATEWAY_PROTOCOL_VERSION = 3;
@@ -523,8 +529,6 @@ const agentParams = ${agentParams};
 const url = "ws://127.0.0.1:${port}";
 log("connecting to " + url);
 
-let reqCounter = 0;
-
 function sendReq(ws, method, params) {
   const id = randomUUID();
   const frame = JSON.stringify({ type: "req", id, method, params });
@@ -588,8 +592,8 @@ await new Promise((resolve, reject) => {
         if (reqType === "connect") {
           connectDone = true;
           log("connected, sending agent request");
-          const agentId = sendReq(ws, "agent", agentParams);
-          pendingRequests.set(agentId, "agent");
+          const agentReqId = sendReq(ws, "agent", agentParams);
+          pendingRequests.set(agentReqId, "agent");
           return;
         }
 
@@ -654,34 +658,30 @@ export function fireAgentViaGatewayWs(
   const agentParams = buildAgentParams(agentId, sessionKey, message, options);
   const script = buildRawWsSpawnScript(agentId, agentParams, port);
 
-  try {
-    const spawnLogDir = process.env['OPENCLAW_SPAWN_LOG_DIR'] || '/tmp/openclaw';
-    mkdirSync(spawnLogDir, { recursive: true });
-    const logFd = openSync(`${spawnLogDir}/spawn-debug.log`, 'a');
+  const spawnLogDir = process.env['OPENCLAW_SPAWN_LOG_DIR'] || '/tmp/openclaw';
+  mkdirSync(spawnLogDir, { recursive: true });
+  const logFd = openSync(`${spawnLogDir}/spawn-debug.log`, 'a');
 
-    const cwd = process.env['OPENCLAW_APP_DIR'] || process.cwd();
+  const cwd = process.env['OPENCLAW_APP_DIR'] || process.cwd();
 
-    const child = spawn('node', ['--input-type=module', '-e', script], {
-      detached: true,
-      stdio: ['ignore', logFd, logFd],
-      cwd,
-      env: {
-        PATH: process.env['PATH'] ?? '',
-        HOME: process.env['HOME'] ?? '',
-        OPENCLAW_GATEWAY_TOKEN: process.env['OPENCLAW_GATEWAY_TOKEN'] ?? '',
-        OPENCLAW_GATEWAY_PORT: process.env['OPENCLAW_GATEWAY_PORT'] ?? '',
-      },
-    });
-    child.on('error', (e) => {
-      logger.warn(`auto-spawn: subprocess error for "${agentId}": ${String(e)}`);
-    });
-    child.unref();
+  const child = spawn('node', ['--input-type=module', '-e', script], {
+    detached: true,
+    stdio: ['ignore', logFd, logFd],
+    cwd,
+    env: {
+      PATH: process.env['PATH'] ?? '',
+      HOME: process.env['HOME'] ?? '',
+      OPENCLAW_GATEWAY_TOKEN: process.env['OPENCLAW_GATEWAY_TOKEN'] ?? '',
+      OPENCLAW_GATEWAY_PORT: process.env['OPENCLAW_GATEWAY_PORT'] ?? '',
+    },
+  });
+  child.on('error', (e) => {
+    logger.warn(`auto-spawn: subprocess error for "${agentId}": ${String(e)}`);
+  });
+  child.unref();
 
-    // Close the FD in the parent — the child inherits its own copy
-    closeSync(logFd);
-  } catch (err: unknown) {
-    logger.warn(`auto-spawn: WS subprocess spawn failed for "${agentId}": ${String(err)}`);
-  }
+  // Close the FD in the parent — the child inherits its own copy
+  closeSync(logFd);
 }
 
 /**
@@ -757,31 +757,27 @@ log("done");
 process.exit(0);
 `.trim();
 
-  try {
-    const spawnLogDir = '/tmp/openclaw';
-    mkdirSync(spawnLogDir, { recursive: true });
-    const logFd = openSync(`${spawnLogDir}/spawn-debug.log`, 'a');
+  const spawnLogDir = '/tmp/openclaw';
+  mkdirSync(spawnLogDir, { recursive: true });
+  const logFd = openSync(`${spawnLogDir}/spawn-debug.log`, 'a');
 
-    const child = spawn('node', ['--input-type=module', '-e', script], {
-      detached: true,
-      stdio: ['ignore', logFd, logFd],
-      cwd: '/app',
-      env: {
-        PATH: process.env['PATH'] ?? '',
-        HOME: process.env['HOME'] ?? '',
-        NODE_PATH: '/app/node_modules',
-        OPENCLAW_GATEWAY_TOKEN: process.env['OPENCLAW_GATEWAY_TOKEN'] ?? '',
-        OPENCLAW_GATEWAY_PORT: process.env['OPENCLAW_GATEWAY_PORT'] ?? '',
-      },
-    });
-    child.on('error', (e) => {
-      logger.warn(`auto-spawn: v1 subprocess error for "${agentId}": ${String(e)}`);
-    });
-    child.unref();
-    closeSync(logFd);
-  } catch (err: unknown) {
-    logger.warn(`auto-spawn: v1 WS subprocess spawn failed for "${agentId}": ${String(err)}`);
-  }
+  const child = spawn('node', ['--input-type=module', '-e', script], {
+    detached: true,
+    stdio: ['ignore', logFd, logFd],
+    cwd: '/app',
+    env: {
+      PATH: process.env['PATH'] ?? '',
+      HOME: process.env['HOME'] ?? '',
+      NODE_PATH: '/app/node_modules',
+      OPENCLAW_GATEWAY_TOKEN: process.env['OPENCLAW_GATEWAY_TOKEN'] ?? '',
+      OPENCLAW_GATEWAY_PORT: process.env['OPENCLAW_GATEWAY_PORT'] ?? '',
+    },
+  });
+  child.on('error', (e) => {
+    logger.warn(`auto-spawn: v1 subprocess error for "${agentId}": ${String(e)}`);
+  });
+  child.unref();
+  closeSync(logFd);
 }
 
 /**
