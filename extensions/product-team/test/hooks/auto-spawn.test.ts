@@ -18,6 +18,26 @@ import {
 } from '../../src/hooks/auto-spawn.js';
 import type { OpenClawPluginApi } from '../../src/index.js';
 
+// ── Mocks (hoisted by Vitest) ───────────────────────────────────────────────
+
+vi.mock('node:child_process', () => {
+  const mockChild = {
+    on: vi.fn(),
+    unref: vi.fn(),
+  };
+  return { spawn: vi.fn(() => mockChild) };
+});
+
+vi.mock('node:fs', async (importOriginal) => {
+  const original = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...original,
+    mkdirSync: vi.fn(),
+    openSync: vi.fn(() => 99),
+    closeSync: vi.fn(),
+  };
+});
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function createDeps(overrides?: Partial<AutoSpawnDeps>): AutoSpawnDeps {
@@ -1135,15 +1155,12 @@ describe('dispatchAgentSpawn', () => {
   it('does not throw when called with default (v2) path', () => {
     delete process.env['OPENCLAW_SPAWN_V1'];
     const logger = { info: vi.fn(), warn: vi.fn() };
-    // v2 spawns a detached subprocess — spawn() itself is synchronous and non-throwing;
-    // child errors are emitted asynchronously via child.on('error').
     expect(() => dispatchAgentSpawn('pm', 'Hello', logger)).not.toThrow();
   });
 
   it('logs v1 usage when OPENCLAW_SPAWN_V1=1', () => {
     process.env['OPENCLAW_SPAWN_V1'] = '1';
     const logger = { info: vi.fn(), warn: vi.fn() };
-    // spawn() returns synchronously; child may fail async (gateway not running)
     expect(() => dispatchAgentSpawn('pm', 'Hello', logger)).not.toThrow();
     expect(logger.info).toHaveBeenCalledWith(
       expect.stringContaining('using v1 (legacy SDK)'),

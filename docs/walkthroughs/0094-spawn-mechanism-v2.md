@@ -33,7 +33,7 @@ The gateway uses a simple JSON-RPC-over-WebSocket protocol that can be spoken di
 | Keep subprocess approach | Config state isolation — `GatewayClient` constructor triggers `loadConfig()` which resets Telegram bindings |
 | Wire SpawnService in production | Unlocks retry queue + dead-letter semantics that were built (EP09 task 0067) but unused |
 | Feature flag for rollback | Safety net; `OPENCLAW_SPAWN_V1=1` reverts to legacy SDK-discovery code path |
-| Env-driven paths | `OPENCLAW_APP_DIR` and `OPENCLAW_SPAWN_LOG_DIR` replace hardcoded `/app` and `/tmp/openclaw` |
+| Env-driven paths (v2 only) | `OPENCLAW_APP_DIR` and `OPENCLAW_SPAWN_LOG_DIR` replace hardcoded `/app` and `/tmp/openclaw` in v2. The v1 legacy path is intentionally frozen with hardcoded paths — it will be removed after v2 production validation |
 
 ---
 
@@ -46,7 +46,7 @@ Reverse-engineered the gateway WebSocket protocol from the minified SDK bundle:
 1. WS opens → server sends `connect.challenge` event with nonce
 2. Client sends `req` frame: `{ type: "req", id: "<uuid>", method: "connect", params: { auth, client, scopes, ... } }`
 3. Server responds with `{ id, ok: true }`
-4. Client sends `req` frame: `{ type: "req", id: "<uuid>", method: "agent", params: { agentId, sessionKey, message, ... } }`
+4. Client sends `req` frame: `{ type: "req", id: "<uuid>", method: "agent", params: { sessionKey, message, idempotencyKey, ... } }` (no `agentId` — gateway resolves agent config from sessionKey via loadSessionEntry)
 5. Server responds with `{ id, ok: true, payload }` → done
 
 ### Key Changes

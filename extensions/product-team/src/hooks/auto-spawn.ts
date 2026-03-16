@@ -541,7 +541,6 @@ await new Promise((resolve, reject) => {
   const finish = (e, v) => { if (done) return; done = true; clearTimeout(timer); e ? reject(e) : resolve(v); };
 
   const pendingRequests = new Map();
-  let connectDone = false;
 
   const ws = new WS(url);
 
@@ -590,7 +589,6 @@ await new Promise((resolve, reject) => {
         }
 
         if (reqType === "connect") {
-          connectDone = true;
           log("connected, sending agent request");
           const agentReqId = sendReq(ws, "agent", agentParams);
           pendingRequests.set(agentReqId, "agent");
@@ -858,12 +856,11 @@ export function registerAutoSpawnHooks(
 ): void {
   const runner: AgentSpawnSink = agentRunner ?? {
     spawnAgent(agentId: string, message: string, options?: AgentSpawnOptions): void {
-      try {
-        dispatchAgentSpawn(agentId, message, api.logger, options);
-        api.logger.info(`auto-spawn: WS trigger fired for agent "${agentId}"`);
-      } catch (err: unknown) {
-        api.logger.warn(`auto-spawn: WS trigger failed for "${agentId}": ${String(err)}`);
-      }
+      // Let synchronous errors (mkdirSync, openSync, spawn ENOENT) propagate
+      // so SpawnService.attemptDelivery can mark records as 'failed' and retry.
+      // Async subprocess errors are inherently fire-and-forget (detached process).
+      dispatchAgentSpawn(agentId, message, api.logger, options);
+      api.logger.info(`auto-spawn: WS trigger fired for agent "${agentId}"`);
     },
   };
 
