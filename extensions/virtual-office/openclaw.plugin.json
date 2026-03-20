@@ -2,5 +2,10 @@
   "id": "virtual-office",
   "name": "Virtual Office",
   "version": "0.1.0",
-  "description": "Pixel-art virtual office visualizing AI agent activity in real-time at /office"
+  "description": "Pixel-art virtual office visualizing AI agent activity in real-time at /office",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
 }
