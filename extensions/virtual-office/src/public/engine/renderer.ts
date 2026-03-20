@@ -11,6 +11,14 @@ import {
   AGENT_DESKS, getTile,
 } from '../../shared/tile-data.js';
 
+// --- Sprite rendering (task 0130) ---
+import { drawSprite } from '../agents/sprite-renderer.js';
+import { AGENT_SPRITES } from '../agents/sprite-data.js';
+
+// --- Visual effects (task 0133) ---
+import { drawSpeechBubbles } from '../interaction/speech-bubble.js';
+import { drawMatrixEffects } from '../interaction/matrix-effect.js';
+
 /** Clear the entire canvas with the background color. */
 function clearCanvas(ctx: CanvasRenderingContext2D, camera: Camera): void {
   ctx.fillStyle = '#1a1a2e';
@@ -111,22 +119,18 @@ function drawAgent(
     : 0;
   const y = camera.offsetY + agent.y * SCALED_TILE + bobOffset;
 
-  // Agent body (colored square for now, sprites in task 0130)
-  ctx.fillStyle = agent.color;
-  ctx.fillRect(x + 4, y + 4, SCALED_TILE - 8, SCALED_TILE - 8);
-
-  // Typing indicator
-  if (agent.fsmState === 'typing') {
-    const dotOffset = (tickCount % 30) < 15 ? 2 : -2;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(x + SCALED_TILE / 2 - 2 + dotOffset, y + SCALED_TILE - 4, 4, 4);
-  }
-
-  // Reading indicator
-  if (agent.fsmState === 'reading') {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(x + 6, y + SCALED_TILE / 2 - 6, SCALED_TILE - 12, 2);
-    ctx.fillRect(x + 6, y + SCALED_TILE / 2 - 2, SCALED_TILE - 16, 2);
+  // Sprite rendering (replaces colored square)
+  const spriteSet = AGENT_SPRITES[agent.id];
+  if (spriteSet) {
+    const frames = spriteSet.frames[agent.fsmState];
+    const frameIdx = agent.fsm.frameIndex % frames.length;
+    const frame = frames[frameIdx];
+    const scale = SCALED_TILE / 16;
+    drawSprite(ctx, frame, spriteSet.palette, x, y, scale);
+  } else {
+    // Fallback: colored square for unknown agents
+    ctx.fillStyle = agent.color;
+    ctx.fillRect(x + 4, y + 4, SCALED_TILE - 8, SCALED_TILE - 8);
   }
 
   // Label
@@ -173,6 +177,10 @@ export function render(
   for (const agent of agents) {
     drawAgent(ctx, camera, agent, tickCount);
   }
+
+  // Overlay effects (after agents, before UI)
+  drawSpeechBubbles(ctx);
+  drawMatrixEffects(ctx);
 
   drawUI(ctx, camera);
 }

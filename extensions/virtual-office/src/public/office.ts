@@ -12,6 +12,20 @@ import { createAgent, tickAgent } from './agents/agent-entity.js';
 import { AGENT_DESKS } from '../shared/tile-data.js';
 import type { AgentEntity } from './agents/agent-entity.js';
 
+// --- SSE networking (task 0131) ---
+import { connectSse } from './net/sse-client.js';
+import type { ServerAgentState } from './net/sse-client.js';
+import { applySnapshot, applyUpdate } from './net/state-sync.js';
+
+// --- State mapping (task 0132) ---
+import { mapServerStateToEntities } from './agents/state-mapper.js';
+
+// --- Interactivity (task 0133) ---
+import { installClickHandler } from './interaction/click-handler.js';
+import { showInfoPanel, hideInfoPanel } from './interaction/info-panel.js';
+import { showSpeechBubble, clearSpeechBubbles } from './interaction/speech-bubble.js';
+import { triggerMatrix } from './interaction/matrix-effect.js';
+
 // --- Canvas setup ---
 
 const canvas = document.getElementById('office-canvas') as HTMLCanvasElement;
@@ -42,10 +56,49 @@ const agents: AgentEntity[] = AGENT_DESKS.map(desk =>
   createAgent(desk.id, desk.label, desk.color, desk.col, desk.row),
 );
 
-// --- Export agents for external modules (SSE state-sync, interactivity) ---
+// --- Export for console debugging ---
 
 (window as unknown as Record<string, unknown>).__officeAgents = agents;
 (window as unknown as Record<string, unknown>).__officeCamera = camera;
+
+// --- Click interactivity (task 0133) ---
+
+installClickHandler(canvas, camera, agents, (agent) => {
+  if (agent) {
+    showInfoPanel(agent, camera);
+  } else {
+    hideInfoPanel();
+  }
+});
+
+// --- SSE networking (task 0131) ---
+
+const disconnectSse = connectSse({
+  onSnapshot(snapshot: ServerAgentState[]) {
+    applySnapshot(agents, snapshot);
+  },
+
+  onUpdate(change) {
+    const entity = agents.find(a => a.id === change.agentId);
+    const prev = entity
+      ? (entity as Record<string, unknown>)['_serverState'] as ServerAgentState | undefined
+      : undefined;
+
+    applyUpdate(agents, change);
+
+    if (!entity) return;
+
+    // Speech bubble on tool change
+    if (change.state.currentTool && change.state.currentTool !== prev?.currentTool) {
+      showSpeechBubble(change.agentId, change.state.currentTool, entity.x, entity.y, camera);
+    }
+
+    // Matrix effect on spawn
+    if (change.state.status === 'spawning' && prev?.status !== 'spawning') {
+      triggerMatrix(change.agentId, entity.x, entity.y, camera);
+    }
+  },
+});
 
 // --- Game loop ---
 
@@ -54,6 +107,7 @@ let tickCount = 0;
 startLoop({
   update(dt: number) {
     tickCount++;
+    mapServerStateToEntities(agents);
     for (const agent of agents) {
       tickAgent(agent, dt);
     }
@@ -68,6 +122,14 @@ startLoop({
 // --- Resize handling ---
 
 window.addEventListener('resize', resizeCanvas);
+
+// --- Cleanup on unload ---
+
+window.addEventListener('beforeunload', () => {
+  disconnectSse();
+  clearSpeechBubbles();
+  hideInfoPanel();
+});
 
 // --- Hide loading indicator ---
 
