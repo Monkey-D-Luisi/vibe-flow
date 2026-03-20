@@ -580,7 +580,7 @@ Key deliverables:
 - Task 0129: Canvas Engine Core -- DONE (EP20, 14B)
 - Task 0130: Pixel Art Sprite Generation -- DONE (EP20, 14C)
 - Task 0131: WebSocket Bridge (SSE) -- DONE (EP20, 14B)
-- Task 0132: Agent State Mapping -- PENDING (EP20, 14C)
+- Task 0132: Agent State Mapping -- DONE (EP20, 14C)
 - Task 0133: Interactivity -- PENDING (EP20, 14D)
 - Task 0134: Integration Testing + Polish -- PENDING (EP20, 14E)
 
