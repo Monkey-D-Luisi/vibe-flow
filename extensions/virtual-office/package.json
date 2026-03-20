@@ -10,7 +10,7 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/**/*.ts --no-cache",
     "typecheck": "tsc --noEmit",
-    "build": "tsc",
+    "build": "tsc && pnpm run build:frontend",
     "build:frontend": "esbuild src/public/office.ts --bundle --outfile=dist/public/office.js --format=esm --platform=browser --target=es2022 && cp src/public/index.html dist/public/index.html"
   },
   "dependencies": {
