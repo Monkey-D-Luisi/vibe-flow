@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Shared quality parser and gate policy contracts",
   "scripts": {
+    "build": "tsc",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/**/*.ts --no-cache",
@@ -91,6 +92,7 @@
     "@typescript-eslint/parser": "^8.56.1",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^10.0.3",
+    "typescript": "^5.7.0",
     "vitest": "^4.0.18"
   }
 }

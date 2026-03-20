@@ -60,9 +60,42 @@ jobs:
           pnpm --filter @openclaw/product-team test:coverage || exit 1
           pnpm --filter @openclaw/quality-contracts test:coverage || exit 1
 
+  package-extensions:
+    name: Package extensions
+    needs: quality-gate
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rebuild native modules
+        working-directory: extensions/product-team
+        run: node -e "const c=require('child_process'),p=require('path');const pkg=p.dirname(require.resolve('better-sqlite3/package.json'));console.log('Rebuilding better-sqlite3 at',pkg);c.execSync('npm run install',{cwd:pkg,stdio:'inherit'});"
+
+      - name: Package extensions as tarballs
+        run: bash scripts/pack-extensions.sh
+
+      - name: Upload extension tarballs
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-tarballs
+          path: release-artifacts/*.tgz
+          retention-days: 5
+
   github-release:
     name: GitHub Release
-    needs: quality-gate
+    needs: [quality-gate, package-extensions]
     runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
     permissions:
       contents: write
@@ -83,21 +116,51 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Download extension tarballs
+        uses: actions/download-artifact@v4
+        with:
+          name: extension-tarballs
+          path: release-artifacts
+
       - name: Generate CHANGELOG.md
         run: pnpm changelog
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release with extension tarballs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
           NOTES_FILE="$(mktemp)"
+
+          # Extract changelog section for this version
           if [ -f CHANGELOG.md ]; then
             awk "/^## \\[${TAG#v}\\]/,/^## \\[/" CHANGELOG.md | head -n -1 > "$NOTES_FILE"
           fi
+
+          # Append install instructions
+          cat >> "$NOTES_FILE" <<'INSTALL_EOF'
+
+          ---
+
+          ## Installation
+
+          Download the `.tgz` files below and install on any existing OpenClaw instance:
+
+          ```bash
+          # Install an extension (example: model-router)
+          openclaw plugins install ./openclaw-model-router-*.tgz
+
+          # Or link from source for development
+          openclaw plugins install -l ./extensions/model-router
+          ```
+
+          See [Installation Guide](docs/installation-guide.md) for full setup instructions.
+          INSTALL_EOF
+
           if [ ! -s "$NOTES_FILE" ]; then
             echo "Release ${TAG}" > "$NOTES_FILE"
           fi
+
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" \
               --title "$TAG" \
@@ -108,4 +171,13 @@ jobs:
               --notes-file "$NOTES_FILE" \
               --verify-tag
           fi
+
+          # Upload extension tarballs as release assets
+          for tgz in release-artifacts/*.tgz; do
+            if [ -f "$tgz" ]; then
+              echo "Uploading $(basename "$tgz")..."
+              gh release upload "$TAG" "$tgz" --clobber
+            fi
+          done
+
           rm -f "$NOTES_FILE"
