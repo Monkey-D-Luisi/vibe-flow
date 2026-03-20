@@ -1,7 +1,7 @@
 {
   "plugins": {
     "load": {
-      "paths": ["./extensions/product-team"]
+      "paths": ["./extensions/product-team", "./extensions/virtual-office"]
     },
     "entries": {
       "product-team": {
