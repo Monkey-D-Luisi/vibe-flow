@@ -53,6 +53,7 @@ import { PricingTable, parsePricingConfig, parseAllocationConfig } from './domai
 import { resolveAllocations } from './orchestrator/agent-budget-tracker.js';
 import { registerBudgetHooks } from './hooks/budget-hooks.js';
 import type { BudgetGuardDeps } from './orchestrator/budget-guard.js';
+import { registerCircuitBreakerHook } from './hooks/circuit-breaker.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 export { resolveConcurrencyConfig } from './config/plugin-config.js';
@@ -360,6 +361,9 @@ export function register(api: OpenClawPluginApi): void {
   // inject a system directive into the caller's session to spawn the target agent.
   const deliveryConfig = resolveDeliveryConfig(pluginConfig);
   registerAutoSpawnHooks(api, agentConfig, sharedSpawnSink, deliveryConfig);
+
+  // Circuit breaker: detect and break infinite retry loops on quality tools
+  registerCircuitBreakerHook(api);
 
   // Session recovery hook: auto-clears corrupted session files on agent_end errors
   // (e.g. orphaned function_call_output, role_ordering). Without this, corrupted

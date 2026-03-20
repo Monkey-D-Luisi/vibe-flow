@@ -24,10 +24,10 @@ const TASK_ID = '01SM_TEST_0000001';
 
 interface WorkflowMetadataOptions {
   adrId?: string;
-  contracts?: string[];
+  contracts?: Array<Record<string, unknown>>;
   coverage?: number;
   lintClean?: boolean;
-  refactorLog?: string[];
+  refactorLog?: Array<Record<string, unknown>>;
   reviewViolations?: Array<Record<string, unknown>>;
   qaFailed?: number;
 }
@@ -35,10 +35,16 @@ interface WorkflowMetadataOptions {
 function createWorkflowMetadata(options: WorkflowMetadataOptions = {}): Record<string, unknown> {
   return {
     architecture_plan: {
-      modules: ['api'],
-      contracts: options.contracts ?? ['task.create', 'task.update'],
+      modules: [{ name: 'api', responsibility: 'Handle requests', dependencies: [] }],
+      contracts: options.contracts ?? [
+        { name: 'task.create', schema: '{ title: string }', direction: 'in' as const },
+        { name: 'task.update', schema: '{ id: string }', direction: 'in' as const },
+      ],
       patterns: ['hexagonal'],
-      test_plan: ['unit', 'integration'],
+      test_plan: [
+        { scenario: 'Unit tests', type: 'unit' as const, priority: 'high' as const },
+        { scenario: 'Integration tests', type: 'integration' as const, priority: 'medium' as const },
+      ],
       adr_id: options.adrId ?? 'ADR-001',
     },
     dev_result: {
@@ -47,7 +53,10 @@ function createWorkflowMetadata(options: WorkflowMetadataOptions = {}): Record<s
         coverage: options.coverage ?? 92,
         lint_clean: options.lintClean ?? true,
       },
-      red_green_refactor_log: options.refactorLog ?? ['red', 'green'],
+      red_green_refactor_log: options.refactorLog ?? [
+        { phase: 'red', description: 'Write failing test', files_changed: ['src/test.ts'] },
+        { phase: 'green', description: 'Implement feature', files_changed: ['src/index.ts'] },
+      ],
     },
     review_result: {
       violations: options.reviewViolations ?? [],
@@ -58,7 +67,7 @@ function createWorkflowMetadata(options: WorkflowMetadataOptions = {}): Record<s
       passed: 12,
       failed: options.qaFailed ?? 0,
       skipped: 0,
-      evidence: ['qa-report.xml'],
+      evidence: [{ criterion: 'Feature works', status: 'pass', test_names: ['qa-report.test.ts'] }],
     },
   };
 }

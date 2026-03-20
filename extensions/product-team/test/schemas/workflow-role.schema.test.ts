@@ -23,10 +23,10 @@ describe('workflow role schemas', () => {
 
     expect(() =>
       validate(ArchitecturePlanSchema, {
-        modules: ['api'],
-        contracts: ['task.create'],
+        modules: [{ name: 'api', responsibility: 'Handle HTTP requests', dependencies: [] }],
+        contracts: [{ name: 'task.create', schema: '{ title: string }', direction: 'in' }],
         patterns: ['hexagonal'],
-        test_plan: ['unit'],
+        test_plan: [{ scenario: 'Create task', type: 'unit', priority: 'high' }],
         adr_id: 'ADR-001',
       }),
     ).not.toThrow();
@@ -38,7 +38,7 @@ describe('workflow role schemas', () => {
           coverage: 88,
           lint_clean: true,
         },
-        red_green_refactor_log: ['red', 'green'],
+        red_green_refactor_log: [{ phase: 'red', description: 'Write failing test', files_changed: ['src/index.ts'] }, { phase: 'green', description: 'Implement feature', files_changed: ['src/index.ts'] }],
       }),
     ).not.toThrow();
 
@@ -48,7 +48,7 @@ describe('workflow role schemas', () => {
         passed: 10,
         failed: 0,
         skipped: 0,
-        evidence: ['report.xml'],
+        evidence: [{ criterion: 'Task creation works', status: 'pass', test_names: ['task.test.ts'] }],
       }),
     ).not.toThrow();
 
@@ -63,11 +63,23 @@ describe('workflow role schemas', () => {
   it('should reject invalid architecture plan payloads', () => {
     expect(() =>
       validate(ArchitecturePlanSchema, {
-        modules: ['api'],
+        modules: [{ name: 'api', responsibility: 'Handle HTTP requests', dependencies: [] }],
         contracts: [],
         patterns: ['hexagonal'],
-        test_plan: ['unit'],
+        test_plan: [{ scenario: 'Create task', type: 'unit', priority: 'high' }],
         adr_id: '',
+      }),
+    ).toThrow(/Validation failed/);
+  });
+
+  it('should reject architecture plan with invalid contract direction', () => {
+    expect(() =>
+      validate(ArchitecturePlanSchema, {
+        modules: [{ name: 'api', responsibility: 'Handle HTTP requests', dependencies: [] }],
+        contracts: [{ name: 'task.create', schema: '{ title: string }', direction: 'wrong' }],
+        patterns: ['hexagonal'],
+        test_plan: [{ scenario: 'Create task', type: 'unit', priority: 'high' }],
+        adr_id: 'ADR-001',
       }),
     ).toThrow(/Validation failed/);
   });

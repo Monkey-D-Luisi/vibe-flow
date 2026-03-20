@@ -82,3 +82,7 @@ validated by the product-team step runner; treat it as task metadata.
 - Use the project's existing design tokens when available
 - Prefer standard UI patterns over custom inventions
 - Include empty states, loading states, and error states in designs
+
+## Before submitting
+Run the agent-eval self-evaluation checklist for `design_spec`.
+Fix any issues before calling `workflow_step_run`.

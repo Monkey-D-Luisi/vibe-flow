@@ -32,3 +32,8 @@ ADRs follow the standard template at `docs/adr/_TEMPLATE.md` with sections:
 - Write in past tense for decisions already made
 - Include at least 2 alternatives considered
 - Link to related ADRs when superseding
+
+## Tools
+| Tool | Purpose |
+|------|---------|
+| `decision_log` | Log the architectural decision record |

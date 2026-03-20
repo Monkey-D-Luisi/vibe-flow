@@ -52,3 +52,13 @@ version control operations, CI/CD pipelines, and deployment workflows.
 - Branch names must follow conventions
 - PRs must reference the task ID
 - Never force-push to shared branches
+
+## Pipeline tools
+| Tool | Purpose |
+|------|---------|
+| `vcs_branch_create` | Create a feature branch |
+| `vcs_pr_create` | Create a pull request |
+| `vcs_pr_update` | Update an existing PR |
+| `vcs_label_sync` | Sync PR labels |
+| `pipeline_advance` | Advance to next pipeline stage |
+| `pipeline_status` | Check pipeline status |

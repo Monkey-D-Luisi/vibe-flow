@@ -12,6 +12,7 @@
 import type { ToolDef, ToolDeps } from './index.js';
 import { PIPELINE_STAGES, STAGE_OWNERS, getNextStage, type PipelineStage } from './pipeline.js';
 import { Type } from '@sinclair/typebox';
+import { getSkillInstructions } from '../hooks/skill-activation.js';
 
 const PipelineAdvanceParams = Type.Object({
   taskId: Type.String({ minLength: 1, description: 'Task ID to advance to the next pipeline stage' }),
@@ -55,6 +56,8 @@ export function buildStageSpawnMessage(
 ): string {
   const ideaText = typeof meta['ideaText'] === 'string' ? (meta['ideaText'] as string).slice(0, 500) : '';
   const instruction = STAGE_INSTRUCTIONS[stage] ?? `Execute the ${stage} stage work.`;
+  const owner = STAGE_OWNERS[stage as PipelineStage] ?? 'system';
+  const skillContext = getSkillInstructions(stage, owner);
 
   return [
     `Pipeline task ${taskId} has advanced to ${stage}.`,
@@ -62,6 +65,7 @@ export function buildStageSpawnMessage(
     ideaText ? `Idea: ${ideaText}` : '',
     '',
     `You are the ${stage} stage owner. ${instruction}`,
+    skillContext ?? '',
     '',
     `When done, call pipeline_advance({ taskId: "${taskId}" }) to advance to the next stage.`,
     'Do NOT wait for instructions. Do NOT ask what to do next.',

@@ -79,3 +79,7 @@ execution capability.
 - No story without a clear "done" condition
 - Scope decisions always include rationale
 - MVP scope is tight — defer aggressively
+
+## Before submitting
+Run the agent-eval self-evaluation checklist for `po_brief`.
+Fix any issues before calling `workflow_step_run`.

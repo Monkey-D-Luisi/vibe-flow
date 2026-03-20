@@ -1,0 +1,60 @@
+{
+  "rules": [
+    {
+      "id": "refinement-triggers-po",
+      "stage": "REFINEMENT",
+      "agent": "po",
+      "skills": ["product-owner", "requirements-grooming"],
+      "instruction": "Produce a `po_brief` output following the product-owner skill contract. Include testable acceptance criteria and justified scope."
+    },
+    {
+      "id": "decomposition-triggers-tl",
+      "stage": "DECOMPOSITION",
+      "agent": "tech-lead",
+      "skills": ["tech-lead", "architecture-design"],
+      "instruction": "Decompose into tasks and produce an `architecture_plan` with structured modules, contracts, patterns, and test plan. Record ADRs for significant decisions."
+    },
+    {
+      "id": "design-triggers-designer",
+      "stage": "DESIGN",
+      "agent": "designer",
+      "skills": ["ui-designer"],
+      "instruction": "Generate designs using Stitch tools. Always use `modelId: GEMINI_3_PRO`. Produce component specs with state coverage (empty, loading, error)."
+    },
+    {
+      "id": "implementation-triggers-backend",
+      "stage": "IMPLEMENTATION",
+      "agent": "back-1",
+      "skills": ["backend-dev", "tdd-implementation"],
+      "instruction": "Follow strict TDD (Red-Green-Refactor). Produce a `dev_result` with structured RGR log entries, coverage metrics, and lint status. Run `quality_tests`, `quality_lint`, `quality_coverage` before submitting."
+    },
+    {
+      "id": "implementation-triggers-frontend",
+      "stage": "IMPLEMENTATION",
+      "agent": "front-1",
+      "skills": ["frontend-dev", "tdd-implementation"],
+      "instruction": "Follow strict TDD. Read Stitch designs with `design_get`. Produce a `dev_result` with structured RGR log entries. Run `quality_tests`, `quality_lint`, `quality_coverage` before submitting."
+    },
+    {
+      "id": "qa-triggers-qa",
+      "stage": "QA",
+      "agent": "qa",
+      "skills": ["qa-testing"],
+      "instruction": "Execute tests with `quality_tests`. Map each acceptance criterion to structured evidence entries with status and test names. Produce a `qa_report`."
+    },
+    {
+      "id": "review-triggers-tl",
+      "stage": "REVIEW",
+      "agent": "tech-lead",
+      "skills": ["code-review", "tech-lead"],
+      "instruction": "Review code for SOLID/Clean Code compliance. Produce a `review_result` with severity-classified violations (low/medium/high/critical). Use `quality_gate` and `quality_complexity` for automated checks."
+    },
+    {
+      "id": "shipping-triggers-devops",
+      "stage": "SHIPPING",
+      "agent": "devops",
+      "skills": ["devops", "github-automation"],
+      "instruction": "Create feature branch with `vcs_branch_create`, commit changes, open PR with `vcs_pr_create`, sync labels with `vcs_label_sync`, monitor CI."
+    }
+  ]
+}

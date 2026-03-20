@@ -15,10 +15,10 @@ const BASE_TASK: TaskRecord = {
   tags: [],
   metadata: {
     architecture_plan: {
-      modules: ['api'],
-      contracts: ['task.create'],
+      modules: [{ name: 'api', responsibility: 'Handle requests', dependencies: [] }],
+      contracts: [{ name: 'task.create', schema: '{ title: string }', direction: 'in' }],
       patterns: ['hexagonal'],
-      test_plan: ['unit'],
+      test_plan: [{ scenario: 'Unit tests', type: 'unit', priority: 'high' }],
       adr_id: 'ADR-001',
     },
     dev_result: {
@@ -27,7 +27,10 @@ const BASE_TASK: TaskRecord = {
         coverage: 90,
         lint_clean: true,
       },
-      red_green_refactor_log: ['red', 'green'],
+      red_green_refactor_log: [
+        { phase: 'red', description: 'Write failing test', files_changed: ['src/test.ts'] },
+        { phase: 'green', description: 'Implement feature', files_changed: ['src/index.ts'] },
+      ],
     },
     review_result: {
       violations: [],
@@ -38,7 +41,7 @@ const BASE_TASK: TaskRecord = {
       passed: 10,
       failed: 0,
       skipped: 0,
-      evidence: ['report.xml'],
+      evidence: [{ criterion: 'Feature works', status: 'pass', test_names: ['report.test.ts'] }],
     },
   },
   createdAt: '2026-02-24T12:00:00.000Z',
@@ -80,7 +83,7 @@ describe('transition guards', () => {
             coverage: 60,
             lint_clean: false,
           },
-          red_green_refactor_log: ['red'],
+          red_green_refactor_log: [{ phase: 'red', description: 'Write failing test', files_changed: ['src/test.ts'] }],
         },
       },
     };
@@ -179,16 +182,16 @@ describe('transition guards', () => {
     expect(failures.some((f) => f.field === 'review_result.violations')).toBe(true);
   });
 
-  it('should block design -> in_progress when contracts contains only empty strings', () => {
+  it('should block design -> in_progress when contracts is an empty array', () => {
     const task: TaskRecord = {
       ...BASE_TASK,
       metadata: {
         ...BASE_TASK.metadata,
         architecture_plan: {
-          modules: ['api'],
-          contracts: ['', '   '],
+          modules: [{ name: 'api', responsibility: 'Handle requests', dependencies: [] }],
+          contracts: [],
           patterns: ['hexagonal'],
-          test_plan: ['unit'],
+          test_plan: [{ scenario: 'Unit tests', type: 'unit', priority: 'high' }],
           adr_id: 'ADR-001',
         },
       },
@@ -260,7 +263,10 @@ describe('transition guards', () => {
         dev_result: {
           diff_summary: 'Done',
           metrics: 'invalid',
-          red_green_refactor_log: ['red', 'green'],
+          red_green_refactor_log: [
+            { phase: 'red', description: 'Write failing test', files_changed: ['src/test.ts'] },
+            { phase: 'green', description: 'Implement feature', files_changed: ['src/index.ts'] },
+          ],
         },
       },
     };
@@ -292,7 +298,10 @@ describe('transition guards', () => {
             coverage: 'ninety',
             lint_clean: true,
           },
-          red_green_refactor_log: ['red', 'green'],
+          red_green_refactor_log: [
+            { phase: 'red', description: 'Write failing test', files_changed: ['src/test.ts'] },
+            { phase: 'green', description: 'Implement feature', files_changed: ['src/index.ts'] },
+          ],
         },
       },
     };
@@ -436,7 +445,7 @@ describe('transition guards', () => {
           passed: 10,
           failed: 'zero',
           skipped: 0,
-          evidence: ['report.xml'],
+          evidence: [{ criterion: 'Feature works', status: 'pass', test_names: ['report.test.ts'] }],
         },
       },
     };
@@ -468,7 +477,7 @@ describe('transition guards', () => {
           passed: 9,
           failed: 1,
           skipped: 0,
-          evidence: ['report.xml'],
+          evidence: [{ criterion: 'Feature works', status: 'pass', test_names: ['report.test.ts'] }],
         },
       },
     };

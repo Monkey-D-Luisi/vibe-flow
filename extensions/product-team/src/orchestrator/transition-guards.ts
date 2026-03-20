@@ -111,11 +111,10 @@ function evaluateDesignToInProgress(task: TaskRecord): TransitionGuardFailure[] 
   if (
     !Array.isArray(architecturePlan.contracts)
     || architecturePlan.contracts.length === 0
-    || !architecturePlan.contracts.some((contract) => asNonEmptyString(contract))
   ) {
     failures.push({
       field: 'architecture_plan.contracts',
-      message: 'must be a non-empty array with at least one non-empty string entry',
+      message: 'must be a non-empty array',
     });
   }
 

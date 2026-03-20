@@ -5,8 +5,10 @@
   "description": "Task engine and workflow tools for a multi-agent product development team",
   "skills": [
     "../../skills/adr",
+    "../../skills/agent-eval",
     "../../skills/architecture-design",
     "../../skills/backend-dev",
+    "../../skills/build-error-resolver",
     "../../skills/code-review",
     "../../skills/devops",
     "../../skills/frontend-dev",
@@ -15,6 +17,7 @@
     "../../skills/product-owner",
     "../../skills/qa-testing",
     "../../skills/requirements-grooming",
+    "../../skills/skill-factory",
     "../../skills/tdd-implementation",
     "../../skills/tech-lead",
     "../../skills/ui-designer"
