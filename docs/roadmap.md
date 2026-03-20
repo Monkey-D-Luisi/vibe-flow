@@ -61,6 +61,7 @@ observability, and extensibility for the community.
 | 12    | EP17 | Security & Stability v2              | EP09         | May 2026   | PENDING |
 | 13    | EP18 | Plugin SDK Contracts & DX            | EP13, EP16   | June 2026  | PENDING |
 | 13    | EP19 | Showcase & Documentation             | EP18         | June 2026  | PENDING |
+| 14    | EP20 | Virtual Office                       | EP09         | March 2026 | IN_PROGRESS |
 
 ---
 
@@ -573,6 +574,16 @@ Key deliverables:
 - Task 0126: README Overhaul with Visual Showcase -- PENDING (EP19, 13B)
 - Task 0127: Technical Article Draft -- PENDING (EP19, 13C)
 
+### Phase 14: Virtual Office (EP20)
+
+- Task 0128: Extension Scaffolding + Static File Server -- IN_PROGRESS (EP20, 14A)
+- Task 0129: Canvas Engine Core -- PENDING (EP20, 14B)
+- Task 0130: Pixel Art Sprite Generation -- PENDING (EP20, 14C)
+- Task 0131: WebSocket Bridge (SSE) -- PENDING (EP20, 14B)
+- Task 0132: Agent State Mapping -- PENDING (EP20, 14C)
+- Task 0133: Interactivity -- PENDING (EP20, 14D)
+- Task 0134: Integration Testing + Polish -- PENDING (EP20, 14E)
+
 ---
 
 ```mermaid
@@ -610,6 +621,9 @@ graph TD
   EP18 --> EP16
   EP19[EP19: Showcase & Documentation] --> EP18
 
+  %% Phase 14: Virtual Office
+  EP20[EP20: Virtual Office] --> EP09
+
   %% Styling
   style EP10 fill:#e1f5fe
   style EP11 fill:#e1f5fe
@@ -621,6 +635,7 @@ graph TD
   style EP17 fill:#e8f5e9
   style EP18 fill:#f3e5f5
   style EP19 fill:#f3e5f5
+  style EP20 fill:#ffe0b2
 ```
 
 ---
@@ -739,6 +754,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - [EP17 Backlog](backlog/EP17-security-stability-v2.md)
 - [EP18 Backlog](backlog/EP18-plugin-sdk-contracts-dx.md)
 - [EP19 Backlog](backlog/EP19-showcase-documentation.md)
+- [EP20 Backlog](backlog/EP20-virtual-office.md)
 - [Open Issues Intake (Unscheduled)](backlog/open-issues-intake.md)
 
 2026-02-27 audit remediation queue (derived from `audits/2026-02-27-full-audit.md`):
