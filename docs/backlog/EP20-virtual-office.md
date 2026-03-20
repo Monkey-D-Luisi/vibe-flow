@@ -1,7 +1,7 @@
 # EP20 -- Virtual Office
 
 **Phase:** 14
-**Status:** IN_PROGRESS
+**Status:** DONE
 **Priority:** MEDIUM
 
 ## Goal
