@@ -54,22 +54,41 @@ export function showInfoPanel(agent: AgentEntity, camera: Camera): void {
   const stage = serverState?.pipelineStage ?? 'none';
   const task = serverState?.taskId ?? 'none';
 
-  panel.innerHTML = `
-    <div style="font-weight:bold; color:${agent.color}; margin-bottom:8px; font-size:15px;">
-      ${agent.label} - ${role}
-    </div>
-    <div style="margin-bottom:4px;">Status: <span style="color:#10b981">${status}</span></div>
-    <div style="margin-bottom:4px;">Stage: <span style="color:#818cf8">${stage}</span></div>
-    <div style="margin-bottom:4px;">Tool: <span style="color:#fbbf24">${tool}</span></div>
-    <div style="margin-bottom:4px;">Task: <span style="color:#93c5fd">${task}</span></div>
-    <div style="margin-top:8px; color:#666; font-size:11px;">Click elsewhere to close</div>
-  `;
+  // Build the panel content safely using textContent (avoid innerHTML XSS)
+  const header = document.createElement('div');
+  header.style.cssText = 'font-weight:bold; margin-bottom:8px; font-size:15px;';
+  header.style.color = agent.color;
+  header.textContent = `${agent.label} - ${role}`;
+
+  const fields = [
+    { label: 'Status', value: status, color: '#10b981' },
+    { label: 'Stage', value: stage, color: '#818cf8' },
+    { label: 'Tool', value: tool, color: '#fbbf24' },
+    { label: 'Task', value: task, color: '#93c5fd' },
+  ];
+
+  panel.appendChild(header);
+  for (const f of fields) {
+    const row = document.createElement('div');
+    row.style.marginBottom = '4px';
+    row.appendChild(document.createTextNode(`${f.label}: `));
+    const span = document.createElement('span');
+    span.style.color = f.color;
+    span.textContent = f.value;
+    row.appendChild(span);
+    panel.appendChild(row);
+  }
+
+  const hint = document.createElement('div');
+  hint.style.cssText = 'margin-top:8px; color:#666; font-size:11px;';
+  hint.textContent = 'Click elsewhere to close';
+  panel.appendChild(hint);
 
   // Position near the agent
   const screenX = camera.offsetX + agent.x * SCALED_TILE + SCALED_TILE;
   const screenY = camera.offsetY + agent.y * SCALED_TILE;
   panel.style.left = `${Math.min(screenX, window.innerWidth - 320)}px`;
-  panel.style.top = `${Math.max(screenY, 10)}px`;
+  panel.style.top = `${Math.min(Math.max(screenY, 10), window.innerHeight - 200)}px`;
 
   document.body.appendChild(panel);
   currentPanel = panel;

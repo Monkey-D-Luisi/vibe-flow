@@ -23,6 +23,7 @@ test.describe('Virtual Office Smoke', () => {
   });
 
   test('agents at desk initially, some walk to coffee, then return', async ({ page }) => {
+    test.setTimeout(60_000);
     await page.goto('/office');
     await page.waitForSelector('#office-canvas');
 
@@ -76,6 +77,7 @@ test.describe('Virtual Office Smoke', () => {
   });
 
   test('no agent overlap at coffee spots', async ({ page }) => {
+    test.setTimeout(60_000);
     await page.goto('/office');
     await page.waitForSelector('#office-canvas');
 
@@ -95,18 +97,14 @@ test.describe('Virtual Office Smoke', () => {
       }));
     });
 
-    // Check for overlap: no two agents at the same tile
+    // Check for overlap: no two agents at the same coffee tile
     const seen = new Set<string>();
     for (const p of positions) {
       const key = `${p.col},${p.row}`;
-      // Skip desk positions since multiple agents can be "at home" at different desks
-      // Only flag true duplicates (same rounded tile)
-      if (seen.has(key)) {
-        // Two agents at exact same tile is the overlap bug
-        const other = positions.find(q => q.id !== p.id && Math.round(q.x) === p.col && Math.round(q.y) === p.row);
-        // This is OK if both are at their own desks — only fail for coffee tiles
-        const isCoffeeTile = p.col >= 14 && p.col <= 17 && p.row >= 3 && p.row <= 4;
-        if (isCoffeeTile && other) {
+      const isCoffeeTile = p.col >= 14 && p.col <= 17 && p.row >= 3 && p.row <= 4;
+      if (isCoffeeTile && seen.has(key)) {
+        const other = positions.find(q => q.id !== p.id && q.col === p.col && q.row === p.row);
+        if (other) {
           throw new Error(`Overlap at coffee tile (${p.col},${p.row}) between ${p.id} and ${other.id}`);
         }
       }

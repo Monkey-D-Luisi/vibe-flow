@@ -17,8 +17,6 @@ interface SseClient {
   readonly keepaliveTimer: ReturnType<typeof setInterval>;
 }
 
-const clients = new Set<SseClient>();
-
 /** Send an SSE event to a response stream. */
 function sendEvent(res: ServerResponse, eventName: string, data: unknown): void {
   res.write(`event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -31,6 +29,8 @@ function sendEvent(res: ServerResponse, eventName: string, data: unknown): void 
 export function createSseHandler(
   store: AgentStateStore,
 ): (req: IncomingMessage, res: ServerResponse) => void {
+  const clients = new Set<SseClient>();
+
   return (req, res) => {
     if (req.method !== 'GET') {
       res.statusCode = 405;
@@ -52,7 +52,6 @@ export function createSseHandler(
     res.setHeader('content-type', 'text/event-stream');
     res.setHeader('cache-control', 'no-cache');
     res.setHeader('connection', 'keep-alive');
-    res.setHeader('access-control-allow-origin', '*');
 
     // Send initial snapshot
     sendEvent(res, 'snapshot', store.getAll());
@@ -67,6 +66,7 @@ export function createSseHandler(
     const keepaliveTimer = setInterval(() => {
       sendEvent(res, 'ping', {});
     }, KEEPALIVE_MS);
+    keepaliveTimer.unref?.();
 
     const client: SseClient = { res, listener, keepaliveTimer };
     clients.add(client);

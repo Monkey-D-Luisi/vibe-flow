@@ -2,7 +2,7 @@
  * Sprite Data -- Procedural 16x16 pixel-art for 8 agents.
  *
  * Each sprite is a Uint8Array(256) where each value is a palette index.
- * Index 0 = transparent. Indices 1-6 map to agent-specific colors.
+ * Index 0 = transparent. Indices 1-5 map to agent-specific colors.
  *
  * Palette slots: [transparent, skin, hair, shirt, pants, accent]
  */

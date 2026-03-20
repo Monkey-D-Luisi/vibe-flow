@@ -35,26 +35,28 @@ export function createEventHandlers(store: AgentStateStore) {
       const agentId = ctx.agentId;
       if (!agentId) return;
 
-      store.update(agentId, {
+      const partial: Record<string, unknown> = {
         status: 'active',
         currentTool: event.toolName,
-      });
+      };
 
       // Extract pipeline stage from pipeline_advance params
       if (event.toolName === 'pipeline_advance' && event.params) {
-        const stage = event.params['targetStage'] as string | undefined;
-        if (stage) {
-          store.update(agentId, { pipelineStage: stage });
+        const stage = event.params['targetStage'];
+        if (typeof stage === 'string') {
+          partial['pipelineStage'] = stage;
         }
       }
 
       // Extract taskId from params
       if (event.params) {
-        const taskId = (event.params['taskId'] ?? event.params['task_id']) as string | undefined;
-        if (taskId) {
-          store.update(agentId, { taskId });
+        const taskId = event.params['taskId'] ?? event.params['task_id'];
+        if (typeof taskId === 'string') {
+          partial['taskId'] = taskId;
         }
       }
+
+      store.update(agentId, partial);
     },
 
     /** Handle after_tool_call: record result, keep active. */
@@ -70,8 +72,8 @@ export function createEventHandlers(store: AgentStateStore) {
       // Extract pipeline stage from pipeline_advance result
       if (event.toolName === 'pipeline_advance' && event.result) {
         const result = event.result as Record<string, unknown>;
-        const stage = result['currentStage'] as string | undefined;
-        if (stage) {
+        const stage = result['currentStage'];
+        if (typeof stage === 'string') {
           store.update(agentId, { pipelineStage: stage });
         }
       }

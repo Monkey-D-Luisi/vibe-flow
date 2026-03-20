@@ -77,7 +77,8 @@ export function getStageLocation(
     return { col: deskCol, row: deskRow, activity: 'idle' };
   }
   if (loc === 'own-desk') {
-    return { col: deskCol, row: deskRow, activity: 'typing' };
+    const activity = stage === 'DONE' ? 'idle' : 'typing';
+    return { col: deskCol, row: deskRow, activity };
   }
   return loc;
 }

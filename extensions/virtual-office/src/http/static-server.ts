@@ -6,7 +6,7 @@
  */
 
 import { readFile } from 'node:fs/promises';
-import { resolve, normalize, extname } from 'node:path';
+import { resolve, normalize, extname, sep } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 const MIME_TYPES: Record<string, string> = {
@@ -53,7 +53,16 @@ export function createStaticHandler(
     }
 
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-    let relativePath = decodeURIComponent(url.pathname);
+
+    let relativePath: string;
+    try {
+      relativePath = decodeURIComponent(url.pathname);
+    } catch {
+      res.statusCode = 400;
+      res.setHeader('content-type', 'text/plain; charset=utf-8');
+      res.end('Bad Request');
+      return;
+    }
 
     // Strip the URL prefix
     if (relativePath.startsWith(prefix)) {
@@ -70,7 +79,7 @@ export function createStaticHandler(
     const filePath = resolve(baseDir, '.' + normalizedPath);
 
     // Path traversal prevention: ensure resolved path is inside baseDir
-    if (!filePath.startsWith(baseDir)) {
+    if (!filePath.startsWith(baseDir + sep) && filePath !== baseDir) {
       res.statusCode = 404;
       res.setHeader('content-type', 'text/plain; charset=utf-8');
       res.end('Not Found');
@@ -91,10 +100,17 @@ export function createStaticHandler(
       } else {
         res.end(data);
       }
-    } catch {
-      res.statusCode = 404;
-      res.setHeader('content-type', 'text/plain; charset=utf-8');
-      res.end('Not Found');
+    } catch (err: unknown) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === 'ENOENT' || code === 'ENOTDIR') {
+        res.statusCode = 404;
+        res.setHeader('content-type', 'text/plain; charset=utf-8');
+        res.end('Not Found');
+      } else {
+        res.statusCode = 500;
+        res.setHeader('content-type', 'text/plain; charset=utf-8');
+        res.end('Internal Server Error');
+      }
     }
   };
 }
