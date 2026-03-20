@@ -70,7 +70,8 @@
         "/app/extensions/quality-gate",
         "/app/extensions/telegram-notifier",
         "/app/extensions/model-router",
-        "/app/extensions/stitch-bridge"
+        "/app/extensions/stitch-bridge",
+        "/app/extensions/virtual-office"
       ]
     },
     "entries": {
@@ -222,6 +223,9 @@
         }
       },
       "model-router": {
+        "enabled": true
+      },
+      "virtual-office": {
         "enabled": true
       },
       "telegram": {

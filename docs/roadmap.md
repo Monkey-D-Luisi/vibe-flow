@@ -576,7 +576,7 @@ Key deliverables:
 
 ### Phase 14: Virtual Office (EP20)
 
-- Task 0128: Extension Scaffolding + Static File Server -- IN_PROGRESS (EP20, 14A)
+- Task 0128: Extension Scaffolding + Static File Server -- DONE (EP20, 14A)
 - Task 0129: Canvas Engine Core -- PENDING (EP20, 14B)
 - Task 0130: Pixel Art Sprite Generation -- PENDING (EP20, 14C)
 - Task 0131: WebSocket Bridge (SSE) -- PENDING (EP20, 14B)
