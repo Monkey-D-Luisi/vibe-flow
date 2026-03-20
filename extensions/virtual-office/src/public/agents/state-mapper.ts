@@ -9,6 +9,8 @@ import type { AgentEntity } from './agent-entity.js';
 import { setTarget, setAgentState } from './agent-entity.js';
 import { getStageLocation } from '../../shared/stage-location-map.js';
 import { getToolAction } from '../../shared/tool-action-map.js';
+import { getToolLocation } from '../../shared/tool-location-map.js';
+import { tickPatrol, resetPatrol, PatrolPhase } from './idle-patrol.js';
 import type { ServerAgentState } from '../net/sse-client.js';
 
 /**
@@ -16,15 +18,21 @@ import type { ServerAgentState } from '../net/sse-client.js';
  * Called each frame (or on state change) to update targets and animations.
  */
 export function mapServerStateToEntities(agents: AgentEntity[]): void {
-  for (const agent of agents) {
+  for (let i = 0; i < agents.length; i++) {
+    const agent = agents[i];
     const serverState = (agent as Record<string, unknown>)['_serverState'] as ServerAgentState | undefined;
     if (!serverState) continue;
-    mapSingleAgent(agent, serverState);
+    mapSingleAgent(agent, serverState, i);
   }
 }
 
 /** Map a single agent's server state to entity behavior. */
-function mapSingleAgent(agent: AgentEntity, state: ServerAgentState): void {
+function mapSingleAgent(agent: AgentEntity, state: ServerAgentState, agentIndex: number): void {
+  // Reset patrol when agent has real work
+  if (state.status !== 'idle' && state.status !== 'offline') {
+    resetPatrol(agent.id);
+  }
+
   if (state.status === 'offline') {
     setAgentState(agent, 'idle');
     return;
@@ -54,15 +62,35 @@ function mapSingleAgent(agent: AgentEntity, state: ServerAgentState): void {
     }
     // else: walking animation is handled by tickAgent
   } else if (state.status === 'active') {
-    // Active but no pipeline stage -- stay at desk with tool action
-    const toolState = getToolAction(state.currentTool);
-    setAgentState(agent, toolState);
+    // Active but no pipeline stage -- move based on tool type
+    const loc = getToolLocation(state.currentTool, agent.homeX, agent.homeY);
+    setTarget(agent, loc.col, loc.row);
+
+    const atTarget = Math.abs(agent.x - loc.col) < 0.1 && Math.abs(agent.y - loc.row) < 0.1;
+    if (atTarget) {
+      const toolState = getToolAction(state.currentTool);
+      setAgentState(agent, toolState);
+    }
   } else {
-    // Idle -- go home
-    setTarget(agent, agent.homeX, agent.homeY);
-    const atHome = Math.abs(agent.x - agent.homeX) < 0.1 && Math.abs(agent.y - agent.homeY) < 0.1;
-    if (atHome) {
-      setAgentState(agent, 'idle');
+    // Idle -- coffee cycle patrol
+    const patrol = tickPatrol(
+      agent.id, agentIndex,
+      agent.homeX, agent.homeY,
+      agent.x, agent.y,
+    );
+
+    if (patrol.target) {
+      setTarget(agent, patrol.target.col, patrol.target.row);
+    }
+
+    // Set idle animation when stationary (at desk or at coffee)
+    if (patrol.phase === PatrolPhase.IDLE || patrol.phase === PatrolPhase.AT_COFFEE) {
+      const atTarget =
+        Math.abs(agent.x - agent.targetX) < 0.1 &&
+        Math.abs(agent.y - agent.targetY) < 0.1;
+      if (atTarget) {
+        setAgentState(agent, 'idle');
+      }
     }
   }
 }
