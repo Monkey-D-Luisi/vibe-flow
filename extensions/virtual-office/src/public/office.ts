@@ -25,6 +25,7 @@ import { installClickHandler } from './interaction/click-handler.js';
 import { showInfoPanel, hideInfoPanel } from './interaction/info-panel.js';
 import { showSpeechBubble, clearSpeechBubbles } from './interaction/speech-bubble.js';
 import { triggerMatrix } from './interaction/matrix-effect.js';
+import { getToolLabel } from '../shared/tool-label-map.js';
 
 // --- Canvas setup ---
 
@@ -90,7 +91,10 @@ const disconnectSse = connectSse({
 
     // Speech bubble on tool change
     if (change.state.currentTool && change.state.currentTool !== prev?.currentTool) {
-      showSpeechBubble(change.agentId, change.state.currentTool, entity.x, entity.y, camera);
+      const label = getToolLabel(change.state.currentTool);
+      if (label) {
+        showSpeechBubble(change.agentId, label);
+      }
     }
 
     // Matrix effect on spawn

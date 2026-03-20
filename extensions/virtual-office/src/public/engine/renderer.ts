@@ -55,24 +55,70 @@ function drawDesks(ctx: CanvasRenderingContext2D, camera: Camera): void {
   }
 }
 
-/** Draw meeting room table. */
+/** Draw meeting room table with chairs. */
 function drawMeetingTable(ctx: CanvasRenderingContext2D, camera: Camera): void {
   const tableX = camera.offsetX + 8 * SCALED_TILE;
   const tableY = camera.offsetY + 4 * SCALED_TILE;
   ctx.fillStyle = '#5a4a3a';
   ctx.fillRect(tableX, tableY, 3 * SCALED_TILE, SCALED_TILE);
+
+  // Chairs above table (3 chairs along cols 8-10, above row 4)
+  ctx.fillStyle = '#5a5a7a';
+  for (let i = 0; i < 3; i++) {
+    const cx = tableX + i * SCALED_TILE + SCALED_TILE / 2 - 3;
+    const cy = tableY - 10;
+    ctx.fillRect(cx, cy, 6, 6);
+  }
+
+  // Chairs below table (3 chairs along cols 8-10, below row 4)
+  for (let i = 0; i < 3; i++) {
+    const cx = tableX + i * SCALED_TILE + SCALED_TILE / 2 - 3;
+    const cy = tableY + SCALED_TILE + 4;
+    ctx.fillRect(cx, cy, 6, 6);
+  }
 }
 
-/** Draw coffee area objects. */
-function drawCoffeeArea(ctx: CanvasRenderingContext2D, camera: Camera): void {
+/** Draw coffee area objects with steam animation. */
+function drawCoffeeArea(
+  ctx: CanvasRenderingContext2D,
+  camera: Camera,
+  tickCount: number,
+): void {
   const x = camera.offsetX + 16 * SCALED_TILE;
-  const y = camera.offsetY + 3 * SCALED_TILE + 8;
-  // Coffee machine
+  const y = camera.offsetY + 3 * SCALED_TILE + 4;
+
+  // Coffee machine body (taller dark rectangle)
+  ctx.fillStyle = '#3a3a3a';
+  ctx.fillRect(x + 4, y, SCALED_TILE - 16, SCALED_TILE - 4);
+
+  // Dispensing nozzle
+  ctx.fillStyle = '#222';
+  ctx.fillRect(x + 10, y + SCALED_TILE - 12, 8, 4);
+
+  // Machine top accent
   ctx.fillStyle = '#8b6914';
-  ctx.fillRect(x, y, SCALED_TILE - 8, SCALED_TILE - 8);
-  // Cup
+  ctx.fillRect(x + 4, y, SCALED_TILE - 16, 4);
+
+  // Cup next to machine
   ctx.fillStyle = '#d4a574';
-  ctx.fillRect(x + SCALED_TILE + 4, y + 8, 12, 12);
+  ctx.fillRect(x + SCALED_TILE - 4, y + SCALED_TILE - 16, 12, 12);
+
+  // Steam particles (3 wiggly pixels rising from machine)
+  ctx.save();
+  for (let i = 0; i < 3; i++) {
+    const phase = tickCount * 0.08 + i * 2.1;
+    const rise = (tickCount * 0.3 + i * 8) % 20;
+    const wobble = Math.sin(phase) * 3;
+    const alpha = 0.6 - rise * 0.03;
+    if (alpha <= 0) continue;
+    ctx.fillStyle = `rgba(200, 200, 200, ${alpha})`;
+    ctx.fillRect(
+      x + SCALED_TILE / 2 - 4 + wobble + i * 4,
+      y - 4 - rise,
+      2, 2,
+    );
+  }
+  ctx.restore();
 }
 
 /** Draw server rack blinking lights. */
@@ -103,6 +149,56 @@ function drawServerRack(
       ctx.fillRect(x + 8, y, 4, 4);
     }
   }
+}
+
+/** Draw zone labels (subtle text over each area). */
+function drawZoneLabels(ctx: CanvasRenderingContext2D, camera: Camera): void {
+  ctx.save();
+  ctx.font = '9px "Courier New", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = 'rgba(180, 180, 200, 0.4)';
+
+  // Meeting Room label (centered over cols 7-11, row 3)
+  ctx.fillText(
+    'Meeting Room',
+    camera.offsetX + 9 * SCALED_TILE + SCALED_TILE / 2,
+    camera.offsetY + 3 * SCALED_TILE + 4,
+  );
+
+  // Coffee label (centered over cols 15-17, row 3)
+  ctx.fillText(
+    'Coffee',
+    camera.offsetX + 16 * SCALED_TILE + SCALED_TILE / 2,
+    camera.offsetY + 2 * SCALED_TILE + SCALED_TILE - 10,
+  );
+
+  // Servers label (centered over cols 15-17, row 8)
+  ctx.fillText(
+    'Servers',
+    camera.offsetX + 16 * SCALED_TILE + SCALED_TILE / 2,
+    camera.offsetY + 7 * SCALED_TILE + SCALED_TILE - 10,
+  );
+  ctx.restore();
+}
+
+/** Draw decorative plant in the lower-left corner. */
+function drawDecorations(ctx: CanvasRenderingContext2D, camera: Camera): void {
+  const px = camera.offsetX + 1 * SCALED_TILE + SCALED_TILE / 2;
+  const py = camera.offsetY + 10 * SCALED_TILE;
+
+  // Pot
+  ctx.fillStyle = '#8b4513';
+  ctx.fillRect(px - 8, py + 12, 16, 10);
+  ctx.fillRect(px - 6, py + 8, 12, 6);
+
+  // Foliage
+  ctx.fillStyle = '#2d8b46';
+  ctx.fillRect(px - 10, py, 8, 10);
+  ctx.fillRect(px + 2, py - 2, 8, 12);
+  ctx.fillRect(px - 6, py - 6, 12, 8);
+  ctx.fillStyle = '#3aad5c';
+  ctx.fillRect(px - 4, py - 4, 8, 6);
 }
 
 /** Draw an agent entity. */
@@ -169,17 +265,19 @@ export function render(
 ): void {
   clearCanvas(ctx, camera);
   drawTilemap(ctx, camera);
+  drawZoneLabels(ctx, camera);
   drawDesks(ctx, camera);
   drawMeetingTable(ctx, camera);
-  drawCoffeeArea(ctx, camera);
+  drawCoffeeArea(ctx, camera, tickCount);
   drawServerRack(ctx, camera, tickCount);
+  drawDecorations(ctx, camera);
 
   for (const agent of agents) {
     drawAgent(ctx, camera, agent, tickCount);
   }
 
   // Overlay effects (after agents, before UI)
-  drawSpeechBubbles(ctx);
+  drawSpeechBubbles(ctx, agents, camera);
   drawMatrixEffects(ctx);
 
   drawUI(ctx, camera);

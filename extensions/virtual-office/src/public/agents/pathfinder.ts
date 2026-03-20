@@ -3,6 +3,10 @@
  *
  * Uses horizontal-then-vertical movement with wall avoidance.
  * Not a full A* -- adequate for the small 20x12 office grid.
+ *
+ * @deprecated Currently unused. Agent movement is handled by linear
+ * interpolation in agent-entity.ts. Kept for potential future use
+ * if the office layout becomes more complex and needs pathfinding.
  */
 
 import { isWalkable } from '../../shared/tile-data.js';
