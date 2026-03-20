@@ -29,8 +29,13 @@ import { getToolLabel } from '../shared/tool-label-map.js';
 
 // --- Canvas setup ---
 
-const canvas = document.getElementById('office-canvas') as HTMLCanvasElement;
-const loading = document.getElementById('loading') as HTMLDivElement;
+const canvas = document.getElementById('office-canvas') as HTMLCanvasElement | null;
+const loading = document.getElementById('loading') as HTMLDivElement | null;
+
+if (!canvas) {
+  throw new Error('Canvas element #office-canvas not found');
+}
+
 const ctx = canvas.getContext('2d');
 
 if (!ctx) {
@@ -137,4 +142,4 @@ window.addEventListener('beforeunload', () => {
 
 // --- Hide loading indicator ---
 
-loading.style.display = 'none';
+if (loading) loading.style.display = 'none';

@@ -40,14 +40,22 @@ describe('stage-location-map', () => {
   });
 
   it('own-desk stages return desk coordinates with typing activity', () => {
-    const ownDeskStages = ['IMPLEMENTATION', 'QA', 'REVIEW', 'DONE'] as const;
-    for (const stage of ownDeskStages) {
+    const typingStages = ['IMPLEMENTATION', 'QA', 'REVIEW'] as const;
+    for (const stage of typingStages) {
       expect(STAGE_LOCATIONS[stage]).toBe('own-desk');
       const loc = getStageLocation(stage, 5, 3);
       expect(loc.col).toBe(5);
       expect(loc.row).toBe(3);
       expect(loc.activity).toBe('typing');
     }
+  });
+
+  it('DONE stage returns desk coordinates with idle activity', () => {
+    expect(STAGE_LOCATIONS['DONE']).toBe('own-desk');
+    const loc = getStageLocation('DONE', 5, 3);
+    expect(loc.col).toBe(5);
+    expect(loc.row).toBe(3);
+    expect(loc.activity).toBe('idle');
   });
 
   it('SHIPPING maps to server rack area', () => {

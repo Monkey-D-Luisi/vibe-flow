@@ -56,14 +56,15 @@ export class AgentStateStore extends EventEmitter {
     }
   }
 
-  /** Get all agent states as an array. */
+  /** Get all agent states as an array (defensive copies). */
   getAll(): AgentState[] {
-    return [...this.agents.values()];
+    return [...this.agents.values()].map(s => ({ ...s }));
   }
 
-  /** Get a single agent's state. */
+  /** Get a single agent's state (defensive copy). */
   get(agentId: string): AgentState | undefined {
-    return this.agents.get(agentId);
+    const s = this.agents.get(agentId);
+    return s ? { ...s } : undefined;
   }
 
   /** Update an agent's state. Emits 'change' event. */
