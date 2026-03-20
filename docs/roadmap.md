@@ -578,7 +578,7 @@ Key deliverables:
 
 - Task 0128: Extension Scaffolding + Static File Server -- DONE (EP20, 14A)
 - Task 0129: Canvas Engine Core -- DONE (EP20, 14B)
-- Task 0130: Pixel Art Sprite Generation -- PENDING (EP20, 14C)
+- Task 0130: Pixel Art Sprite Generation -- DONE (EP20, 14C)
 - Task 0131: WebSocket Bridge (SSE) -- DONE (EP20, 14B)
 - Task 0132: Agent State Mapping -- PENDING (EP20, 14C)
 - Task 0133: Interactivity -- PENDING (EP20, 14D)
