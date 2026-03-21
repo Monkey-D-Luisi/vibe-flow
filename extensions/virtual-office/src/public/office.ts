@@ -94,8 +94,10 @@ const disconnectSse = connectSse({
 
     if (!entity) return;
 
-    // Speech bubble on tool change
-    if (change.state.currentTool && change.state.currentTool !== prev?.currentTool) {
+    // Speech bubble on tool change or new tool call (same tool, different seq)
+    if (change.state.currentTool &&
+        (change.state.currentTool !== prev?.currentTool ||
+         change.state.toolCallSeq !== prev?.toolCallSeq)) {
       const label = getToolLabel(change.state.currentTool);
       if (label) {
         showSpeechBubble(change.agentId, label);

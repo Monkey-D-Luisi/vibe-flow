@@ -13,6 +13,7 @@ export interface ServerAgentState {
   readonly pipelineStage: string | null;
   readonly taskId: string | null;
   readonly lastSeenAt: number;
+  readonly toolCallSeq: number;
 }
 
 /** State change event from the server. */
