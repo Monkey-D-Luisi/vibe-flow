@@ -65,9 +65,11 @@ export default {
   register(api: OpenClawPluginApi) {
     const config = getConfig(api);
     const logger = api.logger;
+    const slog = (level: 'info' | 'warn' | 'error', op: string, ctx?: Record<string, unknown>) =>
+      logger[level](JSON.stringify({ ts: new Date().toISOString(), level, ext: 'telegram-notifier', op, ...ctx }));
 
     if (!config.groupId) {
-      logger.warn('telegram-notifier: No groupId configured, notifications disabled');
+      slog('warn', 'config.missing_group_id');
       return;
     }
 
@@ -353,7 +355,7 @@ export default {
     api.registerService({
       id: 'telegram-notifier-queue',
       async start() {
-        logger.info('telegram-notifier: Message queue service started');
+        slog('info', 'queue.started');
 
         const msPerTick = 3000;
         const maxPerFlush = Math.max(1, Math.floor(config.rateLimit.maxPerMinute / 20));
@@ -399,10 +401,10 @@ export default {
           clearInterval(flushInterval);
           flushInterval = null;
         }
-        logger.info('telegram-notifier: Message queue service stopped');
+        slog('info', 'queue.stopped');
       },
     });
 
-    logger.info(`telegram-notifier: Registered for group ${config.groupId}`);
+    slog('info', 'plugin.loaded', { groupId: config.groupId });
   },
 };

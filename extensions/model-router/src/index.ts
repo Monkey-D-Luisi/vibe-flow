@@ -162,15 +162,20 @@ export default {
 
   register(api: OpenClawPluginApi) {
     const logger = api.logger;
+    const slog = (level: 'info' | 'warn' | 'error', op: string, ctx?: Record<string, unknown>) =>
+      logger[level](JSON.stringify({ ts: new Date().toISOString(), level, ext: 'model-router', op, ...ctx }));
 
     registerProviderHealthRoute(api);
 
     // Start the provider health cache with background refresh loop.
     const healthCache = new ProviderHealthCache({
       onStatusChange: (event) => {
-        logger.warn(
-          `model-router: Provider '${event.providerId}' status changed: ${event.previousStatus} → ${event.newStatus} (avg latency: ${event.avgLatencyMs}ms)`,
-        );
+        slog('warn', 'provider.status_changed', {
+          providerId: event.providerId,
+          from: event.previousStatus,
+          to: event.newStatus,
+          avgLatencyMs: event.avgLatencyMs,
+        });
       },
     });
 
@@ -230,9 +235,9 @@ export default {
         return undefined;
       });
 
-      logger.info(`model-router: Dynamic routing ACTIVE (catalog: ${modelCatalog.size} models)`);
+      slog('info', 'routing.active', { catalogSize: modelCatalog.size });
     } else {
-      logger.info('model-router: Loaded (health cache active, dynamic routing disabled)');
+      slog('info', 'plugin.loaded', { dynamicRouting: false });
     }
   },
 };

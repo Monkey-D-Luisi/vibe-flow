@@ -57,6 +57,7 @@ export interface ToolDeps {
     prService: PrService;
     labelService: LabelService;
   };
+  metricsAggregator?: MetricsAggregator;
 }
 
 export interface ToolDef {
@@ -96,6 +97,8 @@ import { decisionEvaluateToolDef, decisionLogToolDef, decisionOutcomeToolDef } f
 import { decisionPatternsToolDef } from './decision-patterns.js';
 import { pipelineStartToolDef, pipelineStatusToolDef, pipelineRetryToolDef, pipelineSkipToolDef } from './pipeline.js';
 import { pipelineAdvanceToolDef, pipelineMetricsToolDef, pipelineTimelineToolDef } from './pipeline-advance.js';
+import { metricsRefreshToolDef } from '../observability/metrics-refresh-tool.js';
+import type { MetricsAggregator } from '../observability/metrics-aggregator.js';
 
 export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
   const toolDefs = [
@@ -136,6 +139,10 @@ export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
     pipelineMetricsToolDef(deps),
     pipelineTimelineToolDef(deps),
   ];
+
+  if (deps.metricsAggregator) {
+    toolDefs.push(metricsRefreshToolDef(deps, deps.metricsAggregator));
+  }
 
   return toolDefs.map((tool) => withCostTracking(tool, deps));
 }

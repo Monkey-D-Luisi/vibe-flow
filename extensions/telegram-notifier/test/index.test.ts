@@ -75,7 +75,7 @@ describe('Telegram Notifier plugin', () => {
     plugin.register(api as never);
 
     expect(api.logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('No groupId configured'),
+      expect.stringContaining('config.missing_group_id'),
     );
     expect(commands.length).toBe(0);
   });

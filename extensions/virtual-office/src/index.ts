@@ -26,6 +26,8 @@ export default {
 
   register(api: OpenClawPluginApi) {
     const logger = api.logger;
+    const slog = (level: 'info' | 'warn' | 'error', op: string, ctx?: Record<string, unknown>) =>
+      logger[level](JSON.stringify({ ts: new Date().toISOString(), level, ext: 'virtual-office', op, ...ctx }));
 
     // --- State store ---
     const store = new AgentStateStore();
@@ -55,7 +57,7 @@ export default {
       handlers.onSubagentSpawned(event as { agentId?: string });
     });
 
-    logger.info('virtual-office: registered lifecycle hooks for agent tracking');
+    slog('info', 'hooks.registered');
 
     // --- HTTP handlers ---
     const publicDir = resolve(__dirname, '..', 'dist', 'public');
@@ -87,6 +89,6 @@ export default {
       handler: composedHandler,
     });
 
-    logger.info('virtual-office: registered GET /office/* (static + SSE)');
+    slog('info', 'routes.registered');
   },
 };

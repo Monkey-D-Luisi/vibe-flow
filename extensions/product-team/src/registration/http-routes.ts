@@ -12,6 +12,9 @@ import type { CiFeedbackAutomation } from '../github/ci-feedback.js';
 import { createHealthCheckHandler, type HealthCheckDeps } from '../services/health-check.js';
 import { createBudgetQueryHandler, type BudgetQueryDeps } from '../services/budget-query-handler.js';
 import { createDecisionQueryHandler, type DecisionQueryDeps } from '../services/decision-query-handler.js';
+import { createMetricsQueryHandler, type MetricsQueryDeps } from '../observability/metrics-query-handler.js';
+import { createTimelineQueryHandler, type TimelineQueryDeps } from '../observability/timeline-query-handler.js';
+import { createHeatmapQueryHandler, type HeatmapQueryDeps } from '../observability/heatmap-query-handler.js';
 import { registerCiWebhookRoute } from './ci-webhook-route.js';
 
 interface RouteRegistrarWithLogger extends RouteRegistrar {
@@ -23,6 +26,9 @@ export interface HttpRoutesConfig {
   readonly githubConfig: GithubConfig;
   readonly budgetQuery: BudgetQueryDeps;
   readonly decisionQuery: DecisionQueryDeps;
+  readonly metricsQuery?: MetricsQueryDeps;
+  readonly timelineQuery?: TimelineQueryDeps;
+  readonly heatmapQuery?: HeatmapQueryDeps;
 }
 
 export interface HttpRoutesServices {
@@ -55,6 +61,27 @@ export function registerHttpRoutes(
   api.registerHttpRoute({ path: '/api/decisions/approve', auth: 'plugin', handler: decisionHandler });
   api.registerHttpRoute({ path: '/api/decisions/reject', auth: 'plugin', handler: decisionHandler });
   api.logger.info('registered /api/decisions endpoints');
+
+  // Register observability metrics endpoint (EP14 Task 0100)
+  if (config.metricsQuery) {
+    const metricsHandler = createMetricsQueryHandler(config.metricsQuery);
+    api.registerHttpRoute({ path: '/api/metrics', auth: 'plugin', handler: metricsHandler });
+    api.logger.info('registered /api/metrics endpoint');
+  }
+
+  // Register observability timeline endpoint (EP14 Task 0101)
+  if (config.timelineQuery) {
+    const timelineHandler = createTimelineQueryHandler(config.timelineQuery);
+    api.registerHttpRoute({ path: '/api/timeline', auth: 'plugin', handler: timelineHandler });
+    api.logger.info('registered /api/timeline endpoint');
+  }
+
+  // Register observability heatmap endpoint (EP14 Task 0103)
+  if (config.heatmapQuery) {
+    const heatmapHandler = createHeatmapQueryHandler(config.heatmapQuery);
+    api.registerHttpRoute({ path: '/api/metrics/heatmap', auth: 'plugin', handler: heatmapHandler });
+    api.logger.info('registered /api/metrics/heatmap endpoint');
+  }
 
   registerCiWebhookRoute(
     api,
