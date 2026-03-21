@@ -31,6 +31,13 @@ describe('scanHtmlAccessibility', () => {
     expect(violations).toHaveLength(0);
   });
 
+  it('detects missing lang on html even when another element has lang', () => {
+    const html = '<html><body><span lang="fr">Bonjour</span></body></html>';
+    const violations = scanHtmlAccessibility(html, 'test.html');
+    const langViolation = violations.find(v => v.rule === 'html-lang');
+    expect(langViolation).toBeDefined();
+  });
+
   it('detects input without label association', () => {
     const html = '<html lang="en"><body><input type="text"></body></html>';
     const violations = scanHtmlAccessibility(html, 'test.html');
@@ -105,6 +112,13 @@ describe('scanHtmlAccessibility', () => {
     const html = '<html lang="en"><body><input type="text" aria-labelledby="nameLabel"></body></html>';
     const violations = scanHtmlAccessibility(html, 'test.html');
     expect(violations).toHaveLength(0);
+  });
+
+  it('does not treat data-id as a valid id for label association', () => {
+    const html = '<html lang="en"><body><input type="text" data-id="field-1"></body></html>';
+    const violations = scanHtmlAccessibility(html, 'test.html');
+    expect(violations).toHaveLength(1);
+    expect(violations[0].rule).toBe('input-label');
   });
 
   it('allows button with text content', () => {
