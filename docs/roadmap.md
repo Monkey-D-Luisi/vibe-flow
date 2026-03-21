@@ -1,6 +1,6 @@
 # Roadmap -- OpenClaw Product Team Extensions
 
-> Last updated: 2026-03-08
+> Last updated: 2026-03-21
 
 ## Vision
 
@@ -53,15 +53,15 @@ observability, and extensibility for the community.
 | 9     | EP09 | Pipeline Intelligence & Reliability  | EP08         | March 2026 | DONE    |
 | 10    | EP10 | Dynamic Model Routing                | EP09         | March 2026 | DONE    |
 | 10    | EP11 | Budget Intelligence                  | EP09         | March 2026 | DONE    |
-| 10    | EP12 | Agent Learning Loop                  | EP10, EP11   | April 2026 | PENDING |
-| 11    | EP13 | Stable Agent Protocol                | EP09         | April 2026 | PENDING |
+| 10    | EP12 | Agent Learning Loop                  | EP10, EP11   | April 2026 | DONE |
+| 11    | EP13 | Stable Agent Protocol                | EP09         | April 2026 | DONE |
 | 11    | EP14 | Local-First Observability            | EP09         | April 2026 | PENDING |
 | 11    | EP15 | Telegram Control Plane v2            | EP14         | April 2026 | PENDING |
 | 12    | EP16 | E2E Testing & Load Characterization  | EP13         | May 2026   | PENDING |
 | 12    | EP17 | Security & Stability v2              | EP09         | May 2026   | PENDING |
 | 13    | EP18 | Plugin SDK Contracts & DX            | EP13, EP16   | June 2026  | PENDING |
 | 13    | EP19 | Showcase & Documentation             | EP18         | June 2026  | PENDING |
-| 14    | EP20 | Virtual Office                       | EP09         | March 2026 | IN_PROGRESS |
+| 14    | EP20 | Virtual Office                       | EP09         | March 2026 | DONE |
 
 ---
 

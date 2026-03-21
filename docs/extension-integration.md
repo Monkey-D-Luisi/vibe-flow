@@ -1,6 +1,6 @@
 # Extension Integration Patterns
 
-How the five extensions coexist in the current architecture.
+How the six extensions coexist in the current architecture.
 
 ## Current Topology
 
@@ -42,7 +42,7 @@ Local/CI Shell
       -> standalone quality execution against workspace artifacts
 ```
 
-`openclaw.docker.json` loads all 5 extensions.
+`openclaw.docker.json` loads all 6 extensions.
 `openclaw.json` (local dev) loads only `extensions/product-team`.
 
 ## Responsibility Split

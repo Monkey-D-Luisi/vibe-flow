@@ -219,7 +219,62 @@ CI enforces vulnerability policy through `pnpm verify:vuln-policy`.
     View a per-task stage timeline with `pipeline_timeline` (requires the tool
     to be allow-listed for the calling agent role, e.g., in `openclaw.docker.json`).
 
+## Extensions
+
+The system runs 6 extensions:
+
+| Extension | Purpose |
+|-----------|---------|
+| `product-team` | Task engine, workflow, quality, VCS, team messaging, decisions, pipeline |
+| `quality-gate` | Standalone quality gate CLI for local/CI |
+| `model-router` | Per-agent model routing hook |
+| `telegram-notifier` | Telegram notification integration |
+| `stitch-bridge` | Google Stitch MCP design bridge |
+| `virtual-office` | Virtual office visualization with agent activity tracking and SSE |
+
 ## Troubleshooting
+
+### OpenAI Codex OAuth token expired / refresh failed
+
+**Symptoms:**
+- `FailoverError` in logs mentioning `openai-codex`
+- `Token refresh failed: 401 ... refresh_token_reused`
+- Agent silently falls back to Anthropic (consuming paid quota)
+- `openclaw models list` shows `openai-codex` with `auth=no`
+
+**Diagnosis:**
+```bash
+docker exec openclaw-product-team pnpm exec openclaw models list
+# Look for openai-codex auth status
+```
+
+**Fix (recommended — in-container login):**
+```bash
+# Option A: convenience script
+./scripts/codex-login.sh
+
+# Option B: manual
+docker exec -it openclaw-product-team npx @openai/codex auth login --device-auth
+docker compose restart
+```
+
+The device-flow will display a URL and code. Open the URL in your browser, enter the code, and sign in with your OpenAI account. On restart, the entrypoint automatically syncs Codex tokens to OpenClaw format and propagates to all agents.
+
+**Important notes:**
+- Do NOT use `openclaw auth login` — that command does not exist in the container
+- Do NOT use `npx @openai/codex auth login` (without `--device-auth`) — the localhost callback is unreachable from the host browser
+- Tokens are stored at `/root/.codex/auth.json` by the Codex CLI; the entrypoint converts them to `/root/.openclaw/agents/main/agent/auth-profiles.json` automatically
+
+### Model not found (`FailoverError: Unknown model`)
+
+**Symptoms:**
+- `FailoverError: Unknown model: openai-codex/<model-name>`
+
+**Fix:** Verify the model exists in the provider catalog. Run:
+```bash
+docker exec openclaw-product-team pnpm exec openclaw models list
+```
+Update the model name in `openclaw.docker.json` to a listed model.
 
 ### Database path rejected (`escapes workspace root`)
 

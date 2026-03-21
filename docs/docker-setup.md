@@ -40,8 +40,8 @@ Host (Windows/Mac/Linux)
   +-- Docker Container: openclaw-product-team
         |
         +-- OpenClaw Gateway (port 28789, foreground mode)
-        +-- 5 plugins: product-team, quality-gate, telegram-notifier,
-        |              model-router, stitch-bridge
+        +-- 6 plugins: product-team, quality-gate, telegram-notifier,
+        |              model-router, stitch-bridge, virtual-office
         +-- 8 agents: pm, tech-lead, po, designer, back-1,
         |             front-1, qa, devops
         +-- Telegram bots: @AiTeam_ProductManager_bot, @AiTeam_TechLead_bot,
@@ -257,8 +257,30 @@ When tokens expire, re-obtain them on the source machine and repeat the `docker 
 | Token | How to Renew |
 |-------|-------------|
 | Anthropic | Run `claude setup-token` again |
-| OpenAI Codex | OpenClaw auto-refreshes if the refresh token is valid. If expired: `openclaw auth login --provider openai-codex` |
+| OpenAI Codex | Use the in-container login (recommended, see below) or copy from host |
 | GitHub Copilot | `openclaw auth login --provider github-copilot` (device flow) |
+
+### In-Container OpenAI Codex Login (recommended)
+
+The simplest way to renew or set up OpenAI Codex OAuth tokens is to run
+the Codex CLI device-flow directly inside the container:
+
+```bash
+# Option A: convenience script (login + restart in one step)
+./scripts/codex-login.sh
+
+# Option B: manual commands
+docker exec -it openclaw-product-team npx @openai/codex auth login --device-auth
+docker compose -f docker-compose.yml restart
+```
+
+This displays a URL and code — open the URL in your browser, enter the code,
+and sign in with your OpenAI account.
+
+On container restart, the entrypoint automatically:
+1. Converts Codex CLI tokens (`/root/.codex/auth.json`) to OpenClaw format
+2. Merges them into `auth-profiles.json`
+3. Propagates the fresh tokens to all agent directories (pm, tech-lead, etc.)
 
 ### Verify auth status
 

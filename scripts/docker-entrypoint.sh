@@ -111,6 +111,65 @@ if [ ! -f "$AUTH_FILE" ]; then
   echo ""
 fi
 
+# ── Auto-sync Codex CLI tokens to OpenClaw auth-profiles ──
+# If the user ran `npx @openai/codex auth login --device-auth` inside
+# the container, the Codex CLI writes tokens to /root/.codex/auth.json
+# in a different format than OpenClaw expects.  This block converts and
+# merges them so the user only needs to restart the container.
+python3 - <<'PYEOF'
+import json, os, base64, time
+
+CODEX_AUTH   = "/root/.codex/auth.json"
+OPENCLAW_AUTH = "/root/.openclaw/agents/main/agent/auth-profiles.json"
+PROFILE_ID   = "openai-codex:default"
+
+if not os.path.exists(CODEX_AUTH):
+    # No Codex CLI auth file — nothing to sync
+    pass
+elif not os.path.exists(OPENCLAW_AUTH):
+    print("[entrypoint] codex-sync: skipped — no auth-profiles.json yet")
+else:
+    try:
+        codex = json.load(open(CODEX_AUTH))
+        tokens = codex.get("tokens", {})
+        access = tokens.get("access_token", "")
+        refresh = tokens.get("refresh_token", "")
+        account_id = tokens.get("account_id", "")
+
+        if not access:
+            pass  # No access token in Codex auth file
+        else:
+            # Decode JWT exp claim from access_token
+            payload = access.split(".")[1]
+            payload += "=" * (4 - len(payload) % 4)
+            jwt_data = json.loads(base64.urlsafe_b64decode(payload))
+            codex_expires_ms = jwt_data.get("exp", 0) * 1000
+
+            # Read current OpenClaw profiles
+            store = json.load(open(OPENCLAW_AUTH))
+            current = store.get("profiles", {}).get(PROFILE_ID, {})
+            current_expires = current.get("expires", 0)
+
+            if codex_expires_ms > current_expires:
+                store.setdefault("profiles", {})[PROFILE_ID] = {
+                    "type": "oauth",
+                    "provider": "openai-codex",
+                    "access": access,
+                    "refresh": refresh,
+                    "expires": codex_expires_ms,
+                    "accountId": account_id,
+                }
+                with open(OPENCLAW_AUTH, "w") as f:
+                    json.dump(store, f, indent=2)
+                exp_str = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(codex_expires_ms / 1000))
+                print("[entrypoint] codex-sync: synced fresh Codex OAuth tokens to main agent (expires " + exp_str + ")")
+            else:
+                print("[entrypoint] codex-sync: Codex tokens are not newer — skipped")
+    except Exception as e:
+        print("[entrypoint] codex-sync: error — " + str(e))
+
+PYEOF
+
 # ── Validate OAuth tokens (detect expired/missing tokens before they cause
 #    silent fallback to wrong models at runtime) ──
 python3 - <<'PYEOF'
@@ -138,12 +197,12 @@ for path, agent in paths:
                 access  = prof.get("access", "")
                 refresh = prof.get("refresh", "")
                 if not access and not refresh:
-                    issues.append(f"  [{agent}] {name}: OAuth credentials MISSING — run: openclaw auth login {name.split(':')[0]}")
+                    issues.append(f"  [{agent}] {name}: OAuth credentials MISSING")
                 elif expires and expires < NOW_MS:
-                    issues.append(f"  [{agent}] {name}: OAuth token EXPIRED ({int((NOW_MS-expires)/86400000)}d ago) — run: openclaw auth login {name.split(':')[0]}")
+                    issues.append(f"  [{agent}] {name}: OAuth token EXPIRED ({int((NOW_MS-expires)/86400000)}d ago)")
                 elif expires and expires < (NOW_MS + WARN_WITHIN_MS):
                     days = int((expires - NOW_MS) / 86400000)
-                    issues.append(f"  [{agent}] {name}: OAuth token expires in {days}d — renew soon: openclaw auth login {name.split(':')[0]}")
+                    issues.append(f"  [{agent}] {name}: OAuth token expires in {days}d — renew soon")
     except Exception as e:
         issues.append(f"  [{agent}] Could not parse {path}: {e}")
 
@@ -155,12 +214,11 @@ if issues:
     for msg in issues:
         print(msg)
     print("")
-    print(" Fix: re-auth locally then copy to container:")
-    print("   openclaw configure --section model   # select openai-codex, complete OAuth")
-    print("   docker cp ~/.openclaw/agents/main/agent/auth-profiles.json \\")
-    print("     openclaw-product-team:/root/.openclaw/agents/pm/agent/auth-profiles.json")
-    print("   docker cp ~/.openclaw/agents/main/agent/auth-profiles.json \\")
-    print("     openclaw-product-team:/root/.openclaw/agents/main/agent/auth-profiles.json")
+    print(" Fix: run Codex OAuth login inside the container, then restart:")
+    print("   docker exec -it openclaw-product-team npx @openai/codex auth login --device-auth")
+    print("   docker compose -f docker-compose.yml restart")
+    print("")
+    print(" Or use the convenience script: ./scripts/codex-login.sh")
     print("================================================================")
     print("")
 PYEOF

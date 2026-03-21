@@ -19,7 +19,7 @@ export interface ModelPricing {
 const DEFAULT_PRICING: readonly ModelPricing[] = [
   { provider: 'anthropic', model: 'claude-opus-4.6', inputPer1KTokens: 0.015, outputPer1KTokens: 0.075 },
   { provider: 'anthropic', model: 'claude-sonnet-4.6', inputPer1KTokens: 0.003, outputPer1KTokens: 0.015 },
-  { provider: 'openai', model: 'gpt-5.3', inputPer1KTokens: 0.010, outputPer1KTokens: 0.030 },
+  { provider: 'openai', model: 'gpt-5.2', inputPer1KTokens: 0.010, outputPer1KTokens: 0.030 },
   { provider: 'openai', model: 'gpt-4.1', inputPer1KTokens: 0.002, outputPer1KTokens: 0.008 },
   { provider: 'github', model: 'copilot-proxy', inputPer1KTokens: 0, outputPer1KTokens: 0 },
 ];

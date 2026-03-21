@@ -259,10 +259,10 @@ conforms to the published contracts (task 0095) and that the spawn mechanism
 
 ## Definition of Done
 
-- [ ] All 5 tasks completed with >= 90% test coverage each
-- [ ] Zero references to `clientMod.*` minified SDK exports
-- [ ] Zero `_sharedDb` casts in codebase
-- [ ] All inter-agent messages validated against JSON Schema contracts
-- [ ] Protocol version header present in all messages
-- [ ] Contract conformance test suite passes in CI
-- [ ] `pnpm test && pnpm lint && pnpm typecheck` passes
+- [x] All 5 tasks completed with >= 90% test coverage each
+- [x] Zero references to `clientMod.*` minified SDK exports
+- [x] Zero `_sharedDb` casts in codebase
+- [x] All inter-agent messages validated against JSON Schema contracts
+- [x] Protocol version header present in all messages
+- [x] Contract conformance test suite passes in CI
+- [x] `pnpm test && pnpm lint && pnpm typecheck` passes

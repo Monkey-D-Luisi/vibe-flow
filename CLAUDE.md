@@ -21,6 +21,7 @@ Monorepo of extensions, skills, and quality tooling for [OpenClaw](https://openc
 - `extensions/model-router/` - Per-agent model routing hook
 - `extensions/telegram-notifier/` - Telegram notification integration
 - `extensions/stitch-bridge/` - Google Stitch MCP design bridge
+- `extensions/virtual-office/` - Virtual office visualization (agent activity, SSE)
 - `skills/adr/` - ADR management skill
 - `skills/architecture-design/` - Architecture design workflow skill
 - `skills/backend-dev/` - Backend development skill

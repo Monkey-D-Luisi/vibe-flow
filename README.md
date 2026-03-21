@@ -99,6 +99,7 @@ See [docs/docker-setup.md](docs/docker-setup.md) for auth credentials, Telegram 
 | [telegram-notifier](extensions/telegram-notifier/) | Telegram notification integration with per-persona bot routing |
 | [model-router](extensions/model-router/) | Per-agent model routing hook with fallback chains |
 | [stitch-bridge](extensions/stitch-bridge/) | Google Stitch MCP design bridge for the designer agent |
+| [virtual-office](extensions/virtual-office/) | Virtual office visualization with agent activity tracking and SSE |
 
 ## Tool Surface
 
@@ -165,6 +166,7 @@ vibe-flow/
     model-router/           # Per-agent model routing hook
     telegram-notifier/      # Telegram notification integration
     stitch-bridge/          # Google Stitch MCP design bridge
+    virtual-office/         # Virtual office visualization
   packages/                 # Shared packages
     quality-contracts/      # Shared parsers, gate policy, complexity analysis
   skills/                   # Role skills loaded by OpenClaw (14 roles)
