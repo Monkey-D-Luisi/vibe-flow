@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateGate } from '@openclaw/quality-contracts/gate/policy';
 import { DEFAULT_POLICIES } from '@openclaw/quality-contracts/gate/types';
-import { parsePnpmAuditJson, parseNpmAuditJson } from '../src/tools/audit.js';
+import { parseAuditJson, parsePnpmAuditJson, parseNpmAuditJson, auditToolDef } from '../src/tools/audit.js';
 
 describe('parsePnpmAuditJson', () => {
   it('parses valid pnpm audit output', () => {
@@ -178,6 +178,44 @@ describe('gate integration - combined audit + overall verdict', () => {
       { auditMaxCritical: 0, auditMaxHigh: 5 },
     );
     expect(result.verdict).toBe('fail');
+  });
+});
+
+describe('parseAuditJson (canonical)', () => {
+  it('parses standard audit metadata', () => {
+    const raw = JSON.stringify({
+      metadata: { vulnerabilities: { critical: 2, high: 3, moderate: 1, low: 0 } },
+    });
+    const result = parseAuditJson(raw);
+    expect(result.critical).toBe(2);
+    expect(result.high).toBe(3);
+    expect(result.total).toBe(6);
+  });
+
+  it('handles missing vulnerability counts gracefully', () => {
+    const raw = JSON.stringify({
+      metadata: { vulnerabilities: { critical: 1 } },
+    });
+    const result = parseAuditJson(raw);
+    expect(result.critical).toBe(1);
+    expect(result.high).toBe(0);
+    expect(result.moderate).toBe(0);
+    expect(result.low).toBe(0);
+    expect(result.total).toBe(1);
+  });
+});
+
+describe('auditToolDef.execute validation', () => {
+  it('rejects invalid packageManager enum', async () => {
+    await expect(
+      auditToolDef.execute('test-id', { packageManager: 'yarn' }),
+    ).rejects.toThrow();
+  });
+
+  it('rejects non-string cwd', async () => {
+    await expect(
+      auditToolDef.execute('test-id', { cwd: 42 }),
+    ).rejects.toThrow();
   });
 });
 
