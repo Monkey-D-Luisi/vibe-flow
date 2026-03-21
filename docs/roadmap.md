@@ -378,7 +378,7 @@ Key deliverables:
 - Task 0095: Inter-Agent Message Contracts (JSON Schema) -- DONE (EP13, 11A)
 - Task 0096: Stable Plugin Shared State API -- DONE (EP13, 11B)
 - Task 0097: Protocol Version Negotiation -- DONE (EP13, 11B)
-- Task 0098: Contract Conformance Test Suite -- PENDING (EP13, 11C)
+- Task 0098: Contract Conformance Test Suite -- DONE (EP13, 11C)
 
 ### EP14 -- Local-First Observability
 
@@ -878,7 +878,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - Task 0095: Inter-Agent Message Contracts (JSON Schema) -- DONE
 - Task 0096: Stable Plugin Shared State API -- DONE
 - Task 0097: Protocol Version Negotiation -- DONE
-- Task 0098: Contract Conformance Test Suite -- PENDING
+- Task 0098: Contract Conformance Test Suite -- DONE
 
 ### Phase 11B: Local-First Observability (EP14)
 
