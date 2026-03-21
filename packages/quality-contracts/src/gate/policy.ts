@@ -20,6 +20,9 @@ export interface GateMetrics {
   testsExist?: boolean;
   testsPassed?: boolean;
   rgrCount?: number;
+  accessibilityViolations?: number;
+  auditCritical?: number;
+  auditHigh?: number;
 }
 
 function checkCoverage(metrics: GateMetrics, policy: GatePolicy): GateCheckResult | null {
@@ -174,6 +177,78 @@ function checkRgr(metrics: GateMetrics, policy: GatePolicy): GateCheckResult | n
   };
 }
 
+function checkAccessibility(metrics: GateMetrics, policy: GatePolicy): GateCheckResult | null {
+  if (policy.accessibilityMaxViolations === undefined) return null;
+  if (metrics.accessibilityViolations === undefined) {
+    return {
+      name: 'accessibility',
+      verdict: 'skip',
+      actual: 'N/A',
+      threshold: policy.accessibilityMaxViolations,
+      message: 'Accessibility data not available',
+    };
+  }
+
+  const pass = metrics.accessibilityViolations <= policy.accessibilityMaxViolations;
+  return {
+    name: 'accessibility',
+    verdict: pass ? 'pass' : 'fail',
+    actual: metrics.accessibilityViolations,
+    threshold: policy.accessibilityMaxViolations,
+    message: pass
+      ? `Accessibility violations (${metrics.accessibilityViolations}) within limit (${policy.accessibilityMaxViolations})`
+      : `Accessibility violations (${metrics.accessibilityViolations}) exceed limit (${policy.accessibilityMaxViolations})`,
+  };
+}
+
+function checkAuditCritical(metrics: GateMetrics, policy: GatePolicy): GateCheckResult | null {
+  if (policy.auditMaxCritical === undefined) return null;
+  if (metrics.auditCritical === undefined) {
+    return {
+      name: 'audit-critical',
+      verdict: 'skip',
+      actual: 'N/A',
+      threshold: policy.auditMaxCritical,
+      message: 'Audit data not available',
+    };
+  }
+
+  const pass = metrics.auditCritical <= policy.auditMaxCritical;
+  return {
+    name: 'audit-critical',
+    verdict: pass ? 'pass' : 'fail',
+    actual: metrics.auditCritical,
+    threshold: policy.auditMaxCritical,
+    message: pass
+      ? `Critical audit vulnerabilities (${metrics.auditCritical}) within limit (${policy.auditMaxCritical})`
+      : `Critical audit vulnerabilities (${metrics.auditCritical}) exceed limit (${policy.auditMaxCritical})`,
+  };
+}
+
+function checkAuditHigh(metrics: GateMetrics, policy: GatePolicy): GateCheckResult | null {
+  if (policy.auditMaxHigh === undefined) return null;
+  if (metrics.auditHigh === undefined) {
+    return {
+      name: 'audit-high',
+      verdict: 'skip',
+      actual: 'N/A',
+      threshold: policy.auditMaxHigh,
+      message: 'Audit data not available',
+    };
+  }
+
+  const pass = metrics.auditHigh <= policy.auditMaxHigh;
+  return {
+    name: 'audit-high',
+    verdict: pass ? 'pass' : 'fail',
+    actual: metrics.auditHigh,
+    threshold: policy.auditMaxHigh,
+    message: pass
+      ? `High audit vulnerabilities (${metrics.auditHigh}) within limit (${policy.auditMaxHigh})`
+      : `High audit vulnerabilities (${metrics.auditHigh}) exceed limit (${policy.auditMaxHigh})`,
+  };
+}
+
 /**
  * Resolve which policy to use based on scope.
  */
@@ -198,6 +273,9 @@ export function evaluateGate(metrics: GateMetrics, policy: GatePolicy): GateResu
     checkComplexity,
     checkTests,
     checkRgr,
+    checkAccessibility,
+    checkAuditCritical,
+    checkAuditHigh,
   ];
 
   const checks: GateCheckResult[] = [];

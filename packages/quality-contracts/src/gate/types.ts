@@ -27,6 +27,9 @@ export interface GatePolicy {
   testsRequired?: boolean;
   testsMustPass?: boolean;
   rgrMaxCount?: number;
+  accessibilityMaxViolations?: number;
+  auditMaxCritical?: number;
+  auditMaxHigh?: number;
 }
 
 export interface GatePolicySet {
@@ -45,6 +48,9 @@ export const DEFAULT_POLICIES: GatePolicySet = {
     testsRequired: true,
     testsMustPass: true,
     rgrMaxCount: 0,
+    accessibilityMaxViolations: 0,
+    auditMaxCritical: 0,
+    auditMaxHigh: 0,
   },
   minor: {
     coverageMinPct: 70,
@@ -54,6 +60,9 @@ export const DEFAULT_POLICIES: GatePolicySet = {
     testsRequired: true,
     testsMustPass: true,
     rgrMaxCount: 2,
+    accessibilityMaxViolations: 0,
+    auditMaxCritical: 0,
+    auditMaxHigh: 5,
   },
   patch: {
     coverageMinPct: 60,
@@ -63,6 +72,9 @@ export const DEFAULT_POLICIES: GatePolicySet = {
     testsRequired: false,
     testsMustPass: true,
     rgrMaxCount: 5,
+    accessibilityMaxViolations: 5,
+    auditMaxCritical: 0,
+    auditMaxHigh: 10,
   },
   default: {
     coverageMinPct: 70,
@@ -72,5 +84,8 @@ export const DEFAULT_POLICIES: GatePolicySet = {
     testsRequired: true,
     testsMustPass: true,
     rgrMaxCount: 2,
+    accessibilityMaxViolations: 0,
+    auditMaxCritical: 0,
+    auditMaxHigh: 5,
   },
 };

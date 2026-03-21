@@ -24,6 +24,12 @@ export interface GateSourceDeps {
   rgrLogCount?: number;
   /** Function to load RGR log count (async) */
   loadRgrLogCount?: () => Promise<number>;
+  /** Pre-computed accessibility violation count */
+  accessibilityViolations?: number;
+  /** Pre-computed critical audit vulnerability count */
+  auditCritical?: number;
+  /** Pre-computed high audit vulnerability count */
+  auditHigh?: number;
 }
 
 /**
@@ -70,5 +76,8 @@ export async function collectGateMetrics(deps: GateSourceDeps = {}): Promise<Gat
     testsExist: deps.testsExist,
     testsPassed: deps.testsPassed,
     rgrCount,
+    accessibilityViolations: deps.accessibilityViolations,
+    auditCritical: deps.auditCritical,
+    auditHigh: deps.auditHigh,
   };
 }

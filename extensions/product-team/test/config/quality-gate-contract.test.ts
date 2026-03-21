@@ -123,6 +123,9 @@ describe('quality gate schema/runtime contract', () => {
     const lintWarningsSchema = asObject(overrideProperties.lintMaxWarnings);
     const complexitySchema = asObject(overrideProperties.complexityMaxCyclomatic);
     const rgrSchema = asObject(overrideProperties.rgrMaxCount);
+    const accessibilitySchema = asObject(overrideProperties.accessibilityMaxViolations);
+    const auditCriticalSchema = asObject(overrideProperties.auditMaxCritical);
+    const auditHighSchema = asObject(overrideProperties.auditMaxHigh);
 
     for (const policy of Object.values(productPolicies)) {
       if (policy.coverageMinPct !== undefined) {
@@ -140,6 +143,15 @@ describe('quality gate schema/runtime contract', () => {
       }
       if (policy.rgrMaxCount !== undefined) {
         expect(policy.rgrMaxCount).toBeGreaterThanOrEqual(rgrSchema.minimum ?? 0);
+      }
+      if (policy.accessibilityMaxViolations !== undefined) {
+        expect(policy.accessibilityMaxViolations).toBeGreaterThanOrEqual(accessibilitySchema.minimum ?? 0);
+      }
+      if (policy.auditMaxCritical !== undefined) {
+        expect(policy.auditMaxCritical).toBeGreaterThanOrEqual(auditCriticalSchema.minimum ?? 0);
+      }
+      if (policy.auditMaxHigh !== undefined) {
+        expect(policy.auditMaxHigh).toBeGreaterThanOrEqual(auditHighSchema.minimum ?? 0);
       }
     }
   });

@@ -77,6 +77,9 @@ export const QualityGatePolicyOverrides = Type.Object(
     testsRequired: Type.Optional(Type.Boolean()),
     testsMustPass: Type.Optional(Type.Boolean()),
     rgrMaxCount: Type.Optional(Type.Integer({ minimum: 0 })),
+    accessibilityMaxViolations: Type.Optional(Type.Integer({ minimum: 0 })),
+    auditMaxCritical: Type.Optional(Type.Integer({ minimum: 0 })),
+    auditMaxHigh: Type.Optional(Type.Integer({ minimum: 0 })),
   },
   { additionalProperties: false },
 );

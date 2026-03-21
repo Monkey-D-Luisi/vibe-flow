@@ -25,6 +25,19 @@ This skill operates in the **QA** stage of the pipeline.
 | `quality_tests` | Run test suite and collect results |
 | `quality_coverage` | Parse and report test coverage |
 | `quality_lint` | Run linter for code quality |
+| `browser_navigate` | Navigate browser to app URL for smoke testing |
+| `browser_snapshot` | Capture accessibility snapshot for structural verification |
+| `browser_take_screenshot` | Capture screenshot evidence of UI state |
+
+## Browser Smoke Testing (UI tasks)
+When the task involves UI changes:
+1. Start the dev server and use `browser_navigate` to open the relevant page
+2. Use `browser_snapshot` to verify the page structure and accessibility
+3. Use `browser_take_screenshot` to capture visual evidence
+4. Walk through critical user flows (form submission, navigation, error states)
+5. Include smoke test evidence in the `qa_report` evidence entries
+
+For non-UI tasks, browser smoke testing can be skipped.
 
 ## Output contract
 **schemaKey:** `qa_report` (orchestrator-validated)
@@ -46,6 +59,14 @@ This skill operates in the **QA** stage of the pipeline.
       "criterion": "Task list pagination works",
       "status": "pass",
       "test_names": ["task-list.test.ts:L8"]
+    },
+    {
+      "criterion": "Dashboard renders correctly",
+      "status": "pass",
+      "test_names": ["visual-smoke"],
+      "type": "visual",
+      "screenshot": "screenshots/dashboard-smoke.png",
+      "notes": "Visual smoke test passed"
     },
     {
       "criterion": "Export to CSV",

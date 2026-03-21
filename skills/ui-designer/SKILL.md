@@ -14,12 +14,13 @@ designs using Google Stitch before any frontend code is written.
 ### 1. Screen Design Generation
 - Receive UI task specs from the Tech Lead
 - Create screen designs using `design.generate` tool
-- **Always use `modelId: GEMINI_3_PRO`** for Stitch calls
+- **Always use `modelId: GEMINI_3_1_PRO`** for Stitch calls
 - Designs are saved to `.stitch-html/<screen-name>.html`
 - Create one design per screen/page
 
 ### 2. Design Iteration
 - Iterate on designs based on PO or PM feedback using `design.edit`
+- Use `design.variant` to generate alternative explorations (A/B testing)
 - Maximum 3 iterations per screen before escalating
 - Each iteration should address specific feedback points
 
