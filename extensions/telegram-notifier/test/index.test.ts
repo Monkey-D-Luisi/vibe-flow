@@ -104,11 +104,11 @@ describe('Telegram Notifier command handlers', () => {
     expect(result.text).toContain('Status');
   });
 
-  it('/health returns running confirmation', async () => {
+  it('/health returns system health dashboard', async () => {
     const { api, commands } = createMockApi();
     plugin.register(api as never);
     const result = await getHandler(commands, 'health')({});
-    expect(result.text).toContain('Gateway is running');
+    expect(result.text).toContain('System Health');
   });
 
   it('/budget returns placeholder text', async () => {

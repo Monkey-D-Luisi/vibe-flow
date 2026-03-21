@@ -10,6 +10,11 @@ import {
 } from './formatting.js';
 import { handleBudgetCommand, type BudgetDataSource, type BudgetRecord } from './budget-dashboard.js';
 import { createApiClient } from './api-client.js';
+import { handleTeamStatus } from './commands/team-status.js';
+import { handleHealth } from './commands/health-diagnostics.js';
+import { handlePipeline } from './commands/pipeline-view.js';
+import { handleDecisions } from './commands/decision-context.js';
+import { AlertEngine } from './alerting/alert-engine.js';
 
 /**
  * Telegram Notifier Plugin
@@ -141,10 +146,19 @@ export default {
 
     api.registerCommand({
       name: 'teamstatus',
-      description: 'Report current agent status',
-      acceptsArgs: true,
-      handler: async (_ctx) => {
-        return { text: '📊 Status command received. Agent dashboard coming in Task 0042.' };
+      description: 'Live agent dashboard with status, task, and pipeline stage',
+      acceptsArgs: false,
+      handler: async () => {
+        try {
+          const text = await handleTeamStatus({
+            getMetrics: () => ptApi.getMetrics('hour'),
+            getTimeline: () => ptApi.getTimeline(),
+          });
+          return { text };
+        } catch (err: unknown) {
+          logger.warn(`telegram-notifier: /teamstatus failed: ${String(err)}`);
+          return { text: `Team status unavailable: ${escapeMarkdownV2(String(err))}` };
+        }
       },
     });
 
@@ -163,9 +177,36 @@ export default {
 
     api.registerCommand({
       name: 'health',
-      description: 'System health check',
+      description: 'System health diagnostics',
       handler: async () => {
-        return { text: 'Gateway is running. Full health endpoint in Task 0046.' };
+        try {
+          const text = await handleHealth({
+            getMetrics: () => ptApi.getMetrics('day'),
+          });
+          return { text };
+        } catch (err: unknown) {
+          logger.warn(`telegram-notifier: /health failed: ${String(err)}`);
+          return { text: `Health check unavailable: ${escapeMarkdownV2(String(err))}` };
+        }
+      },
+    });
+
+    // EP11 Task 0087: Real-time budget dashboard
+    api.registerCommand({
+      name: 'pipeline',
+      description: 'Pipeline visualization with stage progression',
+      acceptsArgs: true,
+      handler: async (ctx) => {
+        try {
+          const args = String(ctx.args ?? '').trim() || undefined;
+          const text = await handlePipeline({
+            getTimeline: (taskId) => ptApi.getTimeline(taskId),
+          }, args);
+          return { text };
+        } catch (err: unknown) {
+          logger.warn(`telegram-notifier: /pipeline failed: ${String(err)}`);
+          return { text: `Pipeline view unavailable: ${escapeMarkdownV2(String(err))}` };
+        }
       },
     });
 
@@ -328,25 +369,43 @@ export default {
 
     api.registerCommand({
       name: 'decisions',
-      description: 'List pending decisions awaiting human approval',
+      description: 'List pending decisions with budget context',
       handler: async () => {
         try {
-          // EP13 Task 0096: Use API client instead of _sharedDb
-          const rows = await ptApi.listPendingDecisions();
-
-          if (rows.length === 0) {
-            return { text: '\u2705 No pending decisions\\.' };
-          }
-
-          const lines = rows.map((r) =>
-            `\u2022 \`${escapeMarkdownV2(r.id)}\` \\[${escapeMarkdownV2(r.category)}\\] ${escapeMarkdownV2(r.question.slice(0, 60))} \u2192 ${escapeMarkdownV2(r.approver ?? 'unknown')}`,
-          );
-
-          return { text: `\uD83D\uDCCB *Pending decisions \\(${rows.length}\\):*\n\n${lines.join('\n')}` };
+          const text = await handleDecisions({
+            listPendingDecisions: () => ptApi.listPendingDecisions(),
+            getMetrics: () => ptApi.getMetrics('hour'),
+          });
+          return { text };
         } catch (err: unknown) {
           logger.warn(`telegram-notifier: /decisions failed: ${String(err)}`);
-          return { text: `\u26A0\uFE0F Could not list decisions: ${escapeMarkdownV2(String(err))}` };
+          return { text: `Decisions unavailable: ${escapeMarkdownV2(String(err))}` };
         }
+      },
+    });
+
+    // ── Alert Engine Service (EP15 Task 0108) ──
+
+    const pluginCfg = (api.pluginConfig && typeof api.pluginConfig === 'object')
+      ? (api.pluginConfig as Record<string, unknown>)
+      : {};
+    const rawAlertingCfg = (pluginCfg['alerting'] && typeof pluginCfg['alerting'] === 'object')
+      ? (pluginCfg['alerting'] as Record<string, unknown>)
+      : {};
+    const alertingEnabled = rawAlertingCfg['enabled'] === true || rawAlertingCfg['enabled'] === 'true';
+    const alertLogger = { info: slog.bind(null, 'info'), warn: slog.bind(null, 'warn'), error: slog.bind(null, 'error') };
+    const alertEngine = new AlertEngine(ptApi, enqueue, alertLogger, {
+      enabled: alertingEnabled,
+      pollIntervalMs: 60_000,
+    });
+
+    api.registerService({
+      id: 'telegram-notifier-alerting',
+      async start() {
+        alertEngine.start();
+      },
+      async stop() {
+        alertEngine.stop();
       },
     });
 
