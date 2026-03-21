@@ -27,6 +27,9 @@ import { showSpeechBubble, clearSpeechBubbles } from './interaction/speech-bubbl
 import { triggerMatrix } from './interaction/matrix-effect.js';
 import { getToolLabel } from '../shared/tool-label-map.js';
 
+// --- Dashboard (task 0139) ---
+import { DashboardPanel } from './dashboard/dashboard-panel.js';
+
 // --- Canvas setup ---
 
 const canvas = document.getElementById('office-canvas') as HTMLCanvasElement | null;
@@ -67,6 +70,10 @@ const agents: AgentEntity[] = AGENT_DESKS.map(desk =>
 (window as unknown as Record<string, unknown>).__officeAgents = agents;
 (window as unknown as Record<string, unknown>).__officeCamera = camera;
 
+// --- Dashboard panel (task 0139) ---
+
+const dashboard = new DashboardPanel();
+
 // --- Click interactivity (task 0133) ---
 
 installClickHandler(canvas, camera, agents, (agent) => {
@@ -82,6 +89,7 @@ installClickHandler(canvas, camera, agents, (agent) => {
 const disconnectSse = connectSse({
   onSnapshot(snapshot: ServerAgentState[]) {
     applySnapshot(agents, snapshot);
+    dashboard.updateAllAgents(snapshot);
   },
 
   onUpdate(change) {
@@ -91,6 +99,16 @@ const disconnectSse = connectSse({
       : undefined;
 
     applyUpdate(agents, change);
+
+    // Update dashboard
+    dashboard.updateAgent(change.state);
+    if (change.state.currentTool) {
+      dashboard.addActivity({
+        agentId: change.agentId,
+        action: change.state.currentTool,
+        timestamp: Date.now(),
+      });
+    }
 
     if (!entity) return;
 
@@ -140,6 +158,7 @@ window.addEventListener('beforeunload', () => {
   disconnectSse();
   clearSpeechBubbles();
   hideInfoPanel();
+  dashboard.destroy();
 });
 
 // --- Hide loading indicator ---
