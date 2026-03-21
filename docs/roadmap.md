@@ -402,7 +402,7 @@ Key deliverables:
 
 #### Tasks
 
-- Task 0099: Metrics Aggregation Engine (SQLite) -- IN_PROGRESS (EP14, 11A)
+- Task 0099: Metrics Aggregation Engine (SQLite) -- DONE (EP14, 11A)
 - Task 0100: /api/metrics System Health Endpoint -- PENDING (EP14, 11A)
 - Task 0101: /api/timeline Pipeline Execution Endpoint -- PENDING (EP14, 11B)
 - Task 0102: Structured Logging Consolidation -- PENDING (EP14, 11B)
@@ -882,7 +882,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 ### Phase 11B: Local-First Observability (EP14)
 
-- Task 0099: Metrics Aggregation Engine (SQLite) -- IN_PROGRESS
+- Task 0099: Metrics Aggregation Engine (SQLite) -- DONE
 - Task 0100: /api/metrics System Health Endpoint -- PENDING
 - Task 0101: /api/timeline Pipeline Execution Endpoint -- PENDING
 - Task 0102: Structured Logging Consolidation -- PENDING

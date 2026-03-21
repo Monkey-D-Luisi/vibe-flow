@@ -313,6 +313,7 @@ export function register(api: OpenClawPluginApi): void {
         now,
       },
       decisionQuery: { db },
+      metricsQuery: { db, metricsRepo: obs.metricsRepo, now },
     },
     { ciFeedbackAutomation },
   );
