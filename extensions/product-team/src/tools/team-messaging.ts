@@ -8,6 +8,10 @@ import {
 } from '../schemas/team-messaging.schema.js';
 import { MESSAGES_TABLE, ensureMessagesTable } from './shared-db.js';
 import { validateMessageBody } from '@openclaw/quality-contracts/validation/message-validator';
+import {
+  CURRENT_PROTOCOL_VERSION,
+  checkVersionCompatibility,
+} from '@openclaw/quality-contracts/schemas/protocol-header';
 
 /**
  * Try to parse a message body as a typed protocol message.
@@ -67,10 +71,19 @@ export function teamMessageToolDef(deps: ToolDeps): ToolDef {
       const now = deps.now();
       const priority = input.priority ?? 'normal';
 
+      // Inject protocol envelope headers into typed messages (EP13 Task 0097)
+      let persistBody = input.body;
+      if (typedBody) {
+        typedBody['_protocol'] = typedBody['_protocol'] ?? CURRENT_PROTOCOL_VERSION;
+        typedBody['_sender'] = typedBody['_sender'] ?? input.from ?? 'anonymous';
+        typedBody['_timestamp'] = typedBody['_timestamp'] ?? now;
+        persistBody = JSON.stringify(typedBody);
+      }
+
       deps.db.prepare(`
         INSERT INTO ${MESSAGES_TABLE} (id, from_agent, to_agent, subject, body, priority, task_ref, origin_channel, origin_session_key, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(id, input.from ?? 'anonymous', input.to, input.subject, input.body, priority, input.taskRef ?? null, input.originChannel ?? null, input.originSessionKey ?? null, now);
+      `).run(id, input.from ?? 'anonymous', input.to, input.subject, persistBody, priority, input.taskRef ?? null, input.originChannel ?? null, input.originSessionKey ?? null, now);
 
       deps.logger?.info(`team.message: ${id} → ${input.to} [${priority}] "${input.subject}"`);
 
@@ -114,18 +127,39 @@ export function teamInboxToolDef(deps: ToolDeps): ToolDef {
         created_at: string;
       }>;
 
-      const messages = rows.map((r) => ({
-        id: r.id,
-        from: r.from_agent,
-        to: r.to_agent,
-        subject: r.subject,
-        body: r.body,
-        priority: r.priority,
-        taskRef: r.task_ref,
-        replyTo: r.reply_to,
-        read: r.read === 1,
-        timestamp: r.created_at,
-      }));
+      const messages = rows.map((r) => {
+        const msg: Record<string, unknown> = {
+          id: r.id,
+          from: r.from_agent,
+          to: r.to_agent,
+          subject: r.subject,
+          body: r.body,
+          priority: r.priority,
+          taskRef: r.task_ref,
+          replyTo: r.reply_to,
+          read: r.read === 1,
+          timestamp: r.created_at,
+        };
+
+        // Check protocol version compatibility on typed messages (EP13 Task 0097)
+        const parsed = tryParseTypedBody(r.body);
+        if (parsed) {
+          const senderVersion = typeof parsed['_protocol'] === 'string' ? parsed['_protocol'] : undefined;
+          if (senderVersion) {
+            const compat = checkVersionCompatibility(senderVersion, CURRENT_PROTOCOL_VERSION);
+            if (!compat.compatible) {
+              msg['_versionWarning'] = `Protocol version mismatch: sender=${senderVersion}, receiver=${CURRENT_PROTOCOL_VERSION} (${compat.reason})`;
+              deps.logger?.warn(`team.inbox: version mismatch on message ${r.id}: sender=${senderVersion}, receiver=${CURRENT_PROTOCOL_VERSION}`);
+            }
+          } else if (parsed['_type']) {
+            // Typed message without protocol version — backward compat warning
+            msg['_versionWarning'] = 'Message has _type but no _protocol header (legacy format)';
+            deps.logger?.warn(`team.inbox: message ${r.id} has _type but no _protocol header (legacy format)`);
+          }
+        }
+
+        return msg;
+      });
 
       const result = { messages, count: messages.length };
       return {
