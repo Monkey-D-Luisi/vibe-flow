@@ -14,6 +14,7 @@ import { createBudgetQueryHandler, type BudgetQueryDeps } from '../services/budg
 import { createDecisionQueryHandler, type DecisionQueryDeps } from '../services/decision-query-handler.js';
 import { createMetricsQueryHandler, type MetricsQueryDeps } from '../observability/metrics-query-handler.js';
 import { createTimelineQueryHandler, type TimelineQueryDeps } from '../observability/timeline-query-handler.js';
+import { createHeatmapQueryHandler, type HeatmapQueryDeps } from '../observability/heatmap-query-handler.js';
 import { registerCiWebhookRoute } from './ci-webhook-route.js';
 
 interface RouteRegistrarWithLogger extends RouteRegistrar {
@@ -27,6 +28,7 @@ export interface HttpRoutesConfig {
   readonly decisionQuery: DecisionQueryDeps;
   readonly metricsQuery?: MetricsQueryDeps;
   readonly timelineQuery?: TimelineQueryDeps;
+  readonly heatmapQuery?: HeatmapQueryDeps;
 }
 
 export interface HttpRoutesServices {
@@ -72,6 +74,13 @@ export function registerHttpRoutes(
     const timelineHandler = createTimelineQueryHandler(config.timelineQuery);
     api.registerHttpRoute({ path: '/api/timeline', auth: 'plugin', handler: timelineHandler });
     api.logger.info('registered /api/timeline endpoint');
+  }
+
+  // Register observability heatmap endpoint (EP14 Task 0103)
+  if (config.heatmapQuery) {
+    const heatmapHandler = createHeatmapQueryHandler(config.heatmapQuery);
+    api.registerHttpRoute({ path: '/api/metrics/heatmap', auth: 'plugin', handler: heatmapHandler });
+    api.logger.info('registered /api/metrics/heatmap endpoint');
   }
 
   registerCiWebhookRoute(
