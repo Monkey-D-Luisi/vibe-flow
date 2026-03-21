@@ -114,9 +114,11 @@ export async function auditTool(input: AuditInput): Promise<AuditOutput> {
       cwd,
       timeoutMs: 60_000,
     });
+    // safeSpawn resolves on non-zero exit (audit returns non-zero when vulns found),
+    // but can reject on spawn errors; capture stdout from either path.
     stdout = result.stdout;
   } catch (err: unknown) {
-    // safeSpawn throws on non-zero exit; extract stdout from error if available
+    // Spawn-level error (ENOENT, permission denied, etc.); try to extract stdout
     const errObj = err as Record<string, unknown>;
     if (typeof errObj['stdout'] === 'string') {
       stdout = errObj['stdout'];

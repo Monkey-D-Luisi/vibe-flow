@@ -63,7 +63,7 @@ export function scanHtmlAccessibility(source: string, filePath: string): Accessi
 
     // Rule: input without associated label or aria-label
     if (/<input\b/i.test(line) && !/type\s*=\s*["']hidden["']/i.test(line)) {
-      if (!/\baria-label\s*=/i.test(line) && !/\baria-labelledby\s*=/i.test(line) && !/\bid\s*=/i.test(line)) {
+      if (!/\baria-label\s*=/i.test(line) && !/\baria-labelledby\s*=/i.test(line) && !/(?<![\w-])id\s*=/i.test(line)) {
         violations.push({
           rule: 'input-label',
           message: '<input> element missing aria-label, aria-labelledby, or id for label association',
@@ -94,13 +94,15 @@ export function scanHtmlAccessibility(source: string, filePath: string): Accessi
     }
   }
 
-  // Rule: missing lang attribute on <html> tag
-  if (/<html\b/i.test(source) && !/\blang\s*=/i.test(source)) {
+  // Rule: missing lang attribute on <html> tag (check only the <html> line, not the whole source)
+  const htmlTagMatch = source.match(/<html\b[^>]*>/i);
+  if (htmlTagMatch && !/\blang\s*=/i.test(htmlTagMatch[0])) {
+    const htmlTagLine = source.substring(0, source.indexOf(htmlTagMatch[0])).split('\n').length;
     violations.push({
       rule: 'html-lang',
       message: '<html> element missing lang attribute',
       file: filePath,
-      line: 1,
+      line: htmlTagLine,
     });
   }
 
