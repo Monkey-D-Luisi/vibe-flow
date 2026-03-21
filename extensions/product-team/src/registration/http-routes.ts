@@ -13,6 +13,7 @@ import { createHealthCheckHandler, type HealthCheckDeps } from '../services/heal
 import { createBudgetQueryHandler, type BudgetQueryDeps } from '../services/budget-query-handler.js';
 import { createDecisionQueryHandler, type DecisionQueryDeps } from '../services/decision-query-handler.js';
 import { createMetricsQueryHandler, type MetricsQueryDeps } from '../observability/metrics-query-handler.js';
+import { createTimelineQueryHandler, type TimelineQueryDeps } from '../observability/timeline-query-handler.js';
 import { registerCiWebhookRoute } from './ci-webhook-route.js';
 
 interface RouteRegistrarWithLogger extends RouteRegistrar {
@@ -25,6 +26,7 @@ export interface HttpRoutesConfig {
   readonly budgetQuery: BudgetQueryDeps;
   readonly decisionQuery: DecisionQueryDeps;
   readonly metricsQuery?: MetricsQueryDeps;
+  readonly timelineQuery?: TimelineQueryDeps;
 }
 
 export interface HttpRoutesServices {
@@ -63,6 +65,13 @@ export function registerHttpRoutes(
     const metricsHandler = createMetricsQueryHandler(config.metricsQuery);
     api.registerHttpRoute({ path: '/api/metrics', auth: 'plugin', handler: metricsHandler });
     api.logger.info('registered /api/metrics endpoint');
+  }
+
+  // Register observability timeline endpoint (EP14 Task 0101)
+  if (config.timelineQuery) {
+    const timelineHandler = createTimelineQueryHandler(config.timelineQuery);
+    api.registerHttpRoute({ path: '/api/timeline', auth: 'plugin', handler: timelineHandler });
+    api.logger.info('registered /api/timeline endpoint');
   }
 
   registerCiWebhookRoute(

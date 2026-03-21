@@ -314,6 +314,7 @@ export function register(api: OpenClawPluginApi): void {
       },
       decisionQuery: { db },
       metricsQuery: { db, metricsRepo: obs.metricsRepo, now },
+      timelineQuery: { db, now },
     },
     { ciFeedbackAutomation },
   );
@@ -487,9 +488,7 @@ export function register(api: OpenClawPluginApi): void {
   obs.startCron();
 
   api.logger.info(`registered ${tools.length} task/workflow/quality/vcs/messaging/decision/pipeline tools`);
-  // EP03: workflow.step.run, workflow.state.get
-  // EP04: vcs_branch_create, vcs_pr_create, vcs_pr_update, vcs_label_sync
-  // EP05: quality_coverage, quality_lint, quality_complexity
+  // EP03-EP05: workflow, VCS, quality tools
 }
 
 export default {
