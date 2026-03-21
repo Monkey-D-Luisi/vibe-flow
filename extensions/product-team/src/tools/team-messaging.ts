@@ -72,11 +72,12 @@ export function teamMessageToolDef(deps: ToolDeps): ToolDef {
       const priority = input.priority ?? 'normal';
 
       // Inject protocol envelope headers into typed messages (EP13 Task 0097)
+      // Always overwrite to prevent callers from spoofing sender/version
       let persistBody = input.body;
       if (typedBody) {
-        typedBody['_protocol'] = typedBody['_protocol'] ?? CURRENT_PROTOCOL_VERSION;
-        typedBody['_sender'] = typedBody['_sender'] ?? input.from ?? 'anonymous';
-        typedBody['_timestamp'] = typedBody['_timestamp'] ?? now;
+        typedBody['_protocol'] = CURRENT_PROTOCOL_VERSION;
+        typedBody['_sender'] = input.from ?? 'anonymous';
+        typedBody['_timestamp'] = now;
         persistBody = JSON.stringify(typedBody);
       }
 

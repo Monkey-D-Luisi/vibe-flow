@@ -63,6 +63,7 @@ function httpRequest(
         headers: body
           ? { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) }
           : undefined,
+        timeout: 10_000,
       },
       (res) => {
         const chunks: Buffer[] = [];
@@ -75,6 +76,10 @@ function httpRequest(
         });
       },
     );
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error(`HTTP request timed out: ${method} ${path}`));
+    });
     req.on('error', reject);
     if (body) req.write(body);
     req.end();

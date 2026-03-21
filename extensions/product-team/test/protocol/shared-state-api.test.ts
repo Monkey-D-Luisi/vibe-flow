@@ -76,6 +76,7 @@ describe('budget query handler', () => {
         if (!record) throw new Error('Not found');
         return { ...record, consumedTokens: 0, consumedUsd: 0, status: 'active', rev: record.rev + 1 };
       },
+      now: () => '2026-03-01T12:00:00.000Z',
     };
   });
 
