@@ -79,9 +79,22 @@
     "./validate/tools": {
       "types": "./src/validate/tools.ts",
       "default": "./src/validate/tools.ts"
+    },
+    "./schemas/messages": {
+      "types": "./src/schemas/messages/index.ts",
+      "default": "./src/schemas/messages/index.ts"
+    },
+    "./schemas/protocol-header": {
+      "types": "./src/schemas/protocol-header.ts",
+      "default": "./src/schemas/protocol-header.ts"
+    },
+    "./validation/message-validator": {
+      "types": "./src/validation/message-validator.ts",
+      "default": "./src/validation/message-validator.ts"
     }
   },
   "dependencies": {
+    "@sinclair/typebox": "^0.34.0",
     "fast-glob": "^3.3.2",
     "picomatch": "4.0.3"
   },

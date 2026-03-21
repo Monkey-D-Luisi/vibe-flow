@@ -245,6 +245,9 @@ importers:
 
   packages/quality-contracts:
     dependencies:
+      '@sinclair/typebox':
+        specifier: ^0.34.0
+        version: 0.34.48
       fast-glob:
         specifier: ^3.3.2
         version: 3.3.3

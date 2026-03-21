@@ -375,7 +375,7 @@ Key deliverables:
 #### Tasks
 
 - Task 0094: Spawn Mechanism v2 -- Zero SDK Internals -- DONE (EP13, 11A)
-- Task 0095: Inter-Agent Message Contracts (JSON Schema) -- PENDING (EP13, 11A)
+- Task 0095: Inter-Agent Message Contracts (JSON Schema) -- DONE (EP13, 11A)
 - Task 0096: Stable Plugin Shared State API -- PENDING (EP13, 11B)
 - Task 0097: Protocol Version Negotiation -- PENDING (EP13, 11B)
 - Task 0098: Contract Conformance Test Suite -- PENDING (EP13, 11C)
