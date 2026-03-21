@@ -9,6 +9,7 @@ import {
   formatPipelineComplete,
 } from './formatting.js';
 import { handleBudgetCommand, type BudgetDataSource, type BudgetRecord } from './budget-dashboard.js';
+import { createApiClient } from './api-client.js';
 
 /**
  * Telegram Notifier Plugin
@@ -17,29 +18,6 @@ import { handleBudgetCommand, type BudgetDataSource, type BudgetRecord } from '.
  * errors) to a configured Telegram group. Accepts human commands from the group
  * to control the autonomous team.
  */
-
-/** Safely convert an unknown value to a finite number, with a fallback. */
-function safeNumber(val: unknown, fallback = 0): number {
-  if (typeof val === 'number' && Number.isFinite(val)) return val;
-  const num = Number(val);
-  return Number.isFinite(num) ? num : fallback;
-}
-
-/** Map a budget_records DB row to a BudgetRecord. */
-function mapRow(row: Record<string, unknown>): BudgetRecord {
-  return {
-    id: String(row['id'] ?? ''),
-    scope: String(row['scope'] ?? ''),
-    scopeId: String(row['scope_id'] ?? ''),
-    limitTokens: safeNumber(row['limit_tokens']),
-    consumedTokens: safeNumber(row['consumed_tokens']),
-    limitUsd: safeNumber(row['limit_usd']),
-    consumedUsd: safeNumber(row['consumed_usd']),
-    status: String(row['status'] ?? 'unknown'),
-    warningThreshold: safeNumber(row['warning_threshold'], 0.8),
-    rev: safeNumber(row['rev']),
-  };
-}
 
 interface NotifierConfig {
   groupId: string;
@@ -92,6 +70,10 @@ export default {
       logger.warn('telegram-notifier: No groupId configured, notifications disabled');
       return;
     }
+
+    // EP13 Task 0096: Create API client for product-team HTTP routes (replaces _sharedDb)
+    const apiPort = Number(process.env['OPENCLAW_GATEWAY_PORT'] || '28789');
+    const ptApi = createApiClient(apiPort);
 
     // ── Lifecycle Hooks ──
 
@@ -190,68 +172,77 @@ export default {
       acceptsArgs: true,
       handler: async (ctx) => {
         try {
-          const db = (api as unknown as Record<string, unknown>)['_sharedDb'];
-          if (!db || typeof db !== 'object') {
-            return { text: '\u26A0\uFE0F Budget database not available from this context\\.' };
+          const args = String(ctx.args ?? '').trim();
+
+          // EP13 Task 0096: Prefetch all budget data via API, then provide sync data source
+          const allScopes = ['global', 'pipeline', 'stage', 'agent'] as const;
+          const budgetMap = new Map<string, BudgetRecord[]>();
+          for (const scope of allScopes) {
+            const records = await ptApi.listBudgetByScope(scope);
+            budgetMap.set(scope, records.map((r) => ({
+              id: r.id, scope: r.scope, scopeId: r.scopeId ?? '',
+              limitTokens: r.limitTokens, consumedTokens: r.consumedTokens,
+              limitUsd: r.limitUsd, consumedUsd: r.consumedUsd,
+              status: r.status, warningThreshold: r.warningThreshold ?? 0.8, rev: r.rev,
+            })));
           }
 
-          const dbAny = db as {
-            prepare: (sql: string) => {
-              get: (...args: unknown[]) => unknown;
-              all: (...args: unknown[]) => unknown[];
-              run: (...args: unknown[]) => { changes: number };
-            };
-          };
+          // For replenish/reset subcommands, prefetch the mutation target and execute
+          const parts = args.trim().split(/\s+/);
+          const sub = parts[0]?.toLowerCase() ?? '';
+          let mutationResult: BudgetRecord | null = null;
+          let mutationScope = '';
+          let mutationScopeId = '';
+
+          if (sub === 'replenish' && parts.length >= 4) {
+            mutationScope = parts[1]!;
+            mutationScopeId = parts[2]!;
+            const amount = Number(parts[3]!);
+            const source = (budgetMap.get(mutationScope) ?? []).find((r) => r.scopeId === mutationScopeId);
+            if (source && Number.isFinite(amount) && Number.isInteger(amount) && amount > 0) {
+              const updated = await ptApi.replenishBudget(source.id, amount, 0, source.rev, new Date().toISOString());
+              mutationResult = {
+                id: updated.id, scope: updated.scope, scopeId: updated.scopeId ?? '',
+                limitTokens: updated.limitTokens, consumedTokens: updated.consumedTokens,
+                limitUsd: updated.limitUsd, consumedUsd: updated.consumedUsd,
+                status: updated.status, warningThreshold: updated.warningThreshold ?? 0.8, rev: updated.rev,
+              };
+            }
+          } else if (sub === 'reset' && parts.length >= 3 && parts[1]?.toLowerCase() === 'agent') {
+            mutationScope = 'agent';
+            mutationScopeId = parts[2]!;
+            const source = (budgetMap.get('agent') ?? []).find((r) => r.scopeId === mutationScopeId);
+            if (source) {
+              const updated = await ptApi.resetBudgetConsumption(source.id, source.rev, new Date().toISOString());
+              mutationResult = {
+                id: updated.id, scope: updated.scope, scopeId: updated.scopeId ?? '',
+                limitTokens: updated.limitTokens, consumedTokens: updated.consumedTokens,
+                limitUsd: updated.limitUsd, consumedUsd: updated.consumedUsd,
+                status: updated.status, warningThreshold: updated.warningThreshold ?? 0.8, rev: updated.rev,
+              };
+            }
+          }
 
           const ds: BudgetDataSource = {
             getByScope(scope: string, scopeId: string) {
-              const row = dbAny.prepare(
-                'SELECT * FROM budget_records WHERE scope = ? AND scope_id = ?',
-              ).get(scope, scopeId) as Record<string, unknown> | undefined;
-              return row ? mapRow(row) : null;
+              if (mutationResult && scope === mutationScope && scopeId === mutationScopeId) {
+                return mutationResult;
+              }
+              return (budgetMap.get(scope) ?? []).find((r) => r.scopeId === scopeId) ?? null;
             },
             listByScope(scope: string) {
-              const rows = dbAny.prepare(
-                'SELECT * FROM budget_records WHERE scope = ? ORDER BY created_at ASC, id ASC',
-              ).all(scope) as Record<string, unknown>[];
-              return rows.map(mapRow);
+              return budgetMap.get(scope) ?? [];
             },
-            replenish(id, additionalTokens, additionalUsd, expectedRev, now) {
-              const result = dbAny.prepare(
-                `UPDATE budget_records
-                 SET limit_tokens = limit_tokens + ?,
-                     limit_usd = limit_usd + ?,
-                     status = 'active',
-                     updated_at = ?,
-                     rev = rev + 1
-                 WHERE id = ? AND rev = ?`,
-              ).run(additionalTokens, additionalUsd, now, id, expectedRev);
-              if (result.changes === 0) {
-                throw new Error('Record not found or stale revision');
-              }
-              const updated = dbAny.prepare(
-                'SELECT * FROM budget_records WHERE id = ?',
-              ).get(id) as Record<string, unknown>;
-              return mapRow(updated);
+            replenish(_id, _at, _au, _er, _now) {
+              if (mutationResult) return mutationResult;
+              throw new Error('Mutation not available');
             },
-            resetConsumption(id, expectedRev, now) {
-              const result = dbAny.prepare(
-                `UPDATE budget_records
-                 SET consumed_tokens = 0, consumed_usd = 0, status = 'active',
-                     updated_at = ?, rev = rev + 1
-                 WHERE id = ? AND rev = ?`,
-              ).run(now, id, expectedRev);
-              if (result.changes === 0) {
-                throw new Error('Record not found or stale revision');
-              }
-              const updated = dbAny.prepare(
-                'SELECT * FROM budget_records WHERE id = ?',
-              ).get(id) as Record<string, unknown>;
-              return mapRow(updated);
+            resetConsumption(_id, _er, _now) {
+              if (mutationResult) return mutationResult;
+              throw new Error('Mutation not available');
             },
           };
 
-          const args = String(ctx.args ?? '').trim();
           return handleBudgetCommand(args, ds, () => new Date().toISOString());
         } catch (err: unknown) {
           logger.warn(`telegram-notifier: /budget failed: ${String(err)}`);
@@ -276,33 +267,22 @@ export default {
         }
 
         try {
-          const db = (api as unknown as Record<string, unknown>)['_sharedDb'];
-          if (!db || typeof db !== 'object') {
-            return { text: '⚠️ Decision database not available from this context\\.' };
+          // EP13 Task 0096: Use API client instead of _sharedDb
+          const result = await ptApi.approveDecision(decisionId, choice);
+          if (result.approved) {
+            return { text: `\u2705 Decision \`${escapeMarkdownV2(decisionId)}\` approved with choice \`${escapeMarkdownV2(choice)}\`\\.` };
           }
-
-          const dbAny = db as { prepare: (sql: string) => { get: (...args: unknown[]) => unknown; run: (...args: unknown[]) => unknown } };
-
-          const row = dbAny.prepare(
-            'SELECT id, escalated, approver, decision FROM agent_decisions WHERE id = ?',
-          ).get(decisionId) as { id: string; escalated: number; approver: string | null; decision: string | null } | undefined;
-
-          if (!row) {
-            return { text: `❌ Decision \`${escapeMarkdownV2(decisionId)}\` not found\\.` };
-          }
-
-          if (row.decision !== null) {
-            return { text: `ℹ️ Decision \`${escapeMarkdownV2(decisionId)}\` already resolved: \`${escapeMarkdownV2(row.decision)}\`\\.` };
-          }
-
-          dbAny.prepare(
-            'UPDATE agent_decisions SET decision = ?, reasoning = COALESCE(reasoning, \'\') || ? WHERE id = ?',
-          ).run(choice, ` [Approved via Telegram by human]`, decisionId);
-
-          return { text: `✅ Decision \`${escapeMarkdownV2(decisionId)}\` approved with choice \`${escapeMarkdownV2(choice)}\`\\.` };
+          return { text: `\u26A0\uFE0F Unexpected response from approval API\\.` };
         } catch (err: unknown) {
-          logger.warn(`telegram-notifier: /approve failed: ${String(err)}`);
-          return { text: `⚠️ Failed to process approval: ${escapeMarkdownV2(String(err))}` };
+          const msg = String(err);
+          if (msg.includes('not found')) {
+            return { text: `\u274C Decision \`${escapeMarkdownV2(decisionId)}\` not found\\.` };
+          }
+          if (msg.includes('already resolved')) {
+            return { text: `\u2139\uFE0F Decision \`${escapeMarkdownV2(decisionId)}\` already resolved\\.` };
+          }
+          logger.warn(`telegram-notifier: /approve failed: ${msg}`);
+          return { text: `\u26A0\uFE0F Failed to process approval: ${escapeMarkdownV2(msg)}` };
         }
       },
     });
@@ -322,33 +302,22 @@ export default {
         }
 
         try {
-          const db = (api as unknown as Record<string, unknown>)['_sharedDb'];
-          if (!db || typeof db !== 'object') {
-            return { text: '⚠️ Decision database not available from this context\\.' };
+          // EP13 Task 0096: Use API client instead of _sharedDb
+          const result = await ptApi.rejectDecision(decisionId, reason);
+          if (result.rejected) {
+            return { text: `\uD83D\uDD04 Decision \`${escapeMarkdownV2(decisionId)}\` rejected and re\\-escalated to tech\\-lead\\.` };
           }
-
-          const dbAny = db as { prepare: (sql: string) => { get: (...args: unknown[]) => unknown; run: (...args: unknown[]) => unknown } };
-
-          const row = dbAny.prepare(
-            'SELECT id, decision FROM agent_decisions WHERE id = ?',
-          ).get(decisionId) as { id: string; decision: string | null } | undefined;
-
-          if (!row) {
-            return { text: `❌ Decision \`${escapeMarkdownV2(decisionId)}\` not found\\.` };
-          }
-
-          if (row.decision !== null) {
-            return { text: `ℹ️ Decision \`${escapeMarkdownV2(decisionId)}\` already resolved\\.` };
-          }
-
-          dbAny.prepare(
-            'UPDATE agent_decisions SET approver = \'tech-lead\', reasoning = COALESCE(reasoning, \'\') || ? WHERE id = ?',
-          ).run(` [Rejected via Telegram: ${reason}]`, decisionId);
-
-          return { text: `🔄 Decision \`${escapeMarkdownV2(decisionId)}\` rejected and re\\-escalated to tech\\-lead\\.` };
+          return { text: `\u26A0\uFE0F Unexpected response from rejection API\\.` };
         } catch (err: unknown) {
-          logger.warn(`telegram-notifier: /reject failed: ${String(err)}`);
-          return { text: `⚠️ Failed to process rejection: ${escapeMarkdownV2(String(err))}` };
+          const msg = String(err);
+          if (msg.includes('not found')) {
+            return { text: `\u274C Decision \`${escapeMarkdownV2(decisionId)}\` not found\\.` };
+          }
+          if (msg.includes('already resolved')) {
+            return { text: `\u2139\uFE0F Decision \`${escapeMarkdownV2(decisionId)}\` already resolved\\.` };
+          }
+          logger.warn(`telegram-notifier: /reject failed: ${msg}`);
+          return { text: `\u26A0\uFE0F Failed to process rejection: ${escapeMarkdownV2(msg)}` };
         }
       },
     });
@@ -358,29 +327,21 @@ export default {
       description: 'List pending decisions awaiting human approval',
       handler: async () => {
         try {
-          const db = (api as unknown as Record<string, unknown>)['_sharedDb'];
-          if (!db || typeof db !== 'object') {
-            return { text: '⚠️ Decision database not available from this context\\.' };
-          }
-
-          const dbAny = db as { prepare: (sql: string) => { all: () => unknown[] } };
-
-          const rows = dbAny.prepare(
-            'SELECT id, category, question, approver, created_at FROM agent_decisions WHERE decision IS NULL AND escalated = 1 ORDER BY created_at DESC LIMIT 10',
-          ).all() as Array<{ id: string; category: string; question: string; approver: string | null; created_at: string }>;
+          // EP13 Task 0096: Use API client instead of _sharedDb
+          const rows = await ptApi.listPendingDecisions();
 
           if (rows.length === 0) {
-            return { text: '✅ No pending decisions\\.' };
+            return { text: '\u2705 No pending decisions\\.' };
           }
 
           const lines = rows.map((r) =>
-            `• \`${escapeMarkdownV2(r.id)}\` \\[${escapeMarkdownV2(r.category)}\\] ${escapeMarkdownV2(r.question.slice(0, 60))} → ${escapeMarkdownV2(r.approver ?? 'unknown')}`,
+            `\u2022 \`${escapeMarkdownV2(r.id)}\` \\[${escapeMarkdownV2(r.category)}\\] ${escapeMarkdownV2(r.question.slice(0, 60))} \u2192 ${escapeMarkdownV2(r.approver ?? 'unknown')}`,
           );
 
-          return { text: `📋 *Pending decisions \\(${rows.length}\\):*\n\n${lines.join('\n')}` };
+          return { text: `\uD83D\uDCCB *Pending decisions \\(${rows.length}\\):*\n\n${lines.join('\n')}` };
         } catch (err: unknown) {
           logger.warn(`telegram-notifier: /decisions failed: ${String(err)}`);
-          return { text: `⚠️ Could not list decisions: ${escapeMarkdownV2(String(err))}` };
+          return { text: `\u26A0\uFE0F Could not list decisions: ${escapeMarkdownV2(String(err))}` };
         }
       },
     });
