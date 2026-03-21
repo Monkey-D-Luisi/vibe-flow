@@ -58,14 +58,10 @@ This skill operates in the **IMPLEMENTATION** stage of the pipeline.
 
 ```json
 {
-  "diff_summary": "Implemented dashboard page from Stitch design",
+  "diff_summary": "Implemented dashboard page from Stitch design (visual verification: screenshot at screenshots/dashboard.png, snapshot_match: true)",
   "metrics": {
     "coverage": 82.0,
     "lint_clean": true
-  },
-  "visual_evidence": {
-    "screenshot_path": "screenshots/dashboard.png",
-    "snapshot_match": true
   },
   "red_green_refactor_log": [
     {

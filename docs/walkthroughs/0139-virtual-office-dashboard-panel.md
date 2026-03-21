@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0139-virtual-office-dashboard-panel.md`
 - Epic: EP15 -- Telegram Control Plane v2
 - Branch: `feat/EP15-telegram-control-plane-v2`
-- PR: --
+- PR: #263
 
 ---
 

@@ -43,7 +43,7 @@ describe('decision-context', () => {
 
     it('shows approve and reject commands', () => {
       const result = renderDecisionWithContext(makeDecision(), null);
-      expect(result).toContain('/approve dec-001-abc123def456');
+      expect(result).toContain('/approve dec-001-abc123def456 <optionId>');
       expect(result).toContain('/reject dec-001-abc123def456');
     });
   });

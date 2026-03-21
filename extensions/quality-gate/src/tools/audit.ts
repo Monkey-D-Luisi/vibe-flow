@@ -42,7 +42,7 @@ async function detectPackageManager(cwd: string): Promise<'pnpm' | 'npm'> {
   return 'npm';
 }
 
-export function parsePnpmAuditJson(raw: string): Pick<AuditOutput, 'critical' | 'high' | 'moderate' | 'low' | 'total' | 'raw'> {
+export function parseAuditJson(raw: string): Pick<AuditOutput, 'critical' | 'high' | 'moderate' | 'low' | 'total' | 'raw'> {
   try {
     const data = JSON.parse(raw) as Record<string, unknown>;
     const metadata = data['metadata'] as Record<string, unknown> | undefined;
@@ -68,31 +68,10 @@ export function parsePnpmAuditJson(raw: string): Pick<AuditOutput, 'critical' | 
   return { critical: 0, high: 0, moderate: 0, low: 0, total: 0, raw };
 }
 
-export function parseNpmAuditJson(raw: string): Pick<AuditOutput, 'critical' | 'high' | 'moderate' | 'low' | 'total' | 'raw'> {
-  try {
-    const data = JSON.parse(raw) as Record<string, unknown>;
-    const metadata = data['metadata'] as Record<string, unknown> | undefined;
-    const vulnerabilities = metadata?.['vulnerabilities'] as Record<string, number> | undefined;
-
-    if (vulnerabilities) {
-      const critical = vulnerabilities['critical'] ?? 0;
-      const high = vulnerabilities['high'] ?? 0;
-      const moderate = vulnerabilities['moderate'] ?? 0;
-      const low = vulnerabilities['low'] ?? 0;
-      return {
-        critical,
-        high,
-        moderate,
-        low,
-        total: critical + high + moderate + low,
-      };
-    }
-  } catch {
-    // Parse failure — surface raw output so callers see something went wrong
-  }
-
-  return { critical: 0, high: 0, moderate: 0, low: 0, total: 0, raw };
-}
+/** @deprecated Use parseAuditJson — pnpm and npm share the same metadata format. */
+export const parsePnpmAuditJson = parseAuditJson;
+/** @deprecated Use parseAuditJson — pnpm and npm share the same metadata format. */
+export const parseNpmAuditJson = parseAuditJson;
 
 /**
  * Execute audit tool.
@@ -113,6 +92,7 @@ export async function auditTool(input: AuditInput): Promise<AuditOutput> {
     const result = await safeSpawn(parsed.cmd, parsed.args, {
       cwd,
       timeoutMs: 60_000,
+      envAllow: ['PATH', 'PNPM_HOME', 'npm_config_registry'],
     });
     // safeSpawn resolves on non-zero exit (audit returns non-zero when vulns found),
     // but can reject on spawn errors; capture stdout from either path.

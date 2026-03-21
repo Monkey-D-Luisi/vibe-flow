@@ -86,6 +86,8 @@ export class DashboardPanel {
     if (dot) dot.style.background = STATUS_COLORS[state.status] ?? STATUS_COLORS['idle'];
     if (tool) tool.textContent = state.currentTool ?? '--';
     if (stage) stage.textContent = state.pipelineStage ?? '--';
+
+    this.updatePipelineSummary();
   }
 
   updateAllAgents(agents: ServerAgentState[]): void {

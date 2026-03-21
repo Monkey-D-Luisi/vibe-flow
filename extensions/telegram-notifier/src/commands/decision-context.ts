@@ -41,7 +41,7 @@ export function renderDecisionWithContext(
   }
 
   lines.push('─'.repeat(45));
-  lines.push(`/approve ${decision.id}`);
+  lines.push(`/approve ${decision.id} <optionId>`);
   lines.push(`/reject ${decision.id} <reason>`);
   lines.push('```');
   return lines.join('\n');
@@ -52,7 +52,7 @@ export function renderDecisionsList(
   metrics: ApiMetricsResponse | null,
 ): string {
   if (decisions.length === 0) {
-    return 'No pending decisions\\.';
+    return escapeMarkdownV2('No pending decisions.');
   }
 
   const sections = decisions.map(d => renderDecisionWithContext(d, metrics));

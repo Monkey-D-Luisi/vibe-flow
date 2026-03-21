@@ -64,9 +64,7 @@ For non-UI tasks, browser smoke testing can be skipped.
       "criterion": "Dashboard renders correctly",
       "status": "pass",
       "test_names": ["visual-smoke"],
-      "type": "visual",
-      "screenshot": "screenshots/dashboard-smoke.png",
-      "notes": "Visual smoke test passed"
+      "notes": "Visual smoke test passed (screenshot: screenshots/dashboard-smoke.png)"
     },
     {
       "criterion": "Export to CSV",
