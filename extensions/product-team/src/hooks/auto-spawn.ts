@@ -683,104 +683,7 @@ export function fireAgentViaGatewayWs(
 }
 
 /**
- * Legacy v1 spawn (SDK-internal discovery).  Activated by OPENCLAW_SPAWN_V1=1.
- * Kept as a rollback mechanism during the v2 transition.
- * @deprecated Will be removed once v2 is validated in production.
- */
-export function fireAgentViaGatewayWsV1(
-  agentId: string,
-  message: string,
-  logger: AutoSpawnLogger,
-  options?: AgentSpawnOptions,
-): void {
-  const port = process.env['OPENCLAW_GATEWAY_PORT'] || '28789';
-  const sessionKey = options?.sessionKey ?? `agent:${agentId}:main`;
-  const agentParams = buildAgentParams(agentId, sessionKey, message, options);
-
-  const script = `
-import { readdirSync } from "node:fs";
-import { randomUUID } from "node:crypto";
-
-const ts = () => new Date().toISOString();
-const log = (msg) => console.log(ts() + " [spawn:${agentId}] " + msg);
-const err = (msg) => console.error(ts() + " [spawn:${agentId}] " + msg);
-
-const distDir = "/app/node_modules/openclaw/dist/";
-const files = readdirSync(distDir);
-const clientFile = files.filter(f => f.startsWith("client-") && f.endsWith(".js")).sort()[0];
-if (!clientFile) { err("client-*.js not found"); process.exit(1); }
-
-const clientMod = await import(distDir + clientFile);
-
-const GatewayClient = Object.values(clientMod).find(
-  v => typeof v === "function" && v.prototype
-    && typeof v.prototype.sendConnect === "function"
-    && typeof v.prototype.request === "function"
-    && typeof v.prototype.start === "function"
-);
-if (!GatewayClient) { err("GatewayClient not found in SDK"); process.exit(1); }
-
-const agentParams = ${agentParams};
-log("connecting to ws://127.0.0.1:${port}");
-
-await new Promise((resolve, reject) => {
-  let done = false;
-  const finish = (e, val) => { if (done) return; done = true; clearTimeout(timer); e ? reject(e) : resolve(val); };
-
-  const client = new GatewayClient({
-    url: "ws://127.0.0.1:${port}",
-    token: process.env.OPENCLAW_GATEWAY_TOKEN || "",
-    instanceId: randomUUID(),
-    clientName: "cli",
-    clientVersion: "1.0.0",
-    platform: "linux",
-    mode: "cli",
-    role: "operator",
-    onHelloOk: async () => {
-      try {
-        log("connected, sending agent request");
-        const result = await client.request("agent", agentParams, {});
-        log("agent request completed");
-        client.stop();
-        finish(null, result);
-      } catch (e) { err("agent request failed: " + e); client.stop(); finish(e); }
-    },
-    onClose: (code, reason) => { if (!done) { err("ws closed: " + code + " " + reason); client.stop(); finish(new Error("ws closed: " + code + " " + reason)); } },
-    onConnectError: (e) => { if (!done) { err("connect error: " + e); client.stop(); finish(e); } },
-  });
-  const timer = setTimeout(() => { err("timeout after 30s"); client.stop(); finish(new Error("timeout")); }, 30000);
-  client.start();
-});
-log("done");
-process.exit(0);
-`.trim();
-
-  const spawnLogDir = '/tmp/openclaw';
-  mkdirSync(spawnLogDir, { recursive: true });
-  const logFd = openSync(`${spawnLogDir}/spawn-debug.log`, 'a');
-
-  const child = spawn('node', ['--input-type=module', '-e', script], {
-    detached: true,
-    stdio: ['ignore', logFd, logFd],
-    cwd: '/app',
-    env: {
-      PATH: process.env['PATH'] ?? '',
-      HOME: process.env['HOME'] ?? '',
-      NODE_PATH: '/app/node_modules',
-      OPENCLAW_GATEWAY_TOKEN: process.env['OPENCLAW_GATEWAY_TOKEN'] ?? '',
-      OPENCLAW_GATEWAY_PORT: process.env['OPENCLAW_GATEWAY_PORT'] ?? '',
-    },
-  });
-  child.on('error', (e) => {
-    logger.warn(`auto-spawn: v1 subprocess error for "${agentId}": ${String(e)}`);
-  });
-  child.unref();
-  closeSync(logFd);
-}
-
-/**
- * Dispatch agent spawn to the appropriate implementation.
- * Uses raw WebSocket v2 by default; set OPENCLAW_SPAWN_V1=1 for legacy path.
+ * Dispatch agent spawn via the raw WebSocket v2 implementation.
  */
 export function dispatchAgentSpawn(
   agentId: string,
@@ -788,12 +691,7 @@ export function dispatchAgentSpawn(
   logger: AutoSpawnLogger,
   options?: AgentSpawnOptions,
 ): void {
-  if (process.env['OPENCLAW_SPAWN_V1'] === '1') {
-    logger.info(`auto-spawn: using v1 (legacy SDK) for "${agentId}"`);
-    fireAgentViaGatewayWsV1(agentId, message, logger, options);
-  } else {
-    fireAgentViaGatewayWs(agentId, message, logger, options);
-  }
+  fireAgentViaGatewayWs(agentId, message, logger, options);
 }
 
 // ── Session ID resolution ────────────────────────────────────────────────────

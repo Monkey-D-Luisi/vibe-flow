@@ -1139,41 +1139,18 @@ describe('buildRawWsSpawnScript', () => {
   });
 });
 
-// ── dispatchAgentSpawn feature flag (Task 0094) ─────────────────────────────
+// ── dispatchAgentSpawn (Task 0094 — v1 removed, v2 only) ────────────────────
 
 describe('dispatchAgentSpawn', () => {
-  const originalEnv = process.env['OPENCLAW_SPAWN_V1'];
-
-  afterEach(() => {
-    if (originalEnv === undefined) {
-      delete process.env['OPENCLAW_SPAWN_V1'];
-    } else {
-      process.env['OPENCLAW_SPAWN_V1'] = originalEnv;
-    }
-  });
-
-  it('does not throw when called with default (v2) path', () => {
-    delete process.env['OPENCLAW_SPAWN_V1'];
+  it('does not throw when called (v2 path)', () => {
     const logger = { info: vi.fn(), warn: vi.fn() };
     expect(() => dispatchAgentSpawn('pm', 'Hello', logger)).not.toThrow();
   });
 
-  it('logs v1 usage when OPENCLAW_SPAWN_V1=1', () => {
-    process.env['OPENCLAW_SPAWN_V1'] = '1';
+  it('delegates to fireAgentViaGatewayWs', () => {
     const logger = { info: vi.fn(), warn: vi.fn() };
-    expect(() => dispatchAgentSpawn('pm', 'Hello', logger)).not.toThrow();
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('using v1 (legacy SDK)'),
-    );
-  });
-
-  it('does not log v1 when OPENCLAW_SPAWN_V1 is not set', () => {
-    delete process.env['OPENCLAW_SPAWN_V1'];
-    const logger = { info: vi.fn(), warn: vi.fn() };
-    expect(() => dispatchAgentSpawn('pm', 'Hello', logger)).not.toThrow();
-    expect(logger.info).not.toHaveBeenCalledWith(
-      expect.stringContaining('using v1'),
-    );
+    // dispatchAgentSpawn should work without any env flags
+    expect(() => dispatchAgentSpawn('tech-lead', 'Test', logger)).not.toThrow();
   });
 });
 
