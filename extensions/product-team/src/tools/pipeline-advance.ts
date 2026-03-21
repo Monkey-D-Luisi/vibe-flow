@@ -178,6 +178,25 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
         }
       }
 
+      // SHIPPING → DONE gate: require CI success before closing
+      if (currentStage === 'SHIPPING' && targetStage === 'DONE') {
+        const shippingResult = meta['shipping_result'] as Record<string, unknown> | undefined;
+        const ciStatus = shippingResult?.['ci_status'];
+        if (ciStatus !== 'success') {
+          const reason = ciStatus
+            ? `CI status is "${String(ciStatus)}", must be "success" to complete pipeline`
+            : 'Missing shipping_result.ci_status metadata. DevOps agent must record CI result before advancing to DONE.';
+          emitStageEvent(deps, input.taskId, 'pipeline.stage.blocked', {
+            stage: 'SHIPPING',
+            reason,
+          });
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify({ advanced: false, reason }) }],
+            details: { advanced: false, reason },
+          };
+        }
+      }
+
       // Record stage completion metrics for the outgoing stage (Task 0072)
       const stageStartKey = `${currentStage}_startedAt`;
       const stageStartedAt = typeof meta[stageStartKey] === 'string' ? meta[stageStartKey] as string : null;

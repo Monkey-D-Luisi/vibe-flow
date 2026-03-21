@@ -17,7 +17,7 @@ function getConfig(api: OpenClawPluginApi): StitchConfig {
   return {
     endpoint: String(cfg?.['endpoint'] ?? 'https://stitch.googleapis.com/mcp'),
     defaultProjectId: String(cfg?.['defaultProjectId'] ?? ''),
-    defaultModel: String(cfg?.['defaultModel'] ?? 'GEMINI_3_PRO'),
+    defaultModel: String(cfg?.['defaultModel'] ?? 'GEMINI_3_1_PRO'),
     timeoutMs: Number(cfg?.['timeoutMs'] ?? 120000),
     designDir: String(cfg?.['designDir'] ?? '.stitch-html'),
   };
@@ -96,6 +96,36 @@ async function extractHtml(result: unknown): Promise<string> {
   throw new Error(`Stitch MCP response missing html field. Keys: ${Object.keys(obj ?? {}).join(', ')}`);
 }
 
+/** Extract all variant HTML strings from a Stitch generate_variants response. */
+async function extractVariantHtmls(result: unknown): Promise<{ name: string; html: string }[]> {
+  const obj = result as Record<string, unknown>;
+  const components = obj?.['outputComponents'];
+  if (!Array.isArray(components)) return [];
+
+  const variants: { name: string; html: string }[] = [];
+  let index = 0;
+  for (const comp of components) {
+    const design = (comp as Record<string, unknown>)?.['design'] as Record<string, unknown> | undefined;
+    const screens = design?.['screens'];
+    if (!Array.isArray(screens)) continue;
+    for (const screen of screens) {
+      const screenObj = screen as Record<string, unknown>;
+      const screenName = typeof screenObj['name'] === 'string' ? screenObj['name'] : `variant-${index}`;
+      const htmlCode = screenObj['htmlCode'] as Record<string, unknown> | undefined;
+      const downloadUrl = htmlCode?.['downloadUrl'];
+      if (typeof downloadUrl === 'string' && downloadUrl) {
+        const resp = await fetch(downloadUrl);
+        if (resp.ok) {
+          const html = await resp.text();
+          if (html) variants.push({ name: screenName, html });
+        }
+      }
+      index++;
+    }
+  }
+  return variants;
+}
+
 /** Strip "projects/" prefix from Stitch resource names so tools receive bare numeric IDs. */
 function normalizeProjectId(raw: string): string {
   return raw.replace(/^projects\//, '');
@@ -138,7 +168,7 @@ export default {
           projectId: { type: 'string', description: 'Stitch project ID (defaults to config)' },
           screenName: { type: 'string', description: 'Name for the screen (used as filename)' },
           description: { type: 'string', description: 'Natural language description of the screen' },
-          modelId: { type: 'string', description: 'Stitch model (defaults to GEMINI_3_PRO)' },
+          modelId: { type: 'string', description: 'Stitch model (defaults to GEMINI_3_1_PRO)' },
           deviceType: { type: 'string', description: 'Device type: DESKTOP (default), MOBILE, TABLET, AGNOSTIC', enum: ['DESKTOP', 'MOBILE', 'TABLET', 'AGNOSTIC'] },
         },
         required: ['screenName', 'description'],
@@ -216,6 +246,68 @@ export default {
         logger.info(`stitch-bridge: Edited design "${screenName}" → ${filePath}`);
 
         const output = { html, savedTo: filePath };
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(output, null, 2) }],
+          details: output,
+        };
+      },
+    });
+
+    // ── design.variant ──
+    api.registerTool({
+      name: 'design_variant',
+      label: 'Generate Design Variants',
+      description: 'Generate alternative design variants for A/B exploration',
+      parameters: {
+        type: 'object',
+        properties: {
+          projectId: { type: 'string', description: 'Stitch project ID (defaults to config)' },
+          screenIds: { type: 'array', items: { type: 'string' }, description: 'Screen IDs to generate variants for' },
+          screenName: { type: 'string', description: 'Base name prefix for saved variant files' },
+          prompt: { type: 'string', description: 'Prompt describing the variant direction' },
+          variantCount: { type: 'number', description: 'Number of variants (1-5, default 3)' },
+          creativeRange: { type: 'string', description: 'REFINE, EXPLORE (default), or REIMAGINE', enum: ['REFINE', 'EXPLORE', 'REIMAGINE'] },
+          aspects: { type: 'array', items: { type: 'string' }, description: 'Aspects to vary: LAYOUT, COLOR_SCHEME, IMAGES, TEXT_FONT, TEXT_CONTENT' },
+          deviceType: { type: 'string', description: 'Device type: DESKTOP (default), MOBILE, TABLET, AGNOSTIC', enum: ['DESKTOP', 'MOBILE', 'TABLET', 'AGNOSTIC'] },
+        },
+        required: ['screenIds', 'prompt'],
+      },
+      async execute(_toolCallId: string, params: Record<string, unknown>) {
+        const projectId = normalizeProjectId(String(params['projectId'] ?? config.defaultProjectId));
+        const screenIds = params['screenIds'] as string[];
+        const screenName = sanitizeScreenName(String(params['screenName'] ?? 'design'));
+        const prompt = String(params['prompt']);
+        const variantCount = Number(params['variantCount'] ?? 3);
+        const creativeRange = String(params['creativeRange'] ?? 'EXPLORE');
+        const aspects = Array.isArray(params['aspects']) ? params['aspects'] as string[] : [];
+        const deviceType = String(params['deviceType'] ?? 'DESKTOP');
+
+        const variantOptions: Record<string, unknown> = { variantCount, creativeRange };
+        if (aspects.length > 0) variantOptions['aspects'] = aspects;
+
+        const result = await callStitchMcp(config, 'generate_variants', {
+          projectId,
+          selectedScreenIds: screenIds,
+          prompt,
+          variantOptions,
+          deviceType,
+          modelId: config.defaultModel,
+        });
+
+        const variantHtmls = await extractVariantHtmls(result);
+        const workspace = validateWorkspace(String(params['workspace'] ?? '/workspaces/active'));
+        const dir = await ensureDesignDir(workspace, config.designDir);
+
+        const saved: { index: number; savedTo: string }[] = [];
+        for (let i = 0; i < variantHtmls.length; i++) {
+          const filePath = join(dir, `${screenName}-variant-${i + 1}.html`);
+          await writeFile(filePath, variantHtmls[i].html, 'utf-8');
+          saved.push({ index: i + 1, savedTo: filePath });
+        }
+
+        slog('info', 'design_variant.generated', { screenName, count: saved.length });
+
+        const output = { variants: saved, count: saved.length };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output, null, 2) }],
           details: output,

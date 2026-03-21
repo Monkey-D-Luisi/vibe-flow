@@ -66,7 +66,7 @@ describe('skill-activation', () => {
   it('should return instructions for DESIGN stage + designer agent', () => {
     const result = getSkillInstructions('DESIGN', 'designer', RULES_PATH);
     expect(result).not.toBeNull();
-    expect(result).toContain('GEMINI_3_PRO');
+    expect(result).toContain('GEMINI_3_1_PRO');
   });
 
   it('should return null for unknown stage', () => {

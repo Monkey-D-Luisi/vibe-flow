@@ -33,6 +33,14 @@ This skill operates in the **IMPLEMENTATION** stage of the pipeline.
 - Write component tests using Vitest + React Testing Library
 - Test user interactions, not implementation details
 
+### 5. Visual Verification
+- After implementing a UI component, start the dev server and navigate to the page
+- Use `browser_navigate` to open the local URL (e.g., `http://localhost:3000/page`)
+- Use `browser_snapshot` to capture the accessibility tree and verify element structure
+- Use `browser_take_screenshot` to capture visual evidence matching the Stitch design
+- Compare the rendered output against the original Stitch HTML from `design_get`
+- Fix any visual discrepancies before proceeding to quality checks (max 3 visual iterations)
+
 ## Tools
 | Tool | Purpose |
 |------|---------|
@@ -41,6 +49,9 @@ This skill operates in the **IMPLEMENTATION** stage of the pipeline.
 | `quality_coverage` | Parse and report test coverage |
 | `design_get` | Fetch Stitch design for a screen |
 | `design_list` | List available Stitch designs |
+| `browser_navigate` | Navigate browser to local dev URL for visual check |
+| `browser_snapshot` | Capture accessibility snapshot of rendered page |
+| `browser_take_screenshot` | Take screenshot for visual evidence |
 
 ## Output contract
 **schemaKey:** `dev_result` (orchestrator-validated)
@@ -51,6 +62,10 @@ This skill operates in the **IMPLEMENTATION** stage of the pipeline.
   "metrics": {
     "coverage": 82.0,
     "lint_clean": true
+  },
+  "visual_evidence": {
+    "screenshot_path": "screenshots/dashboard.png",
+    "snapshot_match": true
   },
   "red_green_refactor_log": [
     {

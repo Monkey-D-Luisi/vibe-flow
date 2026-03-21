@@ -128,6 +128,21 @@ pnpm q:complexity
 | `qgate_tests` | Run test suite standalone |
 | `qgate_coverage` | Parse and report test coverage |
 | `qgate_gate` | Evaluate quality gate policy |
+| `qgate_accessibility` | Scan HTML for accessibility violations (missing alt, lang, labels) |
+| `qgate_audit` | Run dependency audit and report vulnerability counts |
+
+### stitch-bridge extension
+
+| Tool | Purpose |
+|------|---------|
+| `design_generate` | Generate a UI screen design via Google Stitch |
+| `design_edit` | Edit an existing Stitch screen design |
+| `design_variant` | Generate design variants for A/B exploration |
+| `design_get` | Read a saved Stitch design from the workspace |
+| `design_list` | List all saved Stitch designs |
+| `design_project_create` | Create a new Stitch project |
+| `design_project_list` | List all Stitch projects |
+| `design_screens_list` | List screens in a Stitch project (API, not local) |
 
 > **Note:** `qgate_*` and `quality_*` tools serve different purposes. `quality_*` tools integrate with the task lifecycle. `qgate_*` tools are stateless and work without a task context. Both extensions can be loaded simultaneously — the `qgate_*` namespace prevents tool name collisions.
 >

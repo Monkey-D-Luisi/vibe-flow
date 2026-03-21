@@ -19,7 +19,7 @@
       "stage": "DESIGN",
       "agent": "designer",
       "skills": ["ui-designer"],
-      "instruction": "Generate designs using Stitch tools. Always use `modelId: GEMINI_3_PRO`. Produce component specs with state coverage (empty, loading, error)."
+      "instruction": "Generate designs using Stitch tools. Always use `modelId: GEMINI_3_1_PRO`. Produce component specs with state coverage (empty, loading, error). Use `design_variant` to explore alternatives when needed."
     },
     {
       "id": "implementation-triggers-backend",
@@ -33,14 +33,14 @@
       "stage": "IMPLEMENTATION",
       "agent": "front-1",
       "skills": ["frontend-dev", "tdd-implementation"],
-      "instruction": "Follow strict TDD. Read Stitch designs with `design_get`. Produce a `dev_result` with structured RGR log entries. Run `quality_tests`, `quality_lint`, `quality_coverage` before submitting."
+      "instruction": "Follow strict TDD. Read Stitch designs with `design_get`. Produce a `dev_result` with structured RGR log entries. Run `quality_tests`, `quality_lint`, `quality_coverage` before submitting. After implementation, visually verify the result using `browser_navigate` and `browser_snapshot` to compare against the Stitch design."
     },
     {
       "id": "qa-triggers-qa",
       "stage": "QA",
       "agent": "qa",
       "skills": ["qa-testing"],
-      "instruction": "Execute tests with `quality_tests`. Map each acceptance criterion to structured evidence entries with status and test names. Produce a `qa_report`."
+      "instruction": "Execute tests with `quality_tests`. Map each acceptance criterion to structured evidence entries with status and test names. Produce a `qa_report`. For UI tasks, run browser smoke tests with `browser_navigate` and `browser_snapshot` to verify rendered output. Include visual evidence in the report."
     },
     {
       "id": "review-triggers-tl",
@@ -54,7 +54,7 @@
       "stage": "SHIPPING",
       "agent": "devops",
       "skills": ["devops", "github-automation"],
-      "instruction": "Create feature branch with `vcs_branch_create`, commit changes, open PR with `vcs_pr_create`, sync labels with `vcs_label_sync`, monitor CI."
+      "instruction": "Create feature branch with `vcs_branch_create`, commit changes, open PR with `vcs_pr_create`, sync labels with `vcs_label_sync`, monitor CI. Before calling `pipeline_advance`, record CI result in task metadata as `shipping_result: { ci_status: 'success' }` using `task_update`."
     }
   ]
 }

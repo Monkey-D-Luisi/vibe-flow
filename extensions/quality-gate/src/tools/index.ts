@@ -9,12 +9,16 @@ export { coverageReportTool, coverageReportToolDef, type CoverageInput, type Cov
 export { lintTool, lintToolDef, type LintInput, type LintOutput } from './lint.js';
 export { runTestsTool, runTestsToolDef, type RunTestsInput, type RunTestsOutput } from './run_tests.js';
 export { gateEnforceTool, gateEnforceToolDef, type GateEnforceInput, type GateEnforceOutput } from './gate_enforce.js';
+export { accessibilityTool, accessibilityToolDef, type AccessibilityInput, type AccessibilityOutput } from './accessibility.js';
+export { auditTool, auditToolDef, type AuditInput, type AuditOutput } from './audit.js';
 
 import { complexityToolDef } from './complexity.js';
 import { coverageReportToolDef } from './coverage_report.js';
 import { lintToolDef } from './lint.js';
 import { runTestsToolDef } from './run_tests.js';
 import { gateEnforceToolDef } from './gate_enforce.js';
+import { accessibilityToolDef } from './accessibility.js';
+import { auditToolDef } from './audit.js';
 
 interface QualityToolDef {
   name: string;
@@ -33,5 +37,7 @@ export function getAllToolDefs(): QualityToolDef[] {
     lintToolDef,
     runTestsToolDef,
     gateEnforceToolDef,
+    accessibilityToolDef,
+    auditToolDef,
   ];
 }

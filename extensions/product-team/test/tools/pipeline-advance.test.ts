@@ -183,7 +183,9 @@ describe('pipeline-advance tools', () => {
     });
 
     it('does not include nextAction when advancing to DONE', async () => {
-      const taskId = await createPipelineTask('SHIPPING');
+      const taskId = await createPipelineTask('SHIPPING', {
+        shipping_result: { ci_status: 'success', pr_url: 'https://github.com/test/pr/1' },
+      });
       const tool = pipelineAdvanceToolDef(deps);
       const result = await tool.execute('c10', { taskId });
       const d = result.details as { advanced: boolean; currentStage: string; nextAction?: unknown };
@@ -285,6 +287,42 @@ describe('pipeline-advance tools', () => {
       expect(msg).toContain('Test Task');
       expect(msg).toContain('Run test suites');
       expect(msg).not.toContain('Idea:');
+    });
+  });
+
+  describe('SHIPPING → DONE CI gate', () => {
+    it('blocks SHIPPING-to-DONE when shipping_result is missing', async () => {
+      const taskId = await createPipelineTask('SHIPPING');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('ship-1', { taskId });
+      const d = result.details as { advanced: boolean; reason: string };
+
+      expect(d.advanced).toBe(false);
+      expect(d.reason).toContain('Missing shipping_result.ci_status');
+    });
+
+    it('blocks SHIPPING-to-DONE when ci_status is failure', async () => {
+      const taskId = await createPipelineTask('SHIPPING', {
+        shipping_result: { ci_status: 'failure', pr_url: 'https://github.com/test/pr/1' },
+      });
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('ship-2', { taskId });
+      const d = result.details as { advanced: boolean; reason: string };
+
+      expect(d.advanced).toBe(false);
+      expect(d.reason).toContain('CI status is "failure"');
+    });
+
+    it('allows SHIPPING-to-DONE when ci_status is success', async () => {
+      const taskId = await createPipelineTask('SHIPPING', {
+        shipping_result: { ci_status: 'success', pr_url: 'https://github.com/test/pr/1' },
+      });
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('ship-3', { taskId });
+      const d = result.details as { advanced: boolean; currentStage: string };
+
+      expect(d.advanced).toBe(true);
+      expect(d.currentStage).toBe('DONE');
     });
   });
 
