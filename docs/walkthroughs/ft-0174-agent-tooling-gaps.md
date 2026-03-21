@@ -8,7 +8,7 @@ Audit of agent capabilities revealed that the pipeline has strong code-quality t
 
 | Task | Area | Impact |
 |------|------|--------|
-| A | stitch-bridge | New `design_variant` tool + model update to GEMINI_3_FLASH |
+| A | stitch-bridge | New `design_variant` tool + model update to GEMINI_3_1_PRO |
 | B | frontend-dev skill | Playwright visual verification loop in IMPLEMENTATION |
 | C | qa-testing skill | Browser smoke tests in QA stage |
 | D | transition-guards | CI status guard for SHIPPING→DONE |
@@ -36,6 +36,10 @@ After implementing a component from a Stitch design, the front agent:
 4. Takes visual screenshot with `browser_take_screenshot`
 5. Compares against the Stitch HTML reference
 6. Iterates if discrepancies found (max 3 rounds)
+
+> **Note:** `browser_navigate`, `browser_snapshot`, and `browser_take_screenshot` are
+> provided by the Playwright MCP server at runtime. They are not registered in this repo
+> but are available to agents through the OpenClaw gateway's MCP tool routing.
 
 This closes the biggest gap: front agents can now **see** what they build.
 
@@ -73,9 +77,9 @@ The `shipping-triggers-devops` instruction now requires the devops agent to chec
 ## Task E — Accessibility Check
 
 ### New gate check: accessibility
-- `GatePolicy.accessibilityMaxViolations` — max allowed axe-core violations
+- `GatePolicy.accessibilityMaxViolations` — max allowed violations (heuristic scan)
 - `GateMetrics.accessibilityViolations` — actual count from scan
-- `qgate_accessibility` tool: runs axe-core against URL or HTML file
+- `qgate_accessibility` tool: regex/heuristic scanner for HTML accessibility violations (missing alt, lang, labels)
 
 ### Integration
 Added to `evaluateGate()` checker array alongside coverage, lint, complexity, tests, RGR.
@@ -97,5 +101,5 @@ Each task includes its own test suite:
 - Task B: skill content validation (manual review)
 - Task C: skill content validation (manual review), evidence schema test
 - Task D: pipeline-advance guard test with/without ci_status
-- Task E: accessibility checker unit tests, gate integration test
+- Task E: accessibility heuristic scanner unit tests, gate integration test
 - Task F: audit parser unit tests, gate integration test

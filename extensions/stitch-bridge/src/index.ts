@@ -128,7 +128,7 @@ async function extractVariantHtmls(
 
   const variants: { name: string; html: string }[] = [];
   const warnings: string[] = [];
-  let index = 0;
+  let index = 1;
   for (const comp of components) {
     const design = (comp as Record<string, unknown>)?.['design'] as Record<string, unknown> | undefined;
     const screens = design?.['screens'];
@@ -331,7 +331,9 @@ export default {
         const creativeRange = rawCreativeRange;
 
         // Validate aspects (#10)
-        const rawAspects = Array.isArray(params['aspects']) ? params['aspects'] as string[] : [];
+        const rawAspects = Array.isArray(params['aspects'])
+          ? (params['aspects'] as unknown[]).filter((a): a is string => typeof a === 'string')
+          : [];
         for (const aspect of rawAspects) {
           if (!VALID_ASPECTS.has(aspect)) {
             throw new Error(`Invalid aspect "${aspect}". Must be one of: ${[...VALID_ASPECTS].join(', ')}`);

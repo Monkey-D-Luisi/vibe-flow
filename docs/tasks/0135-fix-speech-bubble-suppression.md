@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Epic | EP15 -- Telegram Control Plane v2 |
 | Priority | HIGH |
 | Scope | MINOR |

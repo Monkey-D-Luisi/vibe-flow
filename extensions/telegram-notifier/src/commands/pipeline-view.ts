@@ -16,8 +16,8 @@ export interface PipelineDataSource {
 }
 
 const STAGE_ORDER = [
-  'IDEA', 'ROADMAP', 'STORIES', 'DECOMPOSITION',
-  'DESIGN', 'IMPLEMENTATION', 'QA', 'CODE_REVIEW', 'PR', 'DONE',
+  'IDEA', 'ROADMAP', 'REFINEMENT', 'DECOMPOSITION',
+  'DESIGN', 'IMPLEMENTATION', 'QA', 'REVIEW', 'SHIPPING', 'DONE',
 ];
 
 function stageIcon(stage: ApiStageEntry, currentStage: string): string {

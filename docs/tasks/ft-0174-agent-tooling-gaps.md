@@ -57,7 +57,7 @@ The agent team has a solid pipeline core (10-stage, transition guards, quality g
      f. Include browser evidence in the `qa_report.evidence[]` with `type: "visual"`
 2. Add Playwright tools to the Tools table
 3. Update `skill-rules.json` `qa-triggers-qa` instruction to mention browser smoke tests for UI tasks
-4. Extend `qa_report` evidence schema to include optional `screenshots[]` field
+4. ~~Extend `qa_report` evidence schema to include optional `screenshots[]` field~~ (deferred: skill instructions guide agents to include evidence, but `EvidenceEntrySchema` requires a separate follow-up to add `type` and `screenshots` fields)
 
 ### Task D — SHIPPING transition guard: CI status check
 **Files:** `extensions/product-team/src/orchestrator/transition-guards.ts`, relevant test file
@@ -119,7 +119,7 @@ A and D-F can be parallelized. B depends on A (model update). C depends on B (sa
 - [ ] Frontend skill includes Playwright visual verification loop
 - [ ] QA skill includes browser smoke testing for UI tasks
 - [ ] SHIPPING→DONE transition requires CI status check
-- [ ] `qgate_accessibility` tool works with axe-core
+- [ ] `qgate_accessibility` tool works with heuristic scanner (regex-based, no axe-core dependency)
 - [ ] `qgate_audit` tool runs dependency audit
 - [ ] All new code has tests with ≥80% coverage
 - [ ] All existing tests still pass

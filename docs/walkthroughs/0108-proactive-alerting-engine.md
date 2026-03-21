@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0108-proactive-alerting-engine.md`
 - Epic: EP15 -- Telegram Control Plane v2
 - Branch: `feat/EP15-telegram-control-plane-v2`
-- PR: —
+- PR: #263
 
 ---
 
