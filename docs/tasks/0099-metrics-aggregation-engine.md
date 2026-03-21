@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Epic | EP14 -- Local-First Observability |
 | Priority | HIGH |
 | Scope | MAJOR |

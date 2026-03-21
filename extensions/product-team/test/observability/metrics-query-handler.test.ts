@@ -173,16 +173,12 @@ describe('metrics-query-handler', () => {
     expect(pipeline['stageDistribution']).toEqual({ IMPLEMENTATION: 3, QA: 1 });
   });
 
-  it('returns active pipeline count from orchestrator_state', () => {
-    // Seed a task with an active pipeline
+  it('returns active pipeline count from task_records.pipeline_stage', () => {
+    // Seed a task with an active pipeline stage
     db.prepare(
-      `INSERT INTO task_records (id, title, status, scope, created_at, updated_at)
-       VALUES ('t1', 'test task', 'in_progress', 'minor', ?, ?)`,
+      `INSERT INTO task_records (id, title, status, scope, pipeline_stage, created_at, updated_at)
+       VALUES ('t1', 'test task', 'in_progress', 'minor', 'IMPLEMENTATION', ?, ?)`,
     ).run(TEST_NOW, TEST_NOW);
-    db.prepare(
-      `INSERT INTO orchestrator_state (task_id, current, previous, last_agent, rounds_review, rev, updated_at)
-       VALUES ('t1', 'IMPLEMENTATION', NULL, 'pm', 0, 0, ?)`,
-    ).run(TEST_NOW);
 
     const handler = createMetricsQueryHandler(createDeps());
     const req = createMockReq('/api/metrics');
@@ -312,6 +308,35 @@ describe('metrics-query-handler', () => {
     const agents = body['agents'] as Record<string, unknown>;
     const pmData = agents['pm'] as Record<string, unknown>;
     expect(pmData['eventsInPeriod']).toBe(2);
+  });
+
+  it('falls back to live cost query when no aggregated cost data', () => {
+    // Seed event_log with cost.llm events but no aggregated cost_summary
+    db.prepare(
+      `INSERT INTO task_records (id, title, status, scope, created_at, updated_at)
+       VALUES ('t1', 'test', 'in_progress', 'minor', ?, ?)`,
+    ).run(TEST_NOW, TEST_NOW);
+    db.prepare(
+      `INSERT INTO event_log (id, task_id, event_type, agent_id, payload, created_at)
+       VALUES ('e1', 't1', 'cost.llm', 'pm', '{"totalTokens":5000}', ?)`,
+    ).run(TEST_NOW);
+    db.prepare(
+      `INSERT INTO event_log (id, task_id, event_type, agent_id, payload, created_at)
+       VALUES ('e2', 't1', 'cost.llm', 'qa', '{"totalTokens":3000}', ?)`,
+    ).run(TEST_NOW);
+
+    const handler = createMetricsQueryHandler(createDeps());
+    const req = createMockReq('/api/metrics');
+    const res = createMockRes();
+
+    handler(req, res);
+
+    const body = parseBody(res);
+    const costs = body['costs'] as Record<string, unknown>;
+    expect(costs['totalTokens']).toBe(8000);
+    const byAgent = costs['byAgent'] as Record<string, unknown>;
+    expect(byAgent).toHaveProperty('pm');
+    expect(byAgent).toHaveProperty('qa');
   });
 
   // ── 404 for wrong method ───────────────────────────────────────

@@ -163,7 +163,7 @@ export default {
   register(api: OpenClawPluginApi) {
     const logger = api.logger;
     const slog = (level: 'info' | 'warn' | 'error', op: string, ctx?: Record<string, unknown>) =>
-      logger[level](JSON.stringify({ ts: new Date().toISOString(), ext: 'model-router', op, ...ctx }));
+      logger[level](JSON.stringify({ ts: new Date().toISOString(), level, ext: 'model-router', op, ...ctx }));
 
     registerProviderHealthRoute(api);
 

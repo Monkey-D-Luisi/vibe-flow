@@ -80,12 +80,11 @@ export function createMetricsQueryHandler(
 // ── Data assembly helpers ─────────────────────────────────────────
 
 function getActivePipelineCount(db: Database.Database): number {
-  // orchestrator_state.current holds the pipeline stage (e.g. IMPLEMENTATION, QA).
-  // A row exists in orchestrator_state when a pipeline is active; 'backlog' and 'done'
-  // are terminal states. Count rows NOT in terminal states.
+  // task_records.pipeline_stage holds the 10-stage pipeline position (e.g. IMPLEMENTATION, QA, DONE).
+  // A task has an active pipeline when pipeline_stage is set and not 'DONE'.
   const row = db
     .prepare(
-      "SELECT COUNT(*) as c FROM orchestrator_state WHERE current NOT IN ('backlog', 'done', 'DONE')",
+      "SELECT COUNT(*) as c FROM task_records WHERE pipeline_stage IS NOT NULL AND pipeline_stage <> 'DONE'",
     )
     .get() as { c: number } | undefined;
   return row?.c ?? 0;
@@ -160,7 +159,26 @@ function getCostSummary(
       : {};
     return { totalTokens, byAgent };
   }
-  return { totalTokens: 0, byAgent: {} };
+
+  // Fallback: live query from event_log for cost.llm events
+  const since = computePeriodStart(period, deps.now());
+  const rows = deps.db
+    .prepare(
+      `SELECT COALESCE(agent_id, 'system') as agent,
+              SUM(COALESCE(json_extract(payload, '$.totalTokens'), 0)) as tokens
+       FROM event_log
+       WHERE event_type = 'cost.llm' AND created_at >= ?
+       GROUP BY agent`,
+    )
+    .all(since) as Array<{ agent: string; tokens: number }>;
+
+  let totalTokens = 0;
+  const byAgent: Record<string, unknown> = {};
+  for (const row of rows) {
+    totalTokens += row.tokens;
+    byAgent[row.agent] = { tokens: row.tokens };
+  }
+  return { totalTokens, byAgent };
 }
 
 function getBudgetData(db: Database.Database): {

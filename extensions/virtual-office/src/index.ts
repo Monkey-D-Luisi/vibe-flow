@@ -27,7 +27,7 @@ export default {
   register(api: OpenClawPluginApi) {
     const logger = api.logger;
     const slog = (level: 'info' | 'warn' | 'error', op: string, ctx?: Record<string, unknown>) =>
-      logger[level](JSON.stringify({ ts: new Date().toISOString(), ext: 'virtual-office', op, ...ctx }));
+      logger[level](JSON.stringify({ ts: new Date().toISOString(), level, ext: 'virtual-office', op, ...ctx }));
 
     // --- State store ---
     const store = new AgentStateStore();

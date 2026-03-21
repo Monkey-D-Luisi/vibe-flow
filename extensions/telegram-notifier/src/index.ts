@@ -66,7 +66,7 @@ export default {
     const config = getConfig(api);
     const logger = api.logger;
     const slog = (level: 'info' | 'warn' | 'error', op: string, ctx?: Record<string, unknown>) =>
-      logger[level](JSON.stringify({ ts: new Date().toISOString(), ext: 'telegram-notifier', op, ...ctx }));
+      logger[level](JSON.stringify({ ts: new Date().toISOString(), level, ext: 'telegram-notifier', op, ...ctx }));
 
     if (!config.groupId) {
       slog('warn', 'config.missing_group_id');

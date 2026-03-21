@@ -103,7 +103,9 @@ export function computeStageTimeline(
 }
 
 /**
- * Get task IDs that have active pipelines (i.e. have stage events but no DONE stage completion).
+ * Get task IDs that have active pipelines (i.e. have stage events but have not entered DONE).
+ * Note: pipeline_advance emits pipeline.stage.entered for DONE but NOT pipeline.stage.completed
+ * for DONE, so we detect completion via the entered event for the DONE stage.
  */
 export function getActivePipelineTaskIds(db: Database.Database): string[] {
   const rows = db
@@ -113,7 +115,7 @@ export function getActivePipelineTaskIds(db: Database.Database): string[] {
        WHERE event_type = 'pipeline.stage.entered'
          AND task_id NOT IN (
            SELECT task_id FROM event_log
-           WHERE event_type = 'pipeline.stage.completed'
+           WHERE event_type = 'pipeline.stage.entered'
              AND json_extract(payload, '$.stage') = 'DONE'
          )
        ORDER BY task_id`,

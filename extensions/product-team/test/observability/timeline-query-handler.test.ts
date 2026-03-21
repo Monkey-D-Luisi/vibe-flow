@@ -158,7 +158,7 @@ describe('timeline-query-handler', () => {
       `INSERT INTO event_log (id, task_id, event_type, agent_id, payload, created_at) VALUES
        ('e1', 't1', 'pipeline.stage.entered', 'pm', '{"stage":"IMPLEMENTATION"}', ?),
        ('e2', 't2', 'pipeline.stage.entered', 'pm', '{"stage":"SHIPPING"}', ?),
-       ('e3', 't2', 'pipeline.stage.completed', 'pm', '{"stage":"DONE"}', ?)`,
+       ('e3', 't2', 'pipeline.stage.entered', 'pm', '{"stage":"DONE"}', ?)`,
     ).run(TEST_NOW, TEST_NOW, TEST_NOW);
 
     const handler = createTimelineQueryHandler(createDeps());

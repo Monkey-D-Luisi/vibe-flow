@@ -2,7 +2,7 @@
 
 **Epic:** EP14 -- Local-First Observability
 **Phase:** 11B
-**Status:** IN_PROGRESS
+**Status:** DONE
 **Depends on:** Task 0099, Task 0100
 
 ## Objective

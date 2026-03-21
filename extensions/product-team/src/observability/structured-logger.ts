@@ -4,7 +4,7 @@
  * Factory that wraps an existing logger with structured JSON output.
  * Produces machine-parseable log lines for observability pipelines.
  *
- * Output format: {"ts":"...","ext":"product-team","op":"plugin.loaded",...}
+ * Output format: {"ts":"...","level":"info","ext":"product-team","op":"plugin.loaded",...}
  */
 
 interface BaseLogger {
@@ -51,6 +51,6 @@ export function createStructuredLogger(base: BaseLogger, ext: string): Structure
  * Usage:
  * ```typescript
  * const slog = (level: 'info' | 'warn' | 'error', op: string, ctx?: Record<string, unknown>) =>
- *   logger[level](JSON.stringify({ ts: new Date().toISOString(), ext: 'EXT_NAME', op, ...ctx }));
+ *   logger[level](JSON.stringify({ ts: new Date().toISOString(), level, ext: 'EXT_NAME', op, ...ctx }));
  * ```
  */

@@ -142,15 +142,15 @@ describe('getActivePipelineTaskIds', () => {
     expect(result).toEqual(['t1']);
   });
 
-  it('excludes tasks whose pipeline reached DONE', () => {
+  it('excludes tasks whose pipeline entered DONE stage', () => {
     db.prepare(
       `INSERT INTO event_log (id, task_id, event_type, agent_id, payload, created_at) VALUES
        ('e1', 't1', 'pipeline.stage.entered', 'pm', '{"stage":"IMPLEMENTATION"}', ?),
        ('e2', 't2', 'pipeline.stage.entered', 'pm', '{"stage":"IMPLEMENTATION"}', ?),
-       ('e3', 't2', 'pipeline.stage.completed', 'pm', '{"stage":"DONE"}', ?)`,
+       ('e3', 't2', 'pipeline.stage.entered', 'pm', '{"stage":"DONE"}', ?)`,
     ).run(TEST_NOW, TEST_NOW, TEST_NOW);
 
     const result = getActivePipelineTaskIds(db);
-    expect(result).toEqual(['t1']); // t2 is done
+    expect(result).toEqual(['t1']); // t2 reached DONE
   });
 });
