@@ -1,6 +1,6 @@
 # EP14 -- Local-First Observability
 
-> Status: IN_PROGRESS
+> Status: DONE
 > Dependencies: EP09
 > Phase: 11 (Protocol & Communication)
 > Target: April 2026
@@ -294,10 +294,10 @@ interface HeatmapEntry {
 
 ## Definition of Done
 
-- [ ] All 5 tasks completed with >= 90% test coverage each
-- [ ] Aggregated metrics refresh automatically after pipeline completion
-- [ ] `/api/metrics` returns comprehensive system health JSON
-- [ ] `/api/timeline/:id` returns full pipeline execution history
-- [ ] All log statements structured with correlation IDs
-- [ ] Agent activity heatmap queryable via HTTP
-- [ ] `pnpm test && pnpm lint && pnpm typecheck` passes
+- [x] All 5 tasks completed with >= 90% test coverage each
+- [x] Aggregated metrics refresh automatically after pipeline completion
+- [x] `/api/metrics` returns comprehensive system health JSON
+- [x] `/api/timeline/:id` returns full pipeline execution history
+- [x] All log statements structured with correlation IDs
+- [x] Agent activity heatmap queryable via HTTP
+- [x] `pnpm test && pnpm lint && pnpm typecheck` passes
