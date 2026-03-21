@@ -7,7 +7,7 @@
 
 import { resolve } from 'node:path';
 import { stat } from 'node:fs/promises';
-import { safeSpawn, assertSafeCommand, parseCommand } from '@openclaw/quality-contracts/exec/spawn';
+import { safeSpawn, assertSafeCommand, parseCommand, assertPathContained } from '@openclaw/quality-contracts/exec/spawn';
 import {
   assertOptionalString,
   assertOptionalStringEnum,
@@ -42,49 +42,56 @@ async function detectPackageManager(cwd: string): Promise<'pnpm' | 'npm'> {
   return 'npm';
 }
 
-function parsePnpmAuditJson(raw: string): Pick<AuditOutput, 'critical' | 'high' | 'moderate' | 'low' | 'total'> {
+export function parsePnpmAuditJson(raw: string): Pick<AuditOutput, 'critical' | 'high' | 'moderate' | 'low' | 'total' | 'raw'> {
   try {
     const data = JSON.parse(raw) as Record<string, unknown>;
     const metadata = data['metadata'] as Record<string, unknown> | undefined;
     const vulnerabilities = metadata?.['vulnerabilities'] as Record<string, number> | undefined;
 
     if (vulnerabilities) {
+      const critical = vulnerabilities['critical'] ?? 0;
+      const high = vulnerabilities['high'] ?? 0;
+      const moderate = vulnerabilities['moderate'] ?? 0;
+      const low = vulnerabilities['low'] ?? 0;
       return {
-        critical: vulnerabilities['critical'] ?? 0,
-        high: vulnerabilities['high'] ?? 0,
-        moderate: vulnerabilities['moderate'] ?? 0,
-        low: vulnerabilities['low'] ?? 0,
-        total: (vulnerabilities['critical'] ?? 0) + (vulnerabilities['high'] ?? 0) +
-               (vulnerabilities['moderate'] ?? 0) + (vulnerabilities['low'] ?? 0),
+        critical,
+        high,
+        moderate,
+        low,
+        total: critical + high + moderate + low,
       };
     }
   } catch {
-    // Fall through to defaults
+    // Parse failure — surface raw output so callers see something went wrong
   }
 
-  return { critical: 0, high: 0, moderate: 0, low: 0, total: 0 };
+  return { critical: 0, high: 0, moderate: 0, low: 0, total: 0, raw };
 }
 
-function parseNpmAuditJson(raw: string): Pick<AuditOutput, 'critical' | 'high' | 'moderate' | 'low' | 'total'> {
+export function parseNpmAuditJson(raw: string): Pick<AuditOutput, 'critical' | 'high' | 'moderate' | 'low' | 'total' | 'raw'> {
   try {
     const data = JSON.parse(raw) as Record<string, unknown>;
     const metadata = data['metadata'] as Record<string, unknown> | undefined;
     const vulnerabilities = metadata?.['vulnerabilities'] as Record<string, number> | undefined;
 
     if (vulnerabilities) {
+      const critical = vulnerabilities['critical'] ?? 0;
+      const high = vulnerabilities['high'] ?? 0;
+      const moderate = vulnerabilities['moderate'] ?? 0;
+      const low = vulnerabilities['low'] ?? 0;
       return {
-        critical: vulnerabilities['critical'] ?? 0,
-        high: vulnerabilities['high'] ?? 0,
-        moderate: vulnerabilities['moderate'] ?? 0,
-        low: vulnerabilities['low'] ?? 0,
-        total: vulnerabilities['total'] ?? 0,
+        critical,
+        high,
+        moderate,
+        low,
+        total: critical + high + moderate + low,
       };
     }
   } catch {
-    // Fall through to defaults
+    // Parse failure — surface raw output so callers see something went wrong
   }
 
-  return { critical: 0, high: 0, moderate: 0, low: 0, total: 0 };
+  return { critical: 0, high: 0, moderate: 0, low: 0, total: 0, raw };
 }
 
 /**
@@ -92,6 +99,7 @@ function parseNpmAuditJson(raw: string): Pick<AuditOutput, 'critical' | 'high' |
  */
 export async function auditTool(input: AuditInput): Promise<AuditOutput> {
   const cwd = resolve(input.cwd || process.cwd());
+  assertPathContained(cwd, process.cwd());
   const pm = input.packageManager || await detectPackageManager(cwd);
 
   const commandStr = `${pm} audit --json`;

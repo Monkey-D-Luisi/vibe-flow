@@ -41,7 +41,7 @@ function makeApi(configOverrides: Record<string, unknown> = {}) {
 function makeVariantResponse(count: number): Record<string, unknown> {
   const screens = Array.from({ length: count }, (_, i) => ({
     name: `variant-screen-${i}`,
-    htmlCode: { downloadUrl: `https://stitch.test/html/${i}` },
+    htmlCode: { downloadUrl: `https://stitch.googleapis.com/html/${i}` },
   }));
   return {
     outputComponents: [{ design: { screens } }],
@@ -54,7 +54,7 @@ describe('design_variant tool', () => {
     vi.mocked(fsMock.mkdir).mockResolvedValue(undefined);
     vi.mocked(fsMock.writeFile).mockResolvedValue(undefined);
 
-    // Mock global fetch for variant HTML downloads
+    // Mock global fetch for variant HTML downloads (URL must match config endpoint origin)
     vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => {
       const idx = url.split('/').pop();
       return Promise.resolve({
@@ -191,5 +191,109 @@ describe('design_variant tool', () => {
         workspace: '/workspace/myproject',
       }),
     ).rejects.toThrow('Stitch MCP returned 503');
+  });
+
+  it('rejects non-array screenIds', async () => {
+    const { api, getTool } = makeApi();
+    plugin.register(api as never);
+
+    await expect(
+      getTool('design_variant')!('call-7', {
+        screenIds: 'invalid',
+        prompt: 'test',
+        workspace: '/workspace/myproject',
+      }),
+    ).rejects.toThrow('screenIds must be a non-empty array of strings');
+  });
+
+  it('rejects empty screenIds array', async () => {
+    const { api, getTool } = makeApi();
+    plugin.register(api as never);
+
+    await expect(
+      getTool('design_variant')!('call-8', {
+        screenIds: [],
+        prompt: 'test',
+        workspace: '/workspace/myproject',
+      }),
+    ).rejects.toThrow('screenIds must be a non-empty array of strings');
+  });
+
+  it('clamps variantCount to 1-5 range', async () => {
+    vi.mocked(callStitchMcp).mockResolvedValue(makeVariantResponse(1));
+
+    const { api, getTool } = makeApi();
+    plugin.register(api as never);
+
+    await getTool('design_variant')!('call-9', {
+      screenIds: ['scr-1'],
+      prompt: 'test',
+      variantCount: 99,
+      workspace: '/workspace/myproject',
+    });
+
+    expect(callStitchMcp).toHaveBeenCalledWith(
+      expect.anything(),
+      'generate_variants',
+      expect.objectContaining({
+        variantOptions: expect.objectContaining({ variantCount: 5 }),
+      }),
+    );
+  });
+
+  it('rejects invalid creativeRange', async () => {
+    const { api, getTool } = makeApi();
+    plugin.register(api as never);
+
+    await expect(
+      getTool('design_variant')!('call-10', {
+        screenIds: ['scr-1'],
+        prompt: 'test',
+        creativeRange: 'INVALID',
+        workspace: '/workspace/myproject',
+      }),
+    ).rejects.toThrow('Invalid creativeRange');
+  });
+
+  it('rejects invalid aspect values', async () => {
+    const { api, getTool } = makeApi();
+    plugin.register(api as never);
+
+    await expect(
+      getTool('design_variant')!('call-11', {
+        screenIds: ['scr-1'],
+        prompt: 'test',
+        aspects: ['LAYOUT', 'INVALID_ASPECT'],
+        workspace: '/workspace/myproject',
+      }),
+    ).rejects.toThrow('Invalid aspect');
+  });
+
+  it('reports warnings for failed variant downloads', async () => {
+    const response = {
+      outputComponents: [{
+        design: {
+          screens: [
+            { name: 'ok', htmlCode: { downloadUrl: 'https://stitch.googleapis.com/html/ok' } },
+            { name: 'bad', htmlCode: { downloadUrl: 'https://evil.com/steal' } },
+          ],
+        },
+      }],
+    };
+    vi.mocked(callStitchMcp).mockResolvedValue(response);
+
+    const { api, getTool } = makeApi();
+    plugin.register(api as never);
+
+    const result = await getTool('design_variant')!('call-12', {
+      screenIds: ['scr-1'],
+      prompt: 'test',
+      workspace: '/workspace/myproject',
+    }) as { details: { count: number; warnings?: string[] } };
+
+    expect(result.details.count).toBe(1);
+    expect(result.details.warnings).toBeDefined();
+    expect(result.details.warnings).toHaveLength(1);
+    expect(result.details.warnings![0]).toContain('Untrusted download URL');
   });
 });

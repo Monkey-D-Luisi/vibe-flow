@@ -12,6 +12,11 @@ import type { StitchConfig } from './stitch-client.js';
  * tools to create/edit screen designs that frontend devs then implement.
  */
 
+const DEFAULT_WORKSPACE = '/workspaces/active';
+
+const VALID_CREATIVE_RANGES = new Set(['REFINE', 'EXPLORE', 'REIMAGINE']);
+const VALID_ASPECTS = new Set(['LAYOUT', 'COLOR_SCHEME', 'IMAGES', 'TEXT_FONT', 'TEXT_CONTENT']);
+
 function getConfig(api: OpenClawPluginApi): StitchConfig {
   const cfg = api.pluginConfig as Record<string, unknown>;
   return {
@@ -21,6 +26,20 @@ function getConfig(api: OpenClawPluginApi): StitchConfig {
     timeoutMs: Number(cfg?.['timeoutMs'] ?? 120000),
     designDir: String(cfg?.['designDir'] ?? '.stitch-html'),
   };
+}
+
+/** Validate a download URL belongs to the configured Stitch origin (SSRF protection). */
+function assertTrustedUrl(url: string, config: StitchConfig): void {
+  let urlOrigin: string;
+  try {
+    urlOrigin = new URL(url).origin;
+  } catch {
+    throw new Error(`Invalid download URL: "${url}"`);
+  }
+  const configOrigin = new URL(config.endpoint).origin;
+  if (urlOrigin !== configOrigin) {
+    throw new Error(`Untrusted download URL origin "${urlOrigin}" (expected "${configOrigin}")`);
+  }
 }
 
 async function ensureDesignDir(workspace: string, designDir: string): Promise<string> {
@@ -74,7 +93,7 @@ function findHtmlDownloadUrl(result: unknown): string | undefined {
 }
 
 /** Extract html string from Stitch result, fetching from downloadUrl if needed. */
-async function extractHtml(result: unknown): Promise<string> {
+async function extractHtml(result: unknown, config: StitchConfig): Promise<string> {
   const obj = result as Record<string, unknown>;
 
   // Direct html field (legacy / mock format)
@@ -84,6 +103,7 @@ async function extractHtml(result: unknown): Promise<string> {
   // Stitch MCP format: outputComponents[].design.screens[].htmlCode.downloadUrl
   const downloadUrl = findHtmlDownloadUrl(result);
   if (downloadUrl) {
+    assertTrustedUrl(downloadUrl, config);
     const resp = await fetch(downloadUrl);
     if (!resp.ok) {
       throw new Error(`Failed to download HTML from Stitch: ${resp.status}`);
@@ -96,13 +116,18 @@ async function extractHtml(result: unknown): Promise<string> {
   throw new Error(`Stitch MCP response missing html field. Keys: ${Object.keys(obj ?? {}).join(', ')}`);
 }
 
-/** Extract all variant HTML strings from a Stitch generate_variants response. */
-async function extractVariantHtmls(result: unknown): Promise<{ name: string; html: string }[]> {
+/** Extract all variant HTML strings from a Stitch generate_variants response.
+ *  Uses global `fetch` (requires Node 18+ or a polyfill). */
+async function extractVariantHtmls(
+  result: unknown,
+  config: StitchConfig,
+): Promise<{ variants: { name: string; html: string }[]; warnings: string[] }> {
   const obj = result as Record<string, unknown>;
   const components = obj?.['outputComponents'];
-  if (!Array.isArray(components)) return [];
+  if (!Array.isArray(components)) return { variants: [], warnings: [] };
 
   const variants: { name: string; html: string }[] = [];
+  const warnings: string[] = [];
   let index = 0;
   for (const comp of components) {
     const design = (comp as Record<string, unknown>)?.['design'] as Record<string, unknown> | undefined;
@@ -110,20 +135,28 @@ async function extractVariantHtmls(result: unknown): Promise<{ name: string; htm
     if (!Array.isArray(screens)) continue;
     for (const screen of screens) {
       const screenObj = screen as Record<string, unknown>;
-      const screenName = typeof screenObj['name'] === 'string' ? screenObj['name'] : `variant-${index}`;
+      const variantName = `variant-${index}`;
       const htmlCode = screenObj['htmlCode'] as Record<string, unknown> | undefined;
       const downloadUrl = htmlCode?.['downloadUrl'];
       if (typeof downloadUrl === 'string' && downloadUrl) {
-        const resp = await fetch(downloadUrl);
-        if (resp.ok) {
-          const html = await resp.text();
-          if (html) variants.push({ name: screenName, html });
+        try {
+          assertTrustedUrl(downloadUrl, config);
+          const resp = await fetch(downloadUrl);
+          if (resp.ok) {
+            const html = await resp.text();
+            if (html) variants.push({ name: variantName, html });
+            else warnings.push(`${variantName}: download returned empty content`);
+          } else {
+            warnings.push(`${variantName}: download failed with HTTP ${resp.status}`);
+          }
+        } catch (err: unknown) {
+          warnings.push(`${variantName}: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
       index++;
     }
   }
-  return variants;
+  return { variants, warnings };
 }
 
 /** Strip "projects/" prefix from Stitch resource names so tools receive bare numeric IDs. */
@@ -187,8 +220,8 @@ export default {
           deviceType,
         });
 
-        const html = await extractHtml(result);
-        const workspace = validateWorkspace(String(params['workspace'] ?? '/workspaces/active'));
+        const html = await extractHtml(result, config);
+        const workspace = validateWorkspace(String(params['workspace'] ?? DEFAULT_WORKSPACE));
         const dir = await ensureDesignDir(workspace, config.designDir);
         const filePath = join(dir, `${screenName}.html`);
         await writeFile(filePath, html, 'utf-8');
@@ -237,8 +270,8 @@ export default {
           prompt: editPrompt,
         });
 
-        const html = await extractHtml(result);
-        const workspace = validateWorkspace(String(params['workspace'] ?? '/workspaces/active'));
+        const html = await extractHtml(result, config);
+        const workspace = validateWorkspace(String(params['workspace'] ?? DEFAULT_WORKSPACE));
         const dir = await ensureDesignDir(workspace, config.designDir);
         const filePath = join(dir, `${screenName}.html`);
         await writeFile(filePath, html, 'utf-8');
@@ -274,12 +307,38 @@ export default {
       },
       async execute(_toolCallId: string, params: Record<string, unknown>) {
         const projectId = normalizeProjectId(String(params['projectId'] ?? config.defaultProjectId));
-        const screenIds = params['screenIds'] as string[];
+
+        // Validate screenIds (#2)
+        const rawScreenIds = params['screenIds'];
+        if (!Array.isArray(rawScreenIds) || rawScreenIds.length === 0 ||
+            rawScreenIds.some((s: unknown) => typeof s !== 'string')) {
+          throw new Error('screenIds must be a non-empty array of strings');
+        }
+        const screenIds = rawScreenIds as string[];
+
         const screenName = sanitizeScreenName(String(params['screenName'] ?? 'design'));
         const prompt = String(params['prompt']);
-        const variantCount = Number(params['variantCount'] ?? 3);
-        const creativeRange = String(params['creativeRange'] ?? 'EXPLORE');
-        const aspects = Array.isArray(params['aspects']) ? params['aspects'] as string[] : [];
+
+        // Clamp variantCount to 1-5 (#3)
+        const rawCount = Number(params['variantCount'] ?? 3);
+        const variantCount = Math.max(1, Math.min(5, Number.isFinite(rawCount) ? Math.floor(rawCount) : 3));
+
+        // Validate creativeRange (#11)
+        const rawCreativeRange = String(params['creativeRange'] ?? 'EXPLORE');
+        if (!VALID_CREATIVE_RANGES.has(rawCreativeRange)) {
+          throw new Error(`Invalid creativeRange "${rawCreativeRange}". Must be one of: ${[...VALID_CREATIVE_RANGES].join(', ')}`);
+        }
+        const creativeRange = rawCreativeRange;
+
+        // Validate aspects (#10)
+        const rawAspects = Array.isArray(params['aspects']) ? params['aspects'] as string[] : [];
+        for (const aspect of rawAspects) {
+          if (!VALID_ASPECTS.has(aspect)) {
+            throw new Error(`Invalid aspect "${aspect}". Must be one of: ${[...VALID_ASPECTS].join(', ')}`);
+          }
+        }
+        const aspects = rawAspects;
+
         const deviceType = String(params['deviceType'] ?? 'DESKTOP');
 
         const variantOptions: Record<string, unknown> = { variantCount, creativeRange };
@@ -294,8 +353,8 @@ export default {
           modelId: config.defaultModel,
         });
 
-        const variantHtmls = await extractVariantHtmls(result);
-        const workspace = validateWorkspace(String(params['workspace'] ?? '/workspaces/active'));
+        const { variants: variantHtmls, warnings } = await extractVariantHtmls(result, config);
+        const workspace = validateWorkspace(String(params['workspace'] ?? DEFAULT_WORKSPACE));
         const dir = await ensureDesignDir(workspace, config.designDir);
 
         const saved: { index: number; savedTo: string }[] = [];
@@ -306,8 +365,12 @@ export default {
         }
 
         slog('info', 'design_variant.generated', { screenName, count: saved.length });
+        if (warnings.length > 0) {
+          slog('warn', 'design_variant.warnings', { screenName, warnings });
+        }
 
-        const output = { variants: saved, count: saved.length };
+        const output: Record<string, unknown> = { variants: saved, count: saved.length };
+        if (warnings.length > 0) output['warnings'] = warnings;
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(output, null, 2) }],
           details: output,
@@ -329,7 +392,7 @@ export default {
       },
       async execute(_toolCallId: string, params: Record<string, unknown>) {
         const screenName = sanitizeScreenName(String(params['screenName']));
-        const workspace = validateWorkspace(String(params['workspace'] ?? '/workspaces/active'));
+        const workspace = validateWorkspace(String(params['workspace'] ?? DEFAULT_WORKSPACE));
         const filePath = join(workspace, config.designDir, `${screenName}.html`);
 
         const html = await readFile(filePath, 'utf-8');
@@ -351,7 +414,7 @@ export default {
         properties: {},
       },
       async execute(_toolCallId: string, params: Record<string, unknown>) {
-        const workspace = validateWorkspace(String(params['workspace'] ?? '/workspaces/active'));
+        const workspace = validateWorkspace(String(params['workspace'] ?? DEFAULT_WORKSPACE));
         const dir = join(workspace, config.designDir);
 
         let files: string[];
