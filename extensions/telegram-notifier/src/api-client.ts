@@ -31,6 +31,69 @@ export interface ApiDecision {
   created_at: string;
 }
 
+/** Metrics response from GET /api/metrics (EP14). */
+export interface ApiMetricsResponse {
+  readonly timestamp: string;
+  readonly system: { readonly status: string; readonly activePipelines: number };
+  readonly agents: Record<string, { readonly eventsInPeriod: number }>;
+  readonly pipeline: {
+    readonly activeTasks: number;
+    readonly stageDistribution: Record<string, number>;
+  };
+  readonly costs: {
+    readonly totalTokens: number;
+    readonly byAgent: Record<string, { inputTokens: number; outputTokens: number; calls: number }>;
+  };
+  readonly budget: {
+    readonly globalConsumedUsd: number;
+    readonly globalLimitUsd: number;
+    readonly globalConsumedTokens: number;
+    readonly globalLimitTokens: number;
+  };
+  readonly lastRefresh: string | null;
+}
+
+/** Stage timeline entry from GET /api/timeline. */
+export interface ApiStageEntry {
+  readonly stage: string;
+  readonly enteredAt: string | null;
+  readonly completedAt: string | null;
+  readonly durationMs: number | null;
+  readonly agentId: string | null;
+}
+
+/** Timeline response for a single task or all active tasks (EP14). */
+export interface ApiTimelineResponse {
+  readonly timestamp: string;
+  readonly activeTasks?: number;
+  readonly timelines?: ReadonlyArray<{
+    readonly taskId: string;
+    readonly title: string;
+    readonly currentStage: string;
+    readonly stages: readonly ApiStageEntry[];
+    readonly totalDurationMs: number | null;
+  }>;
+  readonly taskId?: string;
+  readonly title?: string;
+  readonly currentStage?: string;
+  readonly stages?: readonly ApiStageEntry[];
+  readonly totalDurationMs?: number | null;
+}
+
+/** Heatmap response from GET /api/metrics/heatmap (EP14). */
+export interface ApiHeatmapResponse {
+  readonly timestamp: string;
+  readonly bucketMinutes: number;
+  readonly since: string;
+  readonly until: string;
+  readonly agents: readonly string[];
+  readonly buckets: ReadonlyArray<{
+    readonly start: string;
+    readonly counts: Record<string, number>;
+  }>;
+  readonly totals: Record<string, number>;
+}
+
 export interface ProductTeamApiClient {
   getBudgetByScope(scope: string, scopeId: string): Promise<ApiBudgetRecord | null>;
   listBudgetByScope(scope: string): Promise<ApiBudgetRecord[]>;
@@ -45,6 +108,9 @@ export interface ProductTeamApiClient {
   listPendingDecisions(): Promise<ApiDecision[]>;
   approveDecision(decisionId: string, choice: string): Promise<{ approved: boolean }>;
   rejectDecision(decisionId: string, reason: string): Promise<{ rejected: boolean }>;
+  getMetrics(period: 'hour' | 'day' | 'all'): Promise<ApiMetricsResponse>;
+  getTimeline(taskId?: string): Promise<ApiTimelineResponse>;
+  getHeatmap(bucketMinutes?: number): Promise<ApiHeatmapResponse>;
 }
 
 function httpRequest(
@@ -147,6 +213,22 @@ export function createApiClient(port: number): ProductTeamApiClient {
 
     async rejectDecision(decisionId, reason) {
       return post<{ rejected: boolean }>('/api/decisions/reject', { decisionId, reason });
+    },
+
+    async getMetrics(period) {
+      return get<ApiMetricsResponse>(
+        `/api/metrics?period=${encodeURIComponent(period)}`,
+      );
+    },
+
+    async getTimeline(taskId) {
+      const qs = taskId ? `?taskId=${encodeURIComponent(taskId)}` : '';
+      return get<ApiTimelineResponse>(`/api/timeline${qs}`);
+    },
+
+    async getHeatmap(bucketMinutes) {
+      const qs = bucketMinutes ? `?bucketMinutes=${bucketMinutes}` : '';
+      return get<ApiHeatmapResponse>(`/api/metrics/heatmap${qs}`);
     },
   };
 }
