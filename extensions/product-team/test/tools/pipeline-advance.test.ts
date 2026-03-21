@@ -182,18 +182,6 @@ describe('pipeline-advance tools', () => {
       expect(d.nextAction!.agentId).toBe('tech-lead');
     });
 
-    it('does not include nextAction when advancing to DONE', async () => {
-      const taskId = await createPipelineTask('SHIPPING', {
-        shipping_result: { ci_status: 'success', pr_url: 'https://github.com/test/pr/1' },
-      });
-      const tool = pipelineAdvanceToolDef(deps);
-      const result = await tool.execute('c10', { taskId });
-      const d = result.details as { advanced: boolean; currentStage: string; nextAction?: unknown };
-
-      expect(d.currentStage).toBe('DONE');
-      expect(d.nextAction).toBeUndefined();
-    });
-
     it('allows current stage owner to advance', async () => {
       const taskId = await createPipelineTask('IMPLEMENTATION');
       const tool = pipelineAdvanceToolDef(deps);
@@ -299,6 +287,13 @@ describe('pipeline-advance tools', () => {
 
       expect(d.advanced).toBe(false);
       expect(d.reason).toContain('Missing shipping_result.ci_status');
+
+      // Verify blocked event was emitted
+      const events = db.prepare(
+        "SELECT * FROM event_log WHERE task_id = ? AND event_type = 'pipeline.stage.blocked'",
+      ).all(taskId) as { payload: string }[];
+      expect(events).toHaveLength(1);
+      expect(JSON.parse(events[0].payload)).toMatchObject({ stage: 'SHIPPING' });
     });
 
     it('blocks SHIPPING-to-DONE when ci_status is failure', async () => {
@@ -311,6 +306,13 @@ describe('pipeline-advance tools', () => {
 
       expect(d.advanced).toBe(false);
       expect(d.reason).toContain('CI status is "failure"');
+
+      // Verify blocked event was emitted
+      const events = db.prepare(
+        "SELECT * FROM event_log WHERE task_id = ? AND event_type = 'pipeline.stage.blocked'",
+      ).all(taskId) as { payload: string }[];
+      expect(events).toHaveLength(1);
+      expect(JSON.parse(events[0].payload)).toMatchObject({ stage: 'SHIPPING' });
     });
 
     it('allows SHIPPING-to-DONE when ci_status is success', async () => {
@@ -319,10 +321,11 @@ describe('pipeline-advance tools', () => {
       });
       const tool = pipelineAdvanceToolDef(deps);
       const result = await tool.execute('ship-3', { taskId });
-      const d = result.details as { advanced: boolean; currentStage: string };
+      const d = result.details as { advanced: boolean; currentStage: string; nextAction?: unknown };
 
       expect(d.advanced).toBe(true);
       expect(d.currentStage).toBe('DONE');
+      expect(d.nextAction).toBeUndefined();
     });
   });
 

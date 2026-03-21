@@ -100,6 +100,36 @@ describe('scanHtmlAccessibility', () => {
     const violations = scanHtmlAccessibility(html, 'test.html');
     expect(violations).toHaveLength(0);
   });
+
+  it('allows input with aria-labelledby', () => {
+    const html = '<html lang="en"><body><input type="text" aria-labelledby="nameLabel"></body></html>';
+    const violations = scanHtmlAccessibility(html, 'test.html');
+    expect(violations).toHaveLength(0);
+  });
+
+  it('allows button with text content', () => {
+    const html = '<html lang="en"><body><button>Submit</button></body></html>';
+    const violations = scanHtmlAccessibility(html, 'test.html');
+    expect(violations).toHaveLength(0);
+  });
+
+  it('allows link with text content', () => {
+    const html = '<html lang="en"><body><a href="/">Home</a></body></html>';
+    const violations = scanHtmlAccessibility(html, 'test.html');
+    expect(violations).toHaveLength(0);
+  });
+});
+
+describe('accessibilityTool wrapper', () => {
+  it('rejects glob patterns containing ".."', async () => {
+    const { accessibilityTool } = await import('../src/tools/accessibility.js');
+    await expect(accessibilityTool({ globs: ['../../etc/**/*.html'] })).rejects.toThrow('PATH_TRAVERSAL');
+  });
+
+  it('rejects exclude patterns containing ".."', async () => {
+    const { accessibilityTool } = await import('../src/tools/accessibility.js');
+    await expect(accessibilityTool({ exclude: ['../secret/**'] })).rejects.toThrow('PATH_TRAVERSAL');
+  });
 });
 
 describe('gate integration - accessibility check', () => {
@@ -110,7 +140,7 @@ describe('gate integration - accessibility check', () => {
     );
     const check = result.checks.find(c => c.name === 'accessibility');
     expect(check).toBeDefined();
-    expect(check!.verdict).toBe('pass');
+    expect(check?.verdict).toBe('pass');
   });
 
   it('fails when violations exceed limit', () => {
@@ -120,7 +150,7 @@ describe('gate integration - accessibility check', () => {
     );
     const check = result.checks.find(c => c.name === 'accessibility');
     expect(check).toBeDefined();
-    expect(check!.verdict).toBe('fail');
+    expect(check?.verdict).toBe('fail');
   });
 
   it('skips when metric not provided', () => {
@@ -130,7 +160,7 @@ describe('gate integration - accessibility check', () => {
     );
     const check = result.checks.find(c => c.name === 'accessibility');
     expect(check).toBeDefined();
-    expect(check!.verdict).toBe('skip');
+    expect(check?.verdict).toBe('skip');
   });
 
   it('is not included when policy field is undefined', () => {

@@ -120,6 +120,11 @@ export async function accessibilityTool(input: AccessibilityInput): Promise<Acce
       throw new Error(`PATH_TRAVERSAL: glob pattern must not contain "..": ${pattern}`);
     }
   }
+  for (const pattern of exclude) {
+    if (pattern.includes('..')) {
+      throw new Error(`PATH_TRAVERSAL: exclude pattern must not contain "..": ${pattern}`);
+    }
+  }
 
   const files = await resolveGlobPatterns(globs, { cwd, exclude });
 
