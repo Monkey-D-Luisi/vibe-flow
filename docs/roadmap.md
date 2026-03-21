@@ -56,7 +56,7 @@ observability, and extensibility for the community.
 | 10    | EP12 | Agent Learning Loop                  | EP10, EP11   | April 2026 | DONE |
 | 11    | EP13 | Stable Agent Protocol                | EP09         | April 2026 | DONE |
 | 11    | EP14 | Local-First Observability            | EP09         | April 2026 | DONE |
-| 11    | EP15 | Telegram Control Plane v2            | EP14         | April 2026 | PENDING |
+| 11    | EP15 | Telegram Control Plane v2            | EP14         | April 2026 | DONE    |
 | 12    | EP16 | E2E Testing & Load Characterization  | EP13         | May 2026   | PENDING |
 | 12    | EP17 | Security & Stability v2              | EP09         | May 2026   | PENDING |
 | 13    | EP18 | Plugin SDK Contracts & DX            | EP13, EP16   | June 2026  | PENDING |
@@ -432,11 +432,14 @@ Key deliverables:
 
 #### Tasks
 
-- Task 0104: /teamstatus Live Agent Dashboard -- PENDING (EP15, 11A)
-- Task 0105: /health Real-Time System Diagnostics -- PENDING (EP15, 11A)
-- Task 0106: /pipeline Active Pipeline Visualization -- PENDING (EP15, 11B)
-- Task 0107: Rich Approval Workflows with Inline Context -- PENDING (EP15, 11B)
-- Task 0108: Proactive Alerting Engine -- PENDING (EP15, 11C)
+- Task 0104: /teamstatus Live Agent Dashboard -- DONE (EP15, 11A)
+- Task 0105: /health Real-Time System Diagnostics -- DONE (EP15, 11A)
+- Task 0106: /pipeline Active Pipeline Visualization -- DONE (EP15, 11B)
+- Task 0107: Rich Approval Workflows with Inline Context -- DONE (EP15, 11B)
+- Task 0108: Proactive Alerting Engine -- DONE (EP15, 11C)
+- Task 0135: Fix Speech Bubble Suppression -- DONE (EP15, 11A)
+- Task 0136: Extend API Client with Metrics/Timeline -- DONE (EP15, 11A)
+- Task 0139: Virtual Office Dashboard Panel -- DONE (EP15, 11B)
 
 ---
 
@@ -890,11 +893,14 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 ### Phase 11B: Telegram Control Plane v2 (EP15)
 
-- Task 0104: /teamstatus Live Agent Dashboard -- PENDING
-- Task 0105: /health Real-Time System Diagnostics -- PENDING
-- Task 0106: /pipeline Active Pipeline Visualization -- PENDING
-- Task 0107: Rich Approval Workflows with Inline Context -- PENDING
-- Task 0108: Proactive Alerting Engine -- PENDING
+- Task 0104: /teamstatus Live Agent Dashboard -- DONE
+- Task 0105: /health Real-Time System Diagnostics -- DONE
+- Task 0106: /pipeline Active Pipeline Visualization -- DONE
+- Task 0107: Rich Approval Workflows with Inline Context -- DONE
+- Task 0108: Proactive Alerting Engine -- DONE
+- Task 0135: Fix Speech Bubble Suppression -- DONE
+- Task 0136: Extend API Client with Metrics/Timeline -- DONE
+- Task 0139: Virtual Office Dashboard Panel -- DONE
 
 ### Phase 12A: E2E Testing & Load (EP16)
 
