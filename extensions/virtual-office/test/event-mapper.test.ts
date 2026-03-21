@@ -43,7 +43,7 @@ describe('Event Mapper', () => {
     expect(store.get('qa')?.taskId).toBe('TASK-42');
   });
 
-  it('onAfterToolCall keeps agent active', () => {
+  it('onAfterToolCall keeps agent active but clears currentTool', () => {
     const store = new AgentStateStore(['pm']);
     const handlers = createEventHandlers(store);
 
@@ -53,7 +53,7 @@ describe('Event Mapper', () => {
     );
 
     expect(store.get('pm')?.status).toBe('active');
-    expect(store.get('pm')?.currentTool).toBe('quality_tests');
+    expect(store.get('pm')?.currentTool).toBeNull();
   });
 
   it('onAfterToolCall extracts pipeline stage from pipeline_advance result', () => {
@@ -80,6 +80,56 @@ describe('Event Mapper', () => {
     const state = store.get('back-1');
     expect(state?.status).toBe('idle');
     expect(state?.currentTool).toBeNull();
+  });
+
+  it('onBeforeToolCall increments toolCallSeq on each call', () => {
+    const store = new AgentStateStore(['pm']);
+    const handlers = createEventHandlers(store);
+
+    handlers.onBeforeToolCall({ toolName: 'team_message' }, { agentId: 'pm' });
+    expect(store.get('pm')?.toolCallSeq).toBe(1);
+
+    handlers.onBeforeToolCall({ toolName: 'team_message' }, { agentId: 'pm' });
+    expect(store.get('pm')?.toolCallSeq).toBe(2);
+
+    handlers.onBeforeToolCall({ toolName: 'task_search' }, { agentId: 'pm' });
+    expect(store.get('pm')?.toolCallSeq).toBe(3);
+  });
+
+  it('onAfterToolCall clears currentTool to null', () => {
+    const store = new AgentStateStore(['pm']);
+    const handlers = createEventHandlers(store);
+
+    handlers.onBeforeToolCall({ toolName: 'quality_tests' }, { agentId: 'pm' });
+    expect(store.get('pm')?.currentTool).toBe('quality_tests');
+
+    handlers.onAfterToolCall(
+      { toolName: 'quality_tests', result: { passed: true } },
+      { agentId: 'pm' },
+    );
+    expect(store.get('pm')?.currentTool).toBeNull();
+  });
+
+  it('consecutive same-tool calls produce different toolCallSeq values', () => {
+    const store = new AgentStateStore(['pm']);
+    const handlers = createEventHandlers(store);
+    const changes: Array<{ currentTool: string | null; toolCallSeq: number }> = [];
+    store.on('change', (e: { state: { currentTool: string | null; toolCallSeq: number } }) => {
+      changes.push({ currentTool: e.state.currentTool, toolCallSeq: e.state.toolCallSeq });
+    });
+
+    // Simulate: before(team_message) → after(team_message) → before(team_message) → after(team_message)
+    handlers.onBeforeToolCall({ toolName: 'team_message' }, { agentId: 'pm' });
+    handlers.onAfterToolCall({ toolName: 'team_message' }, { agentId: 'pm' });
+    handlers.onBeforeToolCall({ toolName: 'team_message' }, { agentId: 'pm' });
+    handlers.onAfterToolCall({ toolName: 'team_message' }, { agentId: 'pm' });
+
+    // 4 change events: before(seq=1), after(null), before(seq=2), after(null)
+    expect(changes).toHaveLength(4);
+    expect(changes[0]).toEqual({ currentTool: 'team_message', toolCallSeq: 1 });
+    expect(changes[1]).toEqual({ currentTool: null, toolCallSeq: 1 });
+    expect(changes[2]).toEqual({ currentTool: 'team_message', toolCallSeq: 2 });
+    expect(changes[3]).toEqual({ currentTool: null, toolCallSeq: 2 });
   });
 
   it('onSubagentSpawned sets agent to spawning', () => {

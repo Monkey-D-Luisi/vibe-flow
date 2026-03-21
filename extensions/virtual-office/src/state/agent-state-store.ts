@@ -18,6 +18,7 @@ export interface AgentState {
   pipelineStage: string | null;
   taskId: string | null;
   lastSeenAt: number;
+  toolCallSeq: number;
 }
 
 /** Partial state update for an agent. */
@@ -52,6 +53,7 @@ export class AgentStateStore extends EventEmitter {
         pipelineStage: null,
         taskId: null,
         lastSeenAt: Date.now(),
+        toolCallSeq: 0,
       });
     }
   }

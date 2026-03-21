@@ -68,6 +68,12 @@ describe('AgentStateStore', () => {
     expect(state?.lastSeenAt).toBeGreaterThanOrEqual(before);
   });
 
+  it('initializes toolCallSeq to 0', () => {
+    const store = new AgentStateStore(['pm']);
+    const state = store.get('pm');
+    expect(state?.toolCallSeq).toBe(0);
+  });
+
   it('getAll returns a new array on each call', () => {
     const store = new AgentStateStore(['pm']);
     const all1 = store.getAll();

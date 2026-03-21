@@ -35,9 +35,13 @@ export function createEventHandlers(store: AgentStateStore) {
       const agentId = ctx.agentId;
       if (!agentId) return;
 
+      const current = store.get(agentId);
+      const seq = (current?.toolCallSeq ?? 0) + 1;
+
       const partial: Record<string, unknown> = {
         status: 'active',
         currentTool: event.toolName,
+        toolCallSeq: seq,
       };
 
       // Extract pipeline stage from pipeline_advance params
@@ -59,14 +63,14 @@ export function createEventHandlers(store: AgentStateStore) {
       store.update(agentId, partial);
     },
 
-    /** Handle after_tool_call: record result, keep active. */
+    /** Handle after_tool_call: record result, clear tool. */
     onAfterToolCall(event: ToolCallEvent, ctx: HookContext): void {
       const agentId = ctx.agentId;
       if (!agentId) return;
 
       store.update(agentId, {
         status: 'active',
-        currentTool: event.toolName,
+        currentTool: null,
       });
 
       // Extract pipeline stage from pipeline_advance result
