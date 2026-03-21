@@ -1,6 +1,6 @@
 # EP14 -- Local-First Observability
 
-> Status: PENDING
+> Status: IN_PROGRESS
 > Dependencies: EP09
 > Phase: 11 (Protocol & Communication)
 > Target: April 2026
