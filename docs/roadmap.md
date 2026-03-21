@@ -55,7 +55,7 @@ observability, and extensibility for the community.
 | 10    | EP11 | Budget Intelligence                  | EP09         | March 2026 | DONE    |
 | 10    | EP12 | Agent Learning Loop                  | EP10, EP11   | April 2026 | DONE |
 | 11    | EP13 | Stable Agent Protocol                | EP09         | April 2026 | DONE |
-| 11    | EP14 | Local-First Observability            | EP09         | April 2026 | IN_PROGRESS |
+| 11    | EP14 | Local-First Observability            | EP09         | April 2026 | DONE |
 | 11    | EP15 | Telegram Control Plane v2            | EP14         | April 2026 | PENDING |
 | 12    | EP16 | E2E Testing & Load Characterization  | EP13         | May 2026   | PENDING |
 | 12    | EP17 | Security & Stability v2              | EP09         | May 2026   | PENDING |
@@ -405,8 +405,8 @@ Key deliverables:
 - Task 0099: Metrics Aggregation Engine (SQLite) -- DONE (EP14, 11A)
 - Task 0100: /api/metrics System Health Endpoint -- DONE (EP14, 11A)
 - Task 0101: /api/timeline Pipeline Execution Endpoint -- DONE (EP14, 11B)
-- Task 0102: Structured Logging Consolidation -- PENDING (EP14, 11B)
-- Task 0103: Agent Activity Heatmap -- PENDING (EP14, 11C)
+- Task 0102: Structured Logging Consolidation -- DONE (EP14, 11B)
+- Task 0103: Agent Activity Heatmap -- DONE (EP14, 11C)
 
 ### EP15 -- Telegram Control Plane v2
 
@@ -885,8 +885,8 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - Task 0099: Metrics Aggregation Engine (SQLite) -- DONE
 - Task 0100: /api/metrics System Health Endpoint -- DONE
 - Task 0101: /api/timeline Pipeline Execution Endpoint -- DONE
-- Task 0102: Structured Logging Consolidation -- PENDING
-- Task 0103: Agent Activity Heatmap -- PENDING
+- Task 0102: Structured Logging Consolidation -- DONE
+- Task 0103: Agent Activity Heatmap -- DONE
 
 ### Phase 11B: Telegram Control Plane v2 (EP15)
 
