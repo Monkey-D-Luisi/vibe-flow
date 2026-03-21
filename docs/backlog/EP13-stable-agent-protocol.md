@@ -1,6 +1,6 @@
 # EP13 -- Stable Agent Protocol
 
-> Status: IN_PROGRESS
+> Status: DONE
 > Dependencies: EP09
 > Phase: 11 (Protocol & Communication)
 > Target: April 2026
