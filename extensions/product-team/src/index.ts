@@ -304,6 +304,7 @@ export function register(api: OpenClawPluginApi): void {
           budgetRepo.replenish(id, additionalTokens, additionalUsd, expectedRev, now),
         resetConsumption: (id, expectedRev, now) =>
           budgetRepo.resetConsumption(id, expectedRev, now),
+        now,
       },
       decisionQuery: { db },
     },

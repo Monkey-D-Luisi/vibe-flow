@@ -15,6 +15,8 @@ export interface DecisionQueryDeps {
   readonly db: Database.Database;
 }
 
+const MAX_BODY_BYTES = 65_536;
+
 function sendJson(res: ServerResponse, statusCode: number, body: unknown): void {
   res.statusCode = statusCode;
   res.setHeader('content-type', 'application/json; charset=utf-8');
@@ -24,7 +26,16 @@ function sendJson(res: ServerResponse, statusCode: number, body: unknown): void 
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    let totalBytes = 0;
+    req.on('data', (chunk: Buffer) => {
+      totalBytes += chunk.length;
+      if (totalBytes > MAX_BODY_BYTES) {
+        req.destroy();
+        reject(new Error('payload_too_large'));
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
     req.on('error', reject);
   });
@@ -57,7 +68,16 @@ export function createDecisionQueryHandler(
     }
 
     if (req.method === 'POST' && pathname === '/api/decisions/approve') {
-      const raw = await readBody(req);
+      let raw: string;
+      try {
+        raw = await readBody(req);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message === 'payload_too_large') {
+          sendJson(res, 413, { error: 'Payload too large' });
+          return;
+        }
+        throw err;
+      }
       let body: Record<string, unknown>;
       try {
         body = JSON.parse(raw) as Record<string, unknown>;
@@ -74,30 +94,36 @@ export function createDecisionQueryHandler(
         return;
       }
 
-      const row = deps.db.prepare(
-        'SELECT id, decision FROM agent_decisions WHERE id = ?',
-      ).get(decisionId) as { id: string; decision: string | null } | undefined;
+      const result = deps.db.transaction(() => {
+        const row = deps.db.prepare(
+          'SELECT id, decision FROM agent_decisions WHERE id = ?',
+        ).get(decisionId) as { id: string; decision: string | null } | undefined;
 
-      if (!row) {
-        sendJson(res, 404, { error: `Decision "${decisionId}" not found` });
-        return;
-      }
+        if (!row) return { status: 404 as const, body: { error: `Decision "${decisionId}" not found` } };
+        if (row.decision !== null) return { status: 409 as const, body: { error: `Decision "${decisionId}" already resolved: ${row.decision}` } };
 
-      if (row.decision !== null) {
-        sendJson(res, 409, { error: `Decision "${decisionId}" already resolved: ${row.decision}` });
-        return;
-      }
+        deps.db.prepare(
+          "UPDATE agent_decisions SET decision = ?, reasoning = COALESCE(reasoning, '') || ? WHERE id = ?",
+        ).run(choice, ' [Approved via API by human]', decisionId);
 
-      deps.db.prepare(
-        "UPDATE agent_decisions SET decision = ?, reasoning = COALESCE(reasoning, '') || ? WHERE id = ?",
-      ).run(choice, ' [Approved via API by human]', decisionId);
+        return { status: 200 as const, body: { approved: true, decisionId, choice } };
+      })();
 
-      sendJson(res, 200, { approved: true, decisionId, choice });
+      sendJson(res, result.status, result.body);
       return;
     }
 
     if (req.method === 'POST' && pathname === '/api/decisions/reject') {
-      const raw = await readBody(req);
+      let raw: string;
+      try {
+        raw = await readBody(req);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message === 'payload_too_large') {
+          sendJson(res, 413, { error: 'Payload too large' });
+          return;
+        }
+        throw err;
+      }
       let body: Record<string, unknown>;
       try {
         body = JSON.parse(raw) as Record<string, unknown>;
@@ -114,25 +140,22 @@ export function createDecisionQueryHandler(
         return;
       }
 
-      const row = deps.db.prepare(
-        'SELECT id, decision FROM agent_decisions WHERE id = ?',
-      ).get(decisionId) as { id: string; decision: string | null } | undefined;
+      const result = deps.db.transaction(() => {
+        const row = deps.db.prepare(
+          'SELECT id, decision FROM agent_decisions WHERE id = ?',
+        ).get(decisionId) as { id: string; decision: string | null } | undefined;
 
-      if (!row) {
-        sendJson(res, 404, { error: `Decision "${decisionId}" not found` });
-        return;
-      }
+        if (!row) return { status: 404 as const, body: { error: `Decision "${decisionId}" not found` } };
+        if (row.decision !== null) return { status: 409 as const, body: { error: `Decision "${decisionId}" already resolved` } };
 
-      if (row.decision !== null) {
-        sendJson(res, 409, { error: `Decision "${decisionId}" already resolved` });
-        return;
-      }
+        deps.db.prepare(
+          "UPDATE agent_decisions SET approver = 'tech-lead', reasoning = COALESCE(reasoning, '') || ? WHERE id = ?",
+        ).run(` [Rejected via API: ${reason}]`, decisionId);
 
-      deps.db.prepare(
-        "UPDATE agent_decisions SET approver = 'tech-lead', reasoning = COALESCE(reasoning, '') || ? WHERE id = ?",
-      ).run(` [Rejected via API: ${reason}]`, decisionId);
+        return { status: 200 as const, body: { rejected: true, decisionId, reEscalatedTo: 'tech-lead' } };
+      })();
 
-      sendJson(res, 200, { rejected: true, decisionId, reEscalatedTo: 'tech-lead' });
+      sendJson(res, result.status, result.body);
       return;
     }
 

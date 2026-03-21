@@ -72,7 +72,9 @@ export default {
     }
 
     // EP13 Task 0096: Create API client for product-team HTTP routes (replaces _sharedDb)
-    const apiPort = Number(process.env['OPENCLAW_GATEWAY_PORT'] || '28789');
+    const rawApiPort = process.env['OPENCLAW_GATEWAY_PORT'];
+    const parsedApiPort = Number.parseInt(rawApiPort ?? '', 10);
+    const apiPort = Number.isFinite(parsedApiPort) && parsedApiPort > 0 ? parsedApiPort : 28789;
     const ptApi = createApiClient(apiPort);
 
     // ── Lifecycle Hooks ──
