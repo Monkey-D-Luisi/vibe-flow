@@ -376,7 +376,7 @@ Key deliverables:
 
 - Task 0094: Spawn Mechanism v2 -- Zero SDK Internals -- DONE (EP13, 11A)
 - Task 0095: Inter-Agent Message Contracts (JSON Schema) -- DONE (EP13, 11A)
-- Task 0096: Stable Plugin Shared State API -- PENDING (EP13, 11B)
+- Task 0096: Stable Plugin Shared State API -- DONE (EP13, 11B)
 - Task 0097: Protocol Version Negotiation -- DONE (EP13, 11B)
 - Task 0098: Contract Conformance Test Suite -- PENDING (EP13, 11C)
 
@@ -876,7 +876,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 - Task 0094: Spawn Mechanism v2 -- Zero SDK Internals -- DONE
 - Task 0095: Inter-Agent Message Contracts (JSON Schema) -- DONE
-- Task 0096: Stable Plugin Shared State API -- PENDING
+- Task 0096: Stable Plugin Shared State API -- DONE
 - Task 0097: Protocol Version Negotiation -- DONE
 - Task 0098: Contract Conformance Test Suite -- PENDING
 

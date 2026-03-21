@@ -294,7 +294,19 @@ export function register(api: OpenClawPluginApi): void {
 
   registerHttpRoutes(
     api,
-    { healthCheck: { db, pluginConfig, eventLogWritable }, githubConfig },
+    {
+      healthCheck: { db, pluginConfig, eventLogWritable },
+      githubConfig,
+      budgetQuery: {
+        getByScope: (scope, scopeId) => budgetRepo.getByScope(scope as 'global' | 'pipeline' | 'stage' | 'agent', scopeId),
+        listByScope: (scope) => budgetRepo.listByScope(scope as 'global' | 'pipeline' | 'stage' | 'agent'),
+        replenish: (id, additionalTokens, additionalUsd, expectedRev, now) =>
+          budgetRepo.replenish(id, additionalTokens, additionalUsd, expectedRev, now),
+        resetConsumption: (id, expectedRev, now) =>
+          budgetRepo.resetConsumption(id, expectedRev, now),
+      },
+      decisionQuery: { db },
+    },
     { ciFeedbackAutomation },
   );
 
