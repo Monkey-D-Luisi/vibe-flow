@@ -1,6 +1,6 @@
 # EP15 -- Telegram Control Plane v2
 
-> Status: PENDING
+> Status: IN_PROGRESS
 > Dependencies: EP14
 > Phase: 11 (Protocol & Communication)
 > Target: April 2026
