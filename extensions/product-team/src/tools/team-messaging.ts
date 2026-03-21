@@ -7,6 +7,24 @@ import {
   TeamAssignParams,
 } from '../schemas/team-messaging.schema.js';
 import { MESSAGES_TABLE, ensureMessagesTable } from './shared-db.js';
+import { validateMessageBody } from '@openclaw/quality-contracts/validation/message-validator';
+
+/**
+ * Try to parse a message body as a typed protocol message.
+ * Returns the parsed object with `_type` if valid JSON with a `_type` field,
+ * or `undefined` if the body is plain text or non-JSON.
+ */
+function tryParseTypedBody(body: string): Record<string, unknown> | undefined {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (typeof parsed === 'object' && parsed !== null && '_type' in parsed) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    // Not JSON — plain text body, skip validation
+  }
+  return undefined;
+}
 
 export function teamMessageToolDef(deps: ToolDeps): ToolDef {
   return {
@@ -26,6 +44,24 @@ export function teamMessageToolDef(deps: ToolDeps): ToolDef {
         originChannel?: string;
         originSessionKey?: string;
       }>(TeamMessageParams, params);
+
+      // Validate typed message body if _type is present (EP13 Task 0095)
+      const typedBody = tryParseTypedBody(input.body);
+      if (typedBody) {
+        const messageType = String(typedBody['_type']);
+        const validation = validateMessageBody(messageType, typedBody);
+        if (!validation.valid) {
+          const errorDetail = validation.errors?.join('; ') ?? 'unknown validation error';
+          const result = {
+            delivered: false,
+            reason: `Message body validation failed for type "${messageType}": ${errorDetail}`,
+          };
+          return {
+            content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+            details: result,
+          };
+        }
+      }
 
       const id = deps.generateId();
       const now = deps.now();
