@@ -54,6 +54,7 @@ import { resolveAllocations } from './orchestrator/agent-budget-tracker.js';
 import { registerBudgetHooks } from './hooks/budget-hooks.js';
 import type { BudgetGuardDeps } from './orchestrator/budget-guard.js';
 import { registerCircuitBreakerHook } from './hooks/circuit-breaker.js';
+import { setupObservability } from './observability/registration.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 export { resolveConcurrencyConfig } from './config/plugin-config.js';
@@ -114,6 +115,9 @@ export function register(api: OpenClawPluginApi): void {
   const agentAllocations = resolveAllocations(parseAllocationConfig(rawBudgetConfig['agentAllocations']));
   const budgetGuardDeps: BudgetGuardDeps = { budgetRepo, eventLog, now };
 
+  // Observability infrastructure (EP14): metrics aggregation engine
+  const obs = setupObservability({ db, generateId, now });
+
   // Shared event-log health probe used by both monitoring cron and /health handler.
   // Queries event_log directly so it can fail independently of the generic DB check.
   const eventLogWritable = (): boolean => {
@@ -148,6 +152,7 @@ export function register(api: OpenClawPluginApi): void {
     logger: api.logger,
     stopMonitoringCron: () => {
       monitoringCron.stop();
+      obs.stopCron();
     },
   });
   registerProcessShutdownHooks(() => {
@@ -276,6 +281,7 @@ export function register(api: OpenClawPluginApi): void {
     agentConfig,
     decisionConfig,
     orchestratorConfig: resolveOrchestratorConfig(pluginConfig),
+    metricsAggregator: obs.aggregator,
     vcs: {
       requestRepo,
       branchService,
@@ -477,6 +483,7 @@ export function register(api: OpenClawPluginApi): void {
     },
   });
   stageTimeoutCron.start();
+  obs.startCron();
 
   api.logger.info(`registered ${tools.length} task/workflow/quality/vcs/messaging/decision/pipeline tools`);
   // EP03: workflow.step.run, workflow.state.get

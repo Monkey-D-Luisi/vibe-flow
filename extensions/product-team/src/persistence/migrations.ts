@@ -114,6 +114,24 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_records_scope ON budget_records(sco
 CREATE INDEX IF NOT EXISTS idx_budget_records_status ON budget_records(status);
 `;
 
+const MIGRATION_006 = `
+-- EP14: Metrics aggregation engine (Task 0099).
+-- Pre-computed metrics from event_log for fast dashboards and /api/metrics.
+CREATE TABLE IF NOT EXISTS metrics_aggregated (
+  id           TEXT PRIMARY KEY,
+  metric_type  TEXT NOT NULL,
+  scope        TEXT NOT NULL,
+  period       TEXT NOT NULL CHECK(period IN ('hour', 'day', 'all')),
+  period_start TEXT NOT NULL,
+  value_json   TEXT NOT NULL DEFAULT '{}',
+  computed_at  TEXT NOT NULL,
+  UNIQUE(metric_type, scope, period, period_start)
+);
+
+CREATE INDEX IF NOT EXISTS idx_metrics_agg_lookup
+  ON metrics_aggregated(metric_type, scope, period, period_start);
+`;
+
 interface Migration {
   readonly version: number;
   readonly sql: string;
@@ -125,6 +143,7 @@ const MIGRATIONS: readonly Migration[] = [
   { version: 3, sql: MIGRATION_003 },
   { version: 4, sql: MIGRATION_004 },
   { version: 5, sql: MIGRATION_005 },
+  { version: 6, sql: MIGRATION_006 },
 ];
 
 /**
