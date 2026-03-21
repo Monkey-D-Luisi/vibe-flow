@@ -124,6 +124,8 @@ export default {
   register(api: OpenClawPluginApi) {
     const config = getConfig(api);
     const logger = api.logger;
+    const slog = (level: 'info' | 'warn' | 'error', op: string, ctx?: Record<string, unknown>) =>
+      logger[level](JSON.stringify({ ts: new Date().toISOString(), ext: 'stitch-bridge', op, ...ctx }));
 
     // ── design.generate ──
     api.registerTool({
@@ -295,7 +297,7 @@ export default {
       },
     });
 
-    logger.info('stitch-bridge: Registered design tools (generate, edit, get, list)');
+    slog('info', 'design_tools.registered');
 
     // ── design.project_create ──
     api.registerTool({
@@ -366,7 +368,7 @@ export default {
       },
     });
 
-    logger.info('stitch-bridge: Registered project management tools (project_create, project_list, screens_list)');
+    slog('info', 'project_tools.registered');
 
     // Discover available Stitch tools in the background (non-blocking).
     if (process.env['STITCH_API_KEY'] && typeof listTools === 'function') {

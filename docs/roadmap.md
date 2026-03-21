@@ -404,7 +404,7 @@ Key deliverables:
 
 - Task 0099: Metrics Aggregation Engine (SQLite) -- DONE (EP14, 11A)
 - Task 0100: /api/metrics System Health Endpoint -- DONE (EP14, 11A)
-- Task 0101: /api/timeline Pipeline Execution Endpoint -- PENDING (EP14, 11B)
+- Task 0101: /api/timeline Pipeline Execution Endpoint -- DONE (EP14, 11B)
 - Task 0102: Structured Logging Consolidation -- PENDING (EP14, 11B)
 - Task 0103: Agent Activity Heatmap -- PENDING (EP14, 11C)
 
@@ -884,7 +884,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 - Task 0099: Metrics Aggregation Engine (SQLite) -- DONE
 - Task 0100: /api/metrics System Health Endpoint -- DONE
-- Task 0101: /api/timeline Pipeline Execution Endpoint -- PENDING
+- Task 0101: /api/timeline Pipeline Execution Endpoint -- DONE
 - Task 0102: Structured Logging Consolidation -- PENDING
 - Task 0103: Agent Activity Heatmap -- PENDING
 
