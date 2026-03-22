@@ -99,6 +99,7 @@ import { pipelineStartToolDef, pipelineStatusToolDef, pipelineRetryToolDef, pipe
 import { pipelineAdvanceToolDef, pipelineMetricsToolDef, pipelineTimelineToolDef } from './pipeline-advance.js';
 import { metricsRefreshToolDef } from '../observability/metrics-refresh-tool.js';
 import type { MetricsAggregator } from '../observability/metrics-aggregator.js';
+import { agentNudgeToolDef } from './nudge-tool.js';
 
 export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
   const toolDefs = [
@@ -138,6 +139,7 @@ export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
     pipelineAdvanceToolDef(deps),
     pipelineMetricsToolDef(deps),
     pipelineTimelineToolDef(deps),
+    agentNudgeToolDef(deps),
   ];
 
   if (deps.metricsAggregator) {
