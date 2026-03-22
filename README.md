@@ -82,7 +82,7 @@ See [docs/docker-setup.md](docs/docker-setup.md) for auth credentials, Telegram 
 
 ## Current State (March 2026)
 
-- `main` currently includes post-`v0.1.1` virtual-office stabilization work (pipeline semantics, dashboard readability, responsive sidebar/canvas layout).
+- `main` currently includes post-`v0.2.0` work: nudge engine, virtual-office stabilization (pipeline semantics, dashboard readability, responsive sidebar/canvas layout).
 - Docker deployment baseline is verified with service `gateway` and container `openclaw-product-team` exposed at `http://localhost:28789`.
 - Core monorepo checks (`pnpm -r lint`, `pnpm -r typecheck`, `pnpm -r test`) are green on the latest documentation update push to `main`.
 
@@ -103,7 +103,7 @@ See [docs/docker-setup.md](docs/docker-setup.md) for auth credentials, Telegram 
 
 | Extension | Purpose |
 |-----------|---------|
-| [product-team](extensions/product-team/) | Task engine, workflow orchestration, quality tools, VCS automation, team messaging, decision engine, pipeline |
+| [product-team](extensions/product-team/) | Task engine, workflow orchestration, quality tools, VCS automation, team messaging, decision engine, pipeline, nudge engine |
 | [quality-gate](extensions/quality-gate/) | Standalone quality engine + CLI (`pnpm q:gate`, `pnpm q:*`) for local/CI runs |
 | [telegram-notifier](extensions/telegram-notifier/) | Telegram notification integration with per-persona bot routing |
 | [model-router](extensions/model-router/) | Per-agent model routing hook with fallback chains |
@@ -112,7 +112,7 @@ See [docs/docker-setup.md](docs/docker-setup.md) for auth credentials, Telegram 
 
 ## Tool Surface
 
-35 tools across 7 categories: **task** (5), **workflow** (3), **quality** (5), **vcs** (4), **team** (5), **decision** (3), **pipeline** (7). Plus 8 standalone `qgate_*` tools from the quality-gate extension.
+38 tools across 10 categories: **task** (5), **workflow** (3), **quality** (5), **vcs** (4), **project** (3), **team** (5), **decision** (4), **pipeline** (7), **metrics** (1), **agent** (1). Plus 7 standalone `qgate_*` tools from the quality-gate extension and 8 `design_*` tools from stitch-bridge.
 
 Full reference: [docs/api-reference.md](docs/api-reference.md)
 
@@ -191,7 +191,7 @@ The `site/` directory contains a static landing page deployed via GitHub Pages.
 
 ## Project Status
 
-**Alpha (v0.1.x)** -- the API surface is functional but may change as EP16+ work lands. See [docs/roadmap.md](docs/roadmap.md) for execution history and upcoming milestones.
+**Alpha (v0.2.x)** -- the API surface is functional but may change as EP16+ work lands. See [docs/roadmap.md](docs/roadmap.md) for execution history and upcoming milestones.
 
 ## Star History
 

@@ -1,6 +1,6 @@
-# ADR: Agent Nudge Engine Design
+# ADR-005: Agent Nudge Engine Design
 
-**ID:** ADR-nudge-engine-design  
+**ID:** ADR-005-nudge-engine-design
 **Status:** Accepted  
 **Date:** 2026-03-22  
 **Task:** 01KMAMM7PBEE3A0PZXE7FK1CNH  

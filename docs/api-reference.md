@@ -48,6 +48,9 @@ This document lists every registered tool from
 | `pipeline.advance` | pm, tech-lead | Advance a pipeline to its next stage |
 | `pipeline.metrics` | pm, tech-lead, po | Get pipeline stage timing and throughput metrics |
 | `pipeline.timeline` | pm, tech-lead | Per-task ordered timeline of stages with timestamps and durations (add `pipeline_timeline` to agent allow-lists in `openclaw.docker.json` if using Docker) |
+| `metrics.refresh` | pm | Refresh aggregated observability metrics |
+| `agent.nudge` | pm, tech-lead | Nudge idle agents and surface blocked pipeline tasks |
+| `decision.patterns` | pm, tech-lead | Query decision outcome patterns for learning loop |
 
 ## Task Tools
 
@@ -698,7 +701,7 @@ This document lists every registered tool from
 
 - Parameters: `taskId`, optional `skipDesign` (boolean)
 - Returns: `{ advanced, fromStage, toStage, taskId }`
-- Advances a pipeline task to its next stage (IDEA → ROADMAP → REFINEMENT → ... → SHIPPED)
+- Advances a pipeline task to its next stage (IDEA → ROADMAP → REFINEMENT → ... → SHIPPING → DONE)
 - Enforces per-stage retry limits, emits structured stage transition events
 - Conditional design skip: if `skipDesign=true` or config `skipDesignForNonUITasks=true` with non-UI task type, DESIGN stage is auto-skipped
 

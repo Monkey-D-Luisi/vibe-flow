@@ -10,19 +10,21 @@ flowchart TD
   OC --> MR[model-router hook]
   OC --> TN[telegram-notifier]
   OC --> SB[stitch-bridge]
+  OC --> VO[virtual-office]
   PT --> T1[task.*]
   PT --> T2[workflow.*]
   PT --> T3[quality.*]
   PT --> T4[vcs.*]
-  PT --> T5[team.* / decision.* / pipeline.* / project.*]
+  PT --> T5[team.* / decision.* / pipeline.* / project.* / agent.*]
   PT --> DB[(SQLite DB + event log)]
   SB --> Stitch[Google Stitch MCP]
+  VO --> SSE[SSE dashboard]
   CI[Local/CI shell] --> QG[quality-gate CLI]
 ```
 
 ```
 OpenClaw Gateway (port 28789)
-  -> product-team plugin (35 tools, 10 hooks, SQLite persistence)
+  -> product-team plugin (38 tools, 14 hooks, SQLite persistence)
       -> Task lifecycle tools (task.*)
       -> Workflow tools (workflow.*)
       -> Quality tools (quality.*)
@@ -31,11 +33,14 @@ OpenClaw Gateway (port 28789)
       -> Decision engine (decision.*)
       -> Pipeline orchestrator (pipeline.*)
       -> Project manager (project.*)
+      -> Agent nudge engine (agent.*)
+      -> Observability metrics (metrics.*)
       -> SQLite persistence + event log
 
   -> model-router hook (per-agent model routing from config)
   -> telegram-notifier (lifecycle → Telegram group notifications)
   -> stitch-bridge (Google Stitch MCP proxy for designer agent)
+  -> virtual-office (SSE-based real-time agent activity dashboard)
 
 Local/CI Shell
   -> quality-gate CLI (pnpm q:gate / pnpm q:tests / pnpm q:coverage / ...)
@@ -47,15 +52,16 @@ Local/CI Shell
 
 ## Responsibility Split
 
-| Area | product-team | quality-gate | model-router | telegram-notifier | stitch-bridge |
-|---|---|---|---|---|---|
-| OpenClaw runtime tools | 34 tools | No (CLI only) | No | No | 4 tools (design.*) |
-| Task metadata writes | Yes | No | No | No | No |
-| Transition guard support | Yes | No | No | No | No |
-| Standalone quality CLI | No | Yes | No | No | No |
-| Model routing hooks | No | No | Yes | No | No |
-| Telegram notifications | No | No | No | Yes | No |
-| Design tool proxy | No | No | No | No | Yes |
+| Area | product-team | quality-gate | model-router | telegram-notifier | stitch-bridge | virtual-office |
+|---|---|---|---|---|---|---|
+| OpenClaw runtime tools | 38 tools | No (CLI only) | No | No | 8 tools (design_*) | No |
+| Task metadata writes | Yes | No | No | No | No | No |
+| Transition guard support | Yes | No | No | No | No | No |
+| Standalone quality CLI | No | Yes | No | No | No | No |
+| Model routing hooks | No | No | Yes | No | No | No |
+| Telegram notifications | No | No | No | Yes | No | No |
+| Design tool proxy | No | No | No | No | Yes | No |
+| Agent activity dashboard | No | No | No | No | No | Yes |
 
 ## Metadata Integration (Runtime)
 

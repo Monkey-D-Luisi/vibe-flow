@@ -102,7 +102,7 @@ Add the following to your `openclaw.json` under `plugins.entries`:
         "config": {
           "endpoint": "https://stitch.googleapis.com/mcp",
           "defaultProjectId": "",
-          "defaultModel": "GEMINI_3_PRO",
+          "defaultModel": "GEMINI_3_FLASH",
           "timeoutMs": 180000,
           "designDir": ".stitch-html"
         }

@@ -320,7 +320,7 @@ docker exec openclaw-product-team pnpm exec openclaw doctor</code></pre>
           <h3>What you get</h3>
           <ul class="bullets">
             <li>Control UI: <code>http://localhost:28789/</code></li>
-            <li>8 agents + 6 plugins loaded</li>
+            <li>8 agents + 6 extensions loaded</li>
             <li>Chat integration for human oversight</li>
             <li>Quality gate CLI for local/CI validation</li>
           </ul>
@@ -439,13 +439,15 @@ flowchart TD
   OC --> MR[model-router hook]
   OC --> TN[telegram-notifier]
   OC --> SB[stitch-bridge]
+  OC --> VO[virtual-office]
   PT --> T1[task.*]
   PT --> T2[workflow.*]
   PT --> T3[quality.*]
   PT --> T4[vcs.*]
-  PT --> T5[team.* / decision.* / pipeline.* / project.*]
+  PT --> T5[team.* / decision.* / pipeline.* / project.* / agent.*]
   PT --> DB[(SQLite DB + event log)]
   SB --> Stitch[Google Stitch MCP]
+  VO --> SSE[SSE dashboard]
   CI[Local/CI shell] --> QG[quality-gate CLI]
           </div>
         </div>

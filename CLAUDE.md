@@ -118,6 +118,9 @@ pnpm q:complexity
 | `pipeline_advance` | Advance a pipeline to its next stage |
 | `pipeline_metrics` | Get pipeline stage timing and throughput metrics |
 | `pipeline_timeline` | Per-task ordered timeline of stages with timestamps and durations |
+| `metrics_refresh` | Refresh aggregated observability metrics |
+| `agent_nudge` | Nudge idle agents to resume stalled pipeline work |
+| `decision_patterns` | Query decision outcome patterns for learning loop |
 
 ### quality-gate extension (standalone, stateless, no task lifecycle)
 
