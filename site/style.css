@@ -411,12 +411,20 @@ code, pre { font-family: var(--mono); }
 
 .brand--footer .pill { margin-left: 10px; }
 
+/* Progressive enhancement:
+   - Default (no JS): content is visible.
+   - JS-enabled: hide-on-load + reveal via IntersectionObserver.
+*/
 .reveal {
+  opacity: 1;
+  transform: none;
+}
+.js .reveal {
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 700ms ease, transform 700ms ease;
 }
-.reveal.is-visible {
+.js .reveal.is-visible {
   opacity: 1;
   transform: translateY(0);
 }
@@ -449,6 +457,9 @@ code, pre { font-family: var(--mono); }
   color: var(--muted);
   font-size: 13px;
 }
+.noscript p { margin: 0; }
+.noscript p + p { margin-top: 8px; }
+.noscript a { color: var(--text); }
 
 @media (max-width: 980px) {
   .grid--cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -469,5 +480,10 @@ code, pre { font-family: var(--mono); }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .reveal { transition: none; transform: none; opacity: 1; }
+  .reveal,
+  .js .reveal {
+    transition: none;
+    transform: none;
+    opacity: 1;
+  }
 }
