@@ -26,7 +26,7 @@ export const STAGE_OWNERS: Record<PipelineStage, string> = {
   QA: 'qa',
   REVIEW: 'tech-lead',
   SHIPPING: 'devops',
-  DONE: 'pm',
+  DONE: 'system',
 };
 
 /** Target location in the office grid. */

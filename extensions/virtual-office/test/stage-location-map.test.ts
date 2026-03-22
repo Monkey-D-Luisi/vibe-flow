@@ -68,6 +68,10 @@ describe('stage-location-map', () => {
     }
   });
 
+  it('STAGE_OWNERS.DONE matches product-team authoritative definition', () => {
+    expect(STAGE_OWNERS['DONE']).toBe('system');
+  });
+
   it('unknown stage returns desk position with idle', () => {
     const loc = getStageLocation('UNKNOWN_STAGE', 7, 4);
     expect(loc.col).toBe(7);

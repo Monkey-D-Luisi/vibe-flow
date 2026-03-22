@@ -41,7 +41,8 @@ export interface PipelineSummaryDisplay {
 
 const LIVE_MS = 15_000;
 const RECENT_MS = 60_000;
-export const PIPELINE_GRACE_MS = 5 * 60 * 1000;
+export const PIPELINE_GRACE_MS = 30 * 60 * 1000;
+export const PIPELINE_STALE_MS = 2 * 60 * 60 * 1000;
 
 export const ROLE_LABELS: Record<string, string> = {
   pm: 'Project Manager',
@@ -226,12 +227,18 @@ export function derivePipelineSummary(
   now: number,
   connectionState: ConnectionState,
 ): PipelineSummaryDisplay | null {
-  const candidates = states.filter(state =>
+  const pipelineFilter = (state: ServerAgentState, maxAge: number) =>
     state.taskId &&
     state.pipelineStage &&
     state.pipelineStage !== 'DONE' &&
-    now - state.lastSeenAt < PIPELINE_GRACE_MS,
-  );
+    now - state.lastSeenAt < maxAge;
+
+  let candidates = states.filter(state => pipelineFilter(state, PIPELINE_GRACE_MS));
+
+  // Fallback: include stale candidates if no recent ones
+  if (candidates.length === 0) {
+    candidates = states.filter(state => pipelineFilter(state, PIPELINE_STALE_MS));
+  }
 
   if (candidates.length === 0) {
     return null;

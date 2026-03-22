@@ -33,7 +33,11 @@ export default {
     const store = new AgentStateStore();
 
     // --- Lifecycle hooks ---
-    const handlers = createEventHandlers(store);
+    const mapperLogger = {
+      info: (op: string, ctx?: Record<string, unknown>) => slog('info', op, ctx),
+      warn: (op: string, ctx?: Record<string, unknown>) => slog('warn', op, ctx),
+    };
+    const handlers = createEventHandlers(store, mapperLogger);
 
     api.on('before_tool_call', (event, ctx) => {
       handlers.onBeforeToolCall(
