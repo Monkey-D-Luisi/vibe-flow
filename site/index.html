@@ -256,17 +256,37 @@
     <section class="section" id="roadmap">
       <div class="container">
         <header class="section__header">
-          <h2>Roadmap (high level)</h2>
-          <p class="muted">A few near‑term milestones for the OSS launch.</p>
+          <h2>Roadmap</h2>
+          <p class="muted">20 epics across 4 axes: Intelligence, Communication, Scale, Distribution.</p>
         </header>
 
         <div class="card reveal">
-          <ul class="bullets">
-            <li><strong>Polish docs</strong>: contributor guide + examples of end‑to‑end runs.</li>
-            <li><strong>More evidence types</strong>: performance budgets, RGR caps, and security checks.</li>
-            <li><strong>Reliability</strong>: retry policies + partial failure handling.</li>
-            <li><strong>Launch pack</strong>: demo script, screenshots, and a short explainer video.</li>
-          </ul>
+          <div class="roadmap-list">
+            <div class="roadmap-item">
+              <span class="badge badge--shipped">SHIPPED</span>
+              <span>EP01-EP09: Foundation through Pipeline Orchestration</span>
+            </div>
+            <div class="roadmap-item">
+              <span class="badge badge--shipped">SHIPPED</span>
+              <span>EP10-EP12: Dynamic Model Routing, Budget Intelligence, Learning Loop</span>
+            </div>
+            <div class="roadmap-item">
+              <span class="badge badge--shipped">SHIPPED</span>
+              <span>EP13-EP15: Stable Protocol, Observability, Telegram Control Plane</span>
+            </div>
+            <div class="roadmap-item">
+              <span class="badge badge--shipped">SHIPPED</span>
+              <span>EP20: Virtual Office (live agent dashboard)</span>
+            </div>
+            <div class="roadmap-item">
+              <span class="badge badge--planned">PLANNED</span>
+              <span>EP16-EP17: E2E Testing, Security Hardening</span>
+            </div>
+            <div class="roadmap-item">
+              <span class="badge badge--planned">PLANNED</span>
+              <span>EP18-EP19: SDK Contracts, Documentation, Showcase</span>
+            </div>
+          </div>
         </div>
 
         <div class="callout reveal">
@@ -343,18 +363,27 @@ docker exec openclaw-product-team pnpm exec openclaw doctor</code></pre>
         <div class="grid grid--two">
           <div class="card reveal">
             <h3>Stages</h3>
-            <ol class="stages">
-              <li><span class="stage">1</span> IDEA</li>
-              <li><span class="stage">2</span> ROADMAP</li>
-              <li><span class="stage">3</span> REFINEMENT</li>
-              <li><span class="stage">4</span> DECOMPOSITION</li>
-              <li><span class="stage">5</span> DESIGN</li>
-              <li><span class="stage">6</span> IMPLEMENTATION</li>
-              <li><span class="stage">7</span> QA</li>
-              <li><span class="stage">8</span> REVIEW</li>
-              <li><span class="stage">9</span> SHIPPING</li>
-              <li><span class="stage">10</span> DONE</li>
-            </ol>
+            <div class="pipeline-strip" role="list" aria-label="Pipeline stages">
+              <div class="pipeline-node" role="listitem"><span class="stage">1</span><span class="stage-label">IDEA</span></div>
+              <div class="pipeline-line" aria-hidden="true"></div>
+              <div class="pipeline-node" role="listitem"><span class="stage">2</span><span class="stage-label">ROADMAP</span></div>
+              <div class="pipeline-line" aria-hidden="true"></div>
+              <div class="pipeline-node" role="listitem"><span class="stage">3</span><span class="stage-label">REFINE</span></div>
+              <div class="pipeline-line" aria-hidden="true"></div>
+              <div class="pipeline-node" role="listitem"><span class="stage">4</span><span class="stage-label">DECOMP</span></div>
+              <div class="pipeline-line" aria-hidden="true"></div>
+              <div class="pipeline-node" role="listitem"><span class="stage">5</span><span class="stage-label">DESIGN</span></div>
+              <div class="pipeline-line" aria-hidden="true"></div>
+              <div class="pipeline-node" role="listitem"><span class="stage">6</span><span class="stage-label">BUILD</span></div>
+              <div class="pipeline-line" aria-hidden="true"></div>
+              <div class="pipeline-node" role="listitem"><span class="stage">7</span><span class="stage-label">QA</span></div>
+              <div class="pipeline-line" aria-hidden="true"></div>
+              <div class="pipeline-node" role="listitem"><span class="stage">8</span><span class="stage-label">REVIEW</span></div>
+              <div class="pipeline-line" aria-hidden="true"></div>
+              <div class="pipeline-node" role="listitem"><span class="stage">9</span><span class="stage-label">SHIP</span></div>
+              <div class="pipeline-line" aria-hidden="true"></div>
+              <div class="pipeline-node" role="listitem"><span class="stage">10</span><span class="stage-label">DONE</span></div>
+            </div>
             <p class="muted small">Each stage can post updates back to chat — so humans can supervise without micromanaging.</p>
           </div>
 
