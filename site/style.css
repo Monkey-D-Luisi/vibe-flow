@@ -238,18 +238,24 @@ code, pre { font-family: var(--mono); }
 
 .hero__actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.hero__card {
+.hero__screenshot {
+  margin: 0;
   border-radius: var(--radius2);
-  border: 1px solid rgba(255,255,255,0.12);
-  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
-  padding: 18px 18px 16px;
-  box-shadow: var(--shadow);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  align-self: center;
 }
-.hero__cardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+.hero__screenshot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius2) var(--radius2) 0 0;
+}
+.hero__screenshot figcaption {
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(255,255,255,0.08);
 }
 .badge {
   display: inline-flex;
