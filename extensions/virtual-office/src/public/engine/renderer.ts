@@ -56,6 +56,10 @@ function drawDesks(ctx: CanvasRenderingContext2D, camera: Camera): void {
     const x = camera.offsetX + desk.col * SCALED_TILE;
     const y = camera.offsetY + desk.row * SCALED_TILE;
 
+    // Skip desk furniture if the tile immediately below would overlap with
+    // the meeting room (e.g. PO desk at col 9 row 2 vs meeting room row 3).
+    if (getTile(desk.col, desk.row + 1) === TileType.MEETING) continue;
+
     // Desk surface
     ctx.fillStyle = '#5a4a3a';
     ctx.fillRect(x - 4, y + SCALED_TILE + 2, SCALED_TILE + 8, SCALED_TILE / 2);

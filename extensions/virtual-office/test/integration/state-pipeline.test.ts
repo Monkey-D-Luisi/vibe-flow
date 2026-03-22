@@ -57,21 +57,26 @@ describe('state pipeline integration', () => {
     expect(loc.activity).toBe('reading');
   });
 
-  it('agent end returns to idle and clears pipeline context', () => {
-    // First make agent active
+  it('agent end returns to idle and clears currentTool but keeps task context', () => {
+    // First make agent active with task context
     handlers.onBeforeToolCall(
-      { toolName: 'task_search' },
+      { toolName: 'task_search', params: { taskId: 'T-010' } },
+      { agentId: 'pm' },
+    );
+    handlers.onAfterToolCall(
+      { toolName: 'pipeline_advance', result: { currentStage: 'REFINEMENT' } },
       { agentId: 'pm' },
     );
     expect(store.get('pm')?.status).toBe('active');
 
-    // Then agent_end
+    // Then agent_end -- only status and currentTool are cleared
     handlers.onAgentEnd({}, { agentId: 'pm' });
     const state = store.get('pm');
     expect(state?.status).toBe('idle');
     expect(state?.currentTool).toBeNull();
-    expect(state?.taskId).toBeNull();
-    expect(state?.pipelineStage).toBeNull();
+    // taskId and pipelineStage persist so pipeline panel can show grace-period data
+    expect(state?.taskId).toBe('T-010');
+    expect(state?.pipelineStage).toBe('REFINEMENT');
   });
 
   it('subagent spawn transitions spawning → active', () => {
@@ -114,8 +119,9 @@ describe('state pipeline integration', () => {
 
     const state = store.get('front-1');
     expect(state?.status).toBe('idle');
-    expect(state?.pipelineStage).toBeNull();
-    expect(state?.taskId).toBeNull();
+    // task context persists after agent_end (grace-period display in pipeline panel)
+    expect(state?.pipelineStage).toBe('IMPLEMENTATION');
+    expect(state?.taskId).toBe('T-003');
 
     // Verify at least 4 change events fired
     expect(changes.length).toBeGreaterThanOrEqual(4);

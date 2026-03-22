@@ -83,7 +83,10 @@ export function createEventHandlers(store: AgentStateStore) {
       }
     },
 
-    /** Handle agent_end: agent returns to idle. */
+    /** Handle agent_end: agent returns to idle.
+     * taskId and pipelineStage are intentionally kept -- they represent
+     * the last known task context and remain visible in the pipeline
+     * dashboard for a grace period before expiring by lastSeenAt. */
     onAgentEnd(_event: unknown, ctx: HookContext): void {
       const agentId = ctx.agentId;
       if (!agentId) return;
@@ -91,8 +94,6 @@ export function createEventHandlers(store: AgentStateStore) {
       store.update(agentId, {
         status: 'idle',
         currentTool: null,
-        taskId: null,
-        pipelineStage: null,
       });
     },
 

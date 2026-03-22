@@ -68,7 +68,7 @@ describe('Event Mapper', () => {
     expect(store.get('pm')?.pipelineStage).toBe('IMPLEMENTATION');
   });
 
-  it('onAgentEnd sets agent to idle and clears runtime context', () => {
+  it('onAgentEnd sets agent to idle and clears currentTool but keeps task context', () => {
     const store = new AgentStateStore(['back-1']);
     const handlers = createEventHandlers(store);
 
@@ -85,8 +85,9 @@ describe('Event Mapper', () => {
     const state = store.get('back-1');
     expect(state?.status).toBe('idle');
     expect(state?.currentTool).toBeNull();
-    expect(state?.taskId).toBeNull();
-    expect(state?.pipelineStage).toBeNull();
+    // taskId and pipelineStage are kept as last-known context for the pipeline panel
+    expect(state?.taskId).toBe('TASK-99');
+    expect(state?.pipelineStage).toBe('REVIEW');
   });
 
   it('onBeforeToolCall increments toolCallSeq on each call', () => {

@@ -106,8 +106,14 @@ export class DashboardPanel {
   }
 
   private updatePipelineSummary(): void {
+    // Show pipeline for agents that have task+stage data and were active
+    // within the last 5 minutes. This keeps the panel visible after
+    // pipeline_advance (typically the last tool call before agent_end).
+    const GRACE_MS = 5 * 60 * 1000;
+    const now = Date.now();
     const active = Array.from(this.agentStates.values())
-      .filter(a => a.status === 'active' && a.taskId && a.pipelineStage);
+      .filter(a => a.taskId && a.pipelineStage && now - a.lastSeenAt < GRACE_MS)
+      .sort((x, y) => y.lastSeenAt - x.lastSeenAt); // most recently active first
 
     if (active.length === 0) {
       this.pipelineEl.innerHTML = '<div class="dash-pipeline-empty">No active pipeline</div>';
