@@ -25,6 +25,18 @@ export interface SubagentSpawnedEvent {
   readonly agentId?: string;
 }
 
+function extractDetails(result: unknown): Record<string, unknown> | null {
+  if (!result || typeof result !== 'object') return null;
+
+  const obj = result as Record<string, unknown>;
+  const details = obj['details'];
+  if (details && typeof details === 'object') {
+    return details as Record<string, unknown>;
+  }
+
+  return obj;
+}
+
 /**
  * Create lifecycle hook handlers that update the agent state store.
  */
@@ -67,6 +79,7 @@ export function createEventHandlers(store: AgentStateStore) {
     onAfterToolCall(event: ToolCallEvent, ctx: HookContext): void {
       const agentId = ctx.agentId;
       if (!agentId) return;
+      const details = extractDetails(event.result);
 
       store.update(agentId, {
         status: 'active',
@@ -74,11 +87,17 @@ export function createEventHandlers(store: AgentStateStore) {
       });
 
       // Extract pipeline stage from pipeline_advance result
-      if (event.toolName === 'pipeline_advance' && event.result) {
-        const result = event.result as Record<string, unknown>;
-        const stage = result['currentStage'];
+      if (event.toolName === 'pipeline_advance' && details) {
+        const stage = details['currentStage'];
         if (typeof stage === 'string') {
-          store.update(agentId, { pipelineStage: stage });
+          const partial: Record<string, unknown> = {
+            pipelineStage: stage,
+          };
+          const taskId = details['taskId'];
+          if (typeof taskId === 'string') {
+            partial['taskId'] = taskId;
+          }
+          store.update(agentId, partial);
         }
       }
     },

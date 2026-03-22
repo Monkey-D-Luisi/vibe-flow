@@ -33,8 +33,8 @@ describe('stage-location-map', () => {
         expect(loc.activity).toBe('meeting');
         expect(loc.col).toBeGreaterThanOrEqual(7);
         expect(loc.col).toBeLessThanOrEqual(11);
-        expect(loc.row).toBeGreaterThanOrEqual(3);
-        expect(loc.row).toBeLessThanOrEqual(5);
+        expect(loc.row).toBeGreaterThanOrEqual(4);
+        expect(loc.row).toBeLessThanOrEqual(6);
       }
     }
   });

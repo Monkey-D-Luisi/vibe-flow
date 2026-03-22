@@ -43,7 +43,12 @@ describe('state pipeline integration', () => {
 
   it('pipeline advance updates stage and maps to correct location', () => {
     handlers.onBeforeToolCall(
-      { toolName: 'pipeline_advance', params: { targetStage: 'DESIGN', taskId: 'T-002' } },
+      { toolName: 'pipeline_advance', params: { taskId: 'T-002' } },
+      { agentId: 'designer' },
+    );
+
+    handlers.onAfterToolCall(
+      { toolName: 'pipeline_advance', result: { details: { currentStage: 'DESIGN', taskId: 'T-002' } } },
       { agentId: 'designer' },
     );
 
@@ -64,7 +69,7 @@ describe('state pipeline integration', () => {
       { agentId: 'pm' },
     );
     handlers.onAfterToolCall(
-      { toolName: 'pipeline_advance', result: { currentStage: 'REFINEMENT' } },
+      { toolName: 'pipeline_advance', result: { details: { currentStage: 'REFINEMENT', taskId: 'T-010' } } },
       { agentId: 'pm' },
     );
     expect(store.get('pm')?.status).toBe('active');
@@ -104,13 +109,13 @@ describe('state pipeline integration', () => {
 
     // Pipeline advance
     handlers.onBeforeToolCall(
-      { toolName: 'pipeline_advance', params: { targetStage: 'IMPLEMENTATION', taskId: 'T-003' } },
+      { toolName: 'pipeline_advance', params: { taskId: 'T-003' } },
       { agentId: 'front-1' },
     );
 
     // After tool call
     handlers.onAfterToolCall(
-      { toolName: 'pipeline_advance', result: { currentStage: 'IMPLEMENTATION' } },
+      { toolName: 'pipeline_advance', result: { details: { currentStage: 'IMPLEMENTATION', taskId: 'T-003' } } },
       { agentId: 'front-1' },
     );
 
@@ -129,7 +134,12 @@ describe('state pipeline integration', () => {
 
   it('meeting stages map to meeting room in the office', () => {
     handlers.onBeforeToolCall(
-      { toolName: 'pipeline_advance', params: { targetStage: 'REFINEMENT' } },
+      { toolName: 'pipeline_advance', params: { taskId: 'T-020' } },
+      { agentId: 'po' },
+    );
+
+    handlers.onAfterToolCall(
+      { toolName: 'pipeline_advance', result: { details: { currentStage: 'REFINEMENT', taskId: 'T-020' } } },
       { agentId: 'po' },
     );
 
@@ -139,6 +149,6 @@ describe('state pipeline integration', () => {
     const loc = getStageLocation('REFINEMENT', 9, 2);
     expect(loc.activity).toBe('meeting');
     expect(loc.col).toBe(10);
-    expect(loc.row).toBe(3);
+    expect(loc.row).toBe(4);
   });
 });

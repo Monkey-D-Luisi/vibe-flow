@@ -56,10 +56,6 @@ function drawDesks(ctx: CanvasRenderingContext2D, camera: Camera): void {
     const x = camera.offsetX + desk.col * SCALED_TILE;
     const y = camera.offsetY + desk.row * SCALED_TILE;
 
-    // Skip desk furniture if the tile immediately below would overlap with
-    // the meeting room (e.g. PO desk at col 9 row 2 vs meeting room row 3).
-    if (getTile(desk.col, desk.row + 1) === TileType.MEETING) continue;
-
     // Desk surface
     ctx.fillStyle = '#5a4a3a';
     ctx.fillRect(x - 4, y + SCALED_TILE + 2, SCALED_TILE + 8, SCALED_TILE / 2);
@@ -73,11 +69,11 @@ function drawDesks(ctx: CanvasRenderingContext2D, camera: Camera): void {
 /** Draw meeting room table with chairs. */
 function drawMeetingTable(ctx: CanvasRenderingContext2D, camera: Camera): void {
   const tableX = camera.offsetX + 8 * SCALED_TILE;
-  const tableY = camera.offsetY + 4 * SCALED_TILE;
+  const tableY = camera.offsetY + 5 * SCALED_TILE;
   ctx.fillStyle = '#5a4a3a';
   ctx.fillRect(tableX, tableY, 3 * SCALED_TILE, SCALED_TILE);
 
-  // Chairs above table (3 chairs along cols 8-10, above row 4)
+  // Chairs above table (3 chairs along cols 8-10, above row 5)
   ctx.fillStyle = '#5a5a7a';
   for (let i = 0; i < 3; i++) {
     const cx = tableX + i * SCALED_TILE + SCALED_TILE / 2 - 3;
@@ -85,7 +81,7 @@ function drawMeetingTable(ctx: CanvasRenderingContext2D, camera: Camera): void {
     ctx.fillRect(cx, cy, 6, 6);
   }
 
-  // Chairs below table (3 chairs along cols 8-10, below row 4)
+  // Chairs below table (3 chairs along cols 8-10, below row 5)
   for (let i = 0; i < 3; i++) {
     const cx = tableX + i * SCALED_TILE + SCALED_TILE / 2 - 3;
     const cy = tableY + SCALED_TILE + 4;
@@ -176,11 +172,11 @@ function drawZoneLabels(ctx: CanvasRenderingContext2D, camera: Camera): void {
   ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
   ctx.shadowBlur = 3;
 
-  // Meeting Room label (centered over cols 7-11, row 3)
+  // Meeting Room label (centered over cols 7-11, row 4)
   ctx.fillText(
     'Meeting Room',
     camera.offsetX + 9 * SCALED_TILE + SCALED_TILE / 2,
-    camera.offsetY + 3 * SCALED_TILE + 4,
+    camera.offsetY + 4 * SCALED_TILE + 4,
   );
 
   // Coffee label (centered over cols 15-17, row 3)

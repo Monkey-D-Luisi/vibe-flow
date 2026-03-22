@@ -112,7 +112,7 @@ export class DashboardPanel {
     const GRACE_MS = 5 * 60 * 1000;
     const now = Date.now();
     const active = Array.from(this.agentStates.values())
-      .filter(a => a.taskId && a.pipelineStage && now - a.lastSeenAt < GRACE_MS)
+      .filter(a => a.taskId && a.pipelineStage && a.pipelineStage !== 'DONE' && now - a.lastSeenAt < GRACE_MS)
       .sort((x, y) => y.lastSeenAt - x.lastSeenAt); // most recently active first
 
     if (active.length === 0) {

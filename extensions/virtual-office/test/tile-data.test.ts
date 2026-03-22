@@ -42,9 +42,9 @@ describe('Tile Data', () => {
   });
 
   it('meeting room zone exists at expected location', () => {
-    expect(getTile(8, 3)).toBe(TileType.MEETING);
-    expect(getTile(9, 4)).toBe(TileType.MEETING);
-    expect(getTile(10, 5)).toBe(TileType.MEETING);
+    expect(getTile(8, 4)).toBe(TileType.MEETING);
+    expect(getTile(9, 5)).toBe(TileType.MEETING);
+    expect(getTile(10, 6)).toBe(TileType.MEETING);
   });
 
   it('coffee area exists at expected location', () => {

@@ -50,10 +50,10 @@ export interface StageLocation {
  * - DONE → back to own desk, idle
  */
 export const STAGE_LOCATIONS: Record<PipelineStage, StageLocation | 'own-desk'> = {
-  IDEA:           { col: 8,  row: 3, activity: 'meeting' },
-  ROADMAP:        { col: 9,  row: 3, activity: 'meeting' },
-  REFINEMENT:     { col: 10, row: 3, activity: 'meeting' },
-  DECOMPOSITION:  { col: 9,  row: 5, activity: 'meeting' },
+  IDEA:           { col: 8,  row: 4, activity: 'meeting' },
+  ROADMAP:        { col: 9,  row: 4, activity: 'meeting' },
+  REFINEMENT:     { col: 10, row: 4, activity: 'meeting' },
+  DECOMPOSITION:  { col: 9,  row: 6, activity: 'meeting' },
   DESIGN:         { col: 12, row: 3, activity: 'reading' },
   IMPLEMENTATION: 'own-desk',
   QA:             'own-desk',

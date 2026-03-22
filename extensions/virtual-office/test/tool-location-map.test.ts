@@ -29,12 +29,12 @@ describe('tool-location-map', () => {
   // Decision tools go to meeting room (real meetings)
   it('maps decision_evaluate to meeting room', () => {
     const loc = getToolLocation('decision_evaluate', HOME_COL, HOME_ROW);
-    expect(loc).toEqual({ col: 9, row: 3 });
+    expect(loc).toEqual({ col: 9, row: 4 });
   });
 
   it('maps decision_log to meeting room', () => {
     const loc = getToolLocation('decision_log', HOME_COL, HOME_ROW);
-    expect(loc).toEqual({ col: 9, row: 3 });
+    expect(loc).toEqual({ col: 9, row: 4 });
   });
 
   // Deploy tools go to server rack

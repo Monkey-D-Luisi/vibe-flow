@@ -15,7 +15,7 @@ export interface ToolLocation {
 }
 
 /** Meeting room top side (agents stand around table, not on it). */
-const MEETING: ToolLocation = { col: 9, row: 3 };
+const MEETING: ToolLocation = { col: 9, row: 4 };
 
 /** Server rack area. */
 const SERVER_RACK: ToolLocation = { col: 16, row: 8 };

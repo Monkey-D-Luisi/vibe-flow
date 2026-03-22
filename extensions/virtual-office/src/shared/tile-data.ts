@@ -37,7 +37,7 @@ export const SCALED_TILE = TILE_SIZE * ZOOM;
  *   0 = wall (border)
  *   1 = floor
  *   2 = desk area
- *   3 = meeting room (cols 7-11, rows 3-5)
+ *   3 = meeting room (cols 7-11, rows 4-6)
  *   4 = coffee area (cols 15-17, rows 3-4)
  *   5 = server rack (cols 15-17, rows 8-9)
  */
@@ -49,16 +49,16 @@ export const TILE_LAYOUT: readonly TileTypeValue[] = [
   0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
   // Row 2: desks (pm, tl, po, designer)
   0,1,1,2,1,1,2,1,1,2,1,1,2,1,1,1,1,1,1,0,
-  // Row 3: floor + meeting room start + coffee start
+  // Row 3: floor + coffee start
+  0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,4,4,4,1,0,
+  // Row 4: floor + meeting room start + coffee
   0,1,1,1,1,1,1,3,3,3,3,3,1,1,1,4,4,4,1,0,
-  // Row 4: floor + meeting room + coffee
-  0,1,1,1,1,1,1,3,3,3,3,3,1,1,1,4,4,4,1,0,
-  // Row 5: floor + meeting room end
+  // Row 5: floor + meeting room
   0,1,1,1,1,1,1,3,3,3,3,3,1,1,1,1,1,1,1,0,
-  // Row 6: desks (back-1, front-1, qa, devops)
+  // Row 6: floor + meeting room end
+  0,1,1,1,1,1,1,3,3,3,3,3,1,1,1,1,1,1,1,0,
+  // Row 7: desks (back-1, front-1, qa, devops)
   0,1,1,2,1,1,2,1,1,2,1,1,2,1,1,1,1,1,1,0,
-  // Row 7: floor
-  0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
   // Row 8: floor + server rack start
   0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,5,5,5,1,0,
   // Row 9: floor + server rack end
@@ -94,10 +94,10 @@ export const AGENT_DESKS: readonly AgentDesk[] = [
   { id: 'tech-lead', label: 'TL',  col: 6,  row: 2, color: '#8b5cf6' },
   { id: 'po',        label: 'PO',  col: 9,  row: 2, color: '#ec4899' },
   { id: 'designer',  label: 'DSG', col: 12, row: 2, color: '#f59e0b' },
-  { id: 'back-1',    label: 'BE',  col: 3,  row: 6, color: '#10b981' },
-  { id: 'front-1',   label: 'FE',  col: 6,  row: 6, color: '#3b82f6' },
-  { id: 'qa',        label: 'QA',  col: 9,  row: 6, color: '#ef4444' },
-  { id: 'devops',    label: 'DO',  col: 12, row: 6, color: '#14b8a6' },
+  { id: 'back-1',    label: 'BE',  col: 3,  row: 7, color: '#10b981' },
+  { id: 'front-1',   label: 'FE',  col: 6,  row: 7, color: '#3b82f6' },
+  { id: 'qa',        label: 'QA',  col: 9,  row: 7, color: '#ef4444' },
+  { id: 'devops',    label: 'DO',  col: 12, row: 7, color: '#14b8a6' },
 ];
 
 /** Get the tile type at a grid position. Returns WALL for out-of-bounds. */

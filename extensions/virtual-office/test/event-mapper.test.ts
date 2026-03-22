@@ -61,11 +61,12 @@ describe('Event Mapper', () => {
     const handlers = createEventHandlers(store);
 
     handlers.onAfterToolCall(
-      { toolName: 'pipeline_advance', result: { currentStage: 'IMPLEMENTATION' } },
+      { toolName: 'pipeline_advance', result: { details: { currentStage: 'IMPLEMENTATION', taskId: 'TASK-101' } } },
       { agentId: 'pm' },
     );
 
     expect(store.get('pm')?.pipelineStage).toBe('IMPLEMENTATION');
+    expect(store.get('pm')?.taskId).toBe('TASK-101');
   });
 
   it('onAgentEnd sets agent to idle and clears currentTool but keeps task context', () => {
