@@ -238,6 +238,26 @@ code, pre { font-family: var(--mono); }
 
 .hero__actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
+.hero__visual {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hero__card {
+  border-radius: var(--radius2);
+  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
+  padding: 18px 18px 16px;
+  box-shadow: var(--shadow);
+}
+.hero__cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
 .hero__screenshot {
   margin: 0;
   border-radius: var(--radius2);
