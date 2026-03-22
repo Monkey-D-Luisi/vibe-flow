@@ -57,7 +57,7 @@ describe('state pipeline integration', () => {
     expect(loc.activity).toBe('reading');
   });
 
-  it('agent end returns to idle and clears tool', () => {
+  it('agent end returns to idle and clears pipeline context', () => {
     // First make agent active
     handlers.onBeforeToolCall(
       { toolName: 'task_search' },
@@ -70,6 +70,8 @@ describe('state pipeline integration', () => {
     const state = store.get('pm');
     expect(state?.status).toBe('idle');
     expect(state?.currentTool).toBeNull();
+    expect(state?.taskId).toBeNull();
+    expect(state?.pipelineStage).toBeNull();
   });
 
   it('subagent spawn transitions spawning → active', () => {
@@ -112,8 +114,8 @@ describe('state pipeline integration', () => {
 
     const state = store.get('front-1');
     expect(state?.status).toBe('idle');
-    expect(state?.pipelineStage).toBe('IMPLEMENTATION');
-    expect(state?.taskId).toBe('T-003');
+    expect(state?.pipelineStage).toBeNull();
+    expect(state?.taskId).toBeNull();
 
     // Verify at least 4 change events fired
     expect(changes.length).toBeGreaterThanOrEqual(4);
@@ -131,6 +133,6 @@ describe('state pipeline integration', () => {
     const loc = getStageLocation('REFINEMENT', 9, 2);
     expect(loc.activity).toBe('meeting');
     expect(loc.col).toBe(10);
-    expect(loc.row).toBe(4);
+    expect(loc.row).toBe(3);
   });
 });

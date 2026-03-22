@@ -47,15 +47,17 @@ if (!ctx) {
 
 ctx.imageSmoothingEnabled = false;
 
+const SIDEBAR_WIDTH = 320;
+
 function resizeCanvas(): void {
-  canvas.width = window.innerWidth;
+  canvas.width = window.innerWidth - SIDEBAR_WIDTH;
   canvas.height = window.innerHeight;
   updateCamera(camera, canvas.width, canvas.height);
 }
 
 // --- Initialize camera ---
 
-canvas.width = window.innerWidth;
+canvas.width = window.innerWidth - SIDEBAR_WIDTH;
 canvas.height = window.innerHeight;
 const camera = createCamera(canvas.width, canvas.height);
 
@@ -105,7 +107,7 @@ const disconnectSse = connectSse({
     if (change.state.currentTool) {
       dashboard.addActivity({
         agentId: change.agentId,
-        action: change.state.currentTool,
+        action: getToolLabel(change.state.currentTool) || change.state.currentTool,
         timestamp: Date.now(),
       });
     }

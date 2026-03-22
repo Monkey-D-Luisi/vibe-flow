@@ -19,7 +19,7 @@ export interface SpeechBubble {
   framesLeft: number;
 }
 
-const DURATION_FRAMES = 180; // ~3 seconds at 60fps
+const DURATION_FRAMES = 360; // ~6 seconds at 60fps
 const MAX_BUBBLES = 8;
 
 /** Active speech bubbles. */
@@ -70,8 +70,8 @@ export function drawSpeechBubbles(
     const sx = camera.offsetX + agent.x * SCALED_TILE + SCALED_TILE / 2;
     const sy = camera.offsetY + agent.y * SCALED_TILE - 12;
 
-    // Fade out in last 30 frames
-    const alpha = bubble.framesLeft < 30 ? bubble.framesLeft / 30 : 1;
+    // Fade out in last 60 frames
+    const alpha = bubble.framesLeft < 60 ? bubble.framesLeft / 60 : 1;
 
     ctx.save();
     ctx.globalAlpha = alpha;

@@ -6,9 +6,10 @@
 
 import type { Camera } from './camera.js';
 import type { AgentEntity } from '../agents/agent-entity.js';
+import type { ServerAgentState } from '../net/sse-client.js';
 import {
   COLS, ROWS, SCALED_TILE, TILE_COLORS,
-  AGENT_DESKS, getTile,
+  AGENT_DESKS, getTile, TileType,
 } from '../../shared/tile-data.js';
 
 // --- Sprite rendering (task 0130) ---
@@ -34,7 +35,17 @@ function drawTilemap(ctx: CanvasRenderingContext2D, camera: Camera): void {
       const y = camera.offsetY + r * SCALED_TILE;
 
       ctx.fillStyle = TILE_COLORS[tileType];
-      ctx.fillRect(x, y, SCALED_TILE - 1, SCALED_TILE - 1);
+      ctx.fillRect(x, y, SCALED_TILE, SCALED_TILE);
+
+      // Subtle checker pattern to recover a stronger pixel-grid feel.
+      if (tileType !== TileType.WALL && (r + c) % 2 === 0) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+        ctx.fillRect(x, y, SCALED_TILE, SCALED_TILE);
+      }
+
+      // Keep tile boundaries readable without changing the room layout.
+      ctx.strokeStyle = 'rgba(9, 11, 24, 0.28)';
+      ctx.strokeRect(x + 0.5, y + 0.5, SCALED_TILE - 1, SCALED_TILE - 1);
     }
   }
 }
@@ -154,10 +165,12 @@ function drawServerRack(
 /** Draw zone labels (subtle text over each area). */
 function drawZoneLabels(ctx: CanvasRenderingContext2D, camera: Camera): void {
   ctx.save();
-  ctx.font = '9px "Courier New", monospace';
+  ctx.font = '11px "Courier New", monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillStyle = 'rgba(180, 180, 200, 0.4)';
+  ctx.fillStyle = 'rgba(180, 180, 200, 0.65)';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+  ctx.shadowBlur = 3;
 
   // Meeting Room label (centered over cols 7-11, row 3)
   ctx.fillText(
@@ -215,6 +228,18 @@ function drawAgent(
     : 0;
   const y = camera.offsetY + agent.y * SCALED_TILE + bobOffset;
 
+  // Active glow indicator
+  const serverState = (agent as Record<string, unknown>)['_serverState'] as ServerAgentState | undefined;
+  if (serverState?.status === 'active') {
+    const pulse = 0.10 + Math.sin(tickCount * 0.06) * 0.05;
+    ctx.save();
+    ctx.fillStyle = `rgba(99, 102, 241, ${pulse})`;
+    ctx.beginPath();
+    ctx.arc(x + SCALED_TILE / 2, y + SCALED_TILE / 2, SCALED_TILE / 2 + 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   // Sprite rendering (replaces colored square)
   const spriteSet = AGENT_SPRITES[agent.id];
   if (spriteSet) {
@@ -229,12 +254,18 @@ function drawAgent(
     ctx.fillRect(x + 4, y + 4, SCALED_TILE - 8, SCALED_TILE - 8);
   }
 
-  // Label
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `${Math.floor(SCALED_TILE / 3)}px "Courier New", monospace`;
+  // Label below sprite with dark pill background
+  const sx = x + SCALED_TILE / 2;
+  const labelY = y + SCALED_TILE + 12;
+  const fontSize = Math.floor(SCALED_TILE / 3);
+  ctx.font = `${fontSize}px "Courier New", monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(agent.label, x + SCALED_TILE / 2, y + SCALED_TILE / 2);
+  const lw = ctx.measureText(agent.label).width + 6;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.fillRect(sx - lw / 2, labelY - 5, lw, 11);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(agent.label, sx, labelY);
 }
 
 /** Draw the title and status bar. */

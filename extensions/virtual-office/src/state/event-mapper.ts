@@ -91,6 +91,8 @@ export function createEventHandlers(store: AgentStateStore) {
       store.update(agentId, {
         status: 'idle',
         currentTool: null,
+        taskId: null,
+        pipelineStage: null,
       });
     },
 

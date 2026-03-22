@@ -68,18 +68,25 @@ describe('Event Mapper', () => {
     expect(store.get('pm')?.pipelineStage).toBe('IMPLEMENTATION');
   });
 
-  it('onAgentEnd sets agent to idle and clears tool', () => {
+  it('onAgentEnd sets agent to idle and clears runtime context', () => {
     const store = new AgentStateStore(['back-1']);
     const handlers = createEventHandlers(store);
 
     // First set to active
-    store.update('back-1', { status: 'active', currentTool: 'vcs_pr_create' });
+    store.update('back-1', {
+      status: 'active',
+      currentTool: 'vcs_pr_create',
+      taskId: 'TASK-99',
+      pipelineStage: 'REVIEW',
+    });
 
     handlers.onAgentEnd({}, { agentId: 'back-1' });
 
     const state = store.get('back-1');
     expect(state?.status).toBe('idle');
     expect(state?.currentTool).toBeNull();
+    expect(state?.taskId).toBeNull();
+    expect(state?.pipelineStage).toBeNull();
   });
 
   it('onBeforeToolCall increments toolCallSeq on each call', () => {

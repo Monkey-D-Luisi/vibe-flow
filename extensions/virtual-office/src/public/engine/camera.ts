@@ -21,7 +21,7 @@ export interface Camera {
 export function createCamera(canvasWidth: number, canvasHeight: number): Camera {
   return {
     offsetX: Math.floor((canvasWidth - COLS * SCALED_TILE) / 2),
-    offsetY: Math.floor((canvasHeight - ROWS * SCALED_TILE) / 2),
+    offsetY: Math.max(40, Math.floor((canvasHeight - ROWS * SCALED_TILE) / 2)),
     width: canvasWidth,
     height: canvasHeight,
   };
@@ -32,5 +32,5 @@ export function updateCamera(camera: Camera, canvasWidth: number, canvasHeight: 
   camera.width = canvasWidth;
   camera.height = canvasHeight;
   camera.offsetX = Math.floor((canvasWidth - COLS * SCALED_TILE) / 2);
-  camera.offsetY = Math.floor((canvasHeight - ROWS * SCALED_TILE) / 2);
+  camera.offsetY = Math.max(40, Math.floor((canvasHeight - ROWS * SCALED_TILE) / 2));
 }

@@ -9,6 +9,7 @@ import type { AgentEntity } from '../agents/agent-entity.js';
 import type { Camera } from '../engine/camera.js';
 import type { ServerAgentState } from '../net/sse-client.js';
 import { SCALED_TILE } from '../../shared/tile-data.js';
+import { getToolLabel } from '../../shared/tool-label-map.js';
 
 let currentPanel: HTMLDivElement | null = null;
 
@@ -36,7 +37,7 @@ export function showInfoPanel(agent: AgentEntity, camera: Camera): void {
     position: fixed;
     background: rgba(30, 30, 50, 0.95);
     color: #e0e0e0;
-    border: 2px solid ${agent.color};
+    border: 2px solid #6366f1;
     border-radius: 8px;
     padding: 12px 16px;
     font-family: "Courier New", monospace;
@@ -50,9 +51,11 @@ export function showInfoPanel(agent: AgentEntity, camera: Camera): void {
 
   const role = ROLE_LABELS[agent.id] ?? agent.id;
   const status = serverState?.status ?? 'unknown';
-  const tool = serverState?.currentTool ?? 'none';
-  const stage = serverState?.pipelineStage ?? 'none';
-  const task = serverState?.taskId ?? 'none';
+  const rawTool = serverState?.currentTool ?? null;
+  const tool = getToolLabel(rawTool) || (rawTool ?? 'none');
+  const rawStage = serverState?.pipelineStage ?? null;
+  const stage = rawStage ? rawStage.charAt(0) + rawStage.slice(1).toLowerCase() : 'none';
+  const task = serverState?.taskId ? '#' + serverState.taskId.slice(-6) : 'none';
 
   // Build the panel content safely using textContent (avoid innerHTML XSS)
   const header = document.createElement('div');

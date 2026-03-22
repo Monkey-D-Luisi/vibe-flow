@@ -9,6 +9,8 @@
 
 import type { ServerAgentState } from '../net/sse-client.js';
 import { ActivityFeed, type ActivityEntry } from './activity-feed.js';
+import { getToolLabel } from '../../shared/tool-label-map.js';
+import { PIPELINE_STAGES } from '../../shared/stage-location-map.js';
 
 const AGENT_ORDER = ['pm', 'tech-lead', 'po', 'designer', 'back-1', 'front-1', 'qa', 'devops'];
 
@@ -84,8 +86,9 @@ export class DashboardPanel {
     const stage = row.querySelector('.dash-stage') as HTMLElement;
 
     if (dot) dot.style.background = STATUS_COLORS[state.status] ?? STATUS_COLORS['idle'];
-    if (tool) tool.textContent = state.currentTool ?? '--';
-    if (stage) stage.textContent = state.pipelineStage ?? '--';
+    if (tool) tool.textContent = getToolLabel(state.currentTool) || (state.status === 'idle' ? 'Idle' : '--');
+    if (stage) stage.textContent = formatStage(state.pipelineStage);
+    row.classList.toggle('dash-agent-active', state.status === 'active');
 
     this.updatePipelineSummary();
   }
@@ -104,17 +107,34 @@ export class DashboardPanel {
 
   private updatePipelineSummary(): void {
     const active = Array.from(this.agentStates.values())
-      .filter(a => a.taskId && a.pipelineStage);
+      .filter(a => a.status === 'active' && a.taskId && a.pipelineStage);
 
     if (active.length === 0) {
-      this.pipelineEl.textContent = 'No active pipeline';
+      this.pipelineEl.innerHTML = '<div class="dash-pipeline-empty">No active pipeline</div>';
       return;
     }
 
     const first = active[0]!;
+    const taskRef = '#' + first.taskId!.slice(-6);
+    const currentIdx = PIPELINE_STAGES.indexOf(first.pipelineStage as typeof PIPELINE_STAGES[number]);
+
+    const STAGE_ABBREV: Record<string, string> = {
+      IDEA: 'IDÉ', ROADMAP: 'RDM', REFINEMENT: 'REF',
+      DECOMPOSITION: 'DEC', DESIGN: 'DSG', IMPLEMENTATION: 'IMP',
+      QA: 'QA', REVIEW: 'REV', SHIPPING: 'SHP', DONE: 'DON',
+    };
+
+    const segments = PIPELINE_STAGES.map((stage, idx) => {
+      let cls = 'pipe-seg';
+      if (idx < currentIdx) cls += ' done';
+      else if (idx === currentIdx) cls += ' current';
+      const abbr = STAGE_ABBREV[stage] ?? stage.slice(0, 3);
+      return `<span class="${cls}">${abbr}</span>`;
+    }).join('');
+
     this.pipelineEl.innerHTML = `
-      <div class="dash-pipe-task">${escapeHtml(first.taskId!)}</div>
-      <div class="dash-pipe-stage">${escapeHtml(first.pipelineStage!)}</div>
+      <div class="dash-pipe-task">Task ${escapeHtml(taskRef)}</div>
+      <div class="pipe-bar">${segments}</div>
       <div class="dash-pipe-agents">${active.length} agent(s) active</div>
     `;
   }
@@ -126,4 +146,15 @@ export class DashboardPanel {
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+const STAGE_ABBREV: Record<string, string> = {
+  IDEA: 'Idea', ROADMAP: 'Roadmap', REFINEMENT: 'Refine',
+  DECOMPOSITION: 'Decomp.', DESIGN: 'Design', IMPLEMENTATION: 'Impl.',
+  QA: 'QA', REVIEW: 'Review', SHIPPING: 'Ship', DONE: 'Done',
+};
+
+function formatStage(stage: string | null): string {
+  if (!stage) return '--';
+  return STAGE_ABBREV[stage] ?? stage.charAt(0) + stage.slice(1).toLowerCase();
 }
