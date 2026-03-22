@@ -9,6 +9,8 @@ function initMobileNav() {
 
   const setOpen = (open) => {
     btn.setAttribute('aria-expanded', String(open));
+    // Keep screen-reader label in sync with state.
+    btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
     menu.hidden = !open;
   };
 
@@ -32,6 +34,12 @@ function initRevealOnScroll() {
 
   const els = Array.from(document.querySelectorAll('.reveal'));
   if (els.length === 0) return;
+
+  // Progressive enhancement fallback for older browsers.
+  if (!('IntersectionObserver' in window)) {
+    for (const el of els) el.classList.add('is-visible');
+    return;
+  }
 
   const io = new IntersectionObserver(
     (entries) => {

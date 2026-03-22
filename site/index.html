@@ -27,6 +27,11 @@
   <meta name="theme-color" content="#6366f1" />
 
   <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+
+  <script>
+    document.documentElement.classList.add('js');
+  </script>
+
   <link rel="stylesheet" href="./style.css" />
 
   <script type="application/ld+json">
@@ -134,7 +139,7 @@
               <span class="dot" aria-hidden="true"></span>
             </div>
             <ul class="bullets">
-              <li><strong>Role clarity</strong>: PM → PO → TL → Design → Dev → QA → Review → Shipping.</li>
+              <li><strong>Role clarity</strong>: <span class="role-flow">PM → PO → TL → Design → Dev → QA → Review → Shipping.</span></li>
               <li><strong>Guarded state machine</strong>: transitions require evidence, not vibes.</li>
               <li><strong>Auditability</strong>: decisions, events, and outcomes are logged.</li>
               <li><strong>Composable architecture</strong>: 6 extensions, clean responsibility split.</li>
@@ -144,7 +149,7 @@
 
           <figure class="hero__screenshot reveal">
             <img
-              src="img/office-activity-10.png"
+              src="img/office-activity-20.PNG"
               alt="Virtual office dashboard showing 8 agents working through a pipeline task in real time"
               width="1654"
               height="948"
@@ -216,6 +221,11 @@
             <p><a class="link" href="https://github.com/Monkey-D-Luisi/vibe-flow/blob/main/docs/roadmap.md" target="_blank" rel="noreferrer">docs/roadmap.md →</a></p>
           </article>
           <article class="card reveal">
+            <h3>Runbook</h3>
+            <p class="meta">Operational guidance</p>
+            <p><a class="link" href="https://github.com/Monkey-D-Luisi/vibe-flow/blob/main/docs/runbook.md" target="_blank" rel="noreferrer">docs/runbook.md →</a></p>
+          </article>
+          <article class="card reveal">
             <h3>Contributing</h3>
             <p class="meta">How to contribute</p>
             <p><a class="link" href="https://github.com/Monkey-D-Luisi/vibe-flow/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer">CONTRIBUTING.md →</a></p>
@@ -251,17 +261,37 @@
     <section class="section" id="roadmap">
       <div class="container">
         <header class="section__header">
-          <h2>Roadmap (high level)</h2>
-          <p class="muted">A few near‑term milestones for the OSS launch.</p>
+          <h2>Roadmap</h2>
+          <p class="muted">20 epics across 4 axes: Intelligence, Communication, Scale, Distribution.</p>
         </header>
 
         <div class="card reveal">
-          <ul class="bullets">
-            <li><strong>Polish docs</strong>: contributor guide + examples of end‑to‑end runs.</li>
-            <li><strong>More evidence types</strong>: performance budgets, RGR caps, and security checks.</li>
-            <li><strong>Reliability</strong>: retry policies + partial failure handling.</li>
-            <li><strong>Launch pack</strong>: demo script, screenshots, and a short explainer video.</li>
-          </ul>
+          <div class="roadmap-list">
+            <div class="roadmap-item">
+              <span class="badge badge--shipped">SHIPPED</span>
+              <span>EP01-EP09: Foundation through Pipeline Orchestration</span>
+            </div>
+            <div class="roadmap-item">
+              <span class="badge badge--shipped">SHIPPED</span>
+              <span>EP10-EP12: Dynamic Model Routing, Budget Intelligence, Learning Loop</span>
+            </div>
+            <div class="roadmap-item">
+              <span class="badge badge--shipped">SHIPPED</span>
+              <span>EP13-EP15: Stable Protocol, Observability, Telegram Control Plane</span>
+            </div>
+            <div class="roadmap-item">
+              <span class="badge badge--shipped">SHIPPED</span>
+              <span>EP20: Virtual Office (live agent dashboard)</span>
+            </div>
+            <div class="roadmap-item">
+              <span class="badge badge--planned">PLANNED</span>
+              <span>EP16-EP17: E2E Testing, Security Hardening</span>
+            </div>
+            <div class="roadmap-item">
+              <span class="badge badge--planned">PLANNED</span>
+              <span>EP18-EP19: SDK Contracts, Documentation, Showcase</span>
+            </div>
+          </div>
         </div>
 
         <div class="callout reveal">
@@ -335,40 +365,30 @@ docker exec openclaw-product-team pnpm exec openclaw doctor</code></pre>
           <p class="muted">A predictable assembly line: each stage produces evidence that unlocks the next.</p>
         </header>
 
-        <div class="grid grid--two">
-          <div class="card reveal">
-            <h3>Stages</h3>
-            <ol class="stages">
-              <li><span class="stage">1</span> IDEA</li>
-              <li><span class="stage">2</span> ROADMAP</li>
-              <li><span class="stage">3</span> REFINEMENT</li>
-              <li><span class="stage">4</span> DECOMPOSITION</li>
-              <li><span class="stage">5</span> DESIGN</li>
-              <li><span class="stage">6</span> IMPLEMENTATION</li>
-              <li><span class="stage">7</span> QA</li>
-              <li><span class="stage">8</span> REVIEW</li>
-              <li><span class="stage">9</span> SHIPPING</li>
-              <li><span class="stage">10</span> DONE</li>
-            </ol>
-            <p class="muted small">Each stage can post updates back to chat — so humans can supervise without micromanaging.</p>
+        <div class="card reveal pipeline-card">
+          <h3>Stages</h3>
+          <div class="pipeline-strip" role="list" aria-label="Pipeline stages">
+            <div class="pipeline-node" role="listitem"><span class="stage">1</span><span class="stage-label">IDEA</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">2</span><span class="stage-label">ROADMAP</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">3</span><span class="stage-label">REFINE</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">4</span><span class="stage-label">DECOMP</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">5</span><span class="stage-label">DESIGN</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">6</span><span class="stage-label">BUILD</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">7</span><span class="stage-label">QA</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">8</span><span class="stage-label">REVIEW</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">9</span><span class="stage-label">SHIP</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">10</span><span class="stage-label">DONE</span></div>
           </div>
-
-          <div class="card reveal">
-            <h3>End‑to‑end flow</h3>
-            <div class="mermaid" data-mermaid>
-flowchart TD
-  A[Human posts idea in chat] --> B["PM receives idea, creates roadmap item"]
-  B --> C[PM breaks roadmap item into epics]
-  C --> D[PO refines into user stories + acceptance criteria]
-  D --> E[Tech Lead decomposes into technical tasks]
-  E --> F[Designer creates designs]
-  F --> G[Tech Lead assigns tasks to dev agents]
-  G --> H["Devs implement (Backend &amp; Frontend in parallel)"]
-  H --> I[QA runs automated test suites]
-  I --> J[Tech Lead reviews code]
-  J --> K["DevOps creates PR, manages CI"]
-            </div>
-          </div>
+          <p class="muted small">Each stage can post updates back to chat — so humans can supervise without micromanaging.</p>
         </div>
 
         <div class="callout reveal">
@@ -380,7 +400,7 @@ flowchart TD
 
         <div class="card reveal">
           <h3>Task state machine (transition guards)</h3>
-          <div class="mermaid" data-mermaid>
+          <div class="mermaid mermaid--center" data-mermaid>
 stateDiagram-v2
   backlog --> grooming
   grooming --> design
@@ -433,22 +453,18 @@ stateDiagram-v2
 
         <div class="card reveal">
           <h3>Integration topology</h3>
-          <div class="mermaid" data-mermaid>
-flowchart TD
-  OC[OpenClaw Gateway] --> PT[product-team plugin]
-  OC --> MR[model-router hook]
+          <div class="mermaid mermaid--center" data-mermaid>
+flowchart LR
+  OC[OpenClaw Gateway] --> PT[product-team]
+  OC --> MR[model-router]
   OC --> TN[telegram-notifier]
   OC --> SB[stitch-bridge]
   OC --> VO[virtual-office]
-  PT --> T1[task.*]
-  PT --> T2[workflow.*]
-  PT --> T3[quality.*]
-  PT --> T4[vcs.*]
-  PT --> T5[team.* / decision.* / pipeline.* / project.* / agent.*]
-  PT --> DB[(SQLite DB + event log)]
+  CI[Local/CI shell] --> QG[quality-gate CLI]
+  PT --> Tools["38 tools: task / workflow / quality / vcs / team / decision / pipeline"]
+  PT --> DB[(SQLite DB)]
   SB --> Stitch[Google Stitch MCP]
   VO --> SSE[SSE dashboard]
-  CI[Local/CI shell] --> QG[quality-gate CLI]
           </div>
         </div>
       </div>
@@ -474,7 +490,17 @@ flowchart TD
 
   <noscript>
     <div class="noscript">
-      This page uses a small amount of JavaScript for mobile navigation, copy buttons, and Mermaid diagrams.
+      <p>JavaScript is disabled. The page still works, but mobile navigation, copy buttons, and Mermaid diagrams won’t run.</p>
+      <p>
+        <a href="#features">Features</a> ·
+        <a href="#docs">Docs</a> ·
+        <a href="#screenshots">Screenshots</a> ·
+        <a href="#roadmap">Roadmap</a> ·
+        <a href="#quickstart">Install</a> ·
+        <a href="#pipeline">Pipeline</a> ·
+        <a href="#extensions">Extensions</a> ·
+        <a href="https://github.com/Monkey-D-Luisi/vibe-flow" target="_blank" rel="noreferrer">GitHub</a>
+      </p>
     </div>
   </noscript>
 
