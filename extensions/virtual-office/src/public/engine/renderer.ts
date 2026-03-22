@@ -278,8 +278,8 @@ function drawUI(ctx: CanvasRenderingContext2D, camera: Camera): void {
   ctx.textAlign = 'center';
   ctx.fillText('Virtual Office - OpenClaw', camera.width / 2, gridTop - 20);
 
-  ctx.fillStyle = '#555';
-  ctx.font = '11px "Courier New", monospace';
+  ctx.fillStyle = '#8f97c8';
+  ctx.font = '12px "Courier New", monospace';
   ctx.fillText(
     'Click an agent for details',
     camera.width / 2,

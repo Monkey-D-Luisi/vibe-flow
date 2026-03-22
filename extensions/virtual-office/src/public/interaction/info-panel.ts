@@ -90,7 +90,7 @@ function renderInfoPanel(): void {
     { label: 'Current activity', value: display.activityLabel, color: '#fbbf24', title: null },
     { label: 'Pipeline context', value: display.pipelineLabel, color: '#818cf8', title: display.taskFull },
     { label: 'Task reference', value: display.taskLabel, color: '#93c5fd', title: display.taskFull },
-    { label: 'Last update', value: display.freshness.detail, color: '#9ca3af', title: null },
+    { label: 'Last update', value: display.freshness.detail, color: '#b6bfd3', title: null },
   ];
 
   currentPanel.appendChild(header);
@@ -108,7 +108,7 @@ function renderInfoPanel(): void {
   }
 
   const hint = document.createElement('div');
-  hint.style.cssText = 'margin-top:8px; color:#666; font-size:11px;';
+  hint.style.cssText = 'margin-top:8px; color:#94a3d8; font-size:12px;';
   hint.textContent = currentConnectionState === 'disconnected'
     ? 'Connection lost · showing last known state'
     : 'Click elsewhere to close';
@@ -117,7 +117,8 @@ function renderInfoPanel(): void {
   // Position near the agent
   const screenX = currentCamera.offsetX + currentAgent.x * SCALED_TILE + SCALED_TILE;
   const screenY = currentCamera.offsetY + currentAgent.y * SCALED_TILE;
-  currentPanel.style.left = `${Math.min(screenX, window.innerWidth - 320)}px`;
+  const maxLeft = Math.max(10, window.innerWidth - getDashboardSidebarWidth() - 320);
+  currentPanel.style.left = `${Math.min(Math.max(screenX, 10), maxLeft)}px`;
   currentPanel.style.top = `${Math.min(Math.max(screenY, 10), window.innerHeight - 240)}px`;
 }
 
@@ -152,4 +153,11 @@ function badgeColor(tone: 'busy' | 'idle' | 'offline' | 'live' | 'recent' | 'sta
     case 'stale': return '#7c3aed';
     case 'connecting': return '#3b82f6';
   }
+}
+
+function getDashboardSidebarWidth(): number {
+  const cssValue = Number.parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width'),
+  );
+  return Number.isFinite(cssValue) && cssValue > 0 ? cssValue : 320;
 }

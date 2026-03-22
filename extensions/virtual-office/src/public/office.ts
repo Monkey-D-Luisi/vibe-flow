@@ -47,17 +47,36 @@ if (!ctx) {
 
 ctx.imageSmoothingEnabled = false;
 
-const SIDEBAR_WIDTH = 320;
+const DEFAULT_SIDEBAR_WIDTH = 320;
+const MIN_CANVAS_WIDTH = 220;
+
+function getSidebarWidth(): number {
+  const rootStyles = getComputedStyle(document.documentElement);
+  const cssValue = Number.parseFloat(rootStyles.getPropertyValue('--sidebar-width'));
+  if (Number.isFinite(cssValue) && cssValue > 0) {
+    return cssValue;
+  }
+
+  const panel = document.getElementById('dashboard-panel');
+  if (panel) {
+    const measured = panel.getBoundingClientRect().width;
+    if (Number.isFinite(measured) && measured > 0) {
+      return measured;
+    }
+  }
+
+  return DEFAULT_SIDEBAR_WIDTH;
+}
 
 function resizeCanvas(): void {
-  canvas.width = window.innerWidth - SIDEBAR_WIDTH;
+  canvas.width = Math.max(MIN_CANVAS_WIDTH, Math.floor(window.innerWidth - getSidebarWidth()));
   canvas.height = window.innerHeight;
   updateCamera(camera, canvas.width, canvas.height);
 }
 
 // --- Initialize camera ---
 
-canvas.width = window.innerWidth - SIDEBAR_WIDTH;
+canvas.width = Math.max(MIN_CANVAS_WIDTH, Math.floor(window.innerWidth - getSidebarWidth()));
 canvas.height = window.innerHeight;
 const camera = createCamera(canvas.width, canvas.height);
 
