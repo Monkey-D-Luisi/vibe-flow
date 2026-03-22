@@ -370,7 +370,7 @@ describe('nudge-tool (agent.nudge)', () => {
       // Assign a task to 'pm'
       const taskId = `01ACTIVE${String(++idCounter).padStart(12, '0')}`;
       const task = createTaskRecord(
-        { title: 'Assigned task', scope: 'minor', tags: ['test'], metadata: {} },
+        { title: 'Assigned task', scope: 'minor', tags: ['pipeline'], metadata: {} },
         taskId,
         BASE_TIME,
       );

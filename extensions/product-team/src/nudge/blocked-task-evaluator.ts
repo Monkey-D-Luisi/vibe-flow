@@ -54,6 +54,7 @@ export function evaluateBlockedTasks(
     const retryKey = `${stage}_retryCount`;
     const retryCount = (meta[retryKey] as number | undefined) ?? 0;
 
+    // Three-tier escalation: retry (0..maxRetries-1) → escalate (maxRetries..maxRetries*2-1) → skip (≥maxRetries*2)
     let proposedAction: BlockedTaskEntry['proposedAction'];
     if (retryCount < maxRetries) {
       proposedAction = 'retry';

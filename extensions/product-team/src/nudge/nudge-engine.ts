@@ -61,11 +61,13 @@ export async function executeNudge(
     );
     targetAgents = [...blockedOwnerIds];
   } else if (scope === 'active') {
-    // Only nudge agents that have an assigned task
+    // Only nudge agents that have an assigned in-progress task
     const assignedAgents = new Set<string>();
-    const tasks = deps.taskRepo.search({ limit: 200 });
+    const tasks = deps.taskRepo.search({ tags: ['pipeline'], limit: 200 });
     for (const task of tasks) {
-      if (task.assignee) assignedAgents.add(task.assignee);
+      if (task.assignee && task.status !== 'done') {
+        assignedAgents.add(task.assignee);
+      }
     }
     targetAgents = [...assignedAgents];
   }
@@ -84,11 +86,11 @@ export async function executeNudge(
       try {
         const msgId = deps.generateId();
         deps.db.prepare(`
-          INSERT INTO ${MESSAGES_TABLE} (id, from_agent, to_agent, subject, body, priority, task_ref, created_at)
-          VALUES (?, ?, ?, ?, ?, 'normal', NULL, ?)
+          INSERT INTO ${MESSAGES_TABLE} (id, from_agent, to_agent, subject, body, priority, task_ref, origin_channel, origin_session_key, created_at)
+          VALUES (?, ?, ?, ?, ?, 'normal', NULL, NULL, NULL, ?)
         `).run(msgId, 'nudge-engine', agentId, '👋 Agent Nudge', message, now);
-      } catch {
-        // If message dispatch fails, still record as nudged in the report
+      } catch (err: unknown) {
+        deps.logger?.warn(`nudge message dispatch failed for ${agentId}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -116,8 +118,8 @@ export async function executeNudge(
       }),
       now,
     );
-  } catch {
-    // event_log may not be ready (non-critical)
+  } catch (err: unknown) {
+    deps.logger?.warn(`nudge event_log write failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   return {
