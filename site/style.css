@@ -199,12 +199,27 @@ code, pre { font-family: var(--mono); }
   position: relative;
   padding: 72px 0 38px;
   overflow: hidden;
+  background: radial-gradient(circle at 5% 95%, rgba(99,102,241,0.12), transparent 40%),
+              radial-gradient(circle at 100% 0%, rgba(99,102,241,0.08), transparent 45%);
 }
 .hero__inner {
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
   gap: 28px;
   align-items: start;
+  position: relative;
+  z-index: 1;
+}
+.hero__glow {
+  position: absolute;
+  bottom: -100px;
+  left: -150px;
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle at 30% 30%, rgba(99,102,241,0.2) 0%, rgba(99,102,241,0.12) 25%, transparent 65%);
+  pointer-events: none;
+  filter: blur(80px);
+  opacity: 0.8;
 }
 .hero h1 {
   font-size: clamp(34px, 4.6vw, 56px);
@@ -288,17 +303,22 @@ code, pre { font-family: var(--mono); }
   border-radius: 999px;
   background: rgba(99,102,241,0.12);
 }
-.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent2); box-shadow: 0 0 22px rgba(34,197,94,0.40); }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent2); box-shadow: 0 0 22px rgba(34,197,94,0.40); animation: pulse 2s ease-in-out infinite; }
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 22px rgba(34,197,94,0.40); }
+  50% { box-shadow: 0 0 22px rgba(34,197,94,0.70), 0 0 8px rgba(34,197,94,0.50); }
+}
 
 .section { padding: 56px 0; }
-.section__header { margin-bottom: 18px; }
+.section__header { margin-bottom: 32px; }
 .section__header h2 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.02em; }
 
 .grid {
   display: grid;
-  gap: 14px;
+  gap: 20px;
 }
-.grid--cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.grid--cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid--two { grid-template-columns: 1fr 1fr; }
 .grid--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
@@ -306,9 +326,10 @@ code, pre { font-family: var(--mono); }
   border-radius: var(--radius);
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.05);
-  padding: 16px;
+  padding: 24px;
 }
-.card h3 { margin: 0 0 8px; font-size: 16px; }
+.card h3 { margin: 0 0 14px; font-size: 16px; }
+.grid + .card { margin-top: 20px; }
 .card p { margin: 0; color: var(--muted); line-height: 1.55; }
 .card .meta { margin: 0 0 8px; color: var(--faint); font-size: 13px; }
 .card code {
@@ -321,6 +342,23 @@ code, pre { font-family: var(--mono); }
 
 .bullets { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.65; }
 .bullets li { margin: 6px 0; }
+.role-flow {
+  display: inline-block;
+  white-space: nowrap;
+  font-feature-settings: 'calt' 1;
+  letter-spacing: -0.02em;
+}
+@media (max-width: 520px) {
+  .bullets li {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 8px;
+  }
+  .role-flow {
+    display: inline-flex;
+    align-items: center;
+  }
+}
 
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
@@ -411,12 +449,20 @@ code, pre { font-family: var(--mono); }
 
 .brand--footer .pill { margin-left: 10px; }
 
+/* Progressive enhancement:
+   - Default (no JS): content is visible.
+   - JS-enabled: hide-on-load + reveal via IntersectionObserver.
+*/
 .reveal {
+  opacity: 1;
+  transform: none;
+}
+.js .reveal {
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 700ms ease, transform 700ms ease;
 }
-.reveal.is-visible {
+.js .reveal.is-visible {
   opacity: 1;
   transform: translateY(0);
 }
@@ -428,6 +474,14 @@ code, pre { font-family: var(--mono); }
   border-radius: 14px;
   padding: 10px 10px;
   overflow: auto;
+}
+.mermaid--center {
+  display: flex;
+  justify-content: center;
+}
+.mermaid--center svg {
+  max-width: 100%;
+  height: auto;
 }
 
 /* Screenshots */
@@ -449,6 +503,79 @@ code, pre { font-family: var(--mono); }
   color: var(--muted);
   font-size: 13px;
 }
+.noscript p { margin: 0; }
+.noscript p + p { margin-top: 8px; }
+.noscript a { color: var(--text); }
+
+/* Roadmap badges */
+.badge--shipped {
+  border-color: rgba(34,197,94,0.35);
+  background: rgba(34,197,94,0.12);
+  color: #86efac;
+}
+.badge--planned {
+  border-color: rgba(245,158,11,0.35);
+  background: rgba(245,158,11,0.12);
+  color: #fcd34d;
+}
+.roadmap-list { display: flex; flex-direction: column; gap: 0; }
+.roadmap-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  color: var(--muted);
+  font-size: 14px;
+}
+.roadmap-item:last-child { border-bottom: none; }
+
+/* Pipeline horizontal strip */
+.pipeline-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: auto;
+  padding: 18px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(99,102,241,0.24);
+  background:
+    radial-gradient(120% 140% at 50% 0%, rgba(99,102,241,0.18), transparent 58%),
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+  -webkit-overflow-scrolling: touch;
+}
+.pipeline-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+.pipeline-line {
+  width: 28px;
+  height: 2px;
+  margin-top: -18px;
+  background: linear-gradient(90deg, rgba(99,102,241,0.28), rgba(99,102,241,0.56));
+  flex-shrink: 0;
+}
+.stage-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: rgba(255,255,255,0.72);
+  white-space: nowrap;
+}
+
+.pipeline-card {
+  padding: 28px;
+  border-color: rgba(99,102,241,0.28);
+  background: linear-gradient(180deg, rgba(99,102,241,0.10), rgba(255,255,255,0.03));
+}
+.pipeline-card > .muted.small {
+  margin-top: 14px;
+  display: block;
+}
 
 @media (max-width: 980px) {
   .grid--cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -457,6 +584,7 @@ code, pre { font-family: var(--mono); }
   .topbar__inner { grid-template-columns: 1fr auto; }
   .nav, .topbar__cta { display: none; }
   .icon-btn { display: inline-flex; justify-self: end; }
+  .pipeline-strip { justify-content: flex-start; }
 }
 
 @media (max-width: 520px) {
@@ -469,5 +597,11 @@ code, pre { font-family: var(--mono); }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .reveal { transition: none; transform: none; opacity: 1; }
+  .reveal,
+  .js .reveal {
+    transition: none;
+    transform: none;
+    opacity: 1;
+  }
+  .dot { animation: none; }
 }
