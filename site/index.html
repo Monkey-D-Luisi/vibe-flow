@@ -139,7 +139,7 @@
               <span class="dot" aria-hidden="true"></span>
             </div>
             <ul class="bullets">
-              <li><strong>Role clarity</strong>: PM → PO → TL → Design → Dev → QA → Review → Shipping.</li>
+              <li><strong>Role clarity</strong>: <span class="role-flow">PM → PO → TL → Design → Dev → QA → Review → Shipping.</span></li>
               <li><strong>Guarded state machine</strong>: transitions require evidence, not vibes.</li>
               <li><strong>Auditability</strong>: decisions, events, and outcomes are logged.</li>
               <li><strong>Composable architecture</strong>: 6 extensions, clean responsibility split.</li>
@@ -219,6 +219,11 @@
             <h3>Roadmap</h3>
             <p class="meta">Where this is going</p>
             <p><a class="link" href="https://github.com/Monkey-D-Luisi/vibe-flow/blob/main/docs/roadmap.md" target="_blank" rel="noreferrer">docs/roadmap.md →</a></p>
+          </article>
+          <article class="card reveal">
+            <h3>Runbook</h3>
+            <p class="meta">Operational guidance</p>
+            <p><a class="link" href="https://github.com/Monkey-D-Luisi/vibe-flow/blob/main/docs/runbook.md" target="_blank" rel="noreferrer">docs/runbook.md →</a></p>
           </article>
           <article class="card reveal">
             <h3>Contributing</h3>
@@ -360,49 +365,30 @@ docker exec openclaw-product-team pnpm exec openclaw doctor</code></pre>
           <p class="muted">A predictable assembly line: each stage produces evidence that unlocks the next.</p>
         </header>
 
-        <div class="grid grid--two">
-          <div class="card reveal">
-            <h3>Stages</h3>
-            <div class="pipeline-strip" role="list" aria-label="Pipeline stages">
-              <div class="pipeline-node" role="listitem"><span class="stage">1</span><span class="stage-label">IDEA</span></div>
-              <div class="pipeline-line" aria-hidden="true"></div>
-              <div class="pipeline-node" role="listitem"><span class="stage">2</span><span class="stage-label">ROADMAP</span></div>
-              <div class="pipeline-line" aria-hidden="true"></div>
-              <div class="pipeline-node" role="listitem"><span class="stage">3</span><span class="stage-label">REFINE</span></div>
-              <div class="pipeline-line" aria-hidden="true"></div>
-              <div class="pipeline-node" role="listitem"><span class="stage">4</span><span class="stage-label">DECOMP</span></div>
-              <div class="pipeline-line" aria-hidden="true"></div>
-              <div class="pipeline-node" role="listitem"><span class="stage">5</span><span class="stage-label">DESIGN</span></div>
-              <div class="pipeline-line" aria-hidden="true"></div>
-              <div class="pipeline-node" role="listitem"><span class="stage">6</span><span class="stage-label">BUILD</span></div>
-              <div class="pipeline-line" aria-hidden="true"></div>
-              <div class="pipeline-node" role="listitem"><span class="stage">7</span><span class="stage-label">QA</span></div>
-              <div class="pipeline-line" aria-hidden="true"></div>
-              <div class="pipeline-node" role="listitem"><span class="stage">8</span><span class="stage-label">REVIEW</span></div>
-              <div class="pipeline-line" aria-hidden="true"></div>
-              <div class="pipeline-node" role="listitem"><span class="stage">9</span><span class="stage-label">SHIP</span></div>
-              <div class="pipeline-line" aria-hidden="true"></div>
-              <div class="pipeline-node" role="listitem"><span class="stage">10</span><span class="stage-label">DONE</span></div>
-            </div>
-            <p class="muted small">Each stage can post updates back to chat — so humans can supervise without micromanaging.</p>
+        <div class="card reveal pipeline-card">
+          <h3>Stages</h3>
+          <div class="pipeline-strip" role="list" aria-label="Pipeline stages">
+            <div class="pipeline-node" role="listitem"><span class="stage">1</span><span class="stage-label">IDEA</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">2</span><span class="stage-label">ROADMAP</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">3</span><span class="stage-label">REFINE</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">4</span><span class="stage-label">DECOMP</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">5</span><span class="stage-label">DESIGN</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">6</span><span class="stage-label">BUILD</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">7</span><span class="stage-label">QA</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">8</span><span class="stage-label">REVIEW</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">9</span><span class="stage-label">SHIP</span></div>
+            <div class="pipeline-line" aria-hidden="true"></div>
+            <div class="pipeline-node" role="listitem"><span class="stage">10</span><span class="stage-label">DONE</span></div>
           </div>
-
-          <div class="card reveal">
-            <h3>End‑to‑end flow</h3>
-            <div class="mermaid" data-mermaid>
-flowchart TD
-  A[Human posts idea in chat] --> B["PM receives idea, creates roadmap item"]
-  B --> C[PM breaks roadmap item into epics]
-  C --> D[PO refines into user stories + acceptance criteria]
-  D --> E[Tech Lead decomposes into technical tasks]
-  E --> F[Designer creates designs]
-  F --> G[Tech Lead assigns tasks to dev agents]
-  G --> H["Devs implement (Backend &amp; Frontend in parallel)"]
-  H --> I[QA runs automated test suites]
-  I --> J[Tech Lead reviews code]
-  J --> K["DevOps creates PR, manages CI"]
-            </div>
-          </div>
+          <p class="muted small">Each stage can post updates back to chat — so humans can supervise without micromanaging.</p>
         </div>
 
         <div class="callout reveal">
@@ -414,7 +400,7 @@ flowchart TD
 
         <div class="card reveal">
           <h3>Task state machine (transition guards)</h3>
-          <div class="mermaid" data-mermaid>
+          <div class="mermaid mermaid--center" data-mermaid>
 stateDiagram-v2
   backlog --> grooming
   grooming --> design
@@ -467,22 +453,18 @@ stateDiagram-v2
 
         <div class="card reveal">
           <h3>Integration topology</h3>
-          <div class="mermaid" data-mermaid>
-flowchart TD
-  OC[OpenClaw Gateway] --> PT[product-team plugin]
-  OC --> MR[model-router hook]
+          <div class="mermaid mermaid--center" data-mermaid>
+flowchart LR
+  OC[OpenClaw Gateway] --> PT[product-team]
+  OC --> MR[model-router]
   OC --> TN[telegram-notifier]
   OC --> SB[stitch-bridge]
   OC --> VO[virtual-office]
-  PT --> T1[task.*]
-  PT --> T2[workflow.*]
-  PT --> T3[quality.*]
-  PT --> T4[vcs.*]
-  PT --> T5[team.* / decision.* / pipeline.* / project.* / agent.*]
-  PT --> DB[(SQLite DB + event log)]
+  CI[Local/CI shell] --> QG[quality-gate CLI]
+  PT --> Tools["38 tools: task / workflow / quality / vcs / team / decision / pipeline"]
+  PT --> DB[(SQLite DB)]
   SB --> Stitch[Google Stitch MCP]
   VO --> SSE[SSE dashboard]
-  CI[Local/CI shell] --> QG[quality-gate CLI]
           </div>
         </div>
       </div>
