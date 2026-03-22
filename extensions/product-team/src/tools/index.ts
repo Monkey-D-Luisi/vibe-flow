@@ -95,6 +95,7 @@ import { teamMessageToolDef, teamInboxToolDef, teamReplyToolDef, teamStatusToolD
 import { decisionEvaluateToolDef, decisionLogToolDef, decisionOutcomeToolDef } from './decision-engine.js';
 import { pipelineStartToolDef, pipelineStatusToolDef, pipelineRetryToolDef, pipelineSkipToolDef } from './pipeline.js';
 import { pipelineAdvanceToolDef, pipelineMetricsToolDef } from './pipeline-advance.js';
+import { agentNudgeToolDef } from './nudge-tool.js';
 
 export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
   const toolDefs = [
@@ -132,6 +133,7 @@ export function getAllToolDefs(deps: ToolDeps): ToolDef[] {
     pipelineSkipToolDef(deps),
     pipelineAdvanceToolDef(deps),
     pipelineMetricsToolDef(deps),
+    agentNudgeToolDef(deps),
   ];
 
   return toolDefs.map((tool) => withCostTracking(tool, deps));
