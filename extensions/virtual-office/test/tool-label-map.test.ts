@@ -42,7 +42,7 @@ describe('tool-label-map', () => {
     expect(getToolLabel('decision_log')).toBe('Logging decision...');
   });
 
-  it('returns "Working..." for unknown tools', () => {
-    expect(getToolLabel('some_unknown_tool')).toBe('Working...');
+  it('returns a readable fallback for unknown tools', () => {
+    expect(getToolLabel('some_unknown_tool')).toBe('Using some unknown tool...');
   });
 });

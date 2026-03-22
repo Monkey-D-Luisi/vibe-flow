@@ -11,6 +11,7 @@ export interface ActivityEntry {
   readonly agentId: string;
   readonly action: string;
   readonly timestamp: number;
+  readonly taskId?: string | null;
 }
 
 const MAX_ENTRIES = 20;
@@ -40,7 +41,8 @@ export class ActivityFeed {
     return this.entries
       .map(e => {
         const time = formatTime(e.timestamp);
-        return `<div class="feed-entry"><span class="feed-time">${time}</span> <span class="feed-agent">${escapeHtml(e.agentId)}</span> ${escapeHtml(e.action)}</div>`;
+        const taskRef = e.taskId ? `<span class="feed-task" title="${escapeHtml(e.taskId)}">#${escapeHtml(e.taskId.slice(-6))}</span>` : '';
+        return `<div class="feed-entry"><span class="feed-time">${time}</span> <span class="feed-agent">${escapeHtml(e.agentId)}</span> ${escapeHtml(e.action)} ${taskRef}</div>`;
       })
       .join('');
   }

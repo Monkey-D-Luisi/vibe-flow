@@ -22,7 +22,7 @@ import { mapServerStateToEntities } from './agents/state-mapper.js';
 
 // --- Interactivity (task 0133) ---
 import { installClickHandler } from './interaction/click-handler.js';
-import { showInfoPanel, hideInfoPanel } from './interaction/info-panel.js';
+import { showInfoPanel, hideInfoPanel, setInfoPanelConnectionState } from './interaction/info-panel.js';
 import { showSpeechBubble, clearSpeechBubbles } from './interaction/speech-bubble.js';
 import { triggerMatrix } from './interaction/matrix-effect.js';
 import { getToolLabel } from '../shared/tool-label-map.js';
@@ -75,6 +75,9 @@ const agents: AgentEntity[] = AGENT_DESKS.map(desk =>
 // --- Dashboard panel (task 0139) ---
 
 const dashboard = new DashboardPanel();
+let connectionState: import('./state/display-state.js').ConnectionState = 'connecting';
+setInfoPanelConnectionState(connectionState);
+dashboard.setConnectionState(connectionState);
 
 // --- Click interactivity (task 0133) ---
 
@@ -90,11 +93,17 @@ installClickHandler(canvas, camera, agents, (agent) => {
 
 const disconnectSse = connectSse({
   onSnapshot(snapshot: ServerAgentState[]) {
+    connectionState = 'connected';
+    dashboard.setConnectionState(connectionState);
+    setInfoPanelConnectionState(connectionState);
     applySnapshot(agents, snapshot);
     dashboard.updateAllAgents(snapshot);
   },
 
   onUpdate(change) {
+    connectionState = 'connected';
+    dashboard.setConnectionState(connectionState);
+    setInfoPanelConnectionState(connectionState);
     const entity = agents.find(a => a.id === change.agentId);
     const prev = entity
       ? (entity as Record<string, unknown>)['_serverState'] as ServerAgentState | undefined
@@ -109,6 +118,7 @@ const disconnectSse = connectSse({
         agentId: change.agentId,
         action: getToolLabel(change.state.currentTool) || change.state.currentTool,
         timestamp: Date.now(),
+        taskId: change.state.taskId,
       });
     }
 
@@ -128,6 +138,12 @@ const disconnectSse = connectSse({
     if (change.state.status === 'spawning' && prev?.status !== 'spawning') {
       triggerMatrix(change.agentId, entity.x, entity.y, camera);
     }
+  },
+
+  onError() {
+    connectionState = 'disconnected';
+    dashboard.setConnectionState(connectionState);
+    setInfoPanelConnectionState(connectionState);
   },
 });
 

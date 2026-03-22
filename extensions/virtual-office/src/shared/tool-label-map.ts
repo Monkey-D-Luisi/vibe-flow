@@ -70,5 +70,13 @@ export function getToolLabel(toolName: string | null): string {
     }
   }
 
-  return 'Working...';
+  return `Using ${humanizeToolName(toolName)}...`;
+}
+
+function humanizeToolName(toolName: string): string {
+  return toolName
+    .replace(/[._]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
 }

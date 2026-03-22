@@ -9,8 +9,13 @@
 
 import type { ServerAgentState } from '../net/sse-client.js';
 import { ActivityFeed, type ActivityEntry } from './activity-feed.js';
-import { getToolLabel } from '../../shared/tool-label-map.js';
 import { PIPELINE_STAGES } from '../../shared/stage-location-map.js';
+import {
+  deriveAgentDisplayState,
+  derivePipelineSummary,
+  formatStageShort,
+  type ConnectionState,
+} from '../state/display-state.js';
 
 const AGENT_ORDER = ['pm', 'tech-lead', 'po', 'designer', 'back-1', 'front-1', 'qa', 'devops'];
 
@@ -26,12 +31,16 @@ export class DashboardPanel {
   private readonly agentRows: Map<string, HTMLElement> = new Map();
   private readonly pipelineEl: HTMLElement;
   private readonly feedEl: HTMLElement;
+  private readonly connectionEl: HTMLElement;
   private readonly feed: ActivityFeed;
   private agentStates: Map<string, ServerAgentState> = new Map();
+  private connectionState: ConnectionState = 'connecting';
+  private readonly refreshTimer: number;
 
   constructor() {
     this.feed = new ActivityFeed();
     this.el = this.createPanel();
+    this.connectionEl = this.el.querySelector('#dash-connection')!;
     this.pipelineEl = this.el.querySelector('#dash-pipeline')!;
     this.feedEl = this.el.querySelector('#dash-feed')!;
 
@@ -41,6 +50,8 @@ export class DashboardPanel {
     }
 
     document.body.appendChild(this.el);
+    this.refreshTimer = window.setInterval(() => this.refresh(), 1000);
+    this.renderConnectionState();
   }
 
   private createPanel(): HTMLElement {
@@ -49,16 +60,20 @@ export class DashboardPanel {
 
     const agentRows = AGENT_ORDER.map(id =>
       `<div class="dash-agent-row" data-agent="${id}">
-        <span class="dash-dot" style="background:${STATUS_COLORS['idle']}"></span>
-        <span class="dash-name">${escapeHtml(id)}</span>
-        <span class="dash-tool">--</span>
-        <span class="dash-stage">--</span>
+        <div class="dash-agent-top">
+          <span class="dash-dot" style="background:${STATUS_COLORS['idle']}"></span>
+          <span class="dash-name">${escapeHtml(id)}</span>
+          <span class="dash-badge dash-badge-idle">Idle</span>
+          <span class="dash-badge dash-badge-connecting">Connecting</span>
+        </div>
+        <div class="dash-agent-meta"><span class="dash-meta-label">Now</span><span class="dash-meta-value">Waiting for live updates</span></div>
+        <div class="dash-agent-meta"><span class="dash-meta-label">Pipeline</span><span class="dash-meta-value">No pipeline context</span></div>
       </div>`,
     ).join('');
 
     panel.innerHTML = `
       <div class="dash-section">
-        <div class="dash-header">Agents</div>
+        <div class="dash-header dash-header-split"><span>Agents</span><span id="dash-connection" class="dash-connection">Connecting</span></div>
         ${agentRows}
       </div>
       <div class="dash-section">
@@ -78,26 +93,15 @@ export class DashboardPanel {
 
   updateAgent(state: ServerAgentState): void {
     this.agentStates.set(state.agentId, state);
-    const row = this.agentRows.get(state.agentId);
-    if (!row) return;
-
-    const dot = row.querySelector('.dash-dot') as HTMLElement;
-    const tool = row.querySelector('.dash-tool') as HTMLElement;
-    const stage = row.querySelector('.dash-stage') as HTMLElement;
-
-    if (dot) dot.style.background = STATUS_COLORS[state.status] ?? STATUS_COLORS['idle'];
-    if (tool) tool.textContent = getToolLabel(state.currentTool) || (state.status === 'idle' ? 'Idle' : '--');
-    if (stage) stage.textContent = formatStage(state.pipelineStage);
-    row.classList.toggle('dash-agent-active', state.status === 'active');
-
-    this.updatePipelineSummary();
+    this.renderAgentRow(state.agentId, Date.now());
+    this.updatePipelineSummary(Date.now());
   }
 
   updateAllAgents(agents: ServerAgentState[]): void {
     for (const a of agents) {
-      this.updateAgent(a);
+      this.agentStates.set(a.agentId, a);
     }
-    this.updatePipelineSummary();
+    this.refresh();
   }
 
   addActivity(entry: ActivityEntry): void {
@@ -105,62 +109,103 @@ export class DashboardPanel {
     this.feedEl.innerHTML = this.feed.render();
   }
 
-  private updatePipelineSummary(): void {
-    // Show pipeline for agents that have task+stage data and were active
-    // within the last 5 minutes. This keeps the panel visible after
-    // pipeline_advance (typically the last tool call before agent_end).
-    const GRACE_MS = 5 * 60 * 1000;
-    const now = Date.now();
-    const active = Array.from(this.agentStates.values())
-      .filter(a => a.taskId && a.pipelineStage && a.pipelineStage !== 'DONE' && now - a.lastSeenAt < GRACE_MS)
-      .sort((x, y) => y.lastSeenAt - x.lastSeenAt); // most recently active first
+  setConnectionState(connectionState: ConnectionState): void {
+    this.connectionState = connectionState;
+    this.renderConnectionState();
+    this.refresh();
+  }
 
-    if (active.length === 0) {
-      this.pipelineEl.innerHTML = '<div class="dash-pipeline-empty">No active pipeline</div>';
+  private updatePipelineSummary(now: number): void {
+    const summary = derivePipelineSummary(Array.from(this.agentStates.values()), now, this.connectionState);
+
+    if (!summary) {
+      this.pipelineEl.innerHTML = '<div class="dash-pipeline-empty">No recent pipeline activity</div>';
       return;
     }
 
-    const first = active[0]!;
-    const taskRef = '#' + first.taskId!.slice(-6);
-    const currentIdx = PIPELINE_STAGES.indexOf(first.pipelineStage as typeof PIPELINE_STAGES[number]);
-
-    const STAGE_ABBREV: Record<string, string> = {
-      IDEA: 'IDÉ', ROADMAP: 'RDM', REFINEMENT: 'REF',
-      DECOMPOSITION: 'DEC', DESIGN: 'DSG', IMPLEMENTATION: 'IMP',
-      QA: 'QA', REVIEW: 'REV', SHIPPING: 'SHP', DONE: 'DON',
-    };
-
     const segments = PIPELINE_STAGES.map((stage, idx) => {
       let cls = 'pipe-seg';
-      if (idx < currentIdx) cls += ' done';
-      else if (idx === currentIdx) cls += ' current';
-      const abbr = STAGE_ABBREV[stage] ?? stage.slice(0, 3);
+      if (idx < summary.currentIdx) cls += ' done';
+      else if (idx === summary.currentIdx) cls += ' current';
+      const abbr = formatStageShort(stage);
       return `<span class="${cls}">${abbr}</span>`;
     }).join('');
 
+    const related = summary.relatedLabels.length > 0
+      ? escapeHtml(summary.relatedLabels.join(', '))
+      : 'No related agents';
+    const stagePrefix = summary.activeNowCount > 0 ? 'Current stage' : 'Last known stage';
+    const ownerPrefix = summary.activeNowCount > 0 ? 'Current owner' : 'Last known owner';
+    const relatedTitle = summary.relatedLabels.length > 0
+      ? summary.relatedLabels.join(', ')
+      : 'No related agents';
+
     this.pipelineEl.innerHTML = `
-      <div class="dash-pipe-task">Task ${escapeHtml(taskRef)}</div>
+      <div class="dash-pipe-heading">
+        <div class="dash-pipe-task" title="${escapeHtml(summary.taskFull)}">Task ${escapeHtml(summary.taskShort)}</div>
+        <span class="dash-badge dash-badge-${summary.freshness.tone}" title="${escapeHtml(summary.freshness.detail)}">${escapeHtml(summary.freshness.badge)}</span>
+      </div>
+      <div class="dash-pipe-stage-line">${stagePrefix}: ${escapeHtml(summary.stageLabel)}</div>
       <div class="pipe-bar">${segments}</div>
-      <div class="dash-pipe-agents">${active.length} agent(s) active</div>
+      <div class="dash-pipe-meta">${ownerPrefix}: ${escapeHtml(summary.ownerLabel)}</div>
+      <div class="dash-pipe-meta" title="${escapeHtml(relatedTitle)}">Related agents: ${related}</div>
+      <div class="dash-pipe-agents">${summary.activeNowCount} active now · ${summary.participantCount} linked · ${escapeHtml(summary.freshness.detail)}</div>
     `;
   }
 
+  private renderAgentRow(agentId: string, now: number): void {
+    const row = this.agentRows.get(agentId);
+    const state = this.agentStates.get(agentId);
+    if (!row || !state) return;
+
+    const display = deriveAgentDisplayState(state, now, this.connectionState);
+    row.classList.toggle('dash-agent-active', state.status === 'active');
+    row.dataset.freshness = display.freshness.tone;
+    const pipelineTitle = display.taskFull
+      ? `${display.pipelineLabel} (${display.taskFull})`
+      : display.pipelineLabel;
+
+    row.innerHTML = `
+      <div class="dash-agent-top">
+        <span class="dash-dot" style="background:${STATUS_COLORS[state.status] ?? STATUS_COLORS['idle']}"></span>
+        <span class="dash-name">${escapeHtml(agentId)}</span>
+        <span class="dash-badge dash-badge-${display.statusTone}">${escapeHtml(display.statusLabel)}</span>
+        <span class="dash-badge dash-badge-${display.freshness.tone}">${escapeHtml(display.freshness.badge)}</span>
+      </div>
+      <div class="dash-agent-meta"><span class="dash-meta-label">Now</span><span class="dash-meta-value" title="${escapeHtml(display.activityLabel)}">${escapeHtml(display.activityLabel)}</span></div>
+      <div class="dash-agent-meta"><span class="dash-meta-label">Pipeline</span><span class="dash-meta-value" title="${escapeHtml(pipelineTitle)}">${escapeHtml(display.pipelineLabel)}</span></div>
+      <div class="dash-agent-meta"><span class="dash-meta-label">Freshness</span><span class="dash-meta-value" title="${escapeHtml(display.freshness.detail)}">${escapeHtml(display.freshness.detail)}</span></div>
+    `;
+    row.setAttribute(
+      'aria-label',
+      `${display.roleLabel}: ${display.statusLabel}. ${display.activityLabel}. ${display.pipelineLabel}. ${display.freshness.detail}`,
+    );
+  }
+
+  private renderConnectionState(): void {
+    const label = this.connectionState === 'connected'
+      ? 'Live'
+      : this.connectionState === 'disconnected'
+        ? 'Disconnected'
+        : 'Connecting';
+    this.connectionEl.textContent = label;
+    this.connectionEl.className = `dash-connection dash-badge dash-badge-${this.connectionState === 'connected' ? 'live' : this.connectionState === 'disconnected' ? 'offline' : 'connecting'}`;
+  }
+
+  private refresh(): void {
+    const now = Date.now();
+    for (const id of AGENT_ORDER) {
+      this.renderAgentRow(id, now);
+    }
+    this.updatePipelineSummary(now);
+  }
+
   destroy(): void {
+    window.clearInterval(this.refreshTimer);
     this.el.remove();
   }
 }
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-const STAGE_ABBREV: Record<string, string> = {
-  IDEA: 'Idea', ROADMAP: 'Roadmap', REFINEMENT: 'Refine',
-  DECOMPOSITION: 'Decomp.', DESIGN: 'Design', IMPLEMENTATION: 'Impl.',
-  QA: 'QA', REVIEW: 'Review', SHIPPING: 'Ship', DONE: 'Done',
-};
-
-function formatStage(stage: string | null): string {
-  if (!stage) return '--';
-  return STAGE_ABBREV[stage] ?? stage.charAt(0) + stage.slice(1).toLowerCase();
 }

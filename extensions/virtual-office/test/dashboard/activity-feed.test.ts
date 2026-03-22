@@ -15,10 +15,11 @@ describe('ActivityFeed', () => {
 
   it('renders entries with agent and action', () => {
     const feed = new ActivityFeed();
-    feed.push({ agentId: 'pm', action: 'task_create', timestamp: 1000 });
+    feed.push({ agentId: 'pm', action: 'task_create', timestamp: 1000, taskId: 'TASK-123456' });
     const html = feed.render();
     expect(html).toContain('pm');
     expect(html).toContain('task_create');
+    expect(html).toContain('#123456');
   });
 
   it('renders empty message when no entries', () => {

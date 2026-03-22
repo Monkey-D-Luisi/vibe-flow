@@ -44,14 +44,25 @@
       padding-bottom: 4px;
       margin-bottom: 6px;
     }
-    .dash-agent-row {
+    .dash-header-split {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 3px 4px;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .dash-connection {
+      font-size: 10px;
+      border: none;
+    }
+    .dash-agent-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 6px 6px;
       font-size: 12px;
       border-left: 3px solid transparent;
-      transition: background 0.3s, border-color 0.3s;
+      border-radius: 4px;
+      transition: background 0.3s, border-color 0.3s, opacity 0.3s;
     }
     .dash-agent-row:nth-child(even) {
       background: rgba(255, 255, 255, 0.02);
@@ -66,23 +77,60 @@
       border-radius: 50%;
       flex-shrink: 0;
     }
+    .dash-agent-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
     .dash-name {
-      width: 70px;
+      min-width: 62px;
       flex-shrink: 0;
       color: #e0e0e0;
     }
-    .dash-tool {
+    .dash-agent-meta {
+      display: flex;
+      gap: 6px;
+      min-width: 0;
+      font-size: 11px;
+    }
+    .dash-meta-label {
+      width: 52px;
+      flex-shrink: 0;
+      color: #7c83b6;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .dash-meta-value {
       flex: 1;
       color: #a0a0c0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .dash-stage {
-      width: 80px;
-      flex-shrink: 0;
-      text-align: right;
-      color: #a0a0c0;
+    .dash-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: bold;
+      color: #fff;
+      white-space: nowrap;
+    }
+    .dash-badge-busy,
+    .dash-badge-live { background: #10b981; }
+    .dash-badge-idle { background: #6b7280; }
+    .dash-badge-offline { background: #ef4444; }
+    .dash-badge-recent { background: #f59e0b; }
+    .dash-badge-stale { background: #7c3aed; }
+    .dash-badge-connecting { background: #3b82f6; }
+    .dash-agent-row[data-freshness="stale"] {
+      opacity: 0.85;
+    }
+    .dash-agent-row[data-freshness="offline"] {
+      opacity: 0.75;
     }
     .dash-pipeline {
       color: #888;
@@ -93,7 +141,21 @@
       font-style: italic;
     }
     .dash-pipe-task { color: #e0e0e0; font-weight: bold; }
-    .dash-pipe-stage { color: #6366f1; }
+    .dash-pipe-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .dash-pipe-stage-line {
+      color: #c7d2fe;
+      margin-bottom: 4px;
+    }
+    .dash-pipe-meta {
+      color: #a0a0c0;
+      margin-top: 3px;
+    }
     .dash-pipe-agents { color: #888; font-size: 10px; }
     .pipe-bar {
       display: flex;
@@ -131,6 +193,7 @@
     }
     .feed-time { color: #666; }
     .feed-agent { color: #6366f1; font-weight: bold; }
+    .feed-task { color: #93c5fd; margin-left: 4px; }
     .feed-empty { color: #555; font-style: italic; }
     #loading {
       position: absolute;
