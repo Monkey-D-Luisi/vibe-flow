@@ -42,6 +42,7 @@ flowchart LR
   OC --> MR[model-router hook]
   OC --> TN[telegram-notifier]
   OC --> SB[stitch-bridge]
+  OC --> VO[virtual-office]
   PT --> DB[(SQLite task DB)]
   PT --> GH[GitHub via gh CLI]
   CI[Local/CI pipeline] --> QG[quality-gate CLI]
@@ -54,6 +55,7 @@ flowchart LR
 | [OpenClaw](https://openclaw.ai) | latest |
 | [Node.js](https://nodejs.org) | 22+ |
 | [pnpm](https://pnpm.io) | 10+ |
+| [Docker Desktop / Engine](https://www.docker.com/products/docker-desktop/) | latest |
 | [GitHub CLI](https://cli.github.com) | latest |
 
 ## Quick Start
@@ -73,9 +75,16 @@ pnpm test
 cp .env.docker.example .env.docker
 # Edit .env.docker with your credentials
 docker compose build && docker compose up -d
+docker compose ps
 ```
 
 See [docs/docker-setup.md](docs/docker-setup.md) for auth credentials, Telegram setup, and troubleshooting.
+
+## Current State (March 2026)
+
+- `main` currently includes post-`v0.1.1` virtual-office stabilization work (pipeline semantics, dashboard readability, responsive sidebar/canvas layout).
+- Docker deployment baseline is verified with service `gateway` and container `openclaw-product-team` exposed at `http://localhost:28789`.
+- Core monorepo checks (`pnpm -r lint`, `pnpm -r typecheck`, `pnpm -r test`) are green on the latest documentation update push to `main`.
 
 ## Agent Roster
 
@@ -182,7 +191,7 @@ The `site/` directory contains a static landing page deployed via GitHub Pages.
 
 ## Project Status
 
-**Alpha (v0.1.0)** -- the API surface is functional but may change. See [docs/roadmap.md](docs/roadmap.md) for the full execution history and upcoming milestones.
+**Alpha (v0.1.x)** -- the API surface is functional but may change as EP16+ work lands. See [docs/roadmap.md](docs/roadmap.md) for execution history and upcoming milestones.
 
 ## Star History
 

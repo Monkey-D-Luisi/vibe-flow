@@ -30,6 +30,24 @@ docker exec openclaw-product-team pnpm exec openclaw models list
 docker exec openclaw-product-team pnpm exec openclaw doctor
 ```
 
+## Current Baseline (2026-03-22)
+
+Expected runtime state in this repository:
+
+- Compose service: `gateway`
+- Container name: `openclaw-product-team`
+- UI URL: `http://localhost:28789/`
+- Health endpoint: `http://localhost:28789/health`
+
+Verification commands:
+
+```bash
+docker compose ps
+docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' openclaw-product-team
+```
+
+`docker compose ps` should show `Up ... (healthy)` for `openclaw-product-team`.
+
 ## Architecture
 
 ```

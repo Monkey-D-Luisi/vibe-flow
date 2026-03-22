@@ -1,6 +1,6 @@
 # Roadmap -- OpenClaw Product Team Extensions
 
-> Last updated: 2026-03-21
+> Last updated: 2026-03-22
 
 ## Vision
 
@@ -62,6 +62,12 @@ observability, and extensibility for the community.
 | 13    | EP18 | Plugin SDK Contracts & DX            | EP13, EP16   | June 2026  | PENDING |
 | 13    | EP19 | Showcase & Documentation             | EP18         | June 2026  | PENDING |
 | 14    | EP20 | Virtual Office                       | EP09         | March 2026 | DONE |
+
+Recent `main` stabilization after EP20 completion:
+
+- Pipeline context/state behavior fixes merged
+- Dashboard and info-panel readability updates merged
+- Responsive sidebar/canvas layout alignment merged
 
 ---
 
