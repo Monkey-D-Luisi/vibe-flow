@@ -12,7 +12,7 @@ Capture what went well, what created friction, and concrete next actions (with o
 | Role | Status | Reply message id |
 |---|---|---|
 | tech-lead | received | `01KMB7H3XEQVC0GDVT89F5EHBB` |
-| front-1 | received | `01KMB7FN0ZH4Y9GX6X3HPA1D2K` |
+| front-1 | received (2 notes) | `01KMB7FN0ZH4Y9GX6X3HPA1D2K`, `01KMB7Z87CE7H1S0H7GVF6QAWA` |
 | devops | received | `01KMB7HB2N6Q1YF6QHRAS5V2WD` |
 | designer | received | `01KMB7EQ3006KDZF9HVM7Q5GHF` |
 | qa | received (2 notes) | `01KMB7GJ9Z4SHGHDS0EBZ2MNJJ`, `01KMB7JXVDDT8M9EH32SMB7PC9` |
@@ -38,7 +38,7 @@ Capture what went well, what created friction, and concrete next actions (with o
 > Priority rubric: **high** = multiple roles converged or blocks throughput; **medium** = improves efficiency/quality; **low** = nice-to-have.
 
 1) **Standardize a PR “evidence pack” / DoD checklist for UI-facing changes**
-   - Description: Require (at minimum) screenshots at 375/768/1280, a short QA validation note (including JS-off smoke if applicable), and a quality gate summary.
+   - Description: Require (at minimum) screenshots at 375/768/1280, a short QA validation note (including JS-off smoke if applicable), and a quality gate summary. Implementation suggestion: use a lightweight Playwright CLI screenshot step, store artifacts under `site/screenshots/`, and auto-link them in the PR template/body.
    - Owner: `tech-lead`
    - Priority: high
    - Supported by: front-1, qa
