@@ -12,16 +12,16 @@
     "build": "tsc"
   },
   "dependencies": {
-    "openclaw": "2026.3.2"
+    "openclaw": "2026.3.24"
   },
   "devDependencies": {
-    "@types/node": "^25.3.5",
-    "@typescript-eslint/eslint-plugin": "^8.56.1",
-    "@vitest/coverage-v8": "^4.0.18",
-    "@typescript-eslint/parser": "^8.56.1",
-    "eslint": "^10.0.3",
+    "@types/node": "^25.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
+    "@vitest/coverage-v8": "^4.1.2",
+    "@typescript-eslint/parser": "^8.57.2",
+    "eslint": "^10.1.0",
     "typescript": "^5.7.0",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.2"
   },
   "openclaw": {
     "extensions": [
