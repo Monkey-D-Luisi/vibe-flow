@@ -1,5 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { renderSrcIndex, renderTestIndex } from './templates.js';
+import type { TemplateType } from './templates.js';
 
 const RESERVED_NAMES = new Set([
   'node_modules',
@@ -34,9 +36,10 @@ export interface GenerateOptions {
   name: string;
   targetDir: string;
   force?: boolean;
+  template?: TemplateType;
 }
 
-export function generateExtension({ name, targetDir, force = false }: GenerateOptions): void {
+export function generateExtension({ name, targetDir, force = false, template = 'hybrid' }: GenerateOptions): void {
   validateName(name);
 
   if (existsSync(targetDir) && !force) {
@@ -53,9 +56,9 @@ export function generateExtension({ name, targetDir, force = false }: GenerateOp
   writeFileSync(join(targetDir, '.eslintrc.cjs'), renderEslintrc());
   writeFileSync(join(targetDir, 'vitest.config.ts'), renderVitestConfig());
   writeFileSync(join(targetDir, 'openclaw.plugin.json'), renderPluginJson(name));
-  writeFileSync(join(targetDir, 'src', 'index.ts'), renderSrcIndex(name));
-  writeFileSync(join(targetDir, 'test', 'index.test.ts'), renderTestIndex(name));
-  writeFileSync(join(targetDir, 'README.md'), renderReadme(name));
+  writeFileSync(join(targetDir, 'src', 'index.ts'), renderSrcIndex(name, template));
+  writeFileSync(join(targetDir, 'test', 'index.test.ts'), renderTestIndex(name, template));
+  writeFileSync(join(targetDir, 'README.md'), renderReadme(name, template));
 }
 
 function renderPackageJson(name: string): string {
@@ -184,37 +187,12 @@ function renderPluginJson(name: string): string {
   );
 }
 
-function renderSrcIndex(name: string): string {
-  return `import type { Plugin } from 'openclaw';
-
-const plugin: Plugin = {
-  name: '${name}',
-  version: '0.1.0',
-  tools: [],
-};
-
-export default plugin;\n`;
-}
-
-function renderTestIndex(name: string): string {
-  return `import { describe, it, expect } from 'vitest';
-import plugin from '../src/index.js';
-
-describe('${name} plugin', () => {
-  it('exports a plugin with the correct name', () => {
-    expect(plugin.name).toBe('${name}');
-  });
-
-  it('exports an empty tools array by default', () => {
-    expect(plugin.tools).toEqual([]);
-  });
-});\n`;
-}
-
-function renderReadme(name: string): string {
+function renderReadme(name: string, template: TemplateType = 'hybrid'): string {
   return `# @openclaw/${name}
 
 OpenClaw extension: ${name}.
+
+**Template:** ${template}
 
 ## Installation
 
