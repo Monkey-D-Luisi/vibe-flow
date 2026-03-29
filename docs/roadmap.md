@@ -552,7 +552,7 @@ Key deliverables:
 #### Tasks
 
 - Task 0118: Plugin API Reference Documentation -- DONE (EP18, 13A)
-- Task 0119: npm Publish Pipeline End-to-End Wiring -- PENDING (EP18, 13A)
+- Task 0119: npm Publish Pipeline End-to-End Wiring -- DONE (EP18, 13A)
 - Task 0120: Extension Scaffolding Templates by Type -- PENDING (EP18, 13B)
 - Task 0121: Getting Started Guide -- PENDING (EP18, 13B)
 - Task 0122: API Versioning Policy and Deprecation Strategy -- PENDING (EP18, 13C)
