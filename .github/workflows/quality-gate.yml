@@ -198,6 +198,33 @@ jobs:
               --field body=@/tmp/qg-report.md
           fi
 
+  e2e-pipeline:
+    name: e2e-pipeline
+    needs: quality-gate
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rebuild native modules
+        working-directory: extensions/product-team
+        run: node -e "const c=require('child_process'),p=require('path');const pkg=p.dirname(require.resolve('better-sqlite3/package.json'));console.log('Rebuilding better-sqlite3 at',pkg);c.execSync('npm run install',{cwd:pkg,stdio:'inherit'});"
+
+      - name: Run E2E pipeline tests
+        run: pnpm test:e2e
+
       # --- Gate verdict (must come last; sets workflow exit code) ---
 
       - name: Gate verdict
