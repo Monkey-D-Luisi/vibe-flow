@@ -1,6 +1,6 @@
 # EP17 -- Security & Stability v2
 
-> Status: PENDING
+> Status: IN_PROGRESS
 > Dependencies: EP09
 > Phase: 12 (Quality at Scale)
 > Target: May 2026
