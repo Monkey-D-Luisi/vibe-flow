@@ -258,6 +258,10 @@ if (typeof sendTg === 'function') {
 > **Note:** `api.runtime` is not part of the stable API. Access it defensively
 > with optional chaining and type guards. See
 > [stability-tiers.md](stability-tiers.md) for details.
+>
+> **Warning:** This API is classified as **Experimental**. It may change or be
+> removed without notice. Do not depend on it in production extensions without
+> accepting the risk.
 
 ---
 

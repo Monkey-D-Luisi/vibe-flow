@@ -305,4 +305,13 @@ describe('generateExtension templates', () => {
     expect(src).not.toContain('registerTool');
     expect(src).not.toContain('registerService');
   });
+
+  it('allows extension names that match template names', () => {
+    const targetDir = join(tmpBase, 'tool');
+    generateExtension({ name: 'tool', targetDir, template: 'tool' });
+    const src = readFileSync(join(targetDir, 'src', 'index.ts'), 'utf8');
+
+    expect(src).toContain("id: 'tool'");
+    expect(src).toContain('registerTool');
+  });
 });
