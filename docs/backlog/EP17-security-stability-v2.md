@@ -1,6 +1,6 @@
 # EP17 -- Security & Stability v2
 
-> Status: IN_PROGRESS
+> Status: DONE
 > Dependencies: EP09
 > Phase: 12 (Quality at Scale)
 > Target: May 2026
@@ -240,10 +240,10 @@ task 0078 that required external access or infrastructure changes.
 
 ## Definition of Done
 
-- [ ] All 5 tasks completed
-- [ ] Gitleaks scans every PR for secrets
-- [ ] DB migrations have tested up/down paths
-- [ ] Single vitest version across all workspaces
-- [ ] Coverage/complexity blocking in CI with escape hatch
-- [ ] All blocked findings resolved or formally deferred
-- [ ] `pnpm test && pnpm lint && pnpm typecheck` passes
+- [x] All 5 tasks completed
+- [x] Gitleaks scans every PR for secrets
+- [x] DB migrations have tested up/down paths
+- [x] Single vitest version across all workspaces
+- [x] Coverage/complexity blocking in CI with escape hatch
+- [x] All blocked findings resolved or formally deferred
+- [x] `pnpm test && pnpm lint && pnpm typecheck` passes
