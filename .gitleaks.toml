@@ -1,0 +1,57 @@
+# Gitleaks configuration for OpenClaw Extensions
+# https://github.com/gitleaks/gitleaks
+
+title = "OpenClaw Gitleaks Config"
+
+[allowlist]
+  # Test fixtures, documentation examples, and CI runner directory
+  paths = [
+    '''\.test\.ts$''',
+    '''__fixtures__''',
+    '''\.snap$''',
+    '''actions-runner/''',
+    '''pnpm-lock\.yaml$''',
+  ]
+
+# --- Project-specific rules ---
+
+[[rules]]
+  id = "telegram-bot-token"
+  description = "Telegram Bot Token"
+  regex = '''\d{8,10}:[\w-]{35}'''
+  tags = ["credential", "telegram"]
+
+[[rules]]
+  id = "openai-api-key"
+  description = "OpenAI API Key"
+  regex = '''sk-[a-zA-Z0-9]{20,}T3BlbkFJ[a-zA-Z0-9]{20,}'''
+  tags = ["credential", "openai"]
+
+[[rules]]
+  id = "anthropic-api-key"
+  description = "Anthropic API Key"
+  regex = '''sk-ant-[a-zA-Z0-9\-_]{80,}'''
+  tags = ["credential", "anthropic"]
+
+[[rules]]
+  id = "google-ai-api-key"
+  description = "Google AI API Key"
+  regex = '''AIza[a-zA-Z0-9\-_]{35}'''
+  tags = ["credential", "google"]
+
+[[rules]]
+  id = "openclaw-api-key"
+  description = "OpenClaw API Key"
+  regex = '''oc_[a-zA-Z0-9]{32,}'''
+  tags = ["credential", "openclaw"]
+
+[[rules]]
+  id = "generic-secret-assignment"
+  description = "Generic secret assignment in code"
+  regex = '''(?i)(secret|password|token|apikey|api_key)\s*[:=]\s*["'][a-zA-Z0-9\-_./+=]{20,}["']'''
+  tags = ["credential", "generic"]
+  [rules.allowlist]
+    regexTarget = "match"
+    regexes = [
+      '''(?i)(example|placeholder|test|mock|fake|dummy|changeme|xxx|your[_-]?)''',
+    ]
