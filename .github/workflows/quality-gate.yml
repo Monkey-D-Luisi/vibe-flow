@@ -155,7 +155,7 @@ jobs:
           else
             CC_DETAIL="No complexity data"
           fi
-          if [ "$COMPLEXITY_OUTCOME" = "success" ]; then CC_ICON="✅"; else CC_ICON="⚠️"; fi
+          if [ "$COMPLEXITY_OUTCOME" = "success" ]; then CC_ICON="✅"; else CC_ICON="❌"; fi
 
           # ---- Vulnerability policy ----
           VULN_OUTPUT=$(cat /tmp/vuln-output.txt 2>/dev/null || echo "(no output)")
@@ -171,8 +171,22 @@ jobs:
           GATE_FAILED=0
           [ "$TESTS_OUTCOME" = "failure" ] && GATE_FAILED=1
           [ "$LINT_OUTCOME" = "failure" ] && GATE_FAILED=1
+          [ "$COVERAGE_OUTCOME" = "failure" ] && GATE_FAILED=1
+          [ "$COMPLEXITY_OUTCOME" = "failure" ] && GATE_FAILED=1
           [ "$VULN_EXIT" != "0" ] && GATE_FAILED=1
-          if [ "$GATE_FAILED" = "1" ]; then
+
+          # ---- Label bypass ----
+          BYPASSED=0
+          if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "0" ]; then
+            BYPASS_LABEL=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/labels" \
+              --jq '.[].name' 2>/dev/null | grep -c '^bypass-quality-gate$' || true)
+            [ "$BYPASS_LABEL" != "0" ] && BYPASSED=1
+          fi
+
+          if [ "$GATE_FAILED" = "1" ] && [ "$BYPASSED" = "1" ]; then
+            VERDICT_ICON="⚠️"
+            VERDICT_TEXT="BYPASSED"
+          elif [ "$GATE_FAILED" = "1" ]; then
             VERDICT_ICON="❌"
             VERDICT_TEXT="FAIL"
           else
@@ -194,6 +208,9 @@ jobs:
             printf '| Complexity | %s | %s |\n' "$CC_ICON" "$CC_DETAIL"
             printf '| Vulnerability Policy | %s | %s |\n' "$VULN_ICON" "$VULN_DETAIL"
             printf '\n'
+            if [ "$BYPASSED" = "1" ]; then
+              printf '> **⚠️ Quality gate bypassed** via `bypass-quality-gate` label.\n\n'
+            fi
             printf '<details><summary>Vulnerability policy output</summary>\n\n'
             printf '```\n'
             printf '%s\n' "$VULN_OUTPUT"
@@ -215,6 +232,12 @@ jobs:
             gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
               --method POST \
               --field body=@/tmp/qg-report.md
+          fi
+
+          # ---- Fail the job if gate failed and not bypassed ----
+          if [ "$GATE_FAILED" = "1" ] && [ "$BYPASSED" = "0" ]; then
+            echo "::error::Quality gate FAILED"
+            exit 1
           fi
 
   e2e-pipeline:
