@@ -482,7 +482,7 @@ Key deliverables:
 
 #### Tasks
 
-- Task 0109: E2E Pipeline Test with LLM Mocks in CI -- PENDING (EP16, 12A)
+- Task 0109: E2E Pipeline Test with LLM Mocks in CI -- DONE (EP16, 12A)
 - Task 0110: Concurrent Agent Load Benchmark -- PENDING (EP16, 12A)
 - Task 0111: Protocol Regression Test Suite -- PENDING (EP16, 12B)
 - Task 0112: Performance Baseline and CI Guardrails -- PENDING (EP16, 12B)

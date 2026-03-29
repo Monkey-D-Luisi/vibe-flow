@@ -11,6 +11,7 @@ import type { ToolDef, ToolDeps } from '../../../src/tools/index.js';
 import { pipelineStartToolDef, pipelineStatusToolDef, pipelineRetryToolDef, pipelineSkipToolDef } from '../../../src/tools/pipeline.js';
 import { teamMessageToolDef, teamInboxToolDef, teamReplyToolDef, teamStatusToolDef, teamAssignToolDef } from '../../../src/tools/team-messaging.js';
 import { decisionEvaluateToolDef, decisionLogToolDef } from '../../../src/tools/decision-engine.js';
+import { qualityGateToolDef } from '../../../src/tools/quality-gate.js';
 import { DEFAULT_TRANSITION_GUARD_CONFIG } from '../../../src/orchestrator/transition-guards.js';
 
 const PIPELINE_STAGES = [
@@ -47,6 +48,7 @@ export interface PipelineTools {
   teamAssign: ToolDef;
   decisionEvaluate: ToolDef;
   decisionLog: ToolDef;
+  qualityGate: ToolDef;
 }
 
 export interface PipelineHarness {
@@ -54,6 +56,7 @@ export interface PipelineHarness {
   deps: ToolDeps;
   tools: PipelineTools;
   advanceToStage: (taskId: string, stage: string) => void;
+  setTaskMetadata: (taskId: string, patch: Record<string, unknown>) => void;
   cleanup: () => void;
 }
 
@@ -108,6 +111,7 @@ export function createPipelineHarness(options?: {
     teamAssign: teamAssignToolDef(deps),
     decisionEvaluate: decisionEvaluateToolDef(deps),
     decisionLog: decisionLogToolDef(deps),
+    qualityGate: qualityGateToolDef(deps),
   };
 
   function advanceToStage(taskId: string, stage: string): void {
@@ -123,11 +127,21 @@ export function createPipelineHarness(options?: {
     }, task.rev, now());
   }
 
+  function setTaskMetadata(taskId: string, patch: Record<string, unknown>): void {
+    const task = taskRepo.getById(taskId);
+    if (!task) throw new Error(`Task ${taskId} not found`);
+    const meta = (task.metadata ?? {}) as Record<string, unknown>;
+    taskRepo.update(taskId, {
+      metadata: { ...meta, ...patch },
+    }, task.rev, now());
+  }
+
   return {
     db,
     deps,
     tools,
     advanceToStage,
+    setTaskMetadata,
     cleanup: () => db.close(),
   };
 }

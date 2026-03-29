@@ -87,3 +87,18 @@ export function assertPipelineTaskCount(statusResult: unknown, count: number): v
   const { tasks } = (statusResult as { details: { tasks: unknown[]; count: number } }).details;
   expect(tasks.length).toBe(count);
 }
+
+/** Assert that quality gate passed. */
+export function assertQualityGatePassed(gateResult: unknown): void {
+  const details = (gateResult as { details: { output: { passed: boolean } } }).details;
+  expect(details.output.passed, 'Expected quality gate to pass').toBe(true);
+}
+
+/** Assert that quality gate failed with at least one violation. */
+export function assertQualityGateFailed(gateResult: unknown): void {
+  const details = (gateResult as {
+    details: { output: { passed: boolean; violations: unknown[] } };
+  }).details;
+  expect(details.output.passed, 'Expected quality gate to fail').toBe(false);
+  expect(details.output.violations.length).toBeGreaterThan(0);
+}
