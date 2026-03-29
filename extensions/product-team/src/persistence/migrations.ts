@@ -1,6 +1,8 @@
 import type Database from 'better-sqlite3';
+import type { Migration } from './migration-engine.js';
+import { migrateUp } from './migration-engine.js';
 
-const MIGRATION_001 = `
+const MIGRATION_001_UP = `
 CREATE TABLE IF NOT EXISTS schema_version (
   version INTEGER PRIMARY KEY,
   applied_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -52,7 +54,16 @@ CREATE TABLE IF NOT EXISTS leases (
 );
 `;
 
-const MIGRATION_002 = `
+const MIGRATION_001_DOWN = `
+DROP TABLE IF EXISTS leases;
+DROP TABLE IF EXISTS event_log;
+DROP TABLE IF EXISTS orchestrator_state;
+DROP TABLE IF EXISTS ext_requests;
+DROP TABLE IF EXISTS task_records;
+DROP TABLE IF EXISTS schema_version;
+`;
+
+const MIGRATION_002_UP = `
 CREATE TABLE IF NOT EXISTS ext_requests (
   request_id   TEXT PRIMARY KEY,
   task_id      TEXT NOT NULL REFERENCES task_records(id),
@@ -67,7 +78,11 @@ CREATE INDEX IF NOT EXISTS idx_ext_requests_task ON ext_requests(task_id);
 CREATE INDEX IF NOT EXISTS idx_ext_requests_lookup ON ext_requests(tool, payload_hash);
 `;
 
-const MIGRATION_003 = `
+const MIGRATION_002_DOWN = `
+DROP TABLE IF EXISTS ext_requests;
+`;
+
+const MIGRATION_003_UP = `
 -- EP09: Pipeline state indexing — promote pipeline stage from metadata JSON
 -- to a dedicated indexed column for efficient stage-based queries.
 ALTER TABLE task_records ADD COLUMN pipeline_stage TEXT;
@@ -75,7 +90,37 @@ ALTER TABLE task_records ADD COLUMN pipeline_stage TEXT;
 CREATE INDEX IF NOT EXISTS idx_task_records_pipeline_stage ON task_records(pipeline_stage);
 `;
 
-const MIGRATION_004 = `
+const MIGRATION_003_DOWN = `
+-- SQLite < 3.35.0 does not support DROP COLUMN.
+-- Rebuild table without pipeline_stage column.
+DROP INDEX IF EXISTS idx_task_records_pipeline_stage;
+
+CREATE TABLE task_records_backup (
+  id          TEXT PRIMARY KEY,
+  title       TEXT NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'backlog',
+  scope       TEXT NOT NULL DEFAULT 'minor',
+  assignee    TEXT,
+  tags        TEXT NOT NULL DEFAULT '[]',
+  metadata    TEXT NOT NULL DEFAULT '{}',
+  created_at  TEXT NOT NULL,
+  updated_at  TEXT NOT NULL,
+  rev         INTEGER NOT NULL DEFAULT 0
+);
+
+INSERT INTO task_records_backup
+  SELECT id, title, status, scope, assignee, tags, metadata, created_at, updated_at, rev
+  FROM task_records;
+
+DROP TABLE task_records;
+
+ALTER TABLE task_records_backup RENAME TO task_records;
+
+CREATE INDEX IF NOT EXISTS idx_task_records_status ON task_records(status);
+CREATE INDEX IF NOT EXISTS idx_task_records_assignee ON task_records(assignee);
+`;
+
+const MIGRATION_004_UP = `
 -- EP09: Spawn retry queue for reliable agent spawning (Task 0066).
 CREATE TABLE IF NOT EXISTS spawn_queue (
   id TEXT PRIMARY KEY,
@@ -92,7 +137,11 @@ CREATE TABLE IF NOT EXISTS spawn_queue (
 CREATE INDEX IF NOT EXISTS idx_spawn_queue_status ON spawn_queue(status);
 `;
 
-const MIGRATION_005 = `
+const MIGRATION_004_DOWN = `
+DROP TABLE IF EXISTS spawn_queue;
+`;
+
+const MIGRATION_005_UP = `
 -- EP11: Hard budget limits engine (Task 0084).
 -- Hierarchical budget tracking: global > pipeline > stage > agent.
 CREATE TABLE IF NOT EXISTS budget_records (
@@ -114,7 +163,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_records_scope ON budget_records(sco
 CREATE INDEX IF NOT EXISTS idx_budget_records_status ON budget_records(status);
 `;
 
-const MIGRATION_006 = `
+const MIGRATION_005_DOWN = `
+DROP TABLE IF EXISTS budget_records;
+`;
+
+const MIGRATION_006_UP = `
 -- EP14: Metrics aggregation engine (Task 0099).
 -- Pre-computed metrics from event_log for fast dashboards and /api/metrics.
 CREATE TABLE IF NOT EXISTS metrics_aggregated (
@@ -132,50 +185,27 @@ CREATE INDEX IF NOT EXISTS idx_metrics_agg_lookup
   ON metrics_aggregated(metric_type, scope, period, period_start);
 `;
 
-interface Migration {
-  readonly version: number;
-  readonly sql: string;
-}
+const MIGRATION_006_DOWN = `
+DROP TABLE IF EXISTS metrics_aggregated;
+`;
 
-const MIGRATIONS: readonly Migration[] = [
-  { version: 1, sql: MIGRATION_001 },
-  { version: 2, sql: MIGRATION_002 },
-  { version: 3, sql: MIGRATION_003 },
-  { version: 4, sql: MIGRATION_004 },
-  { version: 5, sql: MIGRATION_005 },
-  { version: 6, sql: MIGRATION_006 },
+/**
+ * All migrations in up/down reversible format.
+ * Exported for use by the migration engine and tests.
+ */
+export const MIGRATIONS: readonly Migration[] = [
+  { version: 1, name: 'core-schema', up: MIGRATION_001_UP, down: MIGRATION_001_DOWN },
+  { version: 2, name: 'ext-requests', up: MIGRATION_002_UP, down: MIGRATION_002_DOWN },
+  { version: 3, name: 'pipeline-stage', up: MIGRATION_003_UP, down: MIGRATION_003_DOWN },
+  { version: 4, name: 'spawn-queue', up: MIGRATION_004_UP, down: MIGRATION_004_DOWN },
+  { version: 5, name: 'budget-records', up: MIGRATION_005_UP, down: MIGRATION_005_DOWN },
+  { version: 6, name: 'metrics-aggregated', up: MIGRATION_006_UP, down: MIGRATION_006_DOWN },
 ];
 
 /**
  * Run pending database migrations.
- * Tracks applied versions in the schema_version table.
+ * Backward-compatible wrapper that delegates to the migration engine.
  */
 export function runMigrations(db: Database.Database): void {
-  // Ensure schema_version exists first (before any transaction)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS schema_version (
-      version INTEGER PRIMARY KEY,
-      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-  `);
-
-  const currentVersion = (
-    db.prepare('SELECT MAX(version) as v FROM schema_version').get() as
-      | { v: number | null }
-      | undefined
-  )?.v ?? 0;
-
-  const pending = MIGRATIONS.filter((m) => m.version > currentVersion);
-  if (pending.length === 0) return;
-
-  const applyAll = db.transaction(() => {
-    for (const migration of pending) {
-      db.exec(migration.sql);
-      db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(
-        migration.version,
-      );
-    }
-  });
-
-  applyAll();
+  migrateUp(db, MIGRATIONS);
 }
