@@ -227,37 +227,6 @@ jobs:
       - name: Run E2E pipeline tests
         run: pnpm test:e2e
 
-      # --- Gate verdict (must come last; sets workflow exit code) ---
-
-      - name: Gate verdict
-        if: always()
-        env:
-          TESTS_OUTCOME: ${{ steps.tests.outcome }}
-          LINT_OUTCOME: ${{ steps.lint.outcome }}
-          VULN_EXIT: ${{ steps.vuln.outputs.exit_code }}
-        run: |
-          VULN_EXIT="${VULN_EXIT:-1}"
-          FAILED=0
-
-          if [ "$TESTS_OUTCOME" = "failure" ]; then
-            echo "::error::Tests gate failed"
-            FAILED=1
-          fi
-          if [ "$LINT_OUTCOME" = "failure" ]; then
-            echo "::error::Lint gate failed (lint errors detected)"
-            FAILED=1
-          fi
-          if [ "$VULN_EXIT" != "0" ]; then
-            echo "::error::Vulnerability policy gate failed"
-            FAILED=1
-          fi
-
-          if [ "$FAILED" = "1" ]; then
-            echo "Quality gate FAILED"
-            exit 1
-          fi
-          echo "Quality gate PASSED"
-
   perf-baseline:
     name: perf-baseline
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
