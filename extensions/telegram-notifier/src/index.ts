@@ -15,6 +15,14 @@ import { handleHealth } from './commands/health-diagnostics.js';
 import { handlePipeline } from './commands/pipeline-view.js';
 import { handleDecisions } from './commands/decision-context.js';
 import { AlertEngine } from './alerting/alert-engine.js';
+import { StandupScheduler } from './standup/daily-standup.js';
+import { extractDecisionData, formatDecisionCard, buildDecisionButtons } from './decision-buttons.js';
+import {
+  trackPipeline,
+  getTrackedPipeline,
+  updateTrackedStage,
+  formatPipelineProgress,
+} from './pipeline-tracker.js';
 
 /**
  * Telegram Notifier Plugin
@@ -35,6 +43,7 @@ interface QueuedMessage {
   text: string;
   priority: 'high' | 'normal' | 'low';
   timestamp: number;
+  buttons?: ReadonlyArray<ReadonlyArray<{ text: string; callback_data: string }>>;
 }
 
 const MESSAGE_QUEUE: QueuedMessage[] = [];
@@ -60,6 +69,14 @@ function getConfig(api: OpenClawPluginApi): NotifierConfig {
 
 function enqueue(text: string, priority: 'high' | 'normal' | 'low'): void {
   MESSAGE_QUEUE.push({ text, priority, timestamp: Date.now() });
+}
+
+function enqueueWithButtons(
+  text: string,
+  priority: 'high' | 'normal' | 'low',
+  buttons: ReadonlyArray<ReadonlyArray<{ text: string; callback_data: string }>>,
+): void {
+  MESSAGE_QUEUE.push({ text, priority, timestamp: Date.now(), buttons });
 }
 
 export default {
@@ -98,19 +115,13 @@ export default {
       } else if (toolName === 'quality_gate') {
         enqueue(formatQualityGate(params, result), 'normal');
       } else if (toolName === 'decision_evaluate') {
-        const details = (result && typeof result === 'object')
-          ? (result as Record<string, unknown>)['details'] ?? result
-          : null;
-        if (details && typeof details === 'object') {
-          const d = details as Record<string, unknown>;
-          if (d['escalated'] === true && d['approver'] && d['approver'] !== 'human') {
-            const approver = escapeMarkdownV2(String(d['approver']));
-            const decisionId = escapeMarkdownV2(String(d['decisionId'] ?? 'unknown'));
-            enqueue(
-              `⚡ Decision \`${decisionId}\` escalated to *${approver}*`,
-              'high',
-            );
-          }
+        // EP21 Task 0142: Rich decision card with inline keyboard buttons
+        const res = (result && typeof result === 'object') ? result as Record<string, unknown> : {};
+        const cardData = extractDecisionData(params, res);
+        if (cardData && cardData.approver !== 'human') {
+          const text = formatDecisionCard(cardData);
+          const buttons = buildDecisionButtons(cardData.decisionId, cardData.options);
+          enqueueWithButtons(text, 'high', buttons);
         }
       } else if (toolName === 'pipeline_advance') {
         const res = (result && typeof result === 'object')
@@ -118,10 +129,73 @@ export default {
           : {};
         const details = ((res['details'] ?? res) as Record<string, unknown>);
         if (details['advanced'] === true) {
-          if (details['currentStage'] === 'DONE') {
-            enqueue(formatPipelineComplete(details), 'high');
+          const taskId = String(details['taskId'] ?? 'unknown');
+          const previousStage = String(details['previousStage'] ?? '');
+          const currentStage = String(details['currentStage'] ?? '');
+          const title = String(details['title'] ?? '');
+
+          // EP21 Task 0143: Live pipeline tracker -- single message, edited in-place
+          const tracked = getTrackedPipeline(taskId);
+          if (tracked) {
+            // Update existing tracked pipeline and edit the message
+            const updated = updateTrackedStage(taskId, previousStage, currentStage);
+            if (updated) {
+              const text = formatPipelineProgress(updated);
+              const ma = api.runtime?.channel?.telegram?.messageActions;
+              if (ma?.handleAction) {
+                Promise.resolve(ma.handleAction({
+                  channel: 'telegram' as never,
+                  action: 'edit' as never,
+                  cfg: api.config,
+                  params: {
+                    chatId: updated.chatId,
+                    messageId: Number(updated.messageId),
+                    message: text,
+                  },
+                })).catch((err: unknown) => {
+                  slog('warn', 'pipeline_tracker.edit_failed', { taskId, err: String(err) });
+                  // Fallback: send a new message
+                  enqueue(currentStage === 'DONE'
+                    ? formatPipelineComplete(details)
+                    : formatPipelineAdvance(details), 'normal');
+                });
+              }
+            }
           } else {
-            enqueue(formatPipelineAdvance(details), 'normal');
+            // First advance for this task: send initial tracker message
+            const runtime = api.runtime;
+            const sendTg = runtime?.channel?.telegram?.sendMessageTelegram;
+            if (typeof sendTg === 'function') {
+              // Create a temporary tracked entry so formatPipelineProgress works
+              trackPipeline(taskId, config.groupId, '0', title, currentStage);
+              const tempTracked = getTrackedPipeline(taskId);
+              if (tempTracked && previousStage) {
+                tempTracked.completedStages.add(previousStage);
+              }
+              const text = tempTracked
+                ? formatPipelineProgress(tempTracked)
+                : formatPipelineAdvance(details);
+              Promise.resolve(sendTg(config.groupId, text, {
+                textMode: 'markdown',
+              })).then((sent: unknown) => {
+                const sendResult = sent as { messageId?: string; chatId?: string } | undefined;
+                const msgId = String(sendResult?.messageId ?? '0');
+                const chatId = String(sendResult?.chatId ?? config.groupId);
+                // Re-track with actual messageId from Telegram
+                trackPipeline(taskId, chatId, msgId, title, currentStage);
+                if (previousStage) {
+                  const t = getTrackedPipeline(taskId);
+                  if (t) t.completedStages.add(previousStage);
+                }
+              }).catch((err: unknown) => {
+                slog('warn', 'pipeline_tracker.send_failed', { taskId, err: String(err) });
+              });
+            } else {
+              // No Telegram runtime, fall back to queue
+              enqueue(currentStage === 'DONE'
+                ? formatPipelineComplete(details)
+                : formatPipelineAdvance(details), 'normal');
+            }
           }
         }
       }
@@ -409,6 +483,28 @@ export default {
       },
     });
 
+    // ── Daily Standup Scheduler (EP21 Task 0145) ──
+
+    const rawStandupCfg = (pluginCfg['standup'] && typeof pluginCfg['standup'] === 'object')
+      ? (pluginCfg['standup'] as Record<string, unknown>)
+      : {};
+    const standupEnabled = rawStandupCfg['enabled'] === true || rawStandupCfg['enabled'] === 'true';
+    const standupHour = typeof rawStandupCfg['hourUtc'] === 'number' ? rawStandupCfg['hourUtc'] : 9;
+    const standupScheduler = new StandupScheduler(ptApi, enqueue, alertLogger, {
+      enabled: standupEnabled,
+      hourUtc: standupHour,
+    });
+
+    api.registerService({
+      id: 'telegram-notifier-standup',
+      async start() {
+        standupScheduler.start();
+      },
+      async stop() {
+        standupScheduler.stop();
+      },
+    });
+
     // ── Background Message Queue Service ──
 
     api.registerService({
@@ -434,9 +530,11 @@ export default {
               const runtime = api.runtime;
               const sendTg = runtime?.channel?.telegram?.sendMessageTelegram;
               if (typeof sendTg === 'function') {
-                Promise.resolve(sendTg(config.groupId, msg.text, {
-                  textMode: 'markdown',
-                })).catch((err: unknown) => {
+                const sendOpts: Record<string, unknown> = { textMode: 'markdown' };
+                if (msg.buttons && msg.buttons.length > 0) {
+                  sendOpts['buttons'] = msg.buttons;
+                }
+                Promise.resolve(sendTg(config.groupId, msg.text, sendOpts)).catch((err: unknown) => {
                   const errStr = String(err);
                   logger.error(`telegram-notifier: Failed to send message: ${errStr}`);
                   // Fallback: log the notification content to stdout so it's visible in docker logs
