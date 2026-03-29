@@ -94,6 +94,12 @@ jobs:
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
         continue-on-error: true
 
+      - name: Publish dry-run
+        id: publish_dry_run
+        if: github.event_name == 'pull_request'
+        run: node scripts/publish-packages.mjs --dry-run
+        continue-on-error: true
+
       # --- PR comment report ---
 
       - name: Build and upsert quality report comment

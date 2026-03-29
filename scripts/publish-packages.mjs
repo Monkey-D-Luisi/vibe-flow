@@ -10,6 +10,19 @@
  * Usage:
  *   node scripts/publish-packages.mjs            # publish
  *   node scripts/publish-packages.mjs --dry-run  # dry-run only
+ *
+ * Publish order:
+ *   1. packages/quality-contracts (foundational dependency)
+ *   2. extensions/* (alphabetical, no cross-extension deps)
+ *   3. tools/* (alphabetical)
+ *
+ * Rollback procedure:
+ *   npm unpublish is available within 72 hours of publishing.
+ *   To unpublish a specific version:
+ *     npm unpublish @openclaw/<package>@<version>
+ *   To deprecate (preferred over unpublish for older packages):
+ *     npm deprecate @openclaw/<package>@<version> "reason"
+ *   See https://docs.npmjs.com/policies/unpublish for full policy.
  */
 
 import { readFileSync, readdirSync } from 'fs';
