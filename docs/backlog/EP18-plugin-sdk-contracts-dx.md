@@ -1,6 +1,6 @@
 # EP18 -- Plugin SDK Contracts & DX
 
-> Status: PENDING
+> Status: IN_PROGRESS
 > Dependencies: EP13, EP16
 > Phase: 13 (Reference & Community)
 > Target: June 2026
