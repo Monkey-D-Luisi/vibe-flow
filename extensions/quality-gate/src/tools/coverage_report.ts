@@ -80,52 +80,68 @@ async function loadLcov(path: string): Promise<CoverageOutput | null> {
   }
 }
 
-/**
- * Execute coverage report tool.
- */
-export async function coverageReportTool(input: CoverageInput): Promise<CoverageOutput> {
+function buildSummaryOutput(summary: CoverageSummaryReport): CoverageOutput {
+  const total = summary.total;
+  const details: Record<string, { linePct: number; branchPct: number; functionPct: number }> = {};
+
+  for (const [file, data] of Object.entries(summary.files)) {
+    details[file] = {
+      linePct: data.lines.pct,
+      branchPct: data.branches.pct,
+      functionPct: data.functions.pct,
+    };
+  }
+
+  return {
+    format: 'istanbul-summary',
+    linePct: total.lines.pct,
+    branchPct: total.branches.pct,
+    functionPct: total.functions.pct,
+    statementPct: total.statements.pct,
+    fileCount: Object.keys(summary.files).length,
+    details,
+  };
+}
+
+interface ResolvedCoverageInput {
+  cwd: string;
+  format: string;
+  summaryPath: string;
+  lcovPath: string;
+}
+
+function resolveInput(input: CoverageInput): ResolvedCoverageInput {
   const cwd = resolve(input.cwd || process.cwd());
   const format = input.format || 'auto';
   const summaryPath = resolve(cwd, input.summaryPath || DEFAULT_SUMMARY);
   const lcovPath = resolve(cwd, input.lcovPath || DEFAULT_LCOV);
-
-  // Prevent path traversal outside the working directory
   assertPathContained(summaryPath, cwd);
   assertPathContained(lcovPath, cwd);
+  return { cwd, format, summaryPath, lcovPath };
+}
 
-  // Try summary format first (or if explicitly requested)
-  if (format === 'summary' || format === 'auto') {
+function shouldTrySummary(format: string): boolean {
+  return format === 'summary' || format === 'auto';
+}
+
+function shouldTryLcov(format: string): boolean {
+  return format === 'lcov' || format === 'auto';
+}
+
+/**
+ * Execute coverage report tool.
+ */
+export async function coverageReportTool(input: CoverageInput): Promise<CoverageOutput> {
+  const { format, summaryPath, lcovPath } = resolveInput(input);
+
+  if (shouldTrySummary(format)) {
     const summary = await loadSummary(summaryPath);
-    if (summary) {
-      const total = summary.total;
-      const details: Record<string, { linePct: number; branchPct: number; functionPct: number }> = {};
-
-      for (const [file, data] of Object.entries(summary.files)) {
-        details[file] = {
-          linePct: data.lines.pct,
-          branchPct: data.branches.pct,
-          functionPct: data.functions.pct,
-        };
-      }
-
-      return {
-        format: 'istanbul-summary',
-        linePct: total.lines.pct,
-        branchPct: total.branches.pct,
-        functionPct: total.functions.pct,
-        statementPct: total.statements.pct,
-        fileCount: Object.keys(summary.files).length,
-        details,
-      };
-    }
+    if (summary) return buildSummaryOutput(summary);
   }
 
-  // Try lcov format (or if explicitly requested)
-  if (format === 'lcov' || format === 'auto') {
+  if (shouldTryLcov(format)) {
     const lcov = await loadLcov(lcovPath);
-    if (lcov) {
-      return lcov;
-    }
+    if (lcov) return lcov;
   }
 
   throw new Error(
