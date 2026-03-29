@@ -11,6 +11,8 @@
  */
 
 import { describe, it, expect, afterEach } from 'vitest';
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
 import {
   createPipelineHarness,
   nextCallId,
@@ -226,5 +228,22 @@ describe('Concurrent Agent Load Benchmark', () => {
       );
     }
     console.log('');
+
+    // Write machine-readable results for perf-compare
+    const serial = results.find((r) => r.scenario === 'Serial baseline');
+    const burst = results.find((r) => r.scenario === 'Burst');
+    if (serial && burst) {
+      const currentResults = {
+        serial_duration_ms: serial.durationMs,
+        serial_ops_per_second: serial.opsPerSecond,
+        burst_p99_write_ms: burst.p99WriteLatencyMs,
+        burst_p99_message_ms: burst.p99MessageLatencyMs,
+        burst_memory_mb: burst.memoryPeakMb,
+      };
+      const outPath = resolve(import.meta.dirname, '../../../../docs/benchmarks/current.json');
+      mkdirSync(dirname(outPath), { recursive: true });
+      writeFileSync(outPath, JSON.stringify(currentResults, null, 2) + '\n');
+      console.log(`Benchmark results written to ${outPath}`);
+    }
   });
 });

@@ -4,6 +4,8 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, ready_for_review]
+  push:
+    branches: [main]
 
 permissions:
   pull-requests: write
@@ -255,3 +257,33 @@ jobs:
             exit 1
           fi
           echo "Quality gate PASSED"
+
+  perf-baseline:
+    name: perf-baseline
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rebuild native modules
+        working-directory: extensions/product-team
+        run: node -e "const c=require('child_process'),p=require('path');const pkg=p.dirname(require.resolve('better-sqlite3/package.json'));console.log('Rebuilding better-sqlite3 at',pkg);c.execSync('npm run install',{cwd:pkg,stdio:'inherit'});"
+
+      - name: Run benchmarks
+        run: pnpm perf:bench
+
+      - name: Compare against baseline
+        run: pnpm perf:compare --current docs/benchmarks/current.json
