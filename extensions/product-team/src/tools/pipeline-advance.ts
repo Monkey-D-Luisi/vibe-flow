@@ -13,10 +13,36 @@ import type { ToolDef, ToolDeps } from './index.js';
 import { PIPELINE_STAGES, STAGE_OWNERS, getNextStage, type PipelineStage } from './pipeline.js';
 import { Type } from '@sinclair/typebox';
 import { getSkillInstructions } from '../hooks/skill-activation.js';
+import { evaluateStageQuality, DEFAULT_STAGE_QUALITY_CONFIG, type StageQualityConfig } from '../orchestrator/stage-quality-rules.js';
+import {
+  parseSelfEvaluation,
+  validateSelfEvaluation,
+  DEFAULT_SELF_EVAL_CONFIG,
+  type SelfEvaluationConfig,
+} from '../orchestrator/self-evaluation.js';
+import {
+  parseReviewViolations,
+  formatRepairBrief,
+  buildReviewLoopState,
+  buildReviewRound,
+  isReviewLoopExhausted,
+  formatEscalationMessage,
+  countBlockingViolations,
+  type ReviewRound,
+} from '../orchestrator/review-loop.js';
 
 const PipelineAdvanceParams = Type.Object({
   taskId: Type.String({ minLength: 1, description: 'Task ID to advance to the next pipeline stage' }),
   skipDesign: Type.Optional(Type.Boolean({ description: 'Force skip DESIGN stage (for non-UI tasks)' })),
+  selfEvaluation: Type.Optional(Type.Union([
+    Type.Object({
+      confidence: Type.Number({ minimum: 1, maximum: 5, description: 'Self-assessed confidence score (1-5)' }),
+      completeness: Type.Number({ minimum: 1, maximum: 5, description: 'Self-assessed completeness score (1-5)' }),
+      risks: Type.Optional(Type.String({ description: 'Known risks or concerns' })),
+      summary: Type.String({ minLength: 1, description: 'Summary of what was done' }),
+    }),
+    Type.String({ minLength: 1, description: 'Free-text self-evaluation summary' }),
+  ], { description: 'Agent self-evaluation of work done in current stage' })),
 });
 
 const PipelineMetricsParams = Type.Object({
@@ -59,17 +85,87 @@ export function buildStageSpawnMessage(
   const owner = STAGE_OWNERS[stage as PipelineStage] ?? 'system';
   const skillContext = getSkillInstructions(stage, owner);
 
-  return [
+  const parts = [
     `Pipeline task ${taskId} has advanced to ${stage}.`,
     `Task: "${title}"`,
     ideaText ? `Idea: ${ideaText}` : '',
     '',
     `You are the ${stage} stage owner. ${instruction}`,
     skillContext ?? '',
+  ];
+
+  // EP21 Task 0146: Enrich with repair brief when returning to IMPLEMENTATION after review
+  const reviewBrief = buildReviewContextForSpawn(stage, meta);
+  if (reviewBrief) {
+    parts.push('', reviewBrief);
+  }
+
+  parts.push(
     '',
     `When done, call pipeline_advance({ taskId: "${taskId}" }) to advance to the next stage.`,
     'Do NOT wait for instructions. Do NOT ask what to do next.',
-  ].filter(Boolean).join('\n');
+  );
+
+  return parts.filter(Boolean).join('\n');
+}
+
+/**
+ * EP21 Task 0146: Build review repair context for spawn message.
+ *
+ * When a task returns to IMPLEMENTATION from REVIEW, attach a repair brief
+ * with the violations that need fixing.
+ */
+function buildReviewContextForSpawn(
+  stage: string,
+  meta: Record<string, unknown>,
+): string | null {
+  if (stage !== 'IMPLEMENTATION') return null;
+
+  const reviewResult = meta['review_result'];
+  if (!reviewResult || typeof reviewResult !== 'object' || reviewResult === null) return null;
+
+  const violations = parseReviewViolations(reviewResult as Record<string, unknown>);
+  if (violations.length === 0) return null;
+
+  // Extract round info from metadata
+  const roundsReview = typeof meta['roundsReview'] === 'number' ? meta['roundsReview'] : 1;
+  const maxRounds = typeof meta['maxReviewRounds'] === 'number' ? meta['maxReviewRounds'] : 3;
+
+  // Build historical rounds from metadata if available
+  const history = extractReviewHistory(meta);
+  const currentRound = buildReviewRound(roundsReview, violations);
+  const allRounds = [...history, currentRound];
+
+  const state = buildReviewLoopState(
+    String(meta['taskId'] ?? 'unknown'),
+    String(meta['title'] ?? 'Untitled'),
+    roundsReview,
+    maxRounds,
+    allRounds,
+  );
+
+  if (isReviewLoopExhausted(state)) {
+    return formatEscalationMessage(state);
+  }
+
+  return formatRepairBrief(state, violations);
+}
+
+/**
+ * Extract review round history from task metadata.
+ */
+function extractReviewHistory(meta: Record<string, unknown>): ReviewRound[] {
+  const raw = meta['reviewHistory'];
+  if (!Array.isArray(raw)) return [];
+
+  return raw.filter(
+    (r): r is Record<string, unknown> => typeof r === 'object' && r !== null,
+  ).map((r) => ({
+    round: typeof r['round'] === 'number' ? r['round'] : 0,
+    violations: parseReviewViolations(r as Record<string, unknown>),
+    summary: typeof r['summary'] === 'string' ? r['summary'] : undefined,
+    timestamp: typeof r['timestamp'] === 'string' ? r['timestamp'] : new Date().toISOString(),
+  }));
 }
 
 /** Emit a stage transition event to the event log for observability (Task 0074). */
@@ -98,7 +194,7 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
     description: 'Advance a pipeline task to the next stage, spawning the stage owner',
     parameters: PipelineAdvanceParams,
     execute: async (_toolCallId, params) => {
-      const input = deps.validate<{ taskId: string; skipDesign?: boolean }>(PipelineAdvanceParams, params);
+      const input = deps.validate<{ taskId: string; skipDesign?: boolean; selfEvaluation?: unknown }>(PipelineAdvanceParams, params);
 
       const task = deps.taskRepo.getById(input.taskId);
       if (!task) {
@@ -126,6 +222,50 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
             details: { advanced: false, reason },
           };
         }
+      }
+
+      // Task 0141 (EP21): Pre-advance stage quality validation.
+      // Each stage has quality requirements that must be met before advancing.
+      const stageQualityConfig: StageQualityConfig = {
+        ...DEFAULT_STAGE_QUALITY_CONFIG,
+        coverageMinPct: deps.orchestratorConfig?.coverageByScope?.minor ?? 70,
+        enabled: deps.orchestratorConfig?.stageQualityEnabled !== false,
+      };
+      const qualityFailures = evaluateStageQuality(currentStage, meta, stageQualityConfig);
+      if (qualityFailures.length > 0) {
+        const failureMessages = qualityFailures.map((f) => `• ${f.rule}: ${f.message}`).join('\n');
+        const reason = `Stage ${currentStage} quality requirements not met:\n${failureMessages}`;
+        emitStageEvent(deps, input.taskId, 'pipeline.stage.quality_blocked', {
+          stage: currentStage,
+          failures: qualityFailures,
+          agentId: callerAgentId ?? 'unknown',
+        });
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ advanced: false, reason, qualityFailures }, null, 2) }],
+          details: { advanced: false, reason, qualityFailures },
+        };
+      }
+
+      // Task 0144 (EP21): Agent self-evaluation enforcement.
+      // Agents must provide a structured self-assessment for key stages.
+      const selfEvalConfig: SelfEvaluationConfig = {
+        ...DEFAULT_SELF_EVAL_CONFIG,
+        enabled: deps.orchestratorConfig?.selfEvaluationEnabled !== false,
+      };
+      const parsedEval = parseSelfEvaluation(input.selfEvaluation);
+      const evalFailures = validateSelfEvaluation(currentStage, parsedEval, selfEvalConfig);
+      if (evalFailures.length > 0) {
+        const failureMessages = evalFailures.map((f) => `• ${f.rule}: ${f.message}`).join('\n');
+        const reason = `Self-evaluation required for stage ${currentStage}:\n${failureMessages}`;
+        emitStageEvent(deps, input.taskId, 'pipeline.stage.eval_blocked', {
+          stage: currentStage,
+          failures: evalFailures,
+          agentId: callerAgentId ?? 'unknown',
+        });
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ advanced: false, reason, evalFailures }, null, 2) }],
+          details: { advanced: false, reason, evalFailures },
+        };
       }
 
       // Task 0064: Per-stage retry limit enforcement
@@ -231,12 +371,38 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
         updatedMeta['DESIGN_skipReason'] = designSkipReason;
       }
 
+      // Task 0144 (EP21): Store self-evaluation in metadata
+      if (parsedEval) {
+        updatedMeta[`${currentStage}_selfEvaluation`] = parsedEval;
+      }
+
+      // Task 0146 (EP21): Accumulate review round history when advancing past REVIEW
+      if (currentStage === 'REVIEW') {
+        const reviewResult = meta['review_result'];
+        if (reviewResult && typeof reviewResult === 'object' && reviewResult !== null) {
+          const violations = parseReviewViolations(reviewResult as Record<string, unknown>);
+          if (violations.length > 0) {
+            const existingHistory = Array.isArray(meta['reviewHistory']) ? meta['reviewHistory'] as unknown[] : [];
+            const roundNumber = existingHistory.length + 1;
+            existingHistory.push(buildReviewRound(roundNumber, violations));
+            updatedMeta['reviewHistory'] = existingHistory;
+
+            emitStageEvent(deps, input.taskId, 'pipeline.stage.review_completed', {
+              round: roundNumber,
+              totalViolations: violations.length,
+              blockingViolations: countBlockingViolations(violations),
+              stage: 'REVIEW',
+            });
+          }
+        }
+      }
+
       deps.taskRepo.update(input.taskId, { metadata: updatedMeta }, task.rev, now);
       syncPipelineStageColumn(deps, input.taskId, targetStage);
 
       deps.logger?.info(`pipeline.advance: ${input.taskId} ${currentStage} → ${targetStage}`);
 
-      const spawnMessage = buildStageSpawnMessage(input.taskId, targetStage, task.title ?? 'Untitled', meta);
+      const spawnMessage = buildStageSpawnMessage(input.taskId, targetStage, task.title ?? 'Untitled', updatedMeta);
 
       const result = {
         advanced: true,
