@@ -54,7 +54,7 @@ async function runPipeline(
   const { tools, advanceToStage } = harness;
   let errors = 0;
   const stages = [...PIPELINE_STAGES].slice(0, -1); // exclude DONE from iteration
-  const agents = ['pm', 'po', 'tech-lead', 'designer', 'back-1', 'qa', 'tech-lead', 'devops', 'pm'];
+  const agents = ['pm', 'po', 'tech-lead', 'designer', 'back-1', 'qa', 'front-1', 'devops', 'pm'];
 
   // Start pipeline
   const t0 = performance.now();
@@ -63,7 +63,9 @@ async function runPipeline(
     startResult = await tools.pipelineStart.execute(nextCallId(), {
       ideaText: `Benchmark pipeline ${pipelineIndex}`,
     });
-  } catch {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Pipeline ${pipelineIndex} start failed: ${msg}`);
     errors++;
     return { taskId: '', errors };
   }
@@ -81,7 +83,9 @@ async function runPipeline(
     const tw = performance.now();
     try {
       advanceToStage(taskId, stage);
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`Pipeline ${pipelineIndex} advance to ${stage} failed: ${msg}`);
       errors++;
       continue;
     }
@@ -97,7 +101,9 @@ async function runPipeline(
         body: `Advancing to ${stage}`,
         taskRef: taskId,
       });
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`Pipeline ${pipelineIndex} message ${fromAgent}→${toAgent} failed: ${msg}`);
       errors++;
     }
     messageLatencies.push(performance.now() - tm);
@@ -107,7 +113,9 @@ async function runPipeline(
   const tf = performance.now();
   try {
     advanceToStage(taskId, 'DONE');
-  } catch {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Pipeline ${pipelineIndex} final DONE advance failed: ${msg}`);
     errors++;
   }
   writeLatencies.push(performance.now() - tf);
