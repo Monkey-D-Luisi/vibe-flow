@@ -64,7 +64,7 @@ describe('runMigrations', () => {
     runMigrations(db);
 
     const row = db
-      .prepare('SELECT MAX(version) as v FROM schema_version')
+      .prepare('SELECT MAX(version) as v FROM schema_migrations')
       .get() as { v: number };
     expect(row.v).toBe(6);
   });
@@ -75,7 +75,7 @@ describe('runMigrations', () => {
     runMigrations(db);
 
     const rows = db
-      .prepare('SELECT COUNT(*) as c FROM schema_version')
+      .prepare('SELECT COUNT(*) as c FROM schema_migrations')
       .get() as { c: number };
     expect(rows.c).toBe(6);
   });
