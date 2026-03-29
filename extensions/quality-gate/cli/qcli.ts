@@ -198,8 +198,8 @@ async function readHistoryFile(path: string): Promise<GateEnforceInput['history'
   });
 }
 
-async function parseGateArgs(args: string[]): Promise<GateEnforceInput> {
-  const input: GateEnforceInput = {};
+async function parseGateArgs(args: string[]): Promise<GateEnforceInput & { strict?: boolean }> {
+  const input: GateEnforceInput & { strict?: boolean } = {};
   for (let i = 2; i < args.length; i += 1) {
     const flag = args[i];
     switch (flag) {
@@ -211,6 +211,9 @@ async function parseGateArgs(args: string[]): Promise<GateEnforceInput> {
         input.scope = value;
         break;
       }
+      case '--strict':
+        input.strict = true;
+        break;
       case '--auto-tune':
         input.autoTune = { ...(input.autoTune ?? {}), enabled: true };
         break;
@@ -290,7 +293,7 @@ function usage(): never {
   qcli run --coverage [--summary <path>] [--lcov <path>] [--cwd <path>] [--format <summary|lcov|auto>]
   qcli run --lint [--engine <eslint|ruff>] [--command <cmd>] [--cwd <path>] [--timeout <ms>]
   qcli run --complexity [--glob <pattern>]... [--exclude <glob>] [--cwd <path>] [--max-cyclomatic <num>] [--top-n <num>]
-  qcli run --gate [--scope <major|minor|patch|default>] [--auto-tune] [--history <path>] [--min-samples <n>] [--smoothing-factor <0-1>] [--alerts] [--coverage-drop-threshold <n>] [--complexity-rise-threshold <n>] [--alert-cooldown-events <n>]`);
+  qcli run --gate [--scope <major|minor|patch|default>] [--strict] [--auto-tune] [--history <path>] [--min-samples <n>] [--smoothing-factor <0-1>] [--alerts] [--coverage-drop-threshold <n>] [--complexity-rise-threshold <n>] [--alert-cooldown-events <n>]`);
   process.exit(1);
 }
 
@@ -329,10 +332,16 @@ async function main(): Promise<void> {
       process.exit(result.thresholdExceeded ? 1 : 0);
     } else if (args[1] === '--gate') {
       const input = await parseGateArgs(args);
+      const strict = input.strict;
+      delete input.strict;
       const result = await gateEnforceTool(input);
       writeReport('.qreport/gate.json', result);
       if (result.result.verdict === 'fail') {
         console.error(`Gate FAILED: ${result.result.summary}`);
+        process.exit(1);
+      }
+      if (strict && result.result.verdict === 'warn') {
+        console.error(`Gate FAILED (strict): ${result.result.summary}`);
         process.exit(1);
       }
       console.log(`Gate ${result.result.verdict.toUpperCase()}: ${result.result.summary}`);
