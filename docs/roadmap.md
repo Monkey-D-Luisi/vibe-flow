@@ -59,7 +59,7 @@ observability, and extensibility for the community.
 | 11    | EP15 | Telegram Control Plane v2            | EP14         | April 2026 | DONE    |
 | 12    | EP16 | E2E Testing & Load Characterization  | EP13         | May 2026   | DONE |
 | 12    | EP17 | Security & Stability v2              | EP09         | May 2026   | DONE |
-| 13    | EP18 | Plugin SDK Contracts & DX            | EP13, EP16   | June 2026  | IN_PROGRESS |
+| 13    | EP18 | Plugin SDK Contracts & DX            | EP13, EP16   | June 2026  | DONE |
 | 13    | EP19 | Showcase & Documentation             | EP18         | June 2026  | PENDING |
 | 14    | EP20 | Virtual Office                       | EP09         | March 2026 | DONE |
 
@@ -553,9 +553,9 @@ Key deliverables:
 
 - Task 0118: Plugin API Reference Documentation -- DONE (EP18, 13A)
 - Task 0119: npm Publish Pipeline End-to-End Wiring -- DONE (EP18, 13A)
-- Task 0120: Extension Scaffolding Templates by Type -- PENDING (EP18, 13B)
-- Task 0121: Getting Started Guide -- PENDING (EP18, 13B)
-- Task 0122: API Versioning Policy and Deprecation Strategy -- PENDING (EP18, 13C)
+- Task 0120: Extension Scaffolding Templates by Type -- DONE (EP18, 13B)
+- Task 0121: Getting Started Guide -- DONE (EP18, 13B)
+- Task 0122: API Versioning Policy and Deprecation Strategy -- DONE (EP18, 13C)
 
 ### EP19 -- Showcase & Documentation
 

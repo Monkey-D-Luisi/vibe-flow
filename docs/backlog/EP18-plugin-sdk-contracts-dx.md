@@ -1,6 +1,6 @@
 # EP18 -- Plugin SDK Contracts & DX
 
-> Status: IN_PROGRESS
+> Status: DONE
 > Dependencies: EP13, EP16
 > Phase: 13 (Reference & Community)
 > Target: June 2026
@@ -238,10 +238,10 @@ changes are communicated, and how deprecated features are removed.
 
 ## Definition of Done
 
-- [ ] All 5 tasks completed
-- [ ] API reference documentation covers all public methods
-- [ ] npm publish pipeline publishes on tag push with provenance
-- [ ] 5 scaffolding templates available and tested
-- [ ] Getting started guide verified end-to-end (< 5 min)
-- [ ] Versioning policy and stability tiers documented
-- [ ] `pnpm test && pnpm lint && pnpm typecheck` passes
+- [x] All 5 tasks completed
+- [x] API reference documentation covers all public methods
+- [x] npm publish pipeline publishes on tag push with provenance
+- [x] 5 scaffolding templates available and tested
+- [x] Getting started guide verified end-to-end (< 5 min)
+- [x] Versioning policy and stability tiers documented
+- [x] `pnpm test && pnpm lint && pnpm typecheck` passes
