@@ -199,6 +199,36 @@ describe('migration-engine', () => {
       expect(row.title).toBe('Test');
     });
 
+    it('should rollback v3 safely when ext_requests has rows (FK path)', () => {
+      db = createDatabase(':memory:');
+      migrateUp(db, MIGRATIONS);
+
+      // Insert a task and an ext_requests row referencing it
+      db.prepare(
+        `INSERT INTO task_records (id, title, status, scope, created_at, updated_at, pipeline_stage)
+         VALUES ('t1', 'FK-Test', 'backlog', 'minor', datetime('now'), datetime('now'), 'dev')`,
+      ).run();
+      db.prepare(
+        `INSERT INTO ext_requests (request_id, task_id, tool, payload_hash, response, created_at)
+         VALUES ('r1', 't1', 'test-tool', 'hash1', '{}', datetime('now'))`,
+      ).run();
+
+      // Rollback v3 should succeed despite ext_requests FK to task_records
+      migrateDown(db, MIGRATIONS, 2);
+
+      // pipeline_stage column should be gone
+      const cols = db
+        .prepare('PRAGMA table_info(task_records)')
+        .all() as { name: string }[];
+      expect(cols.map((c) => c.name)).not.toContain('pipeline_stage');
+
+      // ext_requests row should still exist (FK integrity preserved)
+      const extRow = db
+        .prepare('SELECT request_id FROM ext_requests WHERE request_id = ?')
+        .get('r1') as { request_id: string } | undefined;
+      expect(extRow?.request_id).toBe('r1');
+    });
+
     it('should allow re-applying after rollback (round trip)', () => {
       db = createDatabase(':memory:');
       migrateUp(db, MIGRATIONS);

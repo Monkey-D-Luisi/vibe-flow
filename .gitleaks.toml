@@ -24,7 +24,7 @@ title = "OpenClaw Gitleaks Config"
 [[rules]]
   id = "openai-api-key"
   description = "OpenAI API Key"
-  regex = '''sk-[a-zA-Z0-9]{20,}T3BlbkFJ[a-zA-Z0-9]{20,}'''
+  regex = '''sk-[a-zA-Z0-9]{20,}'''
   tags = ["credential", "openai"]
 
 [[rules]]

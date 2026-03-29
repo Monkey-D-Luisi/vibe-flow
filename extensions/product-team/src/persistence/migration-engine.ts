@@ -154,17 +154,6 @@ export function migrateUp(
     'INSERT INTO schema_migrations (version, name, applied_at, checksum) VALUES (?, ?, datetime(\'now\'), ?)',
   );
 
-  // Also insert into old schema_version table for backward compatibility
-  const hasOldTable = db
-    .prepare(
-      "SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='schema_version'",
-    )
-    .get() as { c: number };
-
-  const insertOld = hasOldTable.c > 0
-    ? db.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)')
-    : undefined;
-
   for (const migration of pending) {
     const apply = db.transaction(() => {
       db.exec(migration.up);
@@ -173,7 +162,19 @@ export function migrateUp(
         migration.name,
         computeChecksum(migration.up),
       );
-      insertOld?.run(migration.version);
+
+      // Also insert into old schema_version table for backward compatibility.
+      // Re-check each iteration because v1 creates the table.
+      const hasOldTable = db
+        .prepare(
+          "SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='schema_version'",
+        )
+        .get() as { c: number };
+      if (hasOldTable.c > 0) {
+        db.prepare('INSERT OR IGNORE INTO schema_version (version) VALUES (?)').run(
+          migration.version,
+        );
+      }
     });
     apply();
   }
@@ -212,6 +213,11 @@ export function migrateDown(
       );
     }
 
+    // Temporarily disable FK checks so table rebuilds (e.g. v3 DROP + recreate)
+    // don't fail when dependent tables have rows.
+    // PRAGMA cannot be changed inside a transaction, so toggle outside.
+    db.pragma('foreign_keys = OFF');
+
     const rollback = db.transaction(() => {
       db.exec(migration.down);
       remove.run(migration.version);
@@ -230,6 +236,16 @@ export function migrateDown(
       }
     });
     rollback();
+
+    // Re-enable FK checks and verify integrity
+    db.pragma('foreign_keys = ON');
+    const fkViolations = db.pragma('foreign_key_check') as unknown[];
+    if (fkViolations.length > 0) {
+      throw new Error(
+        `Foreign key violations after rolling back v${record.version}: ` +
+          JSON.stringify(fkViolations),
+      );
+    }
   }
 
   return toRollback.length;
