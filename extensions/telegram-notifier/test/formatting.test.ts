@@ -7,6 +7,7 @@ import {
   formatAgentError,
   formatPipelineAdvance,
   formatPipelineComplete,
+  buildProgressBar,
 } from '../src/formatting.js';
 
 describe('escapeMarkdownV2', () => {
@@ -98,14 +99,14 @@ describe('formatPrCreation', () => {
 });
 
 describe('formatQualityGate', () => {
-  it('formats a passing gate', () => {
+  it('formats a passing gate (simple format)', () => {
     const result = formatQualityGate({}, { pass: true, coverage: 87 });
     expect(result).toContain('✅');
     expect(result).toContain('PASSED');
     expect(result).toContain('87');
   });
 
-  it('formats a failing gate', () => {
+  it('formats a failing gate (simple format)', () => {
     const result = formatQualityGate({}, { pass: false });
     expect(result).toContain('❌');
     expect(result).toContain('FAILED');
@@ -119,6 +120,130 @@ describe('formatQualityGate', () => {
   it('omits coverage when not present', () => {
     const result = formatQualityGate({}, { pass: true });
     expect(result).not.toContain('coverage');
+  });
+
+  it('renders rich report card when output field is present', () => {
+    const result = formatQualityGate({}, {
+      output: {
+        passed: true,
+        metrics: {
+          tests: { total: 120, failed: 0 },
+          coverage: { lines: 85 },
+          lint: { errors: 0, warnings: 3 },
+          complexity: { avgCyclomatic: 3.2, maxCyclomatic: 8 },
+        },
+        violations: [],
+        alerts: [],
+      },
+    });
+    expect(result).toContain('✅');
+    expect(result).toContain('Quality Gate PASSED');
+    expect(result).toContain('Coverage');
+    expect(result).toContain('85');
+    expect(result).toContain('█');
+    expect(result).toContain('Tests');
+    expect(result).toContain('120');
+    expect(result).toContain('Lint');
+    expect(result).toContain('0 errors');
+    expect(result).toContain('Complexity');
+    expect(result).toContain('3\\.2');
+  });
+
+  it('renders rich failing report with violations', () => {
+    const result = formatQualityGate({}, {
+      output: {
+        passed: false,
+        metrics: {
+          tests: { total: 50, failed: 3 },
+          coverage: { lines: 45 },
+          lint: { errors: 5, warnings: 0 },
+          complexity: { avgCyclomatic: 6.1, maxCyclomatic: 15 },
+        },
+        violations: [
+          { code: 'COVERAGE_BELOW', message: 'Coverage 45% below 70%' },
+          { code: 'LINT_ERRORS', message: '5 lint errors found' },
+        ],
+        alerts: [],
+      },
+    });
+    expect(result).toContain('❌');
+    expect(result).toContain('Quality Gate FAILED');
+    expect(result).toContain('45');
+    expect(result).toContain('3 failed');
+    expect(result).toContain('5 errors');
+    expect(result).toContain('Violations');
+    expect(result).toContain('COVERAGE\\_BELOW');
+    expect(result).toContain('LINT\\_ERRORS');
+  });
+
+  it('renders regression alerts when present', () => {
+    const result = formatQualityGate({}, {
+      output: {
+        passed: true,
+        metrics: { coverage: { lines: 80 } },
+        violations: [],
+        alerts: [{ reason: 'Coverage dropped 5% from baseline' }],
+      },
+    });
+    expect(result).toContain('Regression Alerts');
+    expect(result).toContain('Coverage dropped 5');
+  });
+
+  it('truncates violations list to 5', () => {
+    const violations = Array.from({ length: 8 }, (_, i) => ({
+      code: `V${i}`,
+      message: `violation ${i}`,
+    }));
+    const result = formatQualityGate({}, {
+      output: {
+        passed: false,
+        metrics: {},
+        violations,
+        alerts: [],
+      },
+    });
+    expect(result).toContain('and 3 more');
+  });
+
+  it('handles missing metrics gracefully in rich format', () => {
+    const result = formatQualityGate({}, {
+      output: {
+        passed: true,
+        metrics: {},
+        violations: [],
+        alerts: [],
+      },
+    });
+    expect(result).toContain('✅');
+    expect(result).toContain('Quality Gate PASSED');
+    expect(result).not.toContain('Coverage');
+    expect(result).not.toContain('Tests');
+  });
+});
+
+describe('buildProgressBar', () => {
+  it('renders full bar at 100%', () => {
+    expect(buildProgressBar(100)).toBe('██████████');
+  });
+
+  it('renders empty bar at 0%', () => {
+    expect(buildProgressBar(0)).toBe('░░░░░░░░░░');
+  });
+
+  it('renders half bar at 50%', () => {
+    expect(buildProgressBar(50)).toBe('█████░░░░░');
+  });
+
+  it('clamps values above 100', () => {
+    expect(buildProgressBar(150)).toBe('██████████');
+  });
+
+  it('clamps values below 0', () => {
+    expect(buildProgressBar(-10)).toBe('░░░░░░░░░░');
+  });
+
+  it('respects custom width', () => {
+    expect(buildProgressBar(50, 6)).toBe('███░░░');
   });
 });
 
