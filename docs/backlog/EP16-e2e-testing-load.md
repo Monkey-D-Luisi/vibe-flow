@@ -1,6 +1,6 @@
 # EP16 -- E2E Testing & Load Characterization
 
-> Status: IN_PROGRESS
+> Status: DONE
 > Dependencies: EP13
 > Phase: 12 (Quality at Scale)
 > Target: May 2026
