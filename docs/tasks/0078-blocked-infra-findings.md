@@ -34,7 +34,16 @@ Track five blocked findings that require infrastructure changes, upstream releas
 - [ ] D-008: Coverage/complexity either made blocking in CI or documented as intentionally informational
 
 ## Status
-BLOCKED — each finding requires external resolution (infra, upstream, research, or ops decision)
+RESOLVED — all findings resolved or formally deferred in Task 0117 (EP17)
+
+### Resolution Summary
+| ID | Resolution |
+|----|-----------|
+| A-004 | RESOLVED by Task 0115 (vitest pinned to exact 4.0.18) |
+| D-008 | RESOLVED by Task 0116 (coverage/complexity blocking in CI) |
+| SEC-001/A-001 | DEFERRED to 2026-06-30 (gitignored, gitleaks allowlisted) |
+| SEC-004 | DEFERRED to 2026-06-30 (assertSafeCommand mitigation robust) |
+| SEC-005 | DEFERRED to 2026-06-30 (exception ledger active, waiting upstream) |
 
 ## Traceability
 | Field | Value |

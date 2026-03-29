@@ -513,7 +513,7 @@ Key deliverables:
 - Task 0114: Database Migration Rollback Mechanism -- DONE (EP17, 12A)
 - Task 0115: Vitest Version Alignment -- DONE (EP17, 12B)
 - Task 0116: Coverage/Complexity CI Blocking Policy -- DONE (EP17, 12B)
-- Task 0117: Blocked Infrastructure Findings Resolution -- PENDING (EP17, 12C)
+- Task 0117: Blocked Infrastructure Findings Resolution -- DONE (EP17, 12C)
 
 ---
 
@@ -920,7 +920,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 - Task 0114: Database Migration Rollback Mechanism -- DONE
 - Task 0115: Vitest Version Alignment -- DONE
 - Task 0116: Coverage/Complexity CI Blocking Policy -- DONE
-- Task 0117: Blocked Infrastructure Findings Resolution -- PENDING
+- Task 0117: Blocked Infrastructure Findings Resolution -- DONE
 
 ### Phase 13A: Plugin SDK Contracts & DX (EP18)
 
