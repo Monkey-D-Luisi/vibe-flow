@@ -58,7 +58,6 @@ const MIGRATION_001_DOWN = `
 DROP TABLE IF EXISTS leases;
 DROP TABLE IF EXISTS event_log;
 DROP TABLE IF EXISTS orchestrator_state;
-DROP TABLE IF EXISTS ext_requests;
 DROP TABLE IF EXISTS task_records;
 DROP TABLE IF EXISTS schema_version;
 `;
@@ -93,6 +92,7 @@ CREATE INDEX IF NOT EXISTS idx_task_records_pipeline_stage ON task_records(pipel
 const MIGRATION_003_DOWN = `
 -- SQLite < 3.35.0 does not support DROP COLUMN.
 -- Rebuild table without pipeline_stage column.
+-- Note: FK checks are disabled by the migration engine during rollback.
 DROP INDEX IF EXISTS idx_task_records_pipeline_stage;
 
 CREATE TABLE task_records_backup (

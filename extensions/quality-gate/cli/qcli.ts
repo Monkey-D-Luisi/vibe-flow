@@ -331,10 +331,8 @@ async function main(): Promise<void> {
       writeReport('.qreport/complexity.json', result);
       process.exit(result.thresholdExceeded ? 1 : 0);
     } else if (args[1] === '--gate') {
-      const input = await parseGateArgs(args);
-      const strict = input.strict;
-      delete input.strict;
-      const result = await gateEnforceTool(input);
+      const { strict, ...gateInput } = await parseGateArgs(args);
+      const result = await gateEnforceTool(gateInput);
       writeReport('.qreport/gate.json', result);
       if (result.result.verdict === 'fail') {
         console.error(`Gate FAILED: ${result.result.summary}`);

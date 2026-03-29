@@ -234,11 +234,43 @@ jobs:
               --field body=@/tmp/qg-report.md
           fi
 
-          # ---- Fail the job if gate failed and not bypassed ----
+      # --- Enforce quality gate verdict (runs on both push and PR) ---
+
+      - name: Enforce quality gate verdict
+        if: always()
+        env:
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+          LINT_OUTCOME: ${{ steps.lint.outcome }}
+          COMPLEXITY_OUTCOME: ${{ steps.complexity.outcome }}
+          COVERAGE_OUTCOME: ${{ steps.coverage.outcome }}
+          VULN_EXIT: ${{ steps.vuln.outputs.exit_code }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VULN_EXIT="${VULN_EXIT:-1}"
+
+          GATE_FAILED=0
+          [ "$TESTS_OUTCOME" = "failure" ] && GATE_FAILED=1
+          [ "$LINT_OUTCOME" = "failure" ] && GATE_FAILED=1
+          [ "$COVERAGE_OUTCOME" = "failure" ] && GATE_FAILED=1
+          [ "$COMPLEXITY_OUTCOME" = "failure" ] && GATE_FAILED=1
+          [ "$VULN_EXIT" != "0" ] && GATE_FAILED=1
+
+          # ---- Label bypass (only for PRs) ----
+          BYPASSED=0
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          REPO="${{ github.repository }}"
+          if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "0" ]; then
+            BYPASS_LABEL=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/labels" \
+              --jq '.[].name' 2>/dev/null | grep -c '^bypass-quality-gate$' || true)
+            [ "$BYPASS_LABEL" != "0" ] && BYPASSED=1
+          fi
+
           if [ "$GATE_FAILED" = "1" ] && [ "$BYPASSED" = "0" ]; then
             echo "::error::Quality gate FAILED"
             exit 1
           fi
+
+          echo "Quality gate passed (or bypassed)."
 
   e2e-pipeline:
     name: e2e-pipeline
