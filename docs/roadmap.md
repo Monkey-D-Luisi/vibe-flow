@@ -57,7 +57,7 @@ observability, and extensibility for the community.
 | 11    | EP13 | Stable Agent Protocol                | EP09         | April 2026 | DONE |
 | 11    | EP14 | Local-First Observability            | EP09         | April 2026 | DONE |
 | 11    | EP15 | Telegram Control Plane v2            | EP14         | April 2026 | DONE    |
-| 12    | EP16 | E2E Testing & Load Characterization  | EP13         | May 2026   | PENDING |
+| 12    | EP16 | E2E Testing & Load Characterization  | EP13         | May 2026   | IN_PROGRESS |
 | 12    | EP17 | Security & Stability v2              | EP09         | May 2026   | PENDING |
 | 13    | EP18 | Plugin SDK Contracts & DX            | EP13, EP16   | June 2026  | PENDING |
 | 13    | EP19 | Showcase & Documentation             | EP18         | June 2026  | PENDING |
