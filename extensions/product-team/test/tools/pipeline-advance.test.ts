@@ -43,6 +43,7 @@ describe('pipeline-advance tools', () => {
       transitionGuardConfig: DEFAULT_TRANSITION_GUARD_CONFIG,
       projectConfig: { projects: [], activeProject: 'vibe-flow' },
       logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      orchestratorConfig: { stageQualityEnabled: false, selfEvaluationEnabled: false },
     };
   });
 
@@ -104,7 +105,7 @@ describe('pipeline-advance tools', () => {
     });
 
     it('enforces per-stage retry limit', async () => {
-      deps.orchestratorConfig = { maxRetriesPerStage: 1 };
+      deps.orchestratorConfig = { maxRetriesPerStage: 1, stageQualityEnabled: false, selfEvaluationEnabled: false };
       const taskId = await createPipelineTask('IMPLEMENTATION', { IMPLEMENTATION_retries: 5 });
       const tool = pipelineAdvanceToolDef(deps);
       const result = await tool.execute('c4', { taskId });
@@ -133,7 +134,7 @@ describe('pipeline-advance tools', () => {
     });
 
     it('auto-skips DESIGN for non-UI tasks when configured', async () => {
-      deps.orchestratorConfig = { skipDesignForNonUITasks: true };
+      deps.orchestratorConfig = { skipDesignForNonUITasks: true, selfEvaluationEnabled: false };
       const taskId = await createPipelineTask('DECOMPOSITION', { taskType: 'backend' });
       const tool = pipelineAdvanceToolDef(deps);
       const result = await tool.execute('c6', { taskId });
@@ -148,7 +149,7 @@ describe('pipeline-advance tools', () => {
     });
 
     it('does not skip DESIGN for UI tasks even when skipDesignForNonUITasks=true', async () => {
-      deps.orchestratorConfig = { skipDesignForNonUITasks: true };
+      deps.orchestratorConfig = { skipDesignForNonUITasks: true, selfEvaluationEnabled: false };
       const taskId = await createPipelineTask('DECOMPOSITION', { taskType: 'frontend' });
       const tool = pipelineAdvanceToolDef(deps);
       const result = await tool.execute('c7', { taskId });
@@ -276,6 +277,50 @@ describe('pipeline-advance tools', () => {
       expect(msg).toContain('Run test suites');
       expect(msg).not.toContain('Idea:');
     });
+
+    // EP21 Task 0146: Review loop context enrichment
+    it('includes repair brief when returning to IMPLEMENTATION with review violations', () => {
+      const msg = buildStageSpawnMessage('task-1', 'IMPLEMENTATION', 'Auth Feature', {
+        review_result: {
+          violations: [
+            { severity: 'high', message: 'Missing auth check', file: 'src/api.ts' },
+            { severity: 'medium', message: 'Magic number' },
+          ],
+        },
+        roundsReview: 1,
+      });
+      expect(msg).toContain('Repair Brief');
+      expect(msg).toContain('Missing auth check');
+      expect(msg).toContain('src/api.ts');
+    });
+
+    it('does not include repair brief for non-IMPLEMENTATION stages', () => {
+      const msg = buildStageSpawnMessage('task-1', 'QA', 'Auth Feature', {
+        review_result: {
+          violations: [{ severity: 'high', message: 'test' }],
+        },
+      });
+      expect(msg).not.toContain('Repair Brief');
+    });
+
+    it('shows escalation message when review loop is exhausted', () => {
+      const msg = buildStageSpawnMessage('task-1', 'IMPLEMENTATION', 'Auth Feature', {
+        review_result: {
+          violations: [{ severity: 'high', message: 'Persistent issue' }],
+        },
+        roundsReview: 3,
+        maxReviewRounds: 3,
+      });
+      expect(msg).toContain('Escalation Required');
+    });
+
+    it('does not include repair brief when no violations', () => {
+      const msg = buildStageSpawnMessage('task-1', 'IMPLEMENTATION', 'Auth Feature', {
+        review_result: { violations: [] },
+      });
+      expect(msg).not.toContain('Repair Brief');
+      expect(msg).not.toContain('Escalation');
+    });
   });
 
   describe('SHIPPING → DONE CI gate', () => {
@@ -373,6 +418,182 @@ describe('pipeline-advance tools', () => {
       const ideaStage = d.stages.find(s => s.stage === 'IDEA');
       expect(ideaStage).toBeDefined();
       expect(ideaStage!.avgDurationMs).toBe(5000); // (3000 + 7000) / 2
+    });
+  });
+
+  describe('stage quality validation (EP21, Task 0141)', () => {
+    it('blocks IMPLEMENTATION advance when dev_result is missing', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: true, selfEvaluationEnabled: false };
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('sq1', { taskId });
+      const d = result.details as { advanced: boolean; qualityFailures: unknown[] };
+
+      expect(d.advanced).toBe(false);
+      expect(d.qualityFailures).toBeDefined();
+      expect(d.qualityFailures.length).toBeGreaterThan(0);
+    });
+
+    it('allows IMPLEMENTATION advance when quality metrics are valid', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: true, selfEvaluationEnabled: false };
+      const taskId = await createPipelineTask('IMPLEMENTATION', {
+        dev_result: {
+          metrics: { tests_passed: true, coverage: 85, lint_clean: true },
+        },
+      });
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('sq2', { taskId });
+      const d = result.details as { advanced: boolean; currentStage: string };
+
+      expect(d.advanced).toBe(true);
+      expect(d.currentStage).toBe('QA');
+    });
+
+    it('blocks QA advance when qa_report has failures', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: true, selfEvaluationEnabled: false };
+      const taskId = await createPipelineTask('QA', {
+        qa_report: { failed: 2, total: 50 },
+      });
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('sq3', { taskId });
+      const d = result.details as { advanced: boolean; qualityFailures: unknown[] };
+
+      expect(d.advanced).toBe(false);
+      expect(d.qualityFailures.length).toBeGreaterThan(0);
+    });
+
+    it('allows non-gated stages to advance without quality metadata', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: true, selfEvaluationEnabled: false };
+      const taskId = await createPipelineTask('IDEA');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('sq4', { taskId });
+      const d = result.details as { advanced: boolean };
+
+      expect(d.advanced).toBe(true);
+    });
+
+    it('emits quality_blocked event when quality fails', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: true, selfEvaluationEnabled: false };
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      await tool.execute('sq5', { taskId });
+
+      const events = db.prepare(
+        "SELECT * FROM event_log WHERE task_id = ? AND event_type = 'pipeline.stage.quality_blocked'",
+      ).all(taskId) as { payload: string }[];
+      expect(events).toHaveLength(1);
+      expect(JSON.parse(events[0].payload)).toMatchObject({ stage: 'IMPLEMENTATION' });
+    });
+
+    it('respects stageQualityEnabled=false', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: false, selfEvaluationEnabled: false };
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('sq6', { taskId });
+      const d = result.details as { advanced: boolean };
+
+      expect(d.advanced).toBe(true);
+    });
+  });
+
+  describe('self-evaluation enforcement (EP21, Task 0144)', () => {
+    it('blocks IMPLEMENTATION advance without self-evaluation', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: false, selfEvaluationEnabled: true };
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('se1', { taskId });
+      const d = result.details as { advanced: boolean; evalFailures: unknown[] };
+
+      expect(d.advanced).toBe(false);
+      expect(d.evalFailures).toBeDefined();
+      expect(d.evalFailures.length).toBeGreaterThan(0);
+    });
+
+    it('allows IMPLEMENTATION advance with structured self-evaluation', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: false, selfEvaluationEnabled: true };
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('se2', {
+        taskId,
+        selfEvaluation: {
+          confidence: 4,
+          completeness: 4,
+          risks: 'none',
+          summary: 'All tests pass, coverage at 92%',
+        },
+      });
+      const d = result.details as { advanced: boolean; currentStage: string };
+
+      expect(d.advanced).toBe(true);
+      expect(d.currentStage).toBe('QA');
+    });
+
+    it('allows IMPLEMENTATION advance with string self-evaluation', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: false, selfEvaluationEnabled: true };
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('se3', {
+        taskId,
+        selfEvaluation: 'All tests pass, good coverage',
+      });
+      const d = result.details as { advanced: boolean };
+
+      expect(d.advanced).toBe(true);
+    });
+
+    it('stores self-evaluation in task metadata', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: false, selfEvaluationEnabled: true };
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      await tool.execute('se4', {
+        taskId,
+        selfEvaluation: {
+          confidence: 5,
+          completeness: 4,
+          risks: 'minor edge case',
+          summary: 'Implemented feature X',
+        },
+      });
+
+      const task = deps.taskRepo.getById(taskId)!;
+      const meta = task.metadata as Record<string, unknown>;
+      const stored = meta['IMPLEMENTATION_selfEvaluation'] as Record<string, unknown>;
+      expect(stored).toBeDefined();
+      expect(stored.confidence).toBe(5);
+      expect(stored.summary).toBe('Implemented feature X');
+    });
+
+    it('allows non-evaluated stages without self-evaluation', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: false, selfEvaluationEnabled: true };
+      const taskId = await createPipelineTask('IDEA');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('se5', { taskId });
+      const d = result.details as { advanced: boolean };
+
+      expect(d.advanced).toBe(true);
+    });
+
+    it('respects selfEvaluationEnabled=false', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: false, selfEvaluationEnabled: false };
+      const taskId = await createPipelineTask('IMPLEMENTATION');
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('se6', { taskId });
+      const d = result.details as { advanced: boolean };
+
+      expect(d.advanced).toBe(true);
+    });
+
+    it('emits eval_blocked event on failure', async () => {
+      deps.orchestratorConfig = { stageQualityEnabled: false, selfEvaluationEnabled: true };
+      const taskId = await createPipelineTask('QA');
+      const tool = pipelineAdvanceToolDef(deps);
+      await tool.execute('se7', { taskId });
+
+      const events = db.prepare(
+        "SELECT * FROM event_log WHERE task_id = ? AND event_type = 'pipeline.stage.eval_blocked'",
+      ).all(taskId) as { payload: string }[];
+      expect(events).toHaveLength(1);
+      expect(JSON.parse(events[0].payload)).toMatchObject({ stage: 'QA' });
     });
   });
 });

@@ -130,6 +130,9 @@ export interface OrchestratorConfig {
   readonly skipDesignForNonUITasks: boolean;
   readonly autoEscalateAfterRetries: boolean;
   readonly notifyTelegramOnStageChange: boolean;
+  readonly coverageByScope?: { minor?: number; major?: number; patch?: number };
+  readonly stageQualityEnabled: boolean;
+  readonly selfEvaluationEnabled: boolean;
 }
 
 export function resolveOrchestratorConfig(
@@ -150,6 +153,9 @@ export function resolveOrchestratorConfig(
     skipDesignForNonUITasks: asBoolean(orch?.skipDesignForNonUITasks) ?? false,
     autoEscalateAfterRetries: asBoolean(orch?.autoEscalateAfterRetries) ?? true,
     notifyTelegramOnStageChange: asBoolean(orch?.notifyTelegramOnStageChange) ?? false,
+    coverageByScope: asRecord(orch?.coverageByScope) as { minor?: number; major?: number; patch?: number } | undefined,
+    stageQualityEnabled: asBoolean(orch?.stageQualityEnabled) ?? true,
+    selfEvaluationEnabled: asBoolean(orch?.selfEvaluationEnabled) ?? true,
   };
 }
 

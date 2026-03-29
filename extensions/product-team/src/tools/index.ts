@@ -50,6 +50,9 @@ export interface ToolDeps {
     skipDesignForNonUITasks?: boolean;
     autoEscalateAfterRetries?: boolean;
     notifyTelegramOnStageChange?: boolean;
+    coverageByScope?: { minor?: number; major?: number; patch?: number };
+    stageQualityEnabled?: boolean;
+    selfEvaluationEnabled?: boolean;
   };
   vcs?: {
     requestRepo: SqliteRequestRepository;
