@@ -3,6 +3,8 @@ import { mkdirSync, existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { validateName, generateExtension } from '../src/generator.js';
+import { VALID_TEMPLATES } from '../src/templates.js';
+import type { TemplateType } from '../src/templates.js';
 
 // ---------------------------------------------------------------------------
 // validateName
@@ -129,11 +131,12 @@ describe('generateExtension', () => {
     expect(manifest.version).toBe('0.1.0');
   });
 
-  it('generates src/index.ts with plugin name', () => {
+  it('generates src/index.ts with register(api) pattern', () => {
     generateExtension({ name: 'my-plugin', targetDir });
     const src = readFileSync(join(targetDir, 'src', 'index.ts'), 'utf8');
 
-    expect(src).toContain("name: 'my-plugin'");
+    expect(src).toContain("id: 'my-plugin'");
+    expect(src).toContain('register(api');
   });
 
   it('generates test/index.test.ts referencing the plugin name', () => {
@@ -217,5 +220,89 @@ describe('generateExtension integration', () => {
     // Verify eslint config is CJS
     const eslint = readFileSync(join(targetDir, '.eslintrc.cjs'), 'utf8');
     expect(eslint).toContain('module.exports');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Template-specific generation
+// ---------------------------------------------------------------------------
+
+describe('generateExtension templates', () => {
+  let tmpBase: string;
+
+  beforeEach(() => {
+    tmpBase = makeTmpDir();
+  });
+
+  afterEach(() => {
+    rmSync(tmpBase, { recursive: true, force: true });
+  });
+
+  it('defaults to hybrid template', () => {
+    const targetDir = join(tmpBase, 'my-ext');
+    generateExtension({ name: 'my-ext', targetDir });
+    const src = readFileSync(join(targetDir, 'src', 'index.ts'), 'utf8');
+
+    expect(src).toContain('registerTool');
+    expect(src).toContain("api.on('after_tool_call'");
+    expect(src).toContain('registerHttpRoute');
+  });
+
+  it.each(VALID_TEMPLATES)('generates valid scaffold for %s template', (template: TemplateType) => {
+    const name = `ext-${template}`;
+    const targetDir = join(tmpBase, name);
+    generateExtension({ name, targetDir, template });
+
+    const src = readFileSync(join(targetDir, 'src', 'index.ts'), 'utf8');
+    const test = readFileSync(join(targetDir, 'test', 'index.test.ts'), 'utf8');
+    const readme = readFileSync(join(targetDir, 'README.md'), 'utf8');
+
+    expect(src).toContain(`id: '${name}'`);
+    expect(src).toContain('register(api');
+    expect(test).toContain(`'${name} plugin'`);
+    expect(readme).toContain(`**Template:** ${template}`);
+  });
+
+  it('tool template registers a tool', () => {
+    const targetDir = join(tmpBase, 'my-tool');
+    generateExtension({ name: 'my-tool', targetDir, template: 'tool' });
+    const src = readFileSync(join(targetDir, 'src', 'index.ts'), 'utf8');
+
+    expect(src).toContain('registerTool');
+    expect(src).toContain('my_tool_hello');
+    expect(src).not.toContain('registerHttpRoute');
+    expect(src).not.toContain('registerService');
+  });
+
+  it('hook template registers an event hook', () => {
+    const targetDir = join(tmpBase, 'my-hook');
+    generateExtension({ name: 'my-hook', targetDir, template: 'hook' });
+    const src = readFileSync(join(targetDir, 'src', 'index.ts'), 'utf8');
+
+    expect(src).toContain("api.on('after_tool_call'");
+    expect(src).not.toContain('registerTool');
+    expect(src).not.toContain('registerHttpRoute');
+  });
+
+  it('service template registers a service', () => {
+    const targetDir = join(tmpBase, 'my-svc');
+    generateExtension({ name: 'my-svc', targetDir, template: 'service' });
+    const src = readFileSync(join(targetDir, 'src', 'index.ts'), 'utf8');
+
+    expect(src).toContain('registerService');
+    expect(src).toContain('start()');
+    expect(src).toContain('stop()');
+    expect(src).not.toContain('registerTool');
+  });
+
+  it('http template registers an HTTP route', () => {
+    const targetDir = join(tmpBase, 'my-api');
+    generateExtension({ name: 'my-api', targetDir, template: 'http' });
+    const src = readFileSync(join(targetDir, 'src', 'index.ts'), 'utf8');
+
+    expect(src).toContain('registerHttpRoute');
+    expect(src).toContain("'/api/my-api'");
+    expect(src).not.toContain('registerTool');
+    expect(src).not.toContain('registerService');
   });
 });
