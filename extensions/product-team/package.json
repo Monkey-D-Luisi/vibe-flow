@@ -25,7 +25,7 @@
     "picomatch": "4.0.3",
     "ts-morph": "^27.0.2",
     "typhonjs-escomplex": "^0.1.0",
-    "ulid": "^2.3.0"
+    "ulid": "^3.0.2"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
