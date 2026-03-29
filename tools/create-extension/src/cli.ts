@@ -29,7 +29,14 @@ function parseTemplate(argv: string[]): TemplateType {
 export function main(argv: string[] = process.argv.slice(2)): void {
   const force = argv.includes('--force');
   const template = parseTemplate(argv);
-  const positional = argv.filter((a) => !a.startsWith('--') && !VALID_TEMPLATES.includes(a as TemplateType));
+
+  // Build a set of indices to skip: --force, --template, and the template value
+  const skip = new Set<number>();
+  argv.forEach((a, i) => {
+    if (a === '--force') skip.add(i);
+    if (a === '--template') { skip.add(i); skip.add(i + 1); }
+  });
+  const positional = argv.filter((_a, i) => !skip.has(i));
 
   if (positional.length !== 1) {
     printUsage();

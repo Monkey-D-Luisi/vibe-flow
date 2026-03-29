@@ -25,7 +25,9 @@ api.registerService(config: ServiceConfig): void
 
 ### Example: Alert Engine Service
 
-From the telegram-notifier extension (`extensions/telegram-notifier/src/index.ts`):
+From the telegram-notifier extension (`extensions/telegram-notifier/src/index.ts`).
+`AlertEngine` is a custom class defined in the extension that wraps
+`setInterval`-based polling and graceful shutdown logic.
 
 ```typescript
 const alertEngine = new AlertEngine(ptApi, enqueue, alertLogger, {

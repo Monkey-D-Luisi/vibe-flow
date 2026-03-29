@@ -1,0 +1,14 @@
+﻿
+> openclaw-extensions@ verify:vuln-policy C:\Users\luiss\source\repos\vibe-flow
+> tsx scripts/enforce-ci-vulnerability-policy.ts
+
+CI vulnerability policy passed: 57 high/critical findings matched 79 active exceptions.
+pnpm : Note: 22 active ledger exceptions did not match current audit findings.
+En línea: 1 Carácter: 1
++ pnpm verify:vuln-policy 2>&1 | Out-File -FilePath vuln-output.txt -En ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Note: 22 active...audit findings. 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Audit summary: high=52, critical=5
