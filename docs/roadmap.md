@@ -62,6 +62,7 @@ observability, and extensibility for the community.
 | 13    | EP18 | Plugin SDK Contracts & DX            | EP13, EP16   | June 2026  | DONE |
 | 13    | EP19 | Showcase & Documentation             | EP18         | June 2026  | PENDING |
 | 14    | EP20 | Virtual Office                       | EP09         | March 2026 | DONE |
+| 15    | EP21 | Agent Excellence & Telegram Cmd Center | EP15, EP14  | April 2026 | IN_PROGRESS |
 
 Recent `main` stabilization after EP20 completion:
 
@@ -595,6 +596,52 @@ Key deliverables:
 
 ---
 
+## Phase 15: Agent Excellence & Telegram Command Center (April 2026)
+
+> From passive monitoring to interactive command center. From trust-me to prove-it.
+
+Phase 15 transforms the human-agent interface and raises execution quality.
+Telegram becomes an interactive control plane with inline keyboards, live-updating
+pipeline trackers, and rich quality reports. Agents earn their stage transitions
+by passing quality gates and self-evaluating their work.
+
+### EP21 -- Agent Excellence & Telegram Command Center
+
+Dual-axis upgrade: interactive Telegram UX and enforced execution quality.
+
+**Why now:** The system is feature-complete (phases 1-14) but agents can advance
+pipeline stages without proving quality, Telegram is a notification stream
+rather than a command center, and review cycles are one-shot. This is the
+difference between a demo and a production system.
+
+Key deliverables:
+
+- Rich quality report cards with progress bars and metric breakdowns
+- Inline keyboard buttons for decision approval/rejection
+- Live-updating pipeline tracker (one message that evolves)
+- Pre-advance quality validation per pipeline stage
+- Agent self-evaluation enforcement
+- Collaborative review loop (findings → fix → re-review)
+- Daily standup summary cron
+- Natural language intent parsing from Telegram messages
+- Multi-bot persona identity
+- Cross-pipeline learning integration
+
+#### Tasks
+
+- Task 0140: Rich Quality Report Cards -- IN_PROGRESS (EP21, 15A)
+- Task 0141: Pre-Advance Quality Validation -- PENDING (EP21, 15B)
+- Task 0142: Inline Keyboard Buttons for Decisions -- PENDING (EP21, 15A)
+- Task 0143: Live Pipeline Tracker Message -- PENDING (EP21, 15A)
+- Task 0144: Agent Self-Evaluation Enforcement -- PENDING (EP21, 15B)
+- Task 0145: Daily Standup Summary Cron -- PENDING (EP21, 15C)
+- Task 0146: Collaborative Review Loop Protocol -- PENDING (EP21, 15B)
+- Task 0147: Natural Language Intent Parser -- PENDING (EP21, 15C)
+- Task 0148: Multi-Bot Persona Identity -- PENDING (EP21, 15A)
+- Task 0149: Cross-Pipeline Learning Integration -- PENDING (EP21, 15B)
+
+---
+
 ```mermaid
 graph TD
   EP01[EP01: OpenClaw Foundation]
@@ -633,6 +680,10 @@ graph TD
   %% Phase 14: Virtual Office
   EP20[EP20: Virtual Office] --> EP09
 
+  %% Phase 15: Agent Excellence & Telegram Command Center
+  EP21[EP21: Agent Excellence & Telegram Cmd Center] --> EP15
+  EP21 --> EP14
+
   %% Styling
   style EP10 fill:#e1f5fe
   style EP11 fill:#e1f5fe
@@ -645,6 +696,7 @@ graph TD
   style EP18 fill:#f3e5f5
   style EP19 fill:#f3e5f5
   style EP20 fill:#ffe0b2
+  style EP21 fill:#ffcdd2
 ```
 
 ---
