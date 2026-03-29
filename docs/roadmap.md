@@ -484,7 +484,7 @@ Key deliverables:
 
 - Task 0109: E2E Pipeline Test with LLM Mocks in CI -- DONE (EP16, 12A)
 - Task 0110: Concurrent Agent Load Benchmark -- DONE (EP16, 12A)
-- Task 0111: Protocol Regression Test Suite -- PENDING (EP16, 12B)
+- Task 0111: Protocol Regression Test Suite -- DONE (EP16, 12B)
 - Task 0112: Performance Baseline and CI Guardrails -- PENDING (EP16, 12B)
 
 ### EP17 -- Security & Stability v2
@@ -912,7 +912,7 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 - Task 0109: E2E Pipeline Test with LLM Mocks in CI -- PENDING
 - Task 0110: Concurrent Agent Load Benchmark -- PENDING
-- Task 0111: Protocol Regression Test Suite -- PENDING
+- Task 0111: Protocol Regression Test Suite -- DONE
 - Task 0112: Performance Baseline and CI Guardrails -- PENDING
 
 ### Phase 12B: Security & Stability v2 (EP17)
