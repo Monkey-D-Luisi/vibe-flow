@@ -509,7 +509,7 @@ Key deliverables:
 
 #### Tasks
 
-- Task 0113: Secrets Scanning in CI (Gitleaks) -- PENDING (EP17, 12A)
+- Task 0113: Secrets Scanning in CI (Gitleaks) -- DONE (EP17, 12A)
 - Task 0114: Database Migration Rollback Mechanism -- PENDING (EP17, 12A)
 - Task 0115: Vitest Version Alignment -- PENDING (EP17, 12B)
 - Task 0116: Coverage/Complexity CI Blocking Policy -- PENDING (EP17, 12B)
