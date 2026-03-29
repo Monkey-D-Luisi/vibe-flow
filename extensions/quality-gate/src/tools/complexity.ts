@@ -74,13 +74,40 @@ function countCyclomaticSimple(source: string): number {
 }
 
 /**
+ * Find the end line of a brace-delimited block starting at startLine.
+ */
+function findBlockEndLine(lines: string[], startLine: number): number {
+  let braceCount = 0;
+  let started = false;
+
+  for (let j = startLine; j < lines.length; j++) {
+    for (const ch of lines[j]) {
+      if (ch === '{') { braceCount++; started = true; }
+      else if (ch === '}') { braceCount--; }
+    }
+    if (started && braceCount <= 0) return j;
+  }
+  return startLine;
+}
+
+/**
+ * Try to match a function declaration on a line and return the function name.
+ */
+function matchFunctionName(line: string, fnPatterns: RegExp[]): string | null {
+  for (const pattern of fnPatterns) {
+    const match = line.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
+
+/**
  * Extract function-level complexity from source text using regex heuristics.
  */
 function extractFunctions(source: string, filePath: string): FunctionComplexity[] {
   const functions: FunctionComplexity[] = [];
   const lines = source.split('\n');
 
-  // Match function declarations, arrow functions assigned to const/let, and methods
   const fnPatterns = [
     /(?:export\s+)?(?:async\s+)?function\s+(\w+)/,
     /(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:\([^)]*\)|[^=])\s*=>/,
@@ -88,43 +115,19 @@ function extractFunctions(source: string, filePath: string): FunctionComplexity[
   ];
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    for (const pattern of fnPatterns) {
-      const match = line.match(pattern);
-      if (match && match[1]) {
-        // Find the function body (rough heuristic: count braces)
-        let braceCount = 0;
-        let started = false;
-        let endLine = i;
+    const name = matchFunctionName(lines[i], fnPatterns);
+    if (!name) continue;
 
-        for (let j = i; j < lines.length; j++) {
-          for (const ch of lines[j]) {
-            if (ch === '{') {
-              braceCount++;
-              started = true;
-            } else if (ch === '}') {
-              braceCount--;
-            }
-          }
-          if (started && braceCount <= 0) {
-            endLine = j;
-            break;
-          }
-        }
+    const endLine = findBlockEndLine(lines, i);
+    const fnBody = lines.slice(i, endLine + 1).join('\n');
 
-        const fnBody = lines.slice(i, endLine + 1).join('\n');
-        const cyclomatic = countCyclomaticSimple(fnBody);
-
-        functions.push({
-          name: match[1],
-          file: filePath,
-          line: i + 1,
-          cyclomatic,
-          lineCount: endLine - i + 1,
-        });
-        break;
-      }
-    }
+    functions.push({
+      name,
+      file: filePath,
+      line: i + 1,
+      cyclomatic: countCyclomaticSimple(fnBody),
+      lineCount: endLine - i + 1,
+    });
   }
 
   return functions;

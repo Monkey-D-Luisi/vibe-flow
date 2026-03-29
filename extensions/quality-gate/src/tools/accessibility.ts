@@ -40,6 +40,50 @@ export interface AccessibilityOutput {
   violations: AccessibilityViolation[];
 }
 
+function checkImgAlt(line: string, filePath: string, lineNum: number): AccessibilityViolation | null {
+  if (/<img\b/i.test(line) && !/\balt\s*=/i.test(line)) {
+    return { rule: 'img-alt', message: '<img> element missing alt attribute', file: filePath, line: lineNum };
+  }
+  return null;
+}
+
+function checkInputLabel(line: string, filePath: string, lineNum: number): AccessibilityViolation | null {
+  if (!/<input\b/i.test(line)) return null;
+  if (/type\s*=\s*["']hidden["']/i.test(line)) return null;
+  const hasAriaLabel = /\baria-label\s*=/i.test(line);
+  const hasAriaLabelledby = /\baria-labelledby\s*=/i.test(line);
+  const hasId = /(?<![\w-])id\s*=/i.test(line);
+  if (!hasAriaLabel && !hasAriaLabelledby && !hasId) {
+    return { rule: 'input-label', message: '<input> element missing aria-label, aria-labelledby, or id for label association', file: filePath, line: lineNum };
+  }
+  return null;
+}
+
+function checkButtonContent(line: string, filePath: string, lineNum: number): AccessibilityViolation | null {
+  if (/<button[^>]*>\s*<\/button>/i.test(line) && !/\baria-label\s*=/i.test(line)) {
+    return { rule: 'button-content', message: '<button> element has no text content and no aria-label', file: filePath, line: lineNum };
+  }
+  return null;
+}
+
+function checkLinkContent(line: string, filePath: string, lineNum: number): AccessibilityViolation | null {
+  if (/<a\b[^>]*>\s*<\/a>/i.test(line) && !/\baria-label\s*=/i.test(line)) {
+    return { rule: 'link-content', message: '<a> element has no text content and no aria-label', file: filePath, line: lineNum };
+  }
+  return null;
+}
+
+function checkHtmlLang(source: string, filePath: string): AccessibilityViolation | null {
+  const htmlTagMatch = source.match(/<html\b[^>]*>/i);
+  if (htmlTagMatch && !/\blang\s*=/i.test(htmlTagMatch[0])) {
+    const htmlTagLine = source.substring(0, source.indexOf(htmlTagMatch[0])).split('\n').length;
+    return { rule: 'html-lang', message: '<html> element missing lang attribute', file: filePath, line: htmlTagLine };
+  }
+  return null;
+}
+
+const LINE_CHECKERS = [checkImgAlt, checkInputLabel, checkButtonContent, checkLinkContent];
+
 /**
  * Scan a single HTML file for accessibility violations.
  */
@@ -48,63 +92,14 @@ export function scanHtmlAccessibility(source: string, filePath: string): Accessi
   const lines = source.split('\n');
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineNum = i + 1;
-
-    // Rule: img without alt attribute
-    if (/<img\b/i.test(line) && !/\balt\s*=/i.test(line)) {
-      violations.push({
-        rule: 'img-alt',
-        message: '<img> element missing alt attribute',
-        file: filePath,
-        line: lineNum,
-      });
-    }
-
-    // Rule: input without associated label or aria-label
-    if (/<input\b/i.test(line) && !/type\s*=\s*["']hidden["']/i.test(line)) {
-      if (!/\baria-label\s*=/i.test(line) && !/\baria-labelledby\s*=/i.test(line) && !/(?<![\w-])id\s*=/i.test(line)) {
-        violations.push({
-          rule: 'input-label',
-          message: '<input> element missing aria-label, aria-labelledby, or id for label association',
-          file: filePath,
-          line: lineNum,
-        });
-      }
-    }
-
-    // Rule: button with empty text content (self-closing or empty)
-    if (/<button[^>]*>\s*<\/button>/i.test(line) && !/\baria-label\s*=/i.test(line)) {
-      violations.push({
-        rule: 'button-content',
-        message: '<button> element has no text content and no aria-label',
-        file: filePath,
-        line: lineNum,
-      });
-    }
-
-    // Rule: anchor with empty text content
-    if (/<a\b[^>]*>\s*<\/a>/i.test(line) && !/\baria-label\s*=/i.test(line)) {
-      violations.push({
-        rule: 'link-content',
-        message: '<a> element has no text content and no aria-label',
-        file: filePath,
-        line: lineNum,
-      });
+    for (const checker of LINE_CHECKERS) {
+      const v = checker(lines[i], filePath, i + 1);
+      if (v) violations.push(v);
     }
   }
 
-  // Rule: missing lang attribute on <html> tag (check only the <html> line, not the whole source)
-  const htmlTagMatch = source.match(/<html\b[^>]*>/i);
-  if (htmlTagMatch && !/\blang\s*=/i.test(htmlTagMatch[0])) {
-    const htmlTagLine = source.substring(0, source.indexOf(htmlTagMatch[0])).split('\n').length;
-    violations.push({
-      rule: 'html-lang',
-      message: '<html> element missing lang attribute',
-      file: filePath,
-      line: htmlTagLine,
-    });
-  }
+  const langViolation = checkHtmlLang(source, filePath);
+  if (langViolation) violations.push(langViolation);
 
   return violations;
 }
@@ -112,21 +107,21 @@ export function scanHtmlAccessibility(source: string, filePath: string): Accessi
 /**
  * Execute accessibility scan tool.
  */
+function assertNoTraversal(patterns: string[]): void {
+  for (const pattern of patterns) {
+    if (pattern.includes('..')) {
+      throw new Error(`PATH_TRAVERSAL: glob pattern must not contain "..": ${pattern}`);
+    }
+  }
+}
+
 export async function accessibilityTool(input: AccessibilityInput): Promise<AccessibilityOutput> {
   const cwd = resolve(input.cwd || process.cwd());
   const globs = input.globs || DEFAULT_GLOBS;
   const exclude = input.exclude || DEFAULT_EXCLUDE;
 
-  for (const pattern of globs) {
-    if (pattern.includes('..')) {
-      throw new Error(`PATH_TRAVERSAL: glob pattern must not contain "..": ${pattern}`);
-    }
-  }
-  for (const pattern of exclude) {
-    if (pattern.includes('..')) {
-      throw new Error(`PATH_TRAVERSAL: exclude pattern must not contain "..": ${pattern}`);
-    }
-  }
+  assertNoTraversal(globs);
+  assertNoTraversal(exclude);
 
   const files = await resolveGlobPatterns(globs, { cwd, exclude });
 

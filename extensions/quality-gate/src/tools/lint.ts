@@ -42,6 +42,37 @@ export interface LintOutput {
 /**
  * Execute lint tool.
  */
+interface ParsedLintResult {
+  reports: NormalizedLintFileReport[];
+  totalErrors: number;
+  totalWarnings: number;
+  filesWithIssues: number;
+  totalFiles: number;
+}
+
+function extractJsonContent(stdout: string): string {
+  const jsonStart = stdout.indexOf('[');
+  return jsonStart > 0 ? stdout.slice(jsonStart) : stdout;
+}
+
+function parseLintOutput(engine: string, jsonContent: string): ParsedLintResult {
+  if (engine === 'ruff') {
+    const reports = parseRuffOutput(jsonContent);
+    const summary = summarizeRuff(reports);
+    return { reports, ...summary };
+  }
+  const reports = parseEslintOutput(jsonContent);
+  const summary = summarizeEslint(reports);
+  return { reports, ...summary };
+}
+
+function buildRawOutput(stdout: string, stderr: string): string | undefined {
+  const rawParts: string[] = [];
+  if (stdout) rawParts.push(stdout);
+  if (stderr) rawParts.push(`stderr: ${stderr}`);
+  return rawParts.length > 0 ? rawParts.join('\n') : undefined;
+}
+
 export async function lintTool(input: LintInput): Promise<LintOutput> {
   const engine = input.engine || 'eslint';
   const command = input.command || DEFAULT_COMMAND[engine] || DEFAULT_COMMAND.eslint;
@@ -59,64 +90,24 @@ export async function lintTool(input: LintInput): Promise<LintOutput> {
 
   const stdout = result.stdout.trim();
   const stderr = result.stderr.trim();
+  const jsonContent = extractJsonContent(stdout);
 
-  // Try to extract JSON from the output
-  let jsonContent = stdout;
-  const jsonStart = stdout.indexOf('[');
-  if (jsonStart > 0) {
-    jsonContent = stdout.slice(jsonStart);
-  }
-
-  let reports: NormalizedLintFileReport[] = [];
-  let totalErrors = 0;
-  let totalWarnings = 0;
-  let filesWithIssues = 0;
-  let totalFiles = 0;
+  let parsed: ParsedLintResult = { reports: [], totalErrors: 0, totalWarnings: 0, filesWithIssues: 0, totalFiles: 0 };
 
   if (jsonContent) {
     try {
-      if (engine === 'ruff') {
-        reports = parseRuffOutput(jsonContent);
-        const summary = summarizeRuff(reports);
-        totalErrors = summary.totalErrors;
-        totalWarnings = summary.totalWarnings;
-        filesWithIssues = summary.filesWithIssues;
-        totalFiles = summary.totalFiles;
-      } else {
-        reports = parseEslintOutput(jsonContent);
-        const summary = summarizeEslint(reports);
-        totalErrors = summary.totalErrors;
-        totalWarnings = summary.totalWarnings;
-        filesWithIssues = summary.filesWithIssues;
-        totalFiles = summary.totalFiles;
-      }
+      parsed = parseLintOutput(engine, jsonContent);
     } catch {
       // If parsing fails, return raw output
     }
   }
 
-  let raw: string | undefined;
-  if (reports.length === 0) {
-    const rawParts: string[] = [];
-    if (stdout) {
-      rawParts.push(stdout);
-    }
-    if (stderr) {
-      rawParts.push(`stderr: ${stderr}`);
-    }
-    if (rawParts.length > 0) {
-      raw = rawParts.join('\n');
-    }
-  }
+  const raw = parsed.reports.length === 0 ? buildRawOutput(stdout, stderr) : undefined;
 
   return {
     engine,
     command,
-    totalErrors,
-    totalWarnings,
-    filesWithIssues,
-    totalFiles,
-    reports,
+    ...parsed,
     exitCode: result.exitCode,
     durationMs: result.durationMs,
     raw,
