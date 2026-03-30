@@ -582,7 +582,7 @@ Key deliverables:
 - Task 0124: Autonomous Pipeline Case Study (Task 0077) -- DONE (EP19, 13A)
 - Task 0125: Architecture Diagrams (Mermaid) -- DONE (EP19, 13B)
 - Task 0126: README Overhaul with Visual Showcase -- DONE (EP19, 13B)
-- Task 0127: Technical Article Draft -- PENDING (EP19, 13C)
+- Task 0127: Technical Article Draft -- DONE (EP19, 13C)
 
 ### Phase 14: Virtual Office (EP20)
 
@@ -984,8 +984,8 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 ### Phase 13B: Showcase & Documentation (EP19)
 
-- Task 0123: ADR Backlog -- Key Architectural Decisions -- PENDING
-- Task 0124: Autonomous Pipeline Case Study (Task 0077) -- PENDING
-- Task 0125: Architecture Diagrams (Mermaid) -- PENDING
-- Task 0126: README Overhaul with Visual Showcase -- PENDING
-- Task 0127: Technical Article Draft -- PENDING
+- Task 0123: ADR Backlog -- Key Architectural Decisions -- DONE
+- Task 0124: Autonomous Pipeline Case Study (Task 0077) -- DONE
+- Task 0125: Architecture Diagrams (Mermaid) -- DONE
+- Task 0126: README Overhaul with Visual Showcase -- DONE
+- Task 0127: Technical Article Draft -- DONE
