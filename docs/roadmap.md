@@ -60,7 +60,7 @@ observability, and extensibility for the community.
 | 12    | EP16 | E2E Testing & Load Characterization  | EP13         | May 2026   | DONE |
 | 12    | EP17 | Security & Stability v2              | EP09         | May 2026   | DONE |
 | 13    | EP18 | Plugin SDK Contracts & DX            | EP13, EP16   | June 2026  | DONE |
-| 13    | EP19 | Showcase & Documentation             | EP18         | June 2026  | PENDING |
+| 13    | EP19 | Showcase & Documentation             | EP18         | June 2026  | IN_PROGRESS |
 | 14    | EP20 | Virtual Office                       | EP09         | March 2026 | DONE |
 | 15    | EP21 | Agent Excellence & Telegram Cmd Center | EP15, EP14  | April 2026 | DONE |
 

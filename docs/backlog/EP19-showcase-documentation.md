@@ -1,6 +1,6 @@
 # EP19 -- Showcase & Documentation
 
-> Status: PENDING
+> Status: IN_PROGRESS
 > Dependencies: EP18
 > Phase: 13 (Reference & Community)
 > Target: June 2026
