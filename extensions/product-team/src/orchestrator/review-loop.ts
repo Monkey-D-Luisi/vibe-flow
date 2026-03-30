@@ -285,14 +285,15 @@ export function buildReviewContextForSpawn(
   const violations = parseReviewViolations(reviewResult as Record<string, unknown>);
   if (violations.length === 0) return null;
 
-  const roundsReview = typeof meta['roundsReview'] === 'number' ? meta['roundsReview'] : 1;
+  const history = extractReviewHistory(meta);
   const maxRounds = typeof meta['maxReviewRounds'] === 'number' ? meta['maxReviewRounds'] : 3;
 
-  const history = extractReviewHistory(meta);
-  const currentRound = buildReviewRound(roundsReview, violations);
-  const allRounds = [...history, currentRound];
+  // Use pre-accumulated history from pipeline-advance when available,
+  // otherwise build a single round from current violations (direct call path).
+  const currentRound = Math.max(1, history.length);
+  const rounds = history.length > 0 ? history : [buildReviewRound(1, violations)];
 
-  const state = buildReviewLoopState(taskId, title, roundsReview, maxRounds, allRounds);
+  const state = buildReviewLoopState(taskId, title, currentRound, maxRounds, rounds);
 
   if (isReviewLoopExhausted(state)) {
     return formatEscalationMessage(state);
