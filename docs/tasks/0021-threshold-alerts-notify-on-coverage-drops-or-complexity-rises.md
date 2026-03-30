@@ -122,5 +122,5 @@ left out of scope and remains pending in open-issues intake.
 
 ## Agent References
 
-- [Roadmap](../roadmap.md)
+- [Roadmap](../roadmap_mvp.md)
 - [Open Issues Intake](../backlog/open-issues-intake.md)

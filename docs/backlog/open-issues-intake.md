@@ -9,7 +9,7 @@
 ## Purpose
 
 Track board issues that are not yet represented as active task specs in
-`docs/roadmap.md` so scope is not lost while preserving the current execution
+`docs/roadmap_mvp.md` so scope is not lost while preserving the current execution
 queue for AR01 remediation.
 
 ## Intake items

@@ -767,7 +767,7 @@ graph TD
 
 ### Task Specs
 Task-level execution status source of truth:
-- `docs/roadmap.md` tracks task status (`PENDING`, `IN_PROGRESS`, `DONE`).
+- `docs/roadmap_mvp.md` tracks task status (`PENDING`, `IN_PROGRESS`, `DONE`).
 - `docs/backlog/EPxx-*.md` tracks epic-level status only.
 
 - [Task 0001: OpenClaw Foundation](tasks/0001-openclaw-foundation.md) -- DONE
@@ -962,8 +962,8 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 ### Phase 12A: E2E Testing & Load (EP16)
 
-- Task 0109: E2E Pipeline Test with LLM Mocks in CI -- PENDING
-- Task 0110: Concurrent Agent Load Benchmark -- PENDING
+- Task 0109: E2E Pipeline Test with LLM Mocks in CI -- DONE
+- Task 0110: Concurrent Agent Load Benchmark -- DONE
 - Task 0111: Protocol Regression Test Suite -- DONE
 - Task 0112: Performance Baseline and CI Guardrails -- DONE
 ### Phase 12B: Security & Stability v2 (EP17)
@@ -976,11 +976,11 @@ Audit remediation queue (derived from `audits/2026-02-25-comprehensive-audit-pro
 
 ### Phase 13A: Plugin SDK Contracts & DX (EP18)
 
-- Task 0118: Plugin API Reference Documentation -- PENDING
-- Task 0119: npm Publish Pipeline End-to-End Wiring -- PENDING
-- Task 0120: Extension Scaffolding Templates by Type -- PENDING
-- Task 0121: Getting Started Guide -- PENDING
-- Task 0122: API Versioning Policy and Deprecation Strategy -- PENDING
+- Task 0118: Plugin API Reference Documentation -- DONE
+- Task 0119: npm Publish Pipeline End-to-End Wiring -- DONE
+- Task 0120: Extension Scaffolding Templates by Type -- DONE
+- Task 0121: Getting Started Guide -- DONE
+- Task 0122: API Versioning Policy and Deprecation Strategy -- DONE
 
 ### Phase 13B: Showcase & Documentation (EP19)
 

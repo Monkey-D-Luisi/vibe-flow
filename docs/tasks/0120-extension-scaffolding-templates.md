@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | IN_PROGRESS |
+| Status | DONE |
 | Epic | EP18 -- Plugin SDK Contracts & DX |
 | Priority | HIGH |
 | Scope | MINOR |

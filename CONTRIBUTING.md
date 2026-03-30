@@ -173,7 +173,7 @@ packages/
   quality-contracts/           # Shared parsers, gate policy, complexity analysis, validation contracts
 
 docs/
-  roadmap.md                   # Development roadmap
+  roadmap_mvp.md               # Development roadmap
   runbook.md                   # Operator runbook
   api-reference.md             # Tool API reference
   allowlist-rationale.md       # Agent-tool allow-list justifications

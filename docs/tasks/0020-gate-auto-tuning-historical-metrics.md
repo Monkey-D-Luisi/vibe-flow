@@ -98,5 +98,5 @@ Current gate thresholds are static (`DEFAULT_POLICIES`) and can be manually over
 
 ## Agent References
 
-- [Roadmap](../roadmap.md)
+- [Roadmap](../roadmap_mvp.md)
 - [Open Issues Intake](../backlog/open-issues-intake.md)

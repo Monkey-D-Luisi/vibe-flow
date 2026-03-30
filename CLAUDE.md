@@ -15,7 +15,13 @@ Always present a plan and get user approval BEFORE implementing. Use plan mode t
 
 ## Project Overview
 
-Monorepo of extensions, skills, and quality tooling for [OpenClaw](https://openclaw.ai):
+Monorepo of extensions, skills, and quality tooling for [OpenClaw](https://openclaw.ai).
+
+**Roadmap status:**
+- `docs/roadmap_mvp.md` -- Completed MVP (EP01-EP21, 149+ tasks). All DONE.
+- `docs/roadmap_v1.md` -- Active V1 roadmap (EP22-EP34, 66 tasks). Next-level intelligence, onboarding, and ecosystem.
+
+**Extensions and skills:**
 - `extensions/product-team/` - Primary product-team plugin (task engine, workflow, quality tools, VCS automation, CI feedback hooks)
 - `extensions/quality-gate/` - Standalone quality gate engine/CLI for local and CI quality runs
 - `extensions/model-router/` - Per-agent model routing hook

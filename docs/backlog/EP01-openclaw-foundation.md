@@ -105,5 +105,5 @@ the box, eliminating the need for custom MCP server infrastructure.
 
 ## References
 
-- [Roadmap](../roadmap.md)
+- [Roadmap](../roadmap_mvp.md)
 - [ADR-001](../adr/ADR-001-migrate-from-mcp-to-openclaw.md)

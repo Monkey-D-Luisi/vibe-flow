@@ -20,7 +20,7 @@ Execute this workflow with **plan-first** discipline — always confirm the appr
 3. Create a new feature branch for the task
 
 ### Step 1: Identify Next Task
-1. Read `docs/roadmap.md` (`Task Specs` section) to find PENDING tasks
+1. Read `docs/roadmap_v1.md` (Task Specs section) first, then `docs/roadmap_mvp.md` for any remaining MVP tasks
 2. Select the first PENDING task with all dependencies met
 3. Validate dependency epics in `docs/backlog/` are `DONE`
 4. If no task is available, report to user and wait
@@ -36,7 +36,7 @@ Execute this workflow with **plan-first** discipline — always confirm the appr
 2. Ensure walkthrough file exists: `docs/walkthroughs/NNNN-<task-title>.md` (create from `.agent/templates/walkthrough.md` if missing)
 
 ### Step 3: Update Task Status
-Change task status in `docs/roadmap.md`: `PENDING` -> `IN_PROGRESS`
+Change task status in `docs/roadmap_mvp.md`: `PENDING` -> `IN_PROGRESS`
 
 ### Step 4: Implement the Solution
 Follow the project's coding standards. Write tests alongside implementation.
@@ -58,7 +58,7 @@ git commit -m "feat(scope): description"
 ```
 
 ### Step 8: Mark Task Complete
-1. Update `docs/roadmap.md`: `IN_PROGRESS` -> `DONE`
+1. Update `docs/roadmap_mvp.md`: `IN_PROGRESS` -> `DONE`
 2. Update task file: Status -> DONE, check DoD boxes
 3. If epic-level status changes, update the corresponding `docs/backlog/EPxx-*.md`
 4. Commit status updates

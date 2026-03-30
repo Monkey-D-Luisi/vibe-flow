@@ -106,6 +106,6 @@ breakdown: [`docs/tasks/0007-hardening.md`](../tasks/0007-hardening.md)
 
 ## References
 
-- [Roadmap](../roadmap.md)
+- [Roadmap](../roadmap_mvp.md)
 - [EP03 -- Role Execution](EP03-role-execution.md)
 - [EP04 -- GitHub Integration](EP04-github-integration.md)

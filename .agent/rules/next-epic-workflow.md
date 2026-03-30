@@ -30,7 +30,7 @@ Execute the **entire epic** on a **single feature branch** submitted in a **sing
 
 ### Step 0: Identify Target Epic
 
-1. Read `docs/roadmap.md` to find the first `PENDING` epic with all dependency epics `DONE`.
+1. Read `docs/roadmap_mvp.md` to find the first `PENDING` epic with all dependency epics `DONE`.
 2. Read the corresponding `docs/backlog/EPxx-*.md` to get the full task breakdown.
 3. Identify all tasks in the epic, their sub-phases, and dependency ordering.
 4. If no epic is available (all dependencies unmet), report to user and stop.
@@ -72,7 +72,7 @@ For **each task** in the epic (respecting sub-phase dependency order):
 
 #### 3b: Update Task Status
 
-1. Change task status in `docs/roadmap.md`: `PENDING` → `IN_PROGRESS`
+1. Change task status in `docs/roadmap_mvp.md`: `PENDING` → `IN_PROGRESS`
 
 #### 3c: Deep Implementation
 
@@ -119,7 +119,7 @@ Use conventional commit format. Include task number in the message.
 
 #### 3g: Mark Task Complete
 
-1. Update `docs/roadmap.md`: `IN_PROGRESS` → `DONE`
+1. Update `docs/roadmap_mvp.md`: `IN_PROGRESS` → `DONE`
 2. Update task file: Status → `DONE`, check DoD boxes
 3. Commit status updates: `chore(docs): mark Task NNNN as DONE`
 

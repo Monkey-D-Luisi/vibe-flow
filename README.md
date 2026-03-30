@@ -191,7 +191,7 @@ See the [full quality gate evaluation flow](docs/architecture/quality-gates.md).
 | [Case Studies](docs/case-studies/README.md) | Detailed pipeline execution analysis |
 | [API Reference](docs/api-reference.md) | Full tool surface documentation |
 | [Getting Started](docs/getting-started.md) | Step-by-step setup guide |
-| [Roadmap](docs/roadmap.md) | Execution history and upcoming phases |
+| [Roadmap](docs/roadmap_mvp.md) | Execution history and upcoming phases |
 | [Docker Setup](docs/docker-setup.md) | Container deployment guide |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
 | [Security](SECURITY.md) | Vulnerability reporting |
@@ -265,7 +265,7 @@ built entirely by the autonomous agent team ([case study](docs/case-studies/task
 functional with a full autonomous pipeline, dynamic model routing, budget
 intelligence, agent learning loop, Telegram command center, and virtual office.
 
-See [docs/roadmap.md](docs/roadmap.md) for execution history and upcoming milestones.
+See [docs/roadmap_mvp.md](docs/roadmap_mvp.md) for execution history and upcoming milestones.
 
 ## Star History
 

@@ -103,5 +103,5 @@ Specifically:
 ## References
 
 - [OpenClaw Documentation](https://openclaw.dev/docs)
-- [Roadmap](../roadmap.md)
+- [Roadmap](../roadmap_mvp.md)
 - [EP01 -- OpenClaw Foundation](../backlog/EP01-openclaw-foundation.md)

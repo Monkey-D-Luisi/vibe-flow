@@ -125,6 +125,6 @@ file-by-file breakdown: [`docs/tasks/0006-quality-observability.md`](../tasks/00
 
 ## References
 
-- [Roadmap](../roadmap.md)
+- [Roadmap](../roadmap_mvp.md)
 - [EP02 -- Task Engine](EP02-task-engine.md)
 - [EP03 -- Role Execution](EP03-role-execution.md)
