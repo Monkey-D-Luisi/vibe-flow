@@ -62,7 +62,7 @@ observability, and extensibility for the community.
 | 13    | EP18 | Plugin SDK Contracts & DX            | EP13, EP16   | June 2026  | DONE |
 | 13    | EP19 | Showcase & Documentation             | EP18         | June 2026  | PENDING |
 | 14    | EP20 | Virtual Office                       | EP09         | March 2026 | DONE |
-| 15    | EP21 | Agent Excellence & Telegram Cmd Center | EP15, EP14  | April 2026 | IN_PROGRESS |
+| 15    | EP21 | Agent Excellence & Telegram Cmd Center | EP15, EP14  | April 2026 | DONE |
 
 Recent `main` stabilization after EP20 completion:
 
@@ -629,16 +629,16 @@ Key deliverables:
 
 #### Tasks
 
-- Task 0140: Rich Quality Report Cards -- IN_PROGRESS (EP21, 15A)
-- Task 0141: Pre-Advance Quality Validation -- PENDING (EP21, 15B)
-- Task 0142: Inline Keyboard Buttons for Decisions -- PENDING (EP21, 15A)
-- Task 0143: Live Pipeline Tracker Message -- PENDING (EP21, 15A)
-- Task 0144: Agent Self-Evaluation Enforcement -- PENDING (EP21, 15B)
-- Task 0145: Daily Standup Summary Cron -- PENDING (EP21, 15C)
-- Task 0146: Collaborative Review Loop Protocol -- PENDING (EP21, 15B)
-- Task 0147: Natural Language Intent Parser -- PENDING (EP21, 15C)
-- Task 0148: Multi-Bot Persona Identity -- PENDING (EP21, 15A)
-- Task 0149: Cross-Pipeline Learning Integration -- PENDING (EP21, 15B)
+- Task 0140: Rich Quality Report Cards -- DONE (EP21, 15A)
+- Task 0141: Pre-Advance Quality Validation -- DONE (EP21, 15B)
+- Task 0142: Inline Keyboard Buttons for Decisions -- DONE (EP21, 15A)
+- Task 0143: Live Pipeline Tracker Message -- DONE (EP21, 15A)
+- Task 0144: Agent Self-Evaluation Enforcement -- DONE (EP21, 15B)
+- Task 0145: Daily Standup Summary Cron -- DONE (EP21, 15C)
+- Task 0146: Collaborative Review Loop Protocol -- DONE (EP21, 15B)
+- Task 0147: Natural Language Intent Parser -- DONE (EP21, 15C)
+- Task 0148: Multi-Bot Persona Identity -- DONE (EP21, 15A)
+- Task 0149: Cross-Pipeline Learning Integration -- DONE (EP21, 15B)
 
 ---
 
@@ -696,7 +696,7 @@ graph TD
   style EP18 fill:#f3e5f5
   style EP19 fill:#f3e5f5
   style EP20 fill:#ffe0b2
-  style EP21 fill:#ffcdd2
+  style EP21 fill:#c8e6c9
 ```
 
 ---
