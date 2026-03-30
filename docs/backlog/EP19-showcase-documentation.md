@@ -1,6 +1,6 @@
 # EP19 -- Showcase & Documentation
 
-> Status: IN_PROGRESS
+> Status: DONE
 > Dependencies: EP18
 > Phase: 13 (Reference & Community)
 > Target: June 2026
@@ -279,10 +279,10 @@ of building an autonomous agent team and what was learned.
 
 ## Definition of Done
 
-- [ ] All 5 tasks completed
-- [ ] >= 10 ADRs documenting key architectural decisions
-- [ ] Task 0077 case study complete with full metrics
-- [ ] 8 architecture diagrams rendering on GitHub
-- [ ] README rewritten with visual showcase
-- [ ] Technical article draft ready for publication
-- [ ] `pnpm test && pnpm lint && pnpm typecheck` passes
+- [x] All 5 tasks completed
+- [x] >= 10 ADRs documenting key architectural decisions (11 ADRs: ADR-006 through ADR-016)
+- [x] Task 0077 case study complete with full metrics
+- [x] 8 architecture diagrams rendering on GitHub
+- [x] README rewritten with visual showcase
+- [x] Technical article draft ready for publication
+- [x] `pnpm test && pnpm lint && pnpm typecheck` passes
