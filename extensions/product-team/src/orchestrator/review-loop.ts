@@ -242,3 +242,61 @@ export function countBlockingViolations(violations: readonly ReviewViolation[]):
     (v) => v.severity === 'critical' || v.severity === 'high',
   ).length;
 }
+
+/**
+ * Extract review round history from task metadata.
+ */
+export function extractReviewHistory(meta: Record<string, unknown>): ReviewRound[] {
+  const raw = meta['reviewHistory'];
+  if (!Array.isArray(raw)) return [];
+
+  return raw.filter(
+    (r): r is Record<string, unknown> => typeof r === 'object' && r !== null,
+  ).map((r) => ({
+    round: typeof r['round'] === 'number' ? r['round'] : 0,
+    violations: parseReviewViolations(r as Record<string, unknown>),
+    summary: typeof r['summary'] === 'string' ? r['summary'] : undefined,
+    timestamp: typeof r['timestamp'] === 'string' ? r['timestamp'] : new Date().toISOString(),
+  }));
+}
+
+/**
+ * Build review repair context for a stage spawn message.
+ *
+ * When a task returns to IMPLEMENTATION from REVIEW, produces a repair brief
+ * or escalation message with the violations that need fixing.
+ *
+ * @param stage - Target stage being spawned
+ * @param meta - Task metadata containing review_result and history
+ * @param taskId - Task ID for the repair brief header
+ * @param title - Task title for the repair brief header
+ */
+export function buildReviewContextForSpawn(
+  stage: string,
+  meta: Record<string, unknown>,
+  taskId: string,
+  title: string,
+): string | null {
+  if (stage !== 'IMPLEMENTATION') return null;
+
+  const reviewResult = meta['review_result'];
+  if (!reviewResult || typeof reviewResult !== 'object' || reviewResult === null) return null;
+
+  const violations = parseReviewViolations(reviewResult as Record<string, unknown>);
+  if (violations.length === 0) return null;
+
+  const roundsReview = typeof meta['roundsReview'] === 'number' ? meta['roundsReview'] : 1;
+  const maxRounds = typeof meta['maxReviewRounds'] === 'number' ? meta['maxReviewRounds'] : 3;
+
+  const history = extractReviewHistory(meta);
+  const currentRound = buildReviewRound(roundsReview, violations);
+  const allRounds = [...history, currentRound];
+
+  const state = buildReviewLoopState(taskId, title, roundsReview, maxRounds, allRounds);
+
+  if (isReviewLoopExhausted(state)) {
+    return formatEscalationMessage(state);
+  }
+
+  return formatRepairBrief(state, violations);
+}

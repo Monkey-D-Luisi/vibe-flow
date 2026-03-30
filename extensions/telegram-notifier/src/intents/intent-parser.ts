@@ -116,7 +116,8 @@ export function parseIntent(text: string): ParsedIntent {
       const match = trimmed.match(pattern);
       if (match) {
         const confidence = computeConfidence(trimmed, match[0]);
-        const args = intentDef.extractArgs && match[1] ? match[1].trim() : undefined;
+        const argParts = [match[1], match[2]].filter(Boolean).map(s => s.trim()).filter(Boolean);
+        const args = intentDef.extractArgs && argParts.length > 0 ? argParts.join(' ') : undefined;
 
         if (!bestMatch || confidence > bestMatch.confidence) {
           bestMatch = {

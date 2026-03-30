@@ -5,8 +5,6 @@ import {
   formatPrCreation,
   formatQualityGate,
   formatAgentError,
-  formatPipelineAdvance,
-  formatPipelineComplete,
 } from './formatting.js';
 import { handleBudgetCommand, type BudgetDataSource, type BudgetRecord } from './budget-dashboard.js';
 import { createApiClient } from './api-client.js';
@@ -15,14 +13,9 @@ import { handleHealth } from './commands/health-diagnostics.js';
 import { handlePipeline } from './commands/pipeline-view.js';
 import { handleDecisions } from './commands/decision-context.js';
 import { AlertEngine } from './alerting/alert-engine.js';
-import { StandupScheduler } from './standup/daily-standup.js';
+import { StandupScheduler, DEFAULT_STANDUP_CONFIG } from './standup/daily-standup.js';
 import { extractDecisionData, formatDecisionCard, buildDecisionButtons } from './decision-buttons.js';
-import {
-  trackPipeline,
-  getTrackedPipeline,
-  updateTrackedStage,
-  formatPipelineProgress,
-} from './pipeline-tracker.js';
+import { handlePipelineAdvanceEvent } from './handlers/pipeline-advance-handler.js';
 
 /**
  * Telegram Notifier Plugin
@@ -95,7 +88,7 @@ export default {
       return;
     }
 
-    // EP13 Task 0096: Create API client for product-team HTTP routes (replaces _sharedDb)
+    // Create API client for product-team HTTP routes
     const rawApiPort = process.env['OPENCLAW_GATEWAY_PORT'];
     const parsedApiPort = Number.parseInt(rawApiPort ?? '', 10);
     const apiPort = Number.isFinite(parsedApiPort) && parsedApiPort > 0 ? parsedApiPort : 28789;
@@ -118,7 +111,7 @@ export default {
         // EP21 Task 0142: Rich decision card with inline keyboard buttons
         const res = (result && typeof result === 'object') ? result as Record<string, unknown> : {};
         const cardData = extractDecisionData(params, res);
-        if (cardData && cardData.approver !== 'human') {
+        if (cardData && cardData.approver != null && cardData.approver !== 'human') {
           const text = formatDecisionCard(cardData);
           const buttons = buildDecisionButtons(cardData.decisionId, cardData.options);
           enqueueWithButtons(text, 'high', buttons);
@@ -127,83 +120,21 @@ export default {
         const res = (result && typeof result === 'object')
           ? (result as Record<string, unknown>)
           : {};
-        const details = ((res['details'] ?? res) as Record<string, unknown>);
-        if (details['advanced'] === true) {
-          const taskId = String(details['taskId'] ?? 'unknown');
-          const previousStage = String(details['previousStage'] ?? '');
-          const currentStage = String(details['currentStage'] ?? '');
-          const title = String(details['title'] ?? '');
-
-          // EP21 Task 0143: Live pipeline tracker -- single message, edited in-place
-          const tracked = getTrackedPipeline(taskId);
-          if (tracked) {
-            // Update existing tracked pipeline and edit the message
-            const updated = updateTrackedStage(taskId, previousStage, currentStage);
-            if (updated) {
-              const text = formatPipelineProgress(updated);
-              const ma = api.runtime?.channel?.telegram?.messageActions;
-              if (ma?.handleAction) {
-                Promise.resolve(ma.handleAction({
-                  channel: 'telegram' as never,
-                  action: 'edit' as never,
-                  cfg: api.config,
-                  params: {
-                    chatId: updated.chatId,
-                    messageId: Number(updated.messageId),
-                    message: text,
-                  },
-                })).catch((err: unknown) => {
-                  slog('warn', 'pipeline_tracker.edit_failed', { taskId, err: String(err) });
-                  // Fallback: send a new message
-                  enqueue(currentStage === 'DONE'
-                    ? formatPipelineComplete(details)
-                    : formatPipelineAdvance(details), 'normal');
-                });
-              }
-            }
-          } else {
-            // First advance for this task: send initial tracker message
-            const runtime = api.runtime;
-            const sendTg = runtime?.channel?.telegram?.sendMessageTelegram;
-            if (typeof sendTg === 'function') {
-              // Create a temporary tracked entry so formatPipelineProgress works
-              trackPipeline(taskId, config.groupId, '0', title, currentStage);
-              const tempTracked = getTrackedPipeline(taskId);
-              if (tempTracked && previousStage) {
-                tempTracked.completedStages.add(previousStage);
-              }
-              const text = tempTracked
-                ? formatPipelineProgress(tempTracked)
-                : formatPipelineAdvance(details);
-              Promise.resolve(sendTg(config.groupId, text, {
-                textMode: 'markdown',
-              })).then((sent: unknown) => {
-                const sendResult = sent as { messageId?: string; chatId?: string } | undefined;
-                const msgId = String(sendResult?.messageId ?? '0');
-                const chatId = String(sendResult?.chatId ?? config.groupId);
-                // Re-track with actual messageId from Telegram
-                trackPipeline(taskId, chatId, msgId, title, currentStage);
-                if (previousStage) {
-                  const t = getTrackedPipeline(taskId);
-                  if (t) t.completedStages.add(previousStage);
-                }
-              }).catch((err: unknown) => {
-                slog('warn', 'pipeline_tracker.send_failed', { taskId, err: String(err) });
-              });
-            } else {
-              // No Telegram runtime, fall back to queue
-              enqueue(currentStage === 'DONE'
-                ? formatPipelineComplete(details)
-                : formatPipelineAdvance(details), 'normal');
-            }
-          }
-        }
+        // EP21 Task 0143: Live pipeline tracker (extracted to handler module)
+        handlePipelineAdvanceEvent(res, {
+          groupId: config.groupId,
+          enqueue,
+          slog,
+          getRuntime: () => api.runtime as ReturnType<typeof Object>,
+          apiConfig: api.config,
+        });
       }
     });
 
     api.on('agent_end', (event) => {
       if (event.error) {
-        enqueue(formatAgentError(event as unknown as Record<string, unknown>), 'high');
+        const rec = event as Record<string, unknown>;
+        enqueue(formatAgentError({ agentId: String(rec['agentId'] ?? 'unknown'), error: String(rec['error']) }), 'high');
       }
     });
 
@@ -292,8 +223,6 @@ export default {
       handler: async (ctx) => {
         try {
           const args = String(ctx.args ?? '').trim();
-
-          // EP13 Task 0096: Prefetch all budget data via API, then provide sync data source
           const allScopes = ['global', 'pipeline', 'stage', 'agent'] as const;
           const budgetMap = new Map<string, BudgetRecord[]>();
           for (const scope of allScopes) {
@@ -488,7 +417,8 @@ export default {
     const rawStandupCfg = (pluginCfg['standup'] && typeof pluginCfg['standup'] === 'object')
       ? (pluginCfg['standup'] as Record<string, unknown>)
       : {};
-    const standupEnabled = rawStandupCfg['enabled'] === true || rawStandupCfg['enabled'] === 'true';
+    const standupEnabled = rawStandupCfg['enabled'] === true || rawStandupCfg['enabled'] === 'true'
+      || (rawStandupCfg['enabled'] === undefined && DEFAULT_STANDUP_CONFIG.enabled);
     const standupHour = typeof rawStandupCfg['hourUtc'] === 'number' ? rawStandupCfg['hourUtc'] : 9;
     const standupScheduler = new StandupScheduler(ptApi, enqueue, alertLogger, {
       enabled: standupEnabled,

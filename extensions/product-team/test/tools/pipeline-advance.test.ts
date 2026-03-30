@@ -257,7 +257,7 @@ describe('pipeline-advance tools', () => {
       const result = await tool.execute('sm3', { taskId });
       const d = result.details as { nextAction?: { task: string } };
 
-      expect(d.nextAction?.task).toContain(`pipeline_advance({ taskId: "${taskId}" })`);
+      expect(d.nextAction?.task).toContain(`pipeline_advance({ taskId: "${taskId}", selfEvaluation:`);
       expect(d.nextAction?.task).toContain('Do NOT wait for instructions');
     });
   });
@@ -268,7 +268,7 @@ describe('pipeline-advance tools', () => {
       expect(msg).toContain('My Feature');
       expect(msg).toContain('Implement the solution');
       expect(msg).toContain('Build a landing page');
-      expect(msg).toContain('pipeline_advance({ taskId: "task-1" })');
+      expect(msg).toContain('pipeline_advance({ taskId: "task-1", selfEvaluation:');
     });
 
     it('handles missing ideaText gracefully', () => {

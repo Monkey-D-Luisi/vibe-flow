@@ -110,7 +110,7 @@ export function validateSelfEvaluation(
   if (!evaluation) {
     failures.push({
       rule: 'self_evaluation_required',
-      message: `Stage ${stage} requires a self-evaluation. Include a selfEvaluation param with confidence (1-5), completeness (1-5), risks, and summary.`,
+      message: `Stage ${stage} requires a self-evaluation. Include a selfEvaluation param with confidence (1-5), completeness (1-5), and summary. risks is optional.`,
     });
     return failures;
   }

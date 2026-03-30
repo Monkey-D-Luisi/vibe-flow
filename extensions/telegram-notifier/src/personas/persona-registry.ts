@@ -163,7 +163,7 @@ export function resolveAgentId(event: Record<string, unknown>): string {
   const params = event['params'];
   if (params && typeof params === 'object' && !Array.isArray(params)) {
     const p = params as Record<string, unknown>;
-    if (typeof p['agentId'] === 'string') return p['agentId'];
+    if (typeof p['agentId'] === 'string' && p['agentId']) return p['agentId'];
   }
   return 'system';
 }

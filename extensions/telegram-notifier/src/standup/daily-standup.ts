@@ -81,7 +81,7 @@ export function formatStandupSummary(
     .sort(([, a], [, b]) => b.eventsInPeriod - a.eventsInPeriod);
 
   if (agentEntries.length > 0) {
-    lines.push('🤖 *Agent Activity \\(last hour\\):*');
+    lines.push('🤖 *Agent Activity \\(last 24h\\):*');
     for (const [agentId, data] of agentEntries) {
       lines.push(`  \`${eid(agentId)}\`: ${data.eventsInPeriod} events`);
     }

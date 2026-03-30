@@ -117,6 +117,24 @@ describe('evaluateStageQuality', () => {
       }, enabledConfig);
       expect(failures).toHaveLength(0);
     });
+
+    it('fails when tests_passed is missing', () => {
+      const failures = evaluateStageQuality('IMPLEMENTATION', {
+        dev_result: {
+          metrics: { coverage: 85, lint_clean: true },
+        },
+      }, enabledConfig);
+      expect(failures.some((f) => f.rule === 'tests_must_pass')).toBe(true);
+    });
+
+    it('fails when lint_clean is missing', () => {
+      const failures = evaluateStageQuality('IMPLEMENTATION', {
+        dev_result: {
+          metrics: { tests_passed: true, coverage: 85 },
+        },
+      }, enabledConfig);
+      expect(failures.some((f) => f.rule === 'lint_clean')).toBe(true);
+    });
   });
 
   describe('QA stage', () => {
@@ -141,6 +159,14 @@ describe('evaluateStageQuality', () => {
       expect(failures[0].rule).toBe('no_failed_tests');
       expect(failures[0].message).toContain('3');
     });
+
+    it('fails when qa_report has no failed count', () => {
+      const failures = evaluateStageQuality('QA', {
+        qa_report: { total: 50 },
+      }, enabledConfig);
+      expect(failures).toHaveLength(1);
+      expect(failures[0].rule).toBe('no_failed_tests');
+    });
   });
 
   describe('REVIEW stage', () => {
@@ -148,6 +174,14 @@ describe('evaluateStageQuality', () => {
       const failures = evaluateStageQuality('REVIEW', {}, enabledConfig);
       expect(failures).toHaveLength(1);
       expect(failures[0].rule).toBe('review_result_required');
+    });
+
+    it('fails when violations array is missing', () => {
+      const failures = evaluateStageQuality('REVIEW', {
+        review_result: { approved: true },
+      }, enabledConfig);
+      expect(failures).toHaveLength(1);
+      expect(failures[0].rule).toBe('violations_required');
     });
 
     it('passes with no violations', () => {
