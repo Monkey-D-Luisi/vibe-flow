@@ -280,14 +280,17 @@ describe('pipeline-advance tools', () => {
 
     // EP21 Task 0146: Review loop context enrichment
     it('includes repair brief when returning to IMPLEMENTATION with review violations', () => {
+      const violations = [
+        { severity: 'high', message: 'Missing auth check', file: 'src/api.ts' },
+        { severity: 'medium', message: 'Magic number' },
+      ];
       const msg = buildStageSpawnMessage('task-1', 'IMPLEMENTATION', 'Auth Feature', {
-        review_result: {
-          violations: [
-            { severity: 'high', message: 'Missing auth check', file: 'src/api.ts' },
-            { severity: 'medium', message: 'Magic number' },
-          ],
-        },
-        roundsReview: 1,
+        review_result: { violations },
+        reviewHistory: [{
+          round: 1,
+          violations,
+          timestamp: '2026-03-01T12:00:00.000Z',
+        }],
       });
       expect(msg).toContain('Repair Brief');
       expect(msg).toContain('Missing auth check');
@@ -304,11 +307,14 @@ describe('pipeline-advance tools', () => {
     });
 
     it('shows escalation message when review loop is exhausted', () => {
+      const violations = [{ severity: 'high', message: 'Persistent issue' }];
       const msg = buildStageSpawnMessage('task-1', 'IMPLEMENTATION', 'Auth Feature', {
-        review_result: {
-          violations: [{ severity: 'high', message: 'Persistent issue' }],
-        },
-        roundsReview: 3,
+        review_result: { violations },
+        reviewHistory: [
+          { round: 1, violations, timestamp: '2026-01-01T00:00:00.000Z' },
+          { round: 2, violations, timestamp: '2026-01-02T00:00:00.000Z' },
+          { round: 3, violations, timestamp: '2026-01-03T00:00:00.000Z' },
+        ],
         maxReviewRounds: 3,
       });
       expect(msg).toContain('Escalation Required');
@@ -320,6 +326,101 @@ describe('pipeline-advance tools', () => {
       });
       expect(msg).not.toContain('Repair Brief');
       expect(msg).not.toContain('Escalation');
+    });
+  });
+
+  describe('REVIEW → IMPLEMENTATION backward transition (CR-0277)', () => {
+    it('redirects to IMPLEMENTATION when blocking violations exist', async () => {
+      const taskId = await createPipelineTask('REVIEW', {
+        review_result: {
+          violations: [
+            { severity: 'high', message: 'Missing error handling', file: 'src/api.ts' },
+          ],
+        },
+      });
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('rev-1', { taskId });
+      const d = result.details as { advanced: boolean; currentStage: string; owner: string };
+
+      expect(d.advanced).toBe(true);
+      expect(d.currentStage).toBe('IMPLEMENTATION');
+      expect(d.owner).toBe('back-1');
+
+      // Verify metadata was updated
+      const task = deps.taskRepo.getById(taskId)!;
+      const meta = task.metadata as Record<string, unknown>;
+      expect(meta['pipelineStage']).toBe('IMPLEMENTATION');
+      expect(meta['pipelineOwner']).toBe('back-1');
+      expect(Array.isArray(meta['reviewHistory'])).toBe(true);
+    });
+
+    it('advances to SHIPPING when no blocking violations', async () => {
+      const taskId = await createPipelineTask('REVIEW', {
+        review_result: {
+          violations: [
+            { severity: 'low', message: 'Minor style issue' },
+          ],
+        },
+      });
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('rev-2', { taskId });
+      const d = result.details as { advanced: boolean; currentStage: string };
+
+      expect(d.advanced).toBe(true);
+      expect(d.currentStage).toBe('SHIPPING');
+    });
+
+    it('advances to SHIPPING when review rounds exhausted', async () => {
+      const violations = [{ severity: 'high', message: 'Persistent issue' }];
+      const taskId = await createPipelineTask('REVIEW', {
+        review_result: { violations },
+        reviewHistory: [
+          { round: 1, violations, timestamp: '2026-01-01T00:00:00.000Z' },
+          { round: 2, violations, timestamp: '2026-01-02T00:00:00.000Z' },
+        ],
+      });
+      // maxReviewRounds defaults to 3, roundNumber will be 3 (= maxReviewRounds), so no redirect
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('rev-3', { taskId });
+      const d = result.details as { advanced: boolean; currentStage: string };
+
+      expect(d.advanced).toBe(true);
+      expect(d.currentStage).toBe('SHIPPING');
+    });
+
+    it('emits review_loop_back event on backward transition', async () => {
+      const taskId = await createPipelineTask('REVIEW', {
+        review_result: {
+          violations: [{ severity: 'critical', message: 'Security flaw' }],
+        },
+      });
+      const tool = pipelineAdvanceToolDef(deps);
+      await tool.execute('rev-4', { taskId });
+
+      const events = db.prepare(
+        "SELECT * FROM event_log WHERE task_id = ? AND event_type = 'pipeline.stage.review_loop_back'",
+      ).all(taskId) as { payload: string }[];
+      expect(events).toHaveLength(1);
+      const payload = JSON.parse(events[0].payload);
+      expect(payload.round).toBe(1);
+      expect(payload.blockingViolations).toBe(1);
+    });
+
+    it('includes repair brief in spawn message on backward transition', async () => {
+      const taskId = await createPipelineTask('REVIEW', {
+        review_result: {
+          violations: [
+            { severity: 'high', message: 'Missing auth check', file: 'src/handler.ts' },
+          ],
+        },
+      });
+      const tool = pipelineAdvanceToolDef(deps);
+      const result = await tool.execute('rev-5', { taskId });
+      const d = result.details as { nextAction?: { task: string } };
+
+      expect(d.nextAction).toBeDefined();
+      expect(d.nextAction!.task).toContain('Repair Brief');
+      expect(d.nextAction!.task).toContain('Missing auth check');
     });
   });
 

@@ -76,7 +76,8 @@ function formatRichQualityGate(output: Record<string, unknown>): string {
   if (coverage && typeof coverage === 'object') {
     const pct = typeof coverage['lines'] === 'number' ? coverage['lines'] as number : 0;
     const bar = buildProgressBar(pct);
-    lines.push(`📊 *Coverage:* \`${bar}\` ${escapeMarkdownV2(String(pct))}% ${checkIcon(pct >= 70)}`);
+    const coveragePassed = !violations.some((v) => String(v['code']) === 'COVERAGE_BELOW');
+    lines.push(`📊 *Coverage:* \`${bar}\` ${escapeMarkdownV2(String(pct))}% ${checkIcon(coveragePassed)}`);
   }
 
   // Tests

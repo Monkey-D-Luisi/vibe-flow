@@ -141,7 +141,7 @@ export default {
       if (event.error) {
         const rec = event as Record<string, unknown>;
         const agentId = resolveAgentId(rec);
-        enqueue(withPersona(personaRegistry, agentId, formatAgentError({ agentId: String(rec['agentId'] ?? 'unknown'), error: String(rec['error']) })), 'high');
+        enqueue(withPersona(personaRegistry, agentId, formatAgentError(rec)), 'high');
       }
     });
 
@@ -202,12 +202,12 @@ export default {
 
         const intent = parseIntent(text);
         if (intent.kind === 'unknown' || intent.confidence < 0.3) {
-          return { text: `I couldn\\'t understand that\\. ${formatIntentHelp()}` };
+          return { text: `I couldn't understand that\\. ${formatIntentHelp()}` };
         }
 
         const mapped = intentToCommand(intent);
         if (!mapped) {
-          return { text: `I understood your intent \\(_${escapeMarkdownV2(intent.kind)}_\\) but couldn\\'t map it to a command\\. Try being more specific\\.` };
+          return { text: `I understood your intent \\(_${escapeMarkdownV2(intent.kind)}_\\) but couldn't map it to a command\\. Try being more specific\\.` };
         }
 
         // Suggest the equivalent slash command
@@ -457,7 +457,8 @@ export default {
       : {};
     const standupEnabled = rawStandupCfg['enabled'] === true || rawStandupCfg['enabled'] === 'true'
       || (rawStandupCfg['enabled'] === undefined && DEFAULT_STANDUP_CONFIG.enabled);
-    const standupHour = typeof rawStandupCfg['hourUtc'] === 'number' ? rawStandupCfg['hourUtc'] : 9;
+    const rawHour = typeof rawStandupCfg['hourUtc'] === 'number' ? rawStandupCfg['hourUtc'] : 9;
+    const standupHour = Number.isFinite(rawHour) ? Math.max(0, Math.min(23, Math.floor(rawHour))) : 9;
     const standupScheduler = new StandupScheduler(ptApi, enqueue, alertLogger, {
       enabled: standupEnabled,
       hourUtc: standupHour,

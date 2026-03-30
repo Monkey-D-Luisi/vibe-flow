@@ -53,6 +53,7 @@ export interface ToolDeps {
     coverageByScope?: { minor?: number; major?: number; patch?: number };
     stageQualityEnabled?: boolean;
     selfEvaluationEnabled?: boolean;
+    maxReviewRounds?: number;
   };
   vcs?: {
     requestRepo: SqliteRequestRepository;

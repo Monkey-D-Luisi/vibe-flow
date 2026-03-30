@@ -147,6 +147,7 @@ export interface OrchestratorConfig {
   readonly coverageByScope?: { minor?: number; major?: number; patch?: number };
   readonly stageQualityEnabled: boolean;
   readonly selfEvaluationEnabled: boolean;
+  readonly maxReviewRounds: number;
 }
 
 export function resolveOrchestratorConfig(
@@ -170,6 +171,7 @@ export function resolveOrchestratorConfig(
     coverageByScope: validateCoverageByScope(asRecord(orch?.coverageByScope)),
     stageQualityEnabled: asBoolean(orch?.stageQualityEnabled) ?? true,
     selfEvaluationEnabled: asBoolean(orch?.selfEvaluationEnabled) ?? true,
+    maxReviewRounds: asPositiveInteger(orch?.maxReviewRounds) ?? 3,
   };
 }
 

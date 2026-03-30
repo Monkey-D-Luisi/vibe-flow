@@ -293,12 +293,6 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
         agentId: STAGE_OWNERS[currentStage as PipelineStage] ?? 'system',
       });
 
-      // Emit stage entered event (Task 0074)
-      emitStageEvent(deps, input.taskId, 'pipeline.stage.entered', {
-        stage: targetStage,
-        agentId: STAGE_OWNERS[targetStage] ?? 'system',
-      });
-
       // Update metadata with new stage and stage timing
       const updatedMeta = {
         ...meta,
@@ -337,9 +331,32 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
               blockingViolations: countBlockingViolations(violations),
               stage: 'REVIEW',
             });
+
+            // CR-0277: Redirect to IMPLEMENTATION when blocking violations exist
+            // and review rounds are not exhausted (review loop backward transition).
+            const maxReviewRounds = deps.orchestratorConfig?.maxReviewRounds ?? 3;
+            const blockingCount = countBlockingViolations(violations);
+            if (blockingCount > 0 && roundNumber < maxReviewRounds) {
+              targetStage = 'IMPLEMENTATION';
+              updatedMeta['pipelineStage'] = 'IMPLEMENTATION';
+              updatedMeta['pipelineOwner'] = STAGE_OWNERS['IMPLEMENTATION'];
+              updatedMeta[`IMPLEMENTATION_startedAt`] = now;
+
+              emitStageEvent(deps, input.taskId, 'pipeline.stage.review_loop_back', {
+                round: roundNumber,
+                blockingViolations: blockingCount,
+                maxRounds: maxReviewRounds,
+              });
+            }
           }
         }
       }
+
+      // Emit stage entered event after potential review-loop redirect (Task 0074)
+      emitStageEvent(deps, input.taskId, 'pipeline.stage.entered', {
+        stage: targetStage,
+        agentId: STAGE_OWNERS[targetStage] ?? 'system',
+      });
 
       deps.taskRepo.update(input.taskId, { metadata: updatedMeta }, task.rev, now);
       syncPipelineStageColumn(deps, input.taskId, targetStage);
