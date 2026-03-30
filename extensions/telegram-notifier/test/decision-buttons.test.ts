@@ -16,17 +16,17 @@ describe('buildDecisionButtons', () => {
     const buttons = buildDecisionButtons('DEC-001', ['option-a', 'option-b']);
     expect(buttons).toHaveLength(3); // 2 approve rows + 1 reject row
     expect(buttons[0]![0]!.text).toBe('✅ option-a');
-    expect(buttons[0]![0]!.callback_data).toBe('dec:approve:DEC-001:option-a');
+    expect(buttons[0]![0]!.callback_data).toBe('/approve DEC-001 option-a');
     expect(buttons[1]![0]!.text).toBe('✅ option-b');
-    expect(buttons[1]![0]!.callback_data).toBe('dec:approve:DEC-001:option-b');
+    expect(buttons[1]![0]!.callback_data).toBe('/approve DEC-001 option-b');
     expect(buttons[2]![0]!.text).toBe('❌ Reject');
-    expect(buttons[2]![0]!.callback_data).toBe('dec:reject:DEC-001');
+    expect(buttons[2]![0]!.callback_data).toBe('/reject DEC-001');
   });
 
   it('handles a single option', () => {
     const buttons = buildDecisionButtons('DEC-002', ['yes']);
     expect(buttons).toHaveLength(2);
-    expect(buttons[0]![0]!.callback_data).toBe('dec:approve:DEC-002:yes');
+    expect(buttons[0]![0]!.callback_data).toBe('/approve DEC-002 yes');
     expect(buttons[1]![0]!.text).toBe('❌ Reject');
   });
 
