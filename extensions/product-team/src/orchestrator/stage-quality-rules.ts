@@ -15,13 +15,11 @@ export interface StageQualityFailure {
 
 export interface StageQualityConfig {
   readonly coverageMinPct: number;
-  readonly complexityMaxAvg: number;
   readonly enabled: boolean;
 }
 
 export const DEFAULT_STAGE_QUALITY_CONFIG: StageQualityConfig = {
   coverageMinPct: 70,
-  complexityMaxAvg: 5.0,
   enabled: true,
 };
 
@@ -84,9 +82,9 @@ function evaluateImplementation(
     }];
   }
 
-  // Tests must pass
+  // Tests must pass (missing = failure)
   const testsPassed = metrics['tests_passed'];
-  if (testsPassed === false) {
+  if (testsPassed !== true) {
     failures.push({
       stage,
       rule: 'tests_must_pass',
@@ -104,9 +102,9 @@ function evaluateImplementation(
     });
   }
 
-  // Lint must be clean
+  // Lint must be clean (missing = failure)
   const lintClean = metrics['lint_clean'];
-  if (lintClean === false) {
+  if (lintClean !== true) {
     failures.push({
       stage,
       rule: 'lint_clean',
@@ -134,7 +132,13 @@ function evaluateQA(
   }
 
   const failed = typeof qaReport['failed'] === 'number' ? qaReport['failed'] as number : null;
-  if (failed !== null && failed > 0) {
+  if (failed === null) {
+    failures.push({
+      stage,
+      rule: 'no_failed_tests',
+      message: 'qa_report.failed (number) is required. Run QA checks before advancing.',
+    });
+  } else if (failed > 0) {
     failures.push({
       stage,
       rule: 'no_failed_tests',
@@ -162,7 +166,13 @@ function evaluateReview(
   }
 
   const violations = reviewResult['violations'];
-  if (Array.isArray(violations)) {
+  if (!Array.isArray(violations)) {
+    failures.push({
+      stage,
+      rule: 'violations_required',
+      message: 'review_result.violations (array) is required before advancing from REVIEW.',
+    });
+  } else {
     const critical = violations.filter((v) => {
       if (!isRecord(v)) return false;
       const severity = String(v['severity'] ?? '').toLowerCase();

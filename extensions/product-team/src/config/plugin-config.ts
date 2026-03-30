@@ -40,6 +40,20 @@ function asBoolean(value: unknown): boolean | null {
   return typeof value === 'boolean' ? value : null;
 }
 
+function validateCoverageByScope(
+  raw: Record<string, unknown> | null,
+): { minor?: number; major?: number; patch?: number } | undefined {
+  if (!raw) return undefined;
+  const result: { minor?: number; major?: number; patch?: number } = {};
+  for (const key of ['minor', 'major', 'patch'] as const) {
+    const val = raw[key];
+    if (typeof val === 'number' && val >= 0 && val <= 100) {
+      result[key] = val;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -153,7 +167,7 @@ export function resolveOrchestratorConfig(
     skipDesignForNonUITasks: asBoolean(orch?.skipDesignForNonUITasks) ?? false,
     autoEscalateAfterRetries: asBoolean(orch?.autoEscalateAfterRetries) ?? true,
     notifyTelegramOnStageChange: asBoolean(orch?.notifyTelegramOnStageChange) ?? false,
-    coverageByScope: asRecord(orch?.coverageByScope) as { minor?: number; major?: number; patch?: number } | undefined,
+    coverageByScope: validateCoverageByScope(asRecord(orch?.coverageByScope)),
     stageQualityEnabled: asBoolean(orch?.stageQualityEnabled) ?? true,
     selfEvaluationEnabled: asBoolean(orch?.selfEvaluationEnabled) ?? true,
   };

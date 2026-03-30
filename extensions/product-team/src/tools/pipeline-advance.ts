@@ -22,13 +22,9 @@ import {
 } from '../orchestrator/self-evaluation.js';
 import {
   parseReviewViolations,
-  formatRepairBrief,
-  buildReviewLoopState,
   buildReviewRound,
-  isReviewLoopExhausted,
-  formatEscalationMessage,
   countBlockingViolations,
-  type ReviewRound,
+  buildReviewContextForSpawn,
 } from '../orchestrator/review-loop.js';
 
 const PipelineAdvanceParams = Type.Object({
@@ -95,77 +91,18 @@ export function buildStageSpawnMessage(
   ];
 
   // EP21 Task 0146: Enrich with repair brief when returning to IMPLEMENTATION after review
-  const reviewBrief = buildReviewContextForSpawn(stage, meta);
+  const reviewBrief = buildReviewContextForSpawn(stage, meta, taskId, title);
   if (reviewBrief) {
     parts.push('', reviewBrief);
   }
 
   parts.push(
     '',
-    `When done, call pipeline_advance({ taskId: "${taskId}" }) to advance to the next stage.`,
+    `When done, call pipeline_advance({ taskId: "${taskId}", selfEvaluation: { confidence: <1-5>, completeness: <1-5>, summary: "<what you did>" } }) to advance to the next stage.`,
     'Do NOT wait for instructions. Do NOT ask what to do next.',
   );
 
   return parts.filter(Boolean).join('\n');
-}
-
-/**
- * EP21 Task 0146: Build review repair context for spawn message.
- *
- * When a task returns to IMPLEMENTATION from REVIEW, attach a repair brief
- * with the violations that need fixing.
- */
-function buildReviewContextForSpawn(
-  stage: string,
-  meta: Record<string, unknown>,
-): string | null {
-  if (stage !== 'IMPLEMENTATION') return null;
-
-  const reviewResult = meta['review_result'];
-  if (!reviewResult || typeof reviewResult !== 'object' || reviewResult === null) return null;
-
-  const violations = parseReviewViolations(reviewResult as Record<string, unknown>);
-  if (violations.length === 0) return null;
-
-  // Extract round info from metadata
-  const roundsReview = typeof meta['roundsReview'] === 'number' ? meta['roundsReview'] : 1;
-  const maxRounds = typeof meta['maxReviewRounds'] === 'number' ? meta['maxReviewRounds'] : 3;
-
-  // Build historical rounds from metadata if available
-  const history = extractReviewHistory(meta);
-  const currentRound = buildReviewRound(roundsReview, violations);
-  const allRounds = [...history, currentRound];
-
-  const state = buildReviewLoopState(
-    String(meta['taskId'] ?? 'unknown'),
-    String(meta['title'] ?? 'Untitled'),
-    roundsReview,
-    maxRounds,
-    allRounds,
-  );
-
-  if (isReviewLoopExhausted(state)) {
-    return formatEscalationMessage(state);
-  }
-
-  return formatRepairBrief(state, violations);
-}
-
-/**
- * Extract review round history from task metadata.
- */
-function extractReviewHistory(meta: Record<string, unknown>): ReviewRound[] {
-  const raw = meta['reviewHistory'];
-  if (!Array.isArray(raw)) return [];
-
-  return raw.filter(
-    (r): r is Record<string, unknown> => typeof r === 'object' && r !== null,
-  ).map((r) => ({
-    round: typeof r['round'] === 'number' ? r['round'] : 0,
-    violations: parseReviewViolations(r as Record<string, unknown>),
-    summary: typeof r['summary'] === 'string' ? r['summary'] : undefined,
-    timestamp: typeof r['timestamp'] === 'string' ? r['timestamp'] : new Date().toISOString(),
-  }));
 }
 
 /** Emit a stage transition event to the event log for observability (Task 0074). */
@@ -226,9 +163,16 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
 
       // Task 0141 (EP21): Pre-advance stage quality validation.
       // Each stage has quality requirements that must be met before advancing.
+      const taskScope = typeof meta['scope'] === 'string' ? meta['scope'] : 'minor';
+      const scopeThresholds = deps.orchestratorConfig?.coverageByScope;
+      const scopedCoverage = (
+        taskScope === 'major' ? scopeThresholds?.major :
+        taskScope === 'patch' ? scopeThresholds?.patch :
+        scopeThresholds?.minor
+      ) ?? 70;
       const stageQualityConfig: StageQualityConfig = {
         ...DEFAULT_STAGE_QUALITY_CONFIG,
-        coverageMinPct: deps.orchestratorConfig?.coverageByScope?.minor ?? 70,
+        coverageMinPct: scopedCoverage,
         enabled: deps.orchestratorConfig?.stageQualityEnabled !== false,
       };
       const qualityFailures = evaluateStageQuality(currentStage, meta, stageQualityConfig);
@@ -407,6 +351,7 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
       const result = {
         advanced: true,
         taskId: input.taskId,
+        title: task.title ?? 'Untitled',
         previousStage: currentStage,
         currentStage: targetStage,
         owner: STAGE_OWNERS[targetStage] ?? 'system',

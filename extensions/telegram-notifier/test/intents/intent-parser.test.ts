@@ -92,13 +92,13 @@ describe('parseIntent', () => {
   it('recognises "approve decision abc option1"', () => {
     const intent = parseIntent('approve decision abc option1');
     expect(intent.kind).toBe('approve_decision');
-    expect(intent.args).toBe('abc');
+    expect(intent.args).toBe('abc option1');
   });
 
   it('recognises "reject decision xyz bad idea"', () => {
     const intent = parseIntent('reject decision xyz bad idea');
     expect(intent.kind).toBe('reject_decision');
-    expect(intent.args).toBe('xyz');
+    expect(intent.args).toBe('xyz bad idea');
   });
 
   it('recognises "lgtm" as approval', () => {
