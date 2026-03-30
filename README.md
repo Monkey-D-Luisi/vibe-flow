@@ -83,7 +83,7 @@ The product-team extension follows [hexagonal architecture](docs/architecture/he
 with strict inward dependency flow. The [10-stage pipeline](docs/architecture/pipeline-flow.md)
 orchestrates work from IDEA to DONE with quality gates at each transition.
 
-**Full architecture diagrams:** [docs/architecture/](docs/architecture/README.md)
+**[Full architecture diagrams](docs/architecture/README.md)**
 
 ## Prerequisites
 
@@ -180,7 +180,7 @@ Full reference: [docs/api-reference.md](docs/api-reference.md)
 | TypeScript errors | 0 |
 | Avg cyclomatic complexity | &le; 5.0 |
 
-See [architecture/quality-gates.md](docs/architecture/quality-gates.md) for the full quality gate evaluation flow.
+See the [full quality gate evaluation flow](docs/architecture/quality-gates.md).
 
 ## Documentation
 
@@ -261,7 +261,7 @@ built entirely by the autonomous agent team ([case study](docs/case-studies/task
 
 ## Project Status
 
-**Alpha (v0.2.x)** — 21 epics across 15 phases completed. The system is
+**Alpha (v0.2.x)** -- 21 epics across 15 phases completed. The system is
 functional with a full autonomous pipeline, dynamic model routing, budget
 intelligence, agent learning loop, Telegram command center, and virtual office.
 

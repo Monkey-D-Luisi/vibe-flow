@@ -296,20 +296,20 @@ pnpm dev
 
 **Explore the documentation:**
 
-- [Architecture diagrams](docs/architecture/README.md) — visual overview of
+- [Architecture diagrams](../architecture/README.md) — visual overview of
   every subsystem
-- [ADR library](docs/adr/) — 16 documented architecture decisions with
+- [ADR library](../adr/) — 16 documented architecture decisions with
   rationale
-- [Task 0077 case study](docs/case-studies/task-0077-autonomous-pipeline.md)
+- [Task 0077 case study](../case-studies/task-0077-autonomous-pipeline.md)
   — full timeline of the autonomous pipeline run
-- [Getting started guide](docs/getting-started.md) — setup, configuration,
+- [Getting started guide](../getting-started.md) — setup, configuration,
   first run
 
 **Build your own extension:**
 
-The [extension integration guide](docs/extension-integration.md) walks through
+The [extension integration guide](../extension-integration.md) walks through
 building a custom OpenClaw extension. Start with the
-[`create-extension` scaffolding tool](tools/create-extension/) to generate the
+[`create-extension` scaffolding tool](../../tools/create-extension/) to generate the
 boilerplate.
 
 ---

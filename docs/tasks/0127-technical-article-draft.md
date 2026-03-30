@@ -65,10 +65,10 @@ landing page from IDEA to PR in ~4 minutes with zero human intervention.
 
 ## Acceptance Criteria
 
-- [ ] `docs/articles/autonomous-agent-team.md` exists
-- [ ] Article is 2000–3000 words
-- [ ] Self-contained (readable without project context)
-- [ ] Includes real metrics from Task 0077
-- [ ] Honest about limitations and challenges
-- [ ] Call to action links to repo and getting-started guide
-- [ ] Draft ready for publication
+- [x] `docs/articles/autonomous-agent-team.md` exists
+- [x] Article is 2000–3000 words
+- [x] Self-contained (readable without project context)
+- [x] Includes real metrics from Task 0077
+- [x] Honest about limitations and challenges
+- [x] Call to action links to repo and getting-started guide
+- [x] Draft ready for publication

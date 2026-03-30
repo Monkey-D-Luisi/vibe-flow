@@ -5,7 +5,7 @@
 - Task: `docs/tasks/0127-technical-article-draft.md`
 - Epic: EP19 -- Showcase & Documentation
 - Branch: `feat/EP19-showcase-documentation`
-- PR: —
+- PR: (pending)
 
 ---
 
