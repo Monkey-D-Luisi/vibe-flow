@@ -33,6 +33,37 @@
 
 ---
 
+## What is this?
+
+An **8-agent autonomous product team** that takes product ideas from concept to
+merged pull request through a 10-stage evidence-gated pipeline. Each agent owns
+a specific role (PM, PO, Tech Lead, Designer, Backend, Frontend, QA, DevOps)
+with dedicated skills, tool policies, and model assignments.
+
+The system runs on [OpenClaw](https://openclaw.ai) in Docker with SQLite
+persistence, Telegram for human oversight, and dynamic LLM routing across
+multiple providers.
+
+## See It in Action
+
+**Task 0077: The team builds a landing page about itself.**
+
+In March 2026, the 8-agent team completed its first fully autonomous pipeline
+run — building a GitHub Pages landing page in **~4 minutes** with zero human
+intervention:
+
+- **8 agents** coordinated across all 10 pipeline stages
+- **17 files** created (HTML, CSS, JS, SVG, CI workflows)
+- **5 auto-resolved decisions** (no human escalation needed)
+- **3 operational issues** discovered and subsequently fixed
+
+The PM defined the content strategy, the PO refined user stories, the Tech Lead
+decomposed the work, the Designer created a dark-theme visual system, the
+Frontend Dev implemented everything, QA validated, the Tech Lead reviewed, and
+DevOps created the PR — all autonomously.
+
+Read the full case study: [docs/case-studies/task-0077-autonomous-pipeline.md](docs/case-studies/task-0077-autonomous-pipeline.md)
+
 ## Architecture
 
 ```mermaid
@@ -47,6 +78,12 @@ flowchart LR
   PT --> GH[GitHub via gh CLI]
   CI[Local/CI pipeline] --> QG[quality-gate CLI]
 ```
+
+The product-team extension follows [hexagonal architecture](docs/architecture/hexagonal-layers.md)
+with strict inward dependency flow. The [10-stage pipeline](docs/architecture/pipeline-flow.md)
+orchestrates work from IDEA to DONE with quality gates at each transition.
+
+**Full architecture diagrams:** [docs/architecture/](docs/architecture/README.md)
 
 ## Prerequisites
 
@@ -80,12 +117,6 @@ docker compose ps
 
 See [docs/docker-setup.md](docs/docker-setup.md) for auth credentials, Telegram setup, and troubleshooting.
 
-## Current State (March 2026)
-
-- `main` currently includes post-`v0.2.0` work: nudge engine, virtual-office stabilization (pipeline semantics, dashboard readability, responsive sidebar/canvas layout).
-- Docker deployment baseline is verified with service `gateway` and container `openclaw-product-team` exposed at `http://localhost:28789`.
-- Core monorepo checks (`pnpm -r lint`, `pnpm -r typecheck`, `pnpm -r test`) are green on the latest documentation update push to `main`.
-
 ## Agent Roster
 
 | Agent ID | Role | Primary Model | Skills |
@@ -116,25 +147,54 @@ See [docs/docker-setup.md](docs/docker-setup.md) for auth credentials, Telegram 
 
 Full reference: [docs/api-reference.md](docs/api-reference.md)
 
+## Skills
+
+17 role-specific skill libraries providing domain expertise to each agent:
+
+| Skill | Description |
+|-------|-------------|
+| [adr](skills/adr/) | Architecture Decision Record management |
+| [agent-eval](skills/agent-eval/) | Agent evaluation and performance assessment |
+| [architecture-design](skills/architecture-design/) | System architecture design workflows |
+| [backend-dev](skills/backend-dev/) | Backend development patterns and practices |
+| [build-error-resolver](skills/build-error-resolver/) | Automated build error diagnosis and resolution |
+| [code-review](skills/code-review/) | Structured code review workflows |
+| [devops](skills/devops/) | DevOps, CI/CD, and infrastructure management |
+| [frontend-dev](skills/frontend-dev/) | Frontend development patterns and practices |
+| [github-automation](skills/github-automation/) | GitHub workflow automation (branches, PRs, labels) |
+| [patterns](skills/patterns/) | Software architecture patterns library |
+| [product-owner](skills/product-owner/) | Product ownership and backlog management |
+| [qa-testing](skills/qa-testing/) | QA testing strategies and test planning |
+| [requirements-grooming](skills/requirements-grooming/) | Requirements refinement and user stories |
+| [skill-factory](skills/skill-factory/) | Meta-skill for creating new skills |
+| [tdd-implementation](skills/tdd-implementation/) | Test-driven development workflows |
+| [tech-lead](skills/tech-lead/) | Technical leadership and decision-making |
+| [ui-designer](skills/ui-designer/) | UI/UX design workflows and design systems |
+
 ## Quality Gates
 
 | Metric | Threshold |
 |--------|-----------|
-| Line coverage | &ge; 80% (new) / &ge; 70% (overall) |
+| Line coverage | &ge; 80% (major) / &ge; 70% (minor) |
 | Lint errors | 0 |
 | TypeScript errors | 0 |
 | Avg cyclomatic complexity | &le; 5.0 |
 
-## Security Model
+See [architecture/quality-gates.md](docs/architecture/quality-gates.md) for the full quality gate evaluation flow.
 
-- **Tool allow-lists per agent**: each agent can only call tools explicitly allowed in its policy. CI enforces allow-list correctness ([docs/allowlist-rationale.md](docs/allowlist-rationale.md)).
-- **Transition guards**: state machine requires structured evidence in task metadata before advancing (coverage, lint, review results).
-- **Decision engine**: auto/escalate/pause/retry policies with circuit breakers and human escalation.
-- **CI vulnerability audit**: `pnpm verify:vuln-policy` gates PRs against known vulnerabilities with an exception ledger.
+## Documentation
 
-## Cost and Limits
-
-Agents consume LLM provider tokens (Anthropic, OpenAI Codex, GitHub Copilot). Costs depend on provider pricing and task complexity. The plugin tracks token usage and wall-clock time per task via `cost.*` events and supports per-task budget limits with warning alerts.
+| Resource | Description |
+|----------|-------------|
+| [Architecture Diagrams](docs/architecture/README.md) | 8 Mermaid diagrams covering all subsystems |
+| [ADRs](docs/adr/) | 16 Architecture Decision Records (ADR-001 through ADR-016) |
+| [Case Studies](docs/case-studies/README.md) | Detailed pipeline execution analysis |
+| [API Reference](docs/api-reference.md) | Full tool surface documentation |
+| [Getting Started](docs/getting-started.md) | Step-by-step setup guide |
+| [Roadmap](docs/roadmap.md) | Execution history and upcoming phases |
+| [Docker Setup](docs/docker-setup.md) | Container deployment guide |
+| [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
+| [Security](SECURITY.md) | Vulnerability reporting |
 
 ## Development
 
@@ -183,15 +243,29 @@ vibe-flow/
   docs/                     # Product, operations, and execution documentation
 ```
 
+## Build Your Own Extension
+
+vibe-flow is built on OpenClaw's plugin architecture. Each extension follows a
+standard pattern with a `register(api)` entry point and an `openclaw.plugin.json`
+manifest.
+
+See the [Getting Started Guide](docs/getting-started.md) and
+[API Reference](docs/api-reference.md) to build your own extension.
+
 ## Landing Page
 
-The `site/` directory contains a static landing page deployed via GitHub Pages.
+The `site/` directory contains a static landing page deployed via GitHub Pages —
+built entirely by the autonomous agent team ([case study](docs/case-studies/task-0077-autonomous-pipeline.md)).
 
 **Live:** [monkey-d-luisi.github.io/vibe-flow](https://monkey-d-luisi.github.io/vibe-flow/)
 
 ## Project Status
 
-**Alpha (v0.2.x)** -- the API surface is functional but may change as EP16+ work lands. See [docs/roadmap.md](docs/roadmap.md) for execution history and upcoming milestones.
+**Alpha (v0.2.x)** — 21 epics across 15 phases completed. The system is
+functional with a full autonomous pipeline, dynamic model routing, budget
+intelligence, agent learning loop, Telegram command center, and virtual office.
+
+See [docs/roadmap.md](docs/roadmap.md) for execution history and upcoming milestones.
 
 ## Star History
 

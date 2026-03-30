@@ -581,7 +581,7 @@ Key deliverables:
 - Task 0123: ADR Backlog -- Key Architectural Decisions -- DONE (EP19, 13A)
 - Task 0124: Autonomous Pipeline Case Study (Task 0077) -- DONE (EP19, 13A)
 - Task 0125: Architecture Diagrams (Mermaid) -- DONE (EP19, 13B)
-- Task 0126: README Overhaul with Visual Showcase -- PENDING (EP19, 13B)
+- Task 0126: README Overhaul with Visual Showcase -- DONE (EP19, 13B)
 - Task 0127: Technical Article Draft -- PENDING (EP19, 13C)
 
 ### Phase 14: Virtual Office (EP20)
