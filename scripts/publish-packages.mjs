@@ -83,8 +83,8 @@ for (const dir of workspaceDirs) {
       continue;
     }
 
-    // Only publish packages in the @openclaw/ scope.
-    if (!manifest.name.startsWith('@openclaw/')) {
+    // Only publish packages in the @openclaw/ scope (or the create-vibe-flow CLI).
+    if (!manifest.name.startsWith('@openclaw/') && manifest.name !== 'create-vibe-flow') {
       continue;
     }
 

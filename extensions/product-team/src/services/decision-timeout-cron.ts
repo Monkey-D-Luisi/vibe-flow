@@ -50,6 +50,9 @@ export interface DecisionTimeoutDeps {
     timeoutMs?: number;
     humanApprovalTimeout?: number;
   };
+  readonly orchestratorConfig?: {
+    escalationTarget?: string;
+  };
 }
 
 const DEFAULT_AGENT_TIMEOUT_MS = 300_000;       // 5 minutes
@@ -119,7 +122,8 @@ export function sweepDecisionTimeouts(deps: DecisionTimeoutDeps): number {
     }
 
     // This decision has timed out — re-escalate
-    const newApprover = isHuman ? 'tech-lead' : 'pm';
+    const escalationTarget = deps.orchestratorConfig?.escalationTarget ?? 'tech-lead';
+    const newApprover = isHuman ? escalationTarget : 'pm';
     const msgId = deps.generateId();
     const msgNow = deps.now();
 

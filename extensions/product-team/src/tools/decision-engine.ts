@@ -77,6 +77,7 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
     parameters: DecisionEvaluateParams,
     execute: async (_toolCallId, params) => {
       ensureDecisionsTable(deps);
+      const escalationTarget = deps.orchestratorConfig?.escalationTarget ?? 'tech-lead';
       const input = deps.validate<{
         category: string;
         question: string;
@@ -126,13 +127,13 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
             input.question,
             JSON.stringify(input.options),
             'Circuit breaker: max decisions per agent per task reached. Escalating.',
-            'tech-lead',
+            escalationTarget,
             cbNow,
           );
 
           const cbMsgId = sendEscalationMessage(deps, {
             fromAgent: 'decision-engine',
-            toAgent: 'tech-lead',
+            toAgent: escalationTarget,
             decisionId: cbId,
             category: input.category,
             question: input.question,
@@ -145,11 +146,11 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
             decision: null,
             reasoning: 'Circuit breaker: max decisions per agent per task reached. Escalating.',
             escalated: true,
-            approver: 'tech-lead',
+            approver: escalationTarget,
             escalationMessageId: cbMsgId,
             nextAction: {
               action: 'spawn_subagent',
-              agentId: 'tech-lead',
+              agentId: escalationTarget,
               task: `You have a pending escalated decision in your inbox (message ID: ${cbMsgId}). ` +
                 `Read it with team_inbox, then make a decision on: "${input.question}". ` +
                 `Reply using team_reply with your choice.`,
@@ -173,7 +174,7 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
         decision = input.recommendation ?? input.options[0].id;
       } else if (policy.action === 'escalate') {
         escalated = true;
-        approver = policy.target ?? 'tech-lead';
+        approver = policy.target ?? escalationTarget;
       } else if (policy.action === 'pause') {
         escalated = true;
         approver = 'human';
@@ -190,9 +191,9 @@ export function decisionEvaluateToolDef(deps: ToolDeps): ToolDef {
               ? (retryCountRow as { cnt: number }).cnt
               : 0;
           if (retryCount >= maxRetries) {
-            // maxRetries exceeded — force escalation to tech-lead
+            // maxRetries exceeded — force escalation
             escalated = true;
-            approver = 'tech-lead';
+            approver = escalationTarget;
             decision = null;
           } else {
             decision = input.recommendation ?? input.options[0].id;

@@ -1,7 +1,7 @@
 # EP30 -- Zero-Config Quick Start
 
 > Epic Owner: DevOps + Tech Lead
-> Status: PLANNED
+> Status: IN_PROGRESS
 > Phase: V1-1 (first priority)
 > Dependencies: None (builds on existing Docker and gateway infrastructure)
 

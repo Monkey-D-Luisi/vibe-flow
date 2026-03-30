@@ -52,14 +52,16 @@ const POLICY_CHANGE_LOG_TABLE = 'policy_change_log';
  */
 export class AdaptiveEscalationEngine {
   private readonly dampeningWindow: number;
+  private readonly escalationTarget: string;
 
   constructor(
     private readonly db: Database.Database,
     private readonly generateId: () => string,
     private readonly now: () => string,
-    options?: { dampeningWindow?: number },
+    options?: { dampeningWindow?: number; escalationTarget?: string },
   ) {
     this.dampeningWindow = options?.dampeningWindow ?? 5;
+    this.escalationTarget = options?.escalationTarget ?? 'tech-lead';
     this.ensureTables();
   }
 
@@ -95,7 +97,7 @@ export class AdaptiveEscalationEngine {
         category,
         agentId,
         action: newPolicy,
-        target: newPolicy === 'escalate' ? 'tech-lead' : undefined,
+        target: newPolicy === 'escalate' ? this.escalationTarget : undefined,
         confidence: rec.confidence,
         evidence: JSON.stringify(rec.details),
         pipelineRunAt: currentPipelineRun,

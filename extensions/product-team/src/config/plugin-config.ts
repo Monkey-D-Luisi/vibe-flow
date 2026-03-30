@@ -148,6 +148,14 @@ export interface OrchestratorConfig {
   readonly stageQualityEnabled: boolean;
   readonly selfEvaluationEnabled: boolean;
   readonly maxReviewRounds: number;
+  /** Custom pipeline stages (e.g. minimal 5-stage). Defaults to full 10-stage. */
+  readonly pipelineStages?: readonly string[];
+  /** Custom stage → agent owner mapping. Defaults to full stage owners. */
+  readonly stageOwners?: Readonly<Record<string, string>>;
+  /** Agents allowed to call pipeline.advance as coordinators (in addition to stage owner). */
+  readonly coordinatorAgents?: readonly string[];
+  /** Default escalation target agent (replaces hardcoded 'tech-lead'). */
+  readonly escalationTarget?: string;
 }
 
 export function resolveOrchestratorConfig(
@@ -172,6 +180,20 @@ export function resolveOrchestratorConfig(
     stageQualityEnabled: asBoolean(orch?.stageQualityEnabled) ?? true,
     selfEvaluationEnabled: asBoolean(orch?.selfEvaluationEnabled) ?? true,
     maxReviewRounds: asPositiveInteger(orch?.maxReviewRounds) ?? 3,
+    pipelineStages: asStringArray(orch?.pipelineStages).length > 0
+      ? asStringArray(orch?.pipelineStages)
+      : undefined,
+    stageOwners: asRecord(orch?.stageOwners)
+      ? Object.fromEntries(
+          Object.entries(asRecord(orch?.stageOwners) as Record<string, unknown>)
+            .filter(([, v]) => typeof v === 'string')
+            .map(([k, v]) => [k, v as string]),
+        )
+      : undefined,
+    coordinatorAgents: asStringArray(orch?.coordinatorAgents).length > 0
+      ? asStringArray(orch?.coordinatorAgents)
+      : undefined,
+    escalationTarget: asNonEmptyString(orch?.escalationTarget) ?? undefined,
   };
 }
 

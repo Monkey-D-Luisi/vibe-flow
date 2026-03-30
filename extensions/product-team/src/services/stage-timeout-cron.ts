@@ -28,6 +28,7 @@ export interface StageTimeoutDeps {
     stageTimeouts?: Record<string, number>;
     autoEscalateAfterRetries?: boolean;
     maxTimeoutEscalations?: number;
+    escalationTarget?: string;
   };
   readonly agentSpawner?: AgentSpawnSink;
   readonly sessionCleaner?: {
@@ -140,7 +141,8 @@ export function sweepStageTimeouts(deps: StageTimeoutDeps): number {
     // Stage has timed out
     const alreadyEscalated = meta[`${stage}_timeoutEscalated`] === true;
     const owner = String(meta.pipelineOwner ?? 'system');
-    const target = alreadyEscalated ? 'tech-lead' : owner;
+    const escalationTarget = deps.orchestratorConfig?.escalationTarget ?? 'tech-lead';
+    const target = alreadyEscalated ? escalationTarget : owner;
 
     const msgId = deps.generateId();
     const msgNow = deps.now();

@@ -54,6 +54,10 @@ export interface ToolDeps {
     stageQualityEnabled?: boolean;
     selfEvaluationEnabled?: boolean;
     maxReviewRounds?: number;
+    pipelineStages?: readonly string[];
+    stageOwners?: Readonly<Record<string, string>>;
+    coordinatorAgents?: readonly string[];
+    escalationTarget?: string;
   };
   vcs?: {
     requestRepo: SqliteRequestRepository;
