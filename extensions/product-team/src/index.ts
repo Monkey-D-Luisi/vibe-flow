@@ -55,6 +55,7 @@ import { registerBudgetHooks } from './hooks/budget-hooks.js';
 import type { BudgetGuardDeps } from './orchestrator/budget-guard.js';
 import { registerCircuitBreakerHook } from './hooks/circuit-breaker.js';
 import { setupObservability } from './observability/registration.js';
+import { DecisionPatternAnalyzer } from './orchestrator/decision-pattern-analyzer.js';
 
 export type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 export { resolveConcurrencyConfig } from './config/plugin-config.js';
@@ -439,6 +440,21 @@ export function register(api: OpenClawPluginApi): void {
       const g = globalThis as Record<symbol, unknown>;
       const registry = g[registryKey] as Map<string, unknown> | undefined;
       if (registry) registry.clear();
+
+      // EP21 Task 0149: Cross-pipeline learning trigger
+      // Analyze decision patterns on pipeline completion to surface recommendations
+      try {
+        const analyzer = new DecisionPatternAnalyzer(db);
+        const report = analyzer.analyze();
+        if (report.patterns.length > 0) {
+          api.logger.info(
+            `pipeline-done-learning: ${report.analyzedDecisions} decisions analyzed, ` +
+            `${report.patterns.length} patterns, ${report.recommendations.length} recommendations`,
+          );
+        }
+      } catch (analyzerErr: unknown) {
+        api.logger.warn(`pipeline-done-learning: analysis failed: ${String(analyzerErr)}`);
+      }
     } catch (err: unknown) {
       api.logger.warn(`pipeline-done-cleanup: error: ${String(err)}`);
     }

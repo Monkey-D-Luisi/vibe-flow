@@ -16,6 +16,8 @@ import { AlertEngine } from './alerting/alert-engine.js';
 import { StandupScheduler, DEFAULT_STANDUP_CONFIG } from './standup/daily-standup.js';
 import { extractDecisionData, formatDecisionCard, buildDecisionButtons } from './decision-buttons.js';
 import { handlePipelineAdvanceEvent } from './handlers/pipeline-advance-handler.js';
+import { parseIntent, intentToCommand, formatIntentHelp } from './intents/intent-parser.js';
+import { PersonaRegistry, withPersona, resolveAgentId } from './personas/persona-registry.js';
 
 /**
  * Telegram Notifier Plugin
@@ -88,6 +90,9 @@ export default {
       return;
     }
 
+    // EP21 Task 0148: Persona registry for agent identity in messages
+    const personaRegistry = new PersonaRegistry();
+
     // Create API client for product-team HTTP routes
     const rawApiPort = process.env['OPENCLAW_GATEWAY_PORT'];
     const parsedApiPort = Number.parseInt(rawApiPort ?? '', 10);
@@ -100,13 +105,14 @@ export default {
       const toolName = String(event.toolName ?? '');
       const params = (event.params ?? {}) as Record<string, unknown>;
       const result = event.result;
+      const agentId = resolveAgentId(event as Record<string, unknown>);
 
       if (toolName === 'task_transition') {
-        enqueue(formatTaskTransition(params), 'normal');
+        enqueue(withPersona(personaRegistry, agentId, formatTaskTransition(params)), 'normal');
       } else if (toolName === 'vcs_pr_create') {
-        enqueue(formatPrCreation(params, result), 'high');
+        enqueue(withPersona(personaRegistry, agentId, formatPrCreation(params, result)), 'high');
       } else if (toolName === 'quality_gate') {
-        enqueue(formatQualityGate(params, result), 'normal');
+        enqueue(withPersona(personaRegistry, agentId, formatQualityGate(params, result)), 'normal');
       } else if (toolName === 'decision_evaluate') {
         // EP21 Task 0142: Rich decision card with inline keyboard buttons
         const res = (result && typeof result === 'object') ? result as Record<string, unknown> : {};
@@ -134,14 +140,17 @@ export default {
     api.on('agent_end', (event) => {
       if (event.error) {
         const rec = event as Record<string, unknown>;
-        enqueue(formatAgentError({ agentId: String(rec['agentId'] ?? 'unknown'), error: String(rec['error']) }), 'high');
+        const agentId = resolveAgentId(rec);
+        enqueue(withPersona(personaRegistry, agentId, formatAgentError({ agentId: String(rec['agentId'] ?? 'unknown'), error: String(rec['error']) })), 'high');
       }
     });
 
     api.on('subagent_spawned', (event) => {
-      const agentId = String((event as Record<string, unknown>)['agentId'] ?? 'unknown');
+      const rec = event as Record<string, unknown>;
+      const agentId = String(rec['agentId'] ?? 'unknown');
+      const persona = personaRegistry.get(agentId);
       enqueue(
-        `🤖 Sub\\-agent \`${escapeMarkdownV2(agentId)}\` spawned`,
+        `${persona.emoji} Sub\\-agent *${escapeMarkdownV2(persona.displayName)}* spawned`,
         'low',
       );
     });
@@ -177,6 +186,35 @@ export default {
           return { text: 'Usage: /idea <your product idea>\n\nTip: You can also send a regular message \\(not a command\\) to talk directly with the PM agent\\.' };
         }
         return { text: `Idea noted: "${escapeMarkdownV2(ideaText)}"\\.\n\nTo have the PM agent act on this, send it as a regular message \\(not a /command\\)\\. Example:\n\`@AiProductTeamBot ${escapeMarkdownV2(ideaText)}\`` };
+      },
+    });
+
+    // EP21 Task 0147: Natural language intent parser
+    api.registerCommand({
+      name: 'ask',
+      description: 'Ask a question in natural language',
+      acceptsArgs: true,
+      handler: async (ctx) => {
+        const text = String(ctx.args ?? '').trim();
+        if (!text) {
+          return { text: formatIntentHelp() };
+        }
+
+        const intent = parseIntent(text);
+        if (intent.kind === 'unknown' || intent.confidence < 0.3) {
+          return { text: `I couldn\\'t understand that\\. ${formatIntentHelp()}` };
+        }
+
+        const mapped = intentToCommand(intent);
+        if (!mapped) {
+          return { text: `I understood your intent \\(_${escapeMarkdownV2(intent.kind)}_\\) but couldn\\'t map it to a command\\. Try being more specific\\.` };
+        }
+
+        // Suggest the equivalent slash command
+        const cmdStr = mapped.args
+          ? `/${escapeMarkdownV2(mapped.command)} ${escapeMarkdownV2(mapped.args)}`
+          : `/${escapeMarkdownV2(mapped.command)}`;
+        return { text: `💡 Try: \`${cmdStr}\`` };
       },
     });
 

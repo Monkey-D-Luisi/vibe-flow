@@ -41,8 +41,12 @@ export interface DecisionCardData {
  *   Final row:      [❌ Reject]
  *
  * callback_data format:
- *   - `dec:approve:<decisionId>:<optionId>`
- *   - `dec:reject:<decisionId>`
+ *   - `/approve <decisionId> <optionId>`
+ *   - `/reject <decisionId>`
+ *
+ * The OpenClaw gateway converts callback_data into a synthetic text message
+ * and routes it through processMessage, so slash-command format ensures
+ * button presses invoke the existing /approve and /reject command handlers.
  *
  * Telegram limits callback_data to 64 bytes, so IDs are truncated if needed.
  */
@@ -52,7 +56,7 @@ export function buildDecisionButtons(decisionId: string, options: readonly strin
 
   for (const option of options) {
     const shortOption = option.length > 16 ? option.slice(0, 16) : option;
-    const callbackData = `dec:approve:${shortId}:${shortOption}`;
+    const callbackData = `/approve ${shortId} ${shortOption}`;
     // Telegram enforces 64-byte limit on callback_data
     const safeCallback = callbackData.length > 64 ? callbackData.slice(0, 64) : callbackData;
     rows.push([{
@@ -63,7 +67,7 @@ export function buildDecisionButtons(decisionId: string, options: readonly strin
 
   rows.push([{
     text: '❌ Reject',
-    callback_data: `dec:reject:${shortId}`,
+    callback_data: `/reject ${shortId}`,
   }]);
 
   return rows;
