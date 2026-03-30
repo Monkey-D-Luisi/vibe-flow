@@ -1,31 +1,33 @@
 import type { ToolDef, ToolDeps } from './index.js';
 import { PipelineStartParams, PipelineStatusParams, PipelineRetryParams, PipelineSkipParams } from '../schemas/pipeline.schema.js';
 import { createTaskRecord, createOrchestratorState } from '../domain/task-record.js';
+import { FULL_PIPELINE_STAGES, FULL_STAGE_OWNERS } from '../config/pipeline-presets.js';
 
-export const PIPELINE_STAGES = [
-  'IDEA', 'ROADMAP', 'REFINEMENT', 'DECOMPOSITION', 'DESIGN',
-  'IMPLEMENTATION', 'QA', 'REVIEW', 'SHIPPING', 'DONE',
-] as const;
+export const PIPELINE_STAGES = FULL_PIPELINE_STAGES;
 
 export type PipelineStage = typeof PIPELINE_STAGES[number];
 
-export const STAGE_OWNERS: Record<PipelineStage, string> = {
-  IDEA: 'pm',
-  ROADMAP: 'pm',
-  REFINEMENT: 'po',
-  DECOMPOSITION: 'tech-lead',
-  DESIGN: 'designer',
-  IMPLEMENTATION: 'back-1',
-  QA: 'qa',
-  REVIEW: 'tech-lead',
-  SHIPPING: 'devops',
-  DONE: 'system',
-};
+export const STAGE_OWNERS: Record<PipelineStage, string> = FULL_STAGE_OWNERS as Record<PipelineStage, string>;
 
-export function getNextStage(current: string): PipelineStage | null {
-  const idx = PIPELINE_STAGES.indexOf(current as PipelineStage);
-  if (idx < 0 || idx >= PIPELINE_STAGES.length - 1) return null;
-  return PIPELINE_STAGES[idx + 1];
+/** Get the configured pipeline stages, falling back to the full 10-stage default. */
+export function getConfiguredStages(config?: { pipelineStages?: readonly string[] }): readonly string[] {
+  return config?.pipelineStages && config.pipelineStages.length > 0
+    ? config.pipelineStages
+    : PIPELINE_STAGES;
+}
+
+/** Get the configured stage owners, falling back to the full stage owners. */
+export function getConfiguredStageOwners(config?: { stageOwners?: Readonly<Record<string, string>> }): Readonly<Record<string, string>> {
+  return config?.stageOwners && Object.keys(config.stageOwners).length > 0
+    ? config.stageOwners
+    : STAGE_OWNERS;
+}
+
+export function getNextStage(current: string, customStages?: readonly string[]): string | null {
+  const stages = customStages ?? PIPELINE_STAGES;
+  const idx = stages.indexOf(current);
+  if (idx < 0 || idx >= stages.length - 1) return null;
+  return stages[idx + 1];
 }
 
 /** Sync the pipeline_stage indexed column with the metadata value. */
@@ -80,6 +82,7 @@ export function pipelineStartToolDef(deps: ToolDeps): ToolDef {
 
       const id = deps.generateId();
       const now = deps.now();
+      const stageOwners = getConfiguredStageOwners(deps.orchestratorConfig);
       const task = createTaskRecord(
         {
           title: input.ideaText.slice(0, 200),
@@ -87,7 +90,7 @@ export function pipelineStartToolDef(deps: ToolDeps): ToolDef {
           tags: ['pipeline', 'idea'],
           metadata: {
             pipelineStage: 'IDEA',
-            pipelineOwner: STAGE_OWNERS['IDEA'],
+            pipelineOwner: stageOwners['IDEA'] ?? 'pm',
             projectId: input.projectId ?? deps.projectConfig?.activeProject ?? null,
             ideaText: input.ideaText,
             pipelineStartedAt: now,
@@ -196,8 +199,10 @@ export function pipelineRetryToolDef(deps: ToolDeps): ToolDef {
       const currentStage = String(meta?.pipelineStage ?? 'IDEA');
       const retryStage = input.stage ?? currentStage;
 
-      if (!PIPELINE_STAGES.includes(retryStage as PipelineStage)) {
-        const result = { retried: false, reason: `Invalid stage "${retryStage}". Must be one of: ${PIPELINE_STAGES.join(', ')}` };
+      const configuredStages = getConfiguredStages(deps.orchestratorConfig);
+      const stageOwners = getConfiguredStageOwners(deps.orchestratorConfig);
+      if (!configuredStages.includes(retryStage)) {
+        const result = { retried: false, reason: `Invalid stage "${retryStage}". Must be one of: ${configuredStages.join(', ')}` };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
           details: result,
@@ -208,7 +213,7 @@ export function pipelineRetryToolDef(deps: ToolDeps): ToolDef {
         metadata: {
           ...(meta ?? {}),
           pipelineStage: retryStage,
-          pipelineOwner: STAGE_OWNERS[retryStage as PipelineStage] ?? 'system',
+          pipelineOwner: stageOwners[retryStage] ?? 'system',
           retryCount: (typeof meta?.retryCount === 'number' ? meta.retryCount : 0) + 1,
         },
       }, task.rev, deps.now());
@@ -245,15 +250,17 @@ export function pipelineSkipToolDef(deps: ToolDeps): ToolDef {
 
       const meta = task.metadata as Record<string, unknown> | undefined;
 
-      if (!PIPELINE_STAGES.includes(input.stage as PipelineStage)) {
-        const result = { skipped: false, reason: `Invalid stage "${input.stage}". Must be one of: ${PIPELINE_STAGES.join(', ')}` };
+      const configuredStages = getConfiguredStages(deps.orchestratorConfig);
+      const stageOwners = getConfiguredStageOwners(deps.orchestratorConfig);
+      if (!configuredStages.includes(input.stage)) {
+        const result = { skipped: false, reason: `Invalid stage "${input.stage}". Must be one of: ${configuredStages.join(', ')}` };
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
           details: result,
         };
       }
 
-      const nextStage = getNextStage(input.stage);
+      const nextStage = getNextStage(input.stage, configuredStages);
 
       if (!nextStage) {
         const result = { skipped: false, reason: `No next stage after "${input.stage}"` };
@@ -267,7 +274,7 @@ export function pipelineSkipToolDef(deps: ToolDeps): ToolDef {
         metadata: {
           ...(meta ?? {}),
           pipelineStage: nextStage,
-          pipelineOwner: STAGE_OWNERS[nextStage] ?? 'system',
+          pipelineOwner: stageOwners[nextStage] ?? 'system',
           [`${input.stage}_skipped`]: true,
           [`${input.stage}_skipReason`]: input.reason,
         },

@@ -10,7 +10,7 @@
  */
 
 import type { ToolDef, ToolDeps } from './index.js';
-import { PIPELINE_STAGES, STAGE_OWNERS, getNextStage, type PipelineStage } from './pipeline.js';
+import { PIPELINE_STAGES, STAGE_OWNERS, getNextStage, getConfiguredStages, getConfiguredStageOwners } from './pipeline.js';
 import { Type } from '@sinclair/typebox';
 import { getSkillInstructions } from '../hooks/skill-activation.js';
 import { evaluateStageQuality, DEFAULT_STAGE_QUALITY_CONFIG, type StageQualityConfig } from '../orchestrator/stage-quality-rules.js';
@@ -75,10 +75,12 @@ export function buildStageSpawnMessage(
   stage: string,
   title: string,
   meta: Record<string, unknown>,
+  stageOwners?: Readonly<Record<string, string>>,
 ): string {
   const ideaText = typeof meta['ideaText'] === 'string' ? (meta['ideaText'] as string).slice(0, 500) : '';
   const instruction = STAGE_INSTRUCTIONS[stage] ?? `Execute the ${stage} stage work.`;
-  const owner = STAGE_OWNERS[stage as PipelineStage] ?? 'system';
+  const owners: Readonly<Record<string, string>> = stageOwners ?? STAGE_OWNERS;
+  const owner = owners[stage] ?? 'system';
   const skillContext = getSkillInstructions(stage, owner);
 
   const parts = [
@@ -144,14 +146,18 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
       const meta = (task.metadata ?? {}) as Record<string, unknown>;
       const currentStage = String(meta.pipelineStage ?? 'IDEA');
       const now = deps.now();
+      const configuredStages = getConfiguredStages(deps.orchestratorConfig);
+      const stageOwners = getConfiguredStageOwners(deps.orchestratorConfig);
+      const escalationTarget = deps.orchestratorConfig?.escalationTarget ?? 'tech-lead';
 
-      // Caller validation: only the current stage owner (or pm/tech-lead as
-      // coordinators) may advance the pipeline. The _callerAgentId field is
-      // injected by the pipeline-caller-injection before_tool_call hook.
+      // Caller validation: only the current stage owner (or coordinator agents)
+      // may advance the pipeline. The _callerAgentId field is injected by the
+      // pipeline-caller-injection before_tool_call hook.
       const callerAgentId = (params as Record<string, unknown>)['_callerAgentId'] as string | undefined;
       if (callerAgentId) {
-        const currentOwner = STAGE_OWNERS[currentStage as PipelineStage] ?? 'system';
-        const allowedCallers = new Set([currentOwner, 'pm', 'tech-lead']);
+        const currentOwner = stageOwners[currentStage] ?? 'system';
+        const coordinators = deps.orchestratorConfig?.coordinatorAgents ?? ['pm', 'tech-lead'];
+        const allowedCallers = new Set([currentOwner, ...coordinators]);
         if (!allowedCallers.has(callerAgentId)) {
           const reason = `Caller "${callerAgentId}" is not authorized to advance stage ${currentStage} (owner: ${currentOwner})`;
           return {
@@ -220,7 +226,7 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
       if (stageRetries > maxRetries) {
         const escalateResult = {
           advanced: false,
-          reason: `Stage ${currentStage} exceeded max retries (${stageRetries}/${maxRetries}). Escalating to tech-lead.`,
+          reason: `Stage ${currentStage} exceeded max retries (${stageRetries}/${maxRetries}). Escalating to ${escalationTarget}.`,
           escalated: true,
         };
         emitStageEvent(deps, input.taskId, 'pipeline.stage.retry_exceeded', {
@@ -234,7 +240,7 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
         };
       }
 
-      let targetStage = getNextStage(currentStage);
+      let targetStage = getNextStage(currentStage, configuredStages);
       if (!targetStage) {
         return {
           content: [{ type: 'text' as const, text: JSON.stringify({ advanced: false, reason: `Already at final stage: ${currentStage}` }) }],
@@ -252,7 +258,7 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
           : 'Auto-skipped: non-UI task (skipDesignForNonUITasks=true)';
 
         // Record skip and advance past DESIGN
-        const afterDesign = getNextStage('DESIGN');
+        const afterDesign = getNextStage('DESIGN', configuredStages);
         if (afterDesign) {
           emitStageEvent(deps, input.taskId, 'pipeline.stage.skipped', {
             stage: 'DESIGN',
@@ -290,14 +296,14 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
       emitStageEvent(deps, input.taskId, 'pipeline.stage.completed', {
         stage: currentStage,
         durationMs,
-        agentId: STAGE_OWNERS[currentStage as PipelineStage] ?? 'system',
+        agentId: stageOwners[currentStage] ?? 'system',
       });
 
       // Update metadata with new stage and stage timing
       const updatedMeta = {
         ...meta,
         pipelineStage: targetStage,
-        pipelineOwner: STAGE_OWNERS[targetStage] ?? 'system',
+        pipelineOwner: stageOwners[targetStage] ?? 'system',
         [`${currentStage}_completedAt`]: now,
         [`${currentStage}_durationMs`]: durationMs,
         [`${targetStage}_startedAt`]: now,
@@ -339,7 +345,7 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
             if (blockingCount > 0 && roundNumber < maxReviewRounds) {
               targetStage = 'IMPLEMENTATION';
               updatedMeta['pipelineStage'] = 'IMPLEMENTATION';
-              updatedMeta['pipelineOwner'] = STAGE_OWNERS['IMPLEMENTATION'];
+              updatedMeta['pipelineOwner'] = stageOwners['IMPLEMENTATION'] ?? 'back-1';
               updatedMeta[`IMPLEMENTATION_startedAt`] = now;
 
               emitStageEvent(deps, input.taskId, 'pipeline.stage.review_loop_back', {
@@ -355,7 +361,7 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
       // Emit stage entered event after potential review-loop redirect (Task 0074)
       emitStageEvent(deps, input.taskId, 'pipeline.stage.entered', {
         stage: targetStage,
-        agentId: STAGE_OWNERS[targetStage] ?? 'system',
+        agentId: stageOwners[targetStage] ?? 'system',
       });
 
       deps.taskRepo.update(input.taskId, { metadata: updatedMeta }, task.rev, now);
@@ -363,7 +369,7 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
 
       deps.logger?.info(`pipeline.advance: ${input.taskId} ${currentStage} → ${targetStage}`);
 
-      const spawnMessage = buildStageSpawnMessage(input.taskId, targetStage, task.title ?? 'Untitled', updatedMeta);
+      const spawnMessage = buildStageSpawnMessage(input.taskId, targetStage, task.title ?? 'Untitled', updatedMeta, stageOwners);
 
       const result = {
         advanced: true,
@@ -371,11 +377,11 @@ export function pipelineAdvanceToolDef(deps: ToolDeps): ToolDef {
         title: task.title ?? 'Untitled',
         previousStage: currentStage,
         currentStage: targetStage,
-        owner: STAGE_OWNERS[targetStage] ?? 'system',
+        owner: stageOwners[targetStage] ?? 'system',
         durationMs,
         nextAction: targetStage !== 'DONE' ? {
           action: 'spawn_subagent',
-          agentId: STAGE_OWNERS[targetStage] ?? 'system',
+          agentId: stageOwners[targetStage] ?? 'system',
           task: spawnMessage,
         } : undefined,
       };
@@ -487,7 +493,7 @@ export function pipelineTimelineToolDef(deps: ToolDeps): ToolDef {
         const durationMs = typeof meta[`${stage}_durationMs`] === 'number'
           ? meta[`${stage}_durationMs`] as number : null;
         const skipped = meta[`${stage}_skipped`] === true;
-        const owner = STAGE_OWNERS[stage] ?? 'system';
+        const owner = (STAGE_OWNERS as Record<string, string>)[stage] ?? 'system';
 
         let status: 'completed' | 'skipped' | 'active' | 'pending';
         if (skipped) {
