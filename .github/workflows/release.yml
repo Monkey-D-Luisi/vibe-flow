@@ -88,7 +88,7 @@ jobs:
         run: bash scripts/pack-extensions.sh
 
       - name: Upload extension tarballs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: extension-tarballs
           path: release-artifacts/*.tgz
